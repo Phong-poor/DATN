@@ -5,12 +5,17 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Lưu đánh giá sản phẩm, trạng thái kiểm duyệt và phản hồi của quản trị viên.
+ */
 class DanhGia extends Model
 {
     use HasFactory;
 
     protected $table = 'danhgia';
+
     protected $primaryKey = 'id_danhgia';
+
     const UPDATED_AT = null;
 
     protected $fillable = [
@@ -19,7 +24,7 @@ class DanhGia extends Model
         'user_id',
         'danhgia',
         'binhluan',
-        'trangthai'
+        'trangthai',
     ];
 
     public function user()

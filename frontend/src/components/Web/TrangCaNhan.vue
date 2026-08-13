@@ -1,0 +1,7418 @@
+<script setup>
+import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
+
+import api from '@/services/api'
+import { getUser, updateUser, getToken } from '@/services/auth'
+import { isFormDirty } from '@/services/unsavedChanges'
+import echo from '@/services/echo'
+import swal from '@/services/swal'
+import AddressMapPicker from './TrinhChonBanDoDiaChi.vue'
+import { normalizeImageUrl, productImageUrl, storageUrl, withImageVersion, backendBaseUrl } from '@/services/urls'
+import { searchSuggestions, geocodeArea, geocodeWithFallback } from '@/services/geocode'
+import { fetchProvinces as fetchAddressProvinces, fetchWardsByProvince as fetchAddressWardsByProvince } from '@/services/addressService'
+
+// â”€â”€ Active tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const route = useRoute()
+const activeTab = ref(route.query.tab && ['profile', 'orders', 'address', 'promotions', 'password'].includes(route.query.tab) ? route.query.tab : 'profile')
+const handledRefundOrderId = ref(null)
+
+watch(() => route.query.tab, (newTab) => {
+  if (newTab && ['profile', 'orders', 'address', 'promotions', 'password'].includes(newTab)) {
+    activeTab.value = newTab
+  }
+})
+
+const tabs = [
+  { key: 'profile', label: 'Thông tin cá nhân', icon: 'person' },
+  { key: 'orders', label: 'Đơn hàng', icon: 'orders' },
+  { key: 'address', label: 'Địa chỉ', icon: 'map' },
+  { key: 'promotions', label: 'Khuyến mãi', icon: 'tag' },
+  { key: 'password', label: 'Đổi mật khẩu', icon: 'lock' },
+]
+
+// â”€â”€ Toast â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const toast = ref({ show: false, msg: '' })
+const showToast = (msg) => {
+  toast.value = { show: true, msg }
+  setTimeout(() => {
+    toast.value.show = false
+  }, 2500)
+}
+
+// â”€â”€ Cancellation state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const showCancelModal = ref(false)
+const orderToCancel = ref(null)
+const cancelReason = ref('')
+const isSubmitting = ref(false)
+
+// â”€â”€ Review state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const showReviewModal = ref(false)
+const reviewForm = ref({
+  id_dathang: null,
+  id_bienthe: null,
+  productName: '',
+  rating: 5,
+  comment: ''
+})
+const hoverRating = ref(0)
+const isSubmittingReview = ref(false)
+
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+//  TAB 1 â€” PROFILE
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+const user = ref({
+  name: '',
+  email: '',
+  phone: '',
+  birthday: '',
+  gender: '',
+  avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
+  memberSince: 'Thành viên',
+  joinDate: '',
+  xu: 0,
+})
+
+const tempAvatarUrl = ref('')
+
+const sidebarAvatarUrl = computed(() => {
+  if (!user.value.avatar) return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.value.name || 'User')
+  if (user.value.avatar.startsWith('http')) return user.value.avatar
+  return withImageVersion(normalizeImageUrl(user.value.avatar, ''), user.value.updated_at || user.value.updatedAt)
+})
+
+const formAvatarUrl = computed(() => {
+  if (tempAvatarUrl.value) return tempAvatarUrl.value
+  return sidebarAvatarUrl.value
+})
+
+const updateUserData = (apiUser) => {
+  user.value = {
+    ...user.value,
+    ...apiUser,
+    name: apiUser.name || apiUser.ten || user.value.name,
+    phone: apiUser.phone ?? apiUser.sodienthoai ?? '',
+    birthday: apiUser.date_of_birth ?? apiUser.ngaysinh ?? '',
+    gender: apiUser.gender ?? apiUser.gioitinh ?? '',
+    avatar: apiUser.avatar || apiUser.anhdaidien || apiUser.avatar_url || user.value.avatar,
+    updated_at: apiUser.updated_at || user.value.updated_at,
+    xu: apiUser.xu !== undefined ? apiUser.xu : (user.value.xu || 0),
+    memberSince: apiUser.role === 'admin' ? 'Quản trị viên' : 'Thành viên',
+    joinDate: apiUser.created_at
+      ? new Date(apiUser.created_at).toLocaleDateString('vi-VN')
+      : user.value.joinDate,
+    is_google_account: Boolean(apiUser.is_google_account || apiUser.id_google),
+    id_google: apiUser.id_google || null,
+  }
+
+  if (apiUser.email) {
+    pwForm.value.email = apiUser.email
+  }
+}
+
+const isGoogleAccount = computed(() => Boolean(user.value?.is_google_account || user.value?.id_google))
+const isSocialAccount = computed(() => Boolean(
+  user.value?.is_google_account || user.value?.id_google
+))
+const isTabAllowed = (key) => {
+  if (key === 'password' && isSocialAccount.value) return false
+  return true
+}
+const filteredTabs = computed(() => tabs.filter(tab => isTabAllowed(tab.key)))
+
+watch([activeTab, isSocialAccount], ([tab, social]) => {
+  if (tab === 'password' && social) {
+    activeTab.value = 'profile'
+  }
+})
+
+const fileInput = ref(null)
+const selectedAvatarFile = ref(null)
+const isUploadingAvatar = ref(false)
+
+const triggerAvatarUpload = () => {
+  fileInput.value?.click()
+}
+
+const handleAvatarUpload = async (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg']
+  if (!allowedTypes.includes(file.type)) {
+    showToast('Chỉ chấp nhận ảnh định dạng JPG hoặc PNG!')
+    return
+  }
+
+  if (file.size > 2 * 1024 * 1024) {
+    showToast('Kích thước ảnh phải nhỏ hơn 2MB!')
+    return
+  }
+
+  // Thu hồi ảnh xem trước cũ nếu có
+  if (tempAvatarUrl.value) {
+    URL.revokeObjectURL(tempAvatarUrl.value)
+    tempAvatarUrl.value = ''
+  }
+
+  // Tạo ảnh xem trước cục bộ ngay lập tức
+  const previewUrl = URL.createObjectURL(file)
+  tempAvatarUrl.value = previewUrl
+
+  isUploadingAvatar.value = true
+  try {
+    const formData = new FormData()
+    formData.append('avatar', file)
+
+    const avatarRes = await api.post('/user/avatar', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+
+    if (avatarRes.data.user) {
+      updateUserData({
+        ...avatarRes.data.user,
+        updated_at: avatarRes.data.user.updated_at || Date.now()
+      })
+      updateUser(user.value)
+      window.dispatchEvent(new Event('user-updated'))
+      showToast('Cập nhật ảnh đại diện thành công!')
+      // Không thu hồi tempAvatarUrl ngay để giữ giao diện xem trước mượt mà, tức thời
+    }
+  } catch (error) {
+    console.error('Lỗi upload avatar:', error)
+    showToast('Lỗi cập nhật ảnh đại diện!')
+    // Náº¿u lá»—i thì thu hồi và reset ảnh xem trước
+    if (tempAvatarUrl.value) {
+      URL.revokeObjectURL(tempAvatarUrl.value)
+      tempAvatarUrl.value = ''
+    }
+  } finally {
+    isUploadingAvatar.value = false
+    if (fileInput.value) fileInput.value.value = ''
+  }
+}
+
+const profileForm = ref({})
+const editing = ref(false)
+const savingProfile = ref(false)
+
+const loadUser = async () => {
+  try {
+    const token = getToken()
+
+    if (!token) {
+      const parsed = getUser()
+      if (parsed) {
+        user.value = {
+          ...user.value,
+          ...parsed,
+          phone: parsed.phone || '',
+          birthday: parsed.birthday || '',
+          gender: parsed.gender || '',
+          xu: parsed.xu || 0,
+          memberSince: parsed.role === 'admin' ? 'Quản trị viên' : 'Thành viên',
+          joinDate: parsed.created_at
+            ? new Date(parsed.created_at).toLocaleDateString('vi-VN')
+            : (parsed.joinDate || ''),
+          avatar: parsed.avatar || user.value.avatar,
+        }
+      }
+      return
+    }
+    const res = await api.get('/user/profile')
+
+    updateUserData(res.data)
+
+    updateUser(user.value)
+  } catch (error) {
+    console.error('Lỗi tải người dùng:', error)
+
+    const parsed = getUser()
+    if (parsed) {
+      user.value = {
+        ...user.value,
+        ...parsed,
+        phone: parsed.phone || '',
+        birthday: parsed.birthday || '',
+        gender: parsed.gender || '',
+        memberSince: parsed.role === 'admin' ? 'Quản trị viên' : 'Thành viên',
+        joinDate: parsed.created_at
+          ? new Date(parsed.created_at).toLocaleDateString('vi-VN')
+          : (parsed.joinDate || ''),
+        avatar: parsed.avatar || user.value.avatar,
+      }
+    }
+  }
+}
+
+const orderFlow = ['pending', 'confirmed', 'shipping', 'done']
+const refundFlow = ['refund_pending', 'refund_pickup', 'refund_delivering', 'refund_received', 'refunded']
+
+const formatTimelineDate = (value) => {
+  if (!value) return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+
+  return date.toLocaleString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
+}
+
+const parseTimelineTime = (value) => {
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+const shouldSpreadDemoTimeline = (timeline) => {
+  const times = timeline
+    .map((step) => parseTimelineTime(step.time)?.getTime())
+    .filter(Boolean)
+
+  if (times.length < 3) return false
+
+  return Math.max(...times) - Math.min(...times) < 30 * 60 * 1000
+}
+
+const realisticShipmentTime = (order, step, index, baseDate) => {
+  const base = baseDate || new Date()
+  const offsets = {
+    created: 0,
+    waiting_pickup: 15 * 60 * 1000,
+    picked_up: 3 * 60 * 60 * 1000,
+    delivering: 5 * 60 * 60 * 1000,
+  }
+
+  if (step.status === 'delivered') {
+    const expectedDate = getShippingInfo(order)?.expected_delivery_date
+    const expected = expectedDate ? new Date(`${expectedDate}T10:30:00`) : null
+    if (expected && !Number.isNaN(expected.getTime()) && expected > base) return expected
+    return new Date(base.getTime() + 26 * 60 * 60 * 1000)
+  }
+
+  return new Date(base.getTime() + (offsets[step.status] ?? index * 2 * 60 * 60 * 1000))
+}
+
+const interpolateDate = (startValue, endValue, ratio) => {
+  const start = new Date(startValue).getTime()
+  const end = new Date(endValue).getTime()
+  if (Number.isNaN(start) || Number.isNaN(end) || end <= start) return endValue || startValue
+  return new Date(start + (end - start) * ratio).toISOString()
+}
+
+const timelineDateFor = (order, key, statusKey, flow, ratio = 1) => {
+  const history = order.du_lieu_thanh_toan?.status_history || {}
+  if (history[key]) return formatTimelineDate(history[key])
+
+  const currentIndex = flow.indexOf(statusKey)
+  const targetIndex = flow.indexOf(key)
+  if (targetIndex === -1 || currentIndex === -1 || targetIndex > currentIndex) return null
+
+  if (key === 'pending') return formatTimelineDate(order.created_at)
+  if (key === statusKey) return formatTimelineDate(order.updated_at || order.created_at)
+
+  return formatTimelineDate(interpolateDate(order.created_at, order.updated_at, ratio))
+}
+
+const buildOrderSteps = (order, statusKey) => [
+  { label: 'Đặt hàng', date: timelineDateFor(order, 'pending', statusKey, orderFlow, 0), done: true },
+  { label: 'Xác nhận', date: timelineDateFor(order, 'confirmed', statusKey, orderFlow, 0.35), done: statusKey !== 'pending' },
+  { label: 'Đang giao', date: timelineDateFor(order, 'shipping', statusKey, orderFlow, 0.68), done: statusKey === 'shipping' || statusKey === 'done' || statusKey.startsWith('refund') },
+  { label: 'Hoàn thành', date: timelineDateFor(order, 'done', statusKey, orderFlow, 1), done: statusKey === 'done' || statusKey.startsWith('refund') },
+]
+
+const buildRefundSteps = (order, statusKey) => statusKey.startsWith('refund') ? [
+  { label: 'Yêu cầu hoàn trả', date: timelineDateFor(order, 'refund_pending', statusKey, refundFlow, 0.2), done: refundFlow.indexOf(statusKey) >= 0 },
+  { label: 'Chờ lấy hàng hoàn', date: timelineDateFor(order, 'refund_pickup', statusKey, refundFlow, 0.4), done: refundFlow.indexOf(statusKey) >= 1 },
+  { label: 'Đang giao hoàn', date: timelineDateFor(order, 'refund_delivering', statusKey, refundFlow, 0.6), done: refundFlow.indexOf(statusKey) >= 2 },
+  { label: 'Đã nhận hoàn', date: timelineDateFor(order, 'refund_received', statusKey, refundFlow, 0.8), done: refundFlow.indexOf(statusKey) >= 3 },
+  { label: 'Đã hoàn tiền', date: timelineDateFor(order, 'refunded', statusKey, refundFlow, 1), done: refundFlow.indexOf(statusKey) >= 4 },
+] : null
+
+const fetchOrders = async () => {
+  try {
+    const res = await api.get('/orders')
+
+    if (res.data.success) {
+      orders.value = res.data.orders.map(order => {
+        let statusKey = 'pending'
+        if (order.trangthai === 'confirmed') statusKey = 'confirmed'
+        if (order.trangthai === 'shipping') statusKey = 'shipping'
+        if (order.trangthai === 'done' || order.trangthai === 'completed') statusKey = 'done'
+        if (order.trangthai === 'refund_pending') statusKey = 'refund_pending'
+        if (order.trangthai === 'refund_pickup') statusKey = 'refund_pickup'
+        if (order.trangthai === 'refund_delivering') statusKey = 'refund_delivering'
+        if (order.trangthai === 'refund_received') statusKey = 'refund_received'
+        if (order.trangthai === 'refunded') statusKey = 'refunded'
+        if (order.trangthai === 'refund_rejected') statusKey = 'refund_rejected'
+        if (order.trangthai === 'cancelled') statusKey = 'cancelled'
+
+        return {
+          id_dathang: order.id_dathang,
+          id: `VT-2026-${String(order.id_dathang).padStart(3, '0')}`,
+          date: new Date(order.created_at).toLocaleDateString('vi-VN'),
+          created_at: order.created_at,
+          status: statusKey,
+          trangthai: order.trangthai,
+          updated_at: order.updated_at,
+          du_lieu_thanh_toan: order.du_lieu_thanh_toan || {},
+          shipping: order.du_lieu_thanh_toan?.shipping_demo || null,
+          total: new Intl.NumberFormat('vi-VN').format(order.tongtien) + 'đ',
+          tongtien: order.tongtien,
+          giam_gia: order.giam_gia || 0,
+          lydo: order.lydo,
+          refund_proof: order.refund_proof,
+          xu_dung: order.xu_dung || 0,
+          items: (order.chi_tiets || []).map(item => {
+            let fullName = item.bien_the?.san_pham ? item.bien_the.san_pham.tenSP : 'Sản phẩm'
+
+            if (item.bien_the && item.bien_the.thuoc_tinh_json) {
+              try {
+                const thuocTinhs = typeof item.bien_the.thuoc_tinh_json === 'string'
+                  ? JSON.parse(item.bien_the.thuoc_tinh_json)
+                  : item.bien_the.thuoc_tinh_json
+
+                if (Array.isArray(thuocTinhs) && thuocTinhs.length > 0) {
+                  const colorAttr = thuocTinhs.find(t => t.ten_thuoctinh.toLowerCase().includes('màu') || t.ten_thuoctinh.toLowerCase().includes('color'))
+                  const otherAttrs = thuocTinhs.filter(t => !t.ten_thuoctinh.toLowerCase().includes('màu') && !t.ten_thuoctinh.toLowerCase().includes('color')).map(t => t.giatri).join(' - ')
+
+                  if (colorAttr) {
+                    fullName += ` - ${colorAttr.giatri}`
+                  }
+                  if (otherAttrs) {
+                    fullName += ` (${otherAttrs})`
+                  }
+                } else if (item.bien_the.ten_bienthe) {
+                  fullName += ` (${item.bien_the.ten_bienthe})`
+                }
+              } catch (e) {
+                if (item.bien_the.ten_bienthe) fullName += ` (${item.bien_the.ten_bienthe})`
+              }
+            } else if (item.bien_the && item.bien_the.ten_bienthe) {
+              fullName += ` (${item.bien_the.ten_bienthe})`
+            }
+
+            return {
+              id_bienthe: item.id_bienthe,
+              is_reviewed: item.is_reviewed,
+              is_refund: item.hoantien ?? item.is_refund ?? false,
+              name: fullName,
+              qty: item.soluong,
+              price: new Intl.NumberFormat('vi-VN').format(item.gia) + 'đ',
+              img: productImageUrl(item.bien_the?.san_pham || item.bien_the?.sanPham || {}, item.bien_the, 'https://placehold.co/200')
+            }
+          }),
+          steps: buildOrderSteps(order, statusKey),
+          refundSteps: buildRefundSteps(order, statusKey)
+        }
+      })
+      if (selectedOrder.value) {
+        const freshSelected = orders.value.find(order => order.id_dathang === selectedOrder.value.id_dathang)
+        if (freshSelected) selectedOrder.value = freshSelected
+      }
+      openRequestedRefundForm()
+    }
+  } catch (error) {
+    console.error('Lỗi tải đơn hàng:', error)
+  }
+}
+
+const openCancelModal = (order) => {
+  if (!canCancelOrder(order)) {
+    showToast('Đơn hàng đã vào luồng vận chuyển nên không thể hủy.')
+    return
+  }
+
+  orderToCancel.value = order
+  cancelReason.value = ''
+  showCancelModal.value = true
+}
+
+const confirmCancel = async () => {
+  if (!cancelReason.value.trim()) {
+    showToast('Vui lòng nhập lý do hủy.')
+    return
+  }
+
+  const isConfirmed = await swal.confirm('Xác nhận hủy', 'Bạn có chắc chắn muốn hủy đơn hàng này?')
+  if (!isConfirmed) return
+
+  isSubmitting.value = true
+  try {
+    const res = await api.post(`/orders/${orderToCancel.value.id_dathang}/cancel`, {
+      lydo: cancelReason.value.trim()
+    })
+
+    if (res.data.success) {
+      showToast('Hủy đơn hàng thành công!')
+      showCancelModal.value = false
+      await fetchOrders()
+    }
+  } catch (err) {
+    showToast(err.response?.data?.message || 'Lỗi khi hủy đơn.')
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+const closeCancelModal = async () => {
+  if (cancelReason.value.trim()) {
+    const confirmed = await swal.confirm(
+      'Xác nhận đóng',
+      'Bạn đã nhập lý do hủy đơn. Nếu đóng, nội dung này sẽ bị mất. Bạn vẫn muốn tiếp tục chứ?',
+      'Có, đóng lại',
+      'Không, ở lại'
+    )
+    if (!confirmed) return
+  }
+  showCancelModal.value = false
+  cancelReason.value = ''
+}
+
+// Refund state
+const showRefundModal = ref(false)
+const orderToRefund = ref(null)
+const refundReason = ref('')
+const refundProof = ref(null)
+const refundProofUrl = ref(null)
+const refundSelectedItems = ref([])
+
+const handleProofUpload = (e) => {
+  const file = e.target.files[0]
+  if (!file) return
+  if (file.size > 20 * 1024 * 1024) {
+    showToast('Kích thước file không được vượt quá 20MB')
+    return
+  }
+  refundProof.value = file
+  if (refundProofUrl.value) URL.revokeObjectURL(refundProofUrl.value)
+  refundProofUrl.value = URL.createObjectURL(file)
+}
+
+const openRefundModal = (order) => {
+  orderToRefund.value = order
+  refundReason.value = ''
+  refundProof.value = null
+  if (refundProofUrl.value) URL.revokeObjectURL(refundProofUrl.value)
+  refundProofUrl.value = null
+  refundSelectedItems.value = []
+  showRefundModal.value = true
+}
+
+const confirmRefund = async () => {
+  if (refundSelectedItems.value.length === 0) {
+    showToast('Vui lòng chọn ít nhất một sản phẩm để hoàn trả.')
+    return
+  }
+  if (!refundReason.value.trim()) {
+    showToast('Vui lòng nhập lý do hoàn trả.')
+    return
+  }
+  if (!refundProof.value) {
+    showToast('Vui lòng tải lên ảnh/video bằng chứng.')
+    return
+  }
+
+  isSubmitting.value = true
+  try {
+    const formData = new FormData()
+    formData.append('lydo', refundReason.value)
+    formData.append('proof', refundProof.value)
+    refundSelectedItems.value.forEach(id => {
+      formData.append('item_ids[]', id)
+    })
+
+    const res = await api.post(`/orders/${orderToRefund.value.id_dathang}/refund`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+
+    if (res.data.success) {
+      showToast('Đã gửi yêu cầu hoàn trả!')
+      showRefundModal.value = false
+      await fetchOrders()
+      if (selectedOrder.value && selectedOrder.value.id_dathang === orderToRefund.value.id_dathang) {
+        selectedOrder.value = null
+      }
+    }
+  } catch (err) {
+    showToast(err.response?.data?.message || 'Có lỗi xảy ra khi yêu cầu hoàn trả.')
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+const closeRefundModal = async () => {
+  if (refundReason.value.trim() || refundProof.value || refundSelectedItems.value.length > 0) {
+    const confirmed = await swal.confirm(
+      'Xác nhận đóng',
+      'Bạn đang điền thông tin yêu cầu hoàn trả. Nếu đóng, các thông tin này sẽ bị mất. Bạn vẫn muốn tiếp tục chứ?',
+      'Có, đóng lại',
+      'Không, ở lại'
+    )
+    if (!confirmed) return
+  }
+  showRefundModal.value = false
+  refundReason.value = ''
+  refundProof.value = null
+  if (refundProofUrl.value) {
+    URL.revokeObjectURL(refundProofUrl.value)
+    refundProofUrl.value = null
+  }
+  refundSelectedItems.value = []
+}
+
+const getRefundModalItems = (order) => {
+  if (!order) return []
+  const items = order.items || order.chi_tiets || order.chiTiets || []
+  const status = String(order.status || order.trangthai || '')
+  if (!status.startsWith('refund')) {
+    return items
+  }
+  const filtered = items.filter(i => i.is_refund == 1 || i.is_refund === true || i.hoantien == 1 || i.hoantien === true)
+  return filtered.length > 0 ? filtered : items
+}
+
+const isRefundItem = (item) => {
+  return item?.is_refund == 1 || item?.is_refund === true || item?.hoantien == 1 || item?.hoantien === true
+}
+
+const getRefundProofFiles = (order) => {
+  if (!order) return []
+
+  if (typeof order === 'string') {
+    const trimmed = order.trim()
+    if (!trimmed) return []
+    if ((trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
+      try {
+        const parsed = JSON.parse(trimmed)
+        return getRefundProofFiles(parsed)
+      } catch (e) { }
+    }
+    if (trimmed.includes(',')) {
+      return trimmed.split(',').map(s => s.trim()).filter(Boolean)
+    }
+    return [trimmed]
+  }
+
+  if (Array.isArray(order)) {
+    return order.flatMap(item => getRefundProofFiles(item)).filter(Boolean)
+  }
+
+  if (typeof order === 'object') {
+    const raw = order.raw || order
+    let payData = raw.du_lieu_thanh_toan || raw.payment_data
+    if (typeof payData === 'string') {
+      try { payData = JSON.parse(payData) } catch (e) { }
+    }
+
+    const candidate = raw.minh_chung_hoan_tien
+      || raw.refund_proof
+      || raw.refund_proofs
+      || raw.minh_chung
+      || raw.proof
+      || raw.proofs
+      || payData?.minh_chung_hoan_tien
+      || payData?.refund_proof
+      || payData?.refund_proofs
+
+    if (candidate && candidate !== order && candidate !== raw) {
+      return getRefundProofFiles(candidate)
+    }
+  }
+
+  return []
+}
+
+const uploadRefundProof = async (event, order) => {
+  const files = event.target.files
+  if (!files || files.length === 0) return
+  const id = order.id_dathang || order.id
+  if (!id) return
+
+  const formData = new FormData()
+  for (let i = 0; i < files.length; i++) {
+    formData.append('proofs[]', files[i])
+  }
+
+  try {
+    swal.loading('Đang tải lên tệp bằng chứng...')
+    const res = await api.post(`/donhang/${id}/refund-proof`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    swal.closeLoading()
+    if (res.data && res.data.success) {
+      swal.success('Tải lên bằng chứng thành công!')
+      if (res.data.order) {
+        const updated = res.data.order
+        const proofVal = updated.minh_chung_hoan_tien || updated.refund_proof
+        order.minh_chung_hoan_tien = proofVal
+        order.refund_proof = proofVal
+        if (selectedOrder.value) {
+          selectedOrder.value = {
+            ...selectedOrder.value,
+            minh_chung_hoan_tien: proofVal,
+            refund_proof: proofVal
+          }
+        }
+      }
+      await fetchOrders()
+    } else {
+      swal.error(res.data?.message || 'Không thể tải lên tệp.')
+    }
+  } catch (err) {
+    swal.closeLoading()
+    swal.error('Lỗi khi tải lên tệp bằng chứng.')
+  }
+}
+
+const getProofMediaUrl = (file) => {
+  if (!file) return ''
+  if (/^(https?:)?\/\//i.test(file) || file.startsWith('data:') || file.startsWith('blob:')) {
+    return file
+  }
+  const cleanPath = String(file).replace(/\\/g, '/').replace(/^\/+/, '').replace(/^public\//i, '').replace(/^storage\//i, '')
+  return storageUrl(cleanPath)
+}
+
+const getProofProxyUrl = (file) => {
+  if (!file) return ''
+  if (/^(https?:)?\/\//i.test(file) || file.startsWith('data:') || file.startsWith('blob:')) {
+    return file
+  }
+  const cleanPath = String(file).replace(/\\/g, '/').replace(/^\/+/, '').replace(/^public\//i, '').replace(/^storage\//i, '')
+  return `${backendBaseUrl}/api/refund-file?path=${encodeURIComponent(cleanPath)}`
+}
+
+const isImageFile = (file) => {
+  if (!file) return false
+  const f = String(file).toLowerCase().trim()
+  return /\.(jpeg|jpg|png|gif|webp|svg|bmp|heic|heif)$/i.test(f)
+}
+
+const isVideoFile = (file) => {
+  if (!file) return false
+  const f = String(file).toLowerCase().trim()
+  if (isImageFile(file)) return false
+  return /\.(mp4|mov|avi|wmv|webm|mkv|flv|3gp|m4v|quicktime)$/i.test(f)
+    || f.includes('screen recording')
+    || f.startsWith('refund_proofs/')
+    || f.startsWith('refunds/')
+    || !f.includes('.')
+}
+
+const isRefundable = (order) => {
+  if (order.trangthai !== 'done') return false;
+  const updated = new Date(order.updated_at).getTime();
+  if (!Number.isFinite(updated)) return false;
+  const now = new Date().getTime();
+  const diffDays = (now - updated) / (1000 * 60 * 60 * 24);
+  return diffDays <= 30;
+}
+
+const openRequestedRefundForm = () => {
+  const requestedId = Number(route.query.refund_order)
+  if (!Number.isInteger(requestedId) || requestedId <= 0 || handledRefundOrderId.value === requestedId) return
+
+  handledRefundOrderId.value = requestedId
+  activeTab.value = 'orders'
+  const order = orders.value.find(item => Number(item.id_dathang) === requestedId)
+
+  if (!order) {
+    showToast(`Không tìm thấy đơn hàng #${requestedId} trong tài khoản của bạn.`)
+    return
+  }
+
+  if (!isRefundable(order)) {
+    showToast(`Đơn hàng #${requestedId} hiện không đủ điều kiện hoàn trả.`)
+    return
+  }
+
+  openRefundModal(order)
+}
+
+watch(() => route.query.refund_order, () => {
+  handledRefundOrderId.value = null
+  if (orders.value.length) openRequestedRefundForm()
+})
+
+const handleReorder = async (order) => {
+  const isConfirmed = await swal.confirm('Xác nhận mua lại', 'Bạn có chắc chắn muốn mua lại đơn hàng này?')
+  if (!isConfirmed) return
+
+  try {
+    const res = await api.post(`/orders/${order.id_dathang}/reorder`)
+
+    if (res.data.success) {
+      showToast(res.data.message)
+      window.location.href = '/gio-hang'
+    }
+  } catch (err) {
+    showToast('Lỗi khi mua lại sản phẩm.')
+  }
+}
+
+const openReviewModal = (order, item) => {
+  reviewForm.value = {
+    id_dathang: order.id_dathang,
+    id_bienthe: item.id_bienthe,
+    productName: item.name,
+    rating: 5,
+    comment: ''
+  }
+  showReviewModal.value = true
+}
+
+const submitReview = async () => {
+  if (reviewForm.value.rating < 1) {
+    showToast('Vui lòng chọn số sao đánh giá.')
+    return
+  }
+
+  isSubmittingReview.value = true
+  try {
+    const res = await api.post('/danh-gia', {
+      id_dathang: reviewForm.value.id_dathang,
+      id_bienthe: reviewForm.value.id_bienthe,
+      danhgia: reviewForm.value.rating,
+      binhluan: reviewForm.value.comment
+    })
+
+    if (res.data.success) {
+      showToast('Cảm ơn bạn đã đánh giá sản phẩm! ❤️')
+      showReviewModal.value = false
+
+      // Cập nhật trạng thái item ngay lập tức trong UI
+      if (selectedOrder.value) {
+        const item = selectedOrder.value.items.find(i => i.id_bienthe === reviewForm.value.id_bienthe)
+        if (item) item.is_reviewed = true
+      }
+
+      // Táº£i láº¡i toÃ n bá»™ đơn hàng để cập nhật danh sách chính
+      await fetchOrders()
+    }
+  } catch (err) {
+    showToast(err.response?.data?.message || 'Có lỗi xảy ra khi gửi đánh giá.')
+  } finally {
+    isSubmittingReview.value = false
+  }
+}
+
+const wishlistCount = ref(0)
+
+const fetchWishlistCount = async () => {
+  try {
+    const res = await api.get('/yeu-thich')
+    if (res.data && Array.isArray(res.data.data)) {
+      wishlistCount.value = res.data.data.length
+    } else if (res.data && Array.isArray(res.data)) {
+      wishlistCount.value = res.data.length
+    }
+  } catch (error) {
+    console.error('Lỗi tải danh sách yêu thích:', error)
+  }
+}
+
+onMounted(() => {
+  loadUser()
+  fetchOrders()
+  orderRefreshTimer = window.setInterval(() => {
+    if (activeTab.value === 'orders') fetchOrders()
+  }, 20000)
+  fetchWishlistCount()
+  fetchPromotions()
+  fetchAddresses()
+  loadPwCaptcha()
+  fetchAttendanceStatus()
+
+  const userData = getUser()
+  if (userData && (userData.id || userData.id_khachhang || userData.id_user)) {
+    const userId = userData.id || userData.id_khachhang || userData.id_user
+
+    let isFetching = false
+    const handleStatusUpdate = async (data) => {
+      if (data && data.id_dathang) {
+        const idx = orders.value.findIndex(o => Number(o.id_dathang) === Number(data.id_dathang))
+        if (idx !== -1 && data.trangthai) {
+          orders.value[idx].trangthai = data.trangthai
+          orders.value[idx].status = data.trangthai
+        }
+      }
+      if (isFetching) return
+      isFetching = true
+      try {
+        await fetchOrders()
+      } finally {
+        setTimeout(() => { isFetching = false }, 1000)
+      }
+    }
+
+    if (getToken()) {
+      try { echo.private(`user.${userId}`).listen('.order.status.updated', handleStatusUpdate) } catch (e) { }
+    }
+    try { echo.channel(`user-orders.${userId}`).listen('.order.status.updated', handleStatusUpdate) } catch (e) { }
+    try { echo.channel('admin-orders').listen('.order.status.updated', handleStatusUpdate) } catch (e) { }
+  }
+})
+
+onUnmounted(() => {
+  if (orderRefreshTimer) {
+    window.clearInterval(orderRefreshTimer)
+    orderRefreshTimer = null
+  }
+  if (tempAvatarUrl.value) {
+    URL.revokeObjectURL(tempAvatarUrl.value)
+  }
+  const userData = getUser()
+  const userId = userData?.id || userData?.id_user
+  if (userId) {
+    echo.leave(`user.${userId}`)
+  }
+})
+
+// â”€â”€ DAILY CHECK-IN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const attendanceData = ref({
+  checked_today: false,
+  current_streak: 0,
+  days_progress: []
+})
+const checkingIn = ref(false)
+
+const fetchAttendanceStatus = async () => {
+  try {
+    const token = getToken()
+    if (!token) return
+    const res = await api.get('/diem-danh/status')
+    if (res.data.success) {
+      attendanceData.value = res.data
+    }
+  } catch (error) {
+    console.error('Lỗi tải trạng thái điểm danh:', error)
+  }
+}
+
+const handleCheckIn = async () => {
+  if (attendanceData.value.checked_today || checkingIn.value) return
+
+  checkingIn.value = true
+  try {
+    const res = await api.post('/diem-danh')
+    if (res.data.success) {
+      swal.success('Thành công!', res.data.message || 'Bạn đã điểm danh thành công!')
+
+      // Cập nhật số xu của user hiển thị trên giao diện
+      if (res.data.total_xu !== undefined) {
+        user.value.xu = res.data.total_xu
+        // Đồng bộ lưu local
+        const currentUser = getUser()
+        if (currentUser) {
+          currentUser.xu = res.data.total_xu
+          updateUser(currentUser)
+        }
+        window.dispatchEvent(new Event('user-updated'))
+      }
+
+      // Load lại trạng thái điểm danh mới
+      await fetchAttendanceStatus()
+    }
+  } catch (error) {
+    console.error('Lỗi điểm danh:', error)
+    const errorMsg = error.response?.data?.message || 'Điểm danh thất bại, vui lòng thử lại sau.'
+    showToast(errorMsg)
+  } finally {
+    checkingIn.value = false
+  }
+}
+
+const showXuHistoryModal = ref(false)
+const xuHistoryList = ref([])
+const xuHistoryLoading = ref(false)
+const xuHistoryPage = ref(1)
+const xuHistoryTotalPages = ref(1)
+
+const openXuHistoryModal = () => {
+  showXuHistoryModal.value = true
+  fetchXuHistory(1)
+}
+
+const fetchXuHistory = async (page) => {
+  try {
+    xuHistoryLoading.value = true
+    const res = await api.get(`/xu/history?page=${page}`)
+    if (res.data.success) {
+      xuHistoryList.value = res.data.data.data || []
+      xuHistoryPage.value = res.data.data.current_page || 1
+      xuHistoryTotalPages.value = res.data.data.last_page || 1
+    }
+  } catch (error) {
+    console.error('Lỗi khi lấy lịch sử xu:', error)
+  } finally {
+    xuHistoryLoading.value = false
+  }
+}
+
+const startEdit = () => {
+  profileForm.value = {
+    ...user.value,
+  }
+  if (profileForm.value.gender === 'Nam') profileForm.value.gender = 'male'
+  if (profileForm.value.gender === 'Nữ') profileForm.value.gender = 'female'
+
+  editing.value = true
+}
+
+const isProfileFormDirty = () => {
+  if (!editing.value) return false
+  return (
+    profileForm.value.name !== user.value.name ||
+    profileForm.value.phone !== user.value.phone ||
+    profileForm.value.birthday !== user.value.birthday ||
+    (profileForm.value.gender === 'male' ? 'Nam' : profileForm.value.gender === 'female' ? 'Nữ' : profileForm.value.gender) !== user.value.gender ||
+    profileForm.value.avatar !== user.value.avatar
+  )
+}
+
+const cancelEdit = async (force = false) => {
+  if (!force && isProfileFormDirty()) {
+    const confirmed = await swal.confirm(
+      'Xác nhận hủy',
+      'Bạn đang có thay đổi chưa được lưu. Nếu hủy, các dữ liệu đã nhập sẽ bị mất. Bạn vẫn muốn tiếp tục chứ?',
+      'Có, hủy',
+      'Không, ở lại'
+    )
+    if (!confirmed) return
+  }
+  editing.value = false
+  profileForm.value = {}
+  profilePwErrors.value = {}
+  otpVerifiedForPassword.value = false
+  isFormDirty.value = false
+}
+
+const changeTab = async (tabKey) => {
+  if (tabKey === 'password' && isSocialAccount.value) return
+  if (activeTab.value === tabKey) return
+
+  if (isFormDirty.value) {
+    const confirmed = await swal.confirm(
+      'Xác nhận rời đi',
+      'Bạn có thay đổi chưa được lưu. Nếu rời đi, các thay đổi này sẽ bị mất. Bạn vẫn muốn tiếp tục chứ?',
+      'Có, rời đi',
+      'Không, ở lại'
+    )
+    if (!confirmed) return
+    isFormDirty.value = false
+  }
+
+  // Clear inputs when leaving tabs to prevent stale data
+  if (activeTab.value === 'profile') {
+    await cancelEdit(true)
+  } else if (activeTab.value === 'password') {
+    pwForm.value = { current: '', email: user.value.email || '', newPass: '', confirm: '' }
+    pwErrors.value = {}
+    passwordTabOtpPending.value = false
+  }
+
+  activeTab.value = tabKey
+}
+
+const otpVerifiedForPassword = ref(false)
+const passwordTabOtpPending = ref(false)
+const profilePwErrors = ref({})
+const showProfileOtpModal = ref(false)
+const profileOtpCode = ref(['', '', '', '', '', ''])
+const profileOtpInputRefs = ref([])
+const profileOtpCountdown = ref(600) // 10 mins
+const profileOtpResendCooldown = ref(0)
+const verifyingProfileOtp = ref(false)
+const sendingProfileOtp = ref(false)
+let profileOtpTimer = null
+
+const startProfileOtpTimer = () => {
+  if (profileOtpTimer) clearInterval(profileOtpTimer)
+  profileOtpCountdown.value = 600
+  profileOtpTimer = setInterval(() => {
+    if (profileOtpCountdown.value > 0) profileOtpCountdown.value--
+    else clearInterval(profileOtpTimer)
+  }, 1000)
+}
+
+const resendProfileOtp = async () => {
+  if (profileOtpResendCooldown.value > 0) return
+  sendingProfileOtp.value = true
+  try {
+    if (passwordTabOtpPending.value) {
+      await api.post('/user/change-password/request-otp', {
+        email: pwForm.value.email || user.value.email,
+      })
+    } else {
+      await api.post('/user/change-password/request-otp', {
+        email: profileForm.value.currentEmail
+      })
+    }
+    showToast('Đã gửi lại mã OTP!')
+    profileOtpResendCooldown.value = 60
+    const cooldownTimer = setInterval(() => {
+      if (profileOtpResendCooldown.value > 0) profileOtpResendCooldown.value--
+      else clearInterval(cooldownTimer)
+    }, 1000)
+    startProfileOtpTimer()
+  } catch (error) {
+    showToast(error.response?.data?.message || 'Lỗi gửi lại mã OTP!')
+  } finally {
+    sendingProfileOtp.value = false
+  }
+}
+
+const handleProfileOtpInput = (index, event) => {
+  const value = event.target.value
+  if (value && value.length > 1) {
+    const chars = value.split('').filter(c => /[0-9]/.test(c))
+    chars.forEach((char, i) => {
+      if (index + i < 6) {
+        profileOtpCode.value[index + i] = char
+      }
+    })
+    const nextEmptyIndex = profileOtpCode.value.findIndex(val => !val)
+    if (nextEmptyIndex !== -1 && profileOtpInputRefs.value[nextEmptyIndex]) {
+      profileOtpInputRefs.value[nextEmptyIndex].focus()
+    } else if (profileOtpInputRefs.value[5]) {
+      profileOtpInputRefs.value[5].focus()
+    }
+  } else if (value && /[0-9]/.test(value)) {
+    profileOtpCode.value[index] = value
+    if (index < 5 && profileOtpInputRefs.value[index + 1]) {
+      profileOtpInputRefs.value[index + 1].focus()
+    }
+  } else {
+    profileOtpCode.value[index] = ''
+  }
+}
+
+const handleProfileOtpKeydown = (index, event) => {
+  if (event.key === 'Backspace') {
+    if (!profileOtpCode.value[index] && index > 0 && profileOtpInputRefs.value[index - 1]) {
+      profileOtpInputRefs.value[index - 1].focus()
+      profileOtpCode.value[index - 1] = ''
+    } else {
+      profileOtpCode.value[index] = ''
+    }
+  } else if (event.key === 'ArrowLeft' && index > 0 && profileOtpInputRefs.value[index - 1]) {
+    profileOtpInputRefs.value[index - 1].focus()
+  } else if (event.key === 'ArrowRight' && index < 5 && profileOtpInputRefs.value[index + 1]) {
+    profileOtpInputRefs.value[index + 1].focus()
+  }
+}
+
+const requestOtpForPassword = async () => {
+  profilePwErrors.value = {}
+  if (!profileForm.value.currentEmail) {
+    profilePwErrors.value.currentEmail = 'Vui lòng nhập email hiện tại'
+    return
+  }
+  sendingProfileOtp.value = true
+  try {
+    await api.post('/user/change-password/request-otp', {
+      email: profileForm.value.currentEmail
+    })
+    showProfileOtpModal.value = true
+    profileOtpCode.value = ['', '', '', '', '', '']
+    startProfileOtpTimer()
+    showToast('Mã OTP đã được gửi đến email của bạn!')
+  } catch (error) {
+    if (error.response?.status === 422) {
+      profilePwErrors.value.currentEmail = error.response.data.message || error.response.data.errors?.email?.[0]
+    } else {
+      showToast(error.response?.data?.message || 'Lỗi yêu cầu đổi mật khẩu')
+    }
+  } finally {
+    sendingProfileOtp.value = false
+  }
+}
+
+const verifyProfileOtp = async () => {
+  const code = profileOtpCode.value.join('')
+  if (code.length < 6) {
+    profilePwErrors.value.otp = 'Vui lòng nhập đủ 6 số'
+    return
+  }
+  verifyingProfileOtp.value = true
+  profilePwErrors.value.otp = ''
+  try {
+    if (passwordTabOtpPending.value) {
+      await api.post('/user/change-password/verify-otp', {
+        otp: code,
+        new_password: pwForm.value.newPass,
+      })
+      showProfileOtpModal.value = false
+      passwordTabOtpPending.value = false
+      pwForm.value = { current: '', email: user.value.email || '', newPass: '', confirm: '' }
+      pwErrors.value = {}
+      await swal.success('Thành công', 'Đổi mật khẩu thành công!')
+    } else {
+      await api.post('/user/change-password/check-otp', {
+        otp: code
+      })
+      showProfileOtpModal.value = false
+      otpVerifiedForPassword.value = true
+      showToast('Mã OTP chính xác. Vui lòng nhập mật khẩu mới.')
+    }
+  } catch (error) {
+    profilePwErrors.value.otp = error.response?.data?.message || 'Mã OTP không đúng hoặc đã hết hạn.'
+  } finally {
+    verifyingProfileOtp.value = false
+  }
+}
+
+const saveProfile = async () => {
+  try {
+    savingProfile.value = true
+
+    if (selectedAvatarFile.value) {
+      const formData = new FormData()
+      formData.append('avatar', selectedAvatarFile.value)
+
+      const avatarRes = await api.post('/user/avatar', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+      if (avatarRes.data.user) {
+        updateUserData({
+          ...avatarRes.data.user,
+          updated_at: avatarRes.data.user.updated_at || Date.now()
+        })
+      }
+    }
+
+    const res = await api.put(
+      '/user/profile',
+      {
+        name: profileForm.value.name,
+        ten: profileForm.value.name,
+        email: profileForm.value.email,
+        phone: profileForm.value.phone,
+        sodienthoai: profileForm.value.phone,
+        date_of_birth: profileForm.value.birthday,
+        ngaysinh: profileForm.value.birthday,
+        gender: profileForm.value.gender,
+        gioitinh: profileForm.value.gender,
+      }
+    )
+
+    updateUserData(res.data.user || res.data)
+    await loadUser()
+    updateUser(user.value)
+    window.dispatchEvent(new Event('user-updated'))
+
+    editing.value = false
+    isFormDirty.value = false
+    selectedAvatarFile.value = null
+    await swal.success('Cập nhật thành công')
+
+  } catch (error) {
+    console.error('Lỗi API:', error.response?.data)
+    const validationMessage = error.response?.data?.errors
+      ? Object.values(error.response.data.errors)?.[0]?.[0]
+      : null
+    await swal.error('Không thể cập nhật', validationMessage || error.response?.data?.message || 'Vui lòng kiểm tra thông tin và thử lại.')
+  } finally {
+    savingProfile.value = false
+  }
+}
+
+const rewardPoints = computed(() => {
+  return new Intl.NumberFormat('vi-VN').format(user.value.xu || 0)
+})
+
+const stats = computed(() => [
+  { label: 'Đơn hàng', value: orders.value.length.toString(), icon: 'orders' },
+  { label: 'Yêu thích', value: wishlistCount.value.toString(), icon: 'heart' },
+  { label: 'Xu', value: rewardPoints.value, icon: 'star' },
+])
+
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+//  TAB 2 â€” ORDERS
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+const orderTab = ref('all')
+const selectedOrder = ref(null)
+
+const orderTabs_mua = [
+  { key: 'all', label: 'Tất cả' },
+  { key: 'pending', label: 'Chờ xác nhận' },
+  { key: 'confirmed', label: 'Đã xác nhận' },
+  { key: 'shipping', label: 'Đang giao' },
+  { key: 'done', label: 'Hoàn thành' },
+  { key: 'cancelled', label: 'Đã hủy' },
+]
+
+const orderTabs_hoantra = [
+  { key: 'refund_pending', label: 'Yêu cầu hoàn trả' },
+  { key: 'refund_pickup', label: 'Chờ lấy hàng hoàn' },
+  { key: 'refund_delivering', label: 'Đang giao hoàn' },
+  { key: 'refund_received', label: 'Đã nhận hoàn' },
+  { key: 'refunded', label: 'Đã hoàn tiền' },
+]
+
+const statusMap = {
+  pending: { label: 'Chờ xác nhận', color: '#f59e0b', bg: '#fef3c7' },
+  confirmed: { label: 'Đã xác nhận', color: '#0369a1', bg: '#e0f2fe' },
+  shipping: { label: 'Đang giao', color: '#2563eb', bg: '#dbeafe' },
+  done: { label: 'Hoàn thành', color: '#2563eb', bg: '#dcfce7' },
+  refund_pending: { label: 'Yêu cầu hoàn trả', color: '#f97316', bg: '#ffedd5' },
+  refund_pickup: { label: 'Chờ lấy hàng hoàn', color: '#d97706', bg: '#fef3c7' },
+  refund_delivering: { label: 'Đang giao hoàn', color: '#2563eb', bg: '#dbeafe' },
+  refund_received: { label: 'Đã nhận hoàn', color: '#0369a1', bg: '#e0f2fe' },
+  refunded: { label: 'Đã hoàn tiền', color: '#3b82f6', bg: '#ede9fe' },
+  refund_rejected: { label: 'Từ chối hoàn trả', color: '#dc2626', bg: '#fee2e2' },
+  cancelled: { label: 'Đã hủy', color: '#dc2626', bg: '#fee2e2' },
+}
+
+const shipmentStyleMap = {
+  created: { color: '#6366f1', bg: '#eef2ff' },
+  waiting_pickup: { color: '#b45309', bg: '#fef3c7' },
+  picked_up: { color: '#0369a1', bg: '#e0f2fe' },
+  delivering: { color: '#2563eb', bg: '#dbeafe' },
+  delivered: { color: '#15803d', bg: '#dcfce7' },
+  delivery_failed: { color: '#dc2626', bg: '#fee2e2' },
+  returning: { color: '#ea580c', bg: '#ffedd5' },
+  returned: { color: '#7c3aed', bg: '#ede9fe' },
+}
+
+const shipmentLabelMap = {
+  created: 'Đã tạo vận đơn',
+  waiting_pickup: 'Chờ lấy hàng',
+  picked_up: 'Đã lấy hàng',
+  delivering: 'Đang giao hàng',
+  delivered: 'Giao thành công',
+  delivery_failed: 'Giao thất bại',
+  returning: 'Đang hoàn về',
+  returned: 'Đã hoàn về kho',
+}
+
+const shipmentNoteMap = {
+  created: 'Cửa hàng đã tạo vận đơn trên hệ thống NextGen Express.',
+  waiting_pickup: 'Đơn hàng đang chờ nhân viên kho bàn giao cho đơn vị vận chuyển.',
+  picked_up: 'Đơn vị vận chuyển đã lấy hàng tại kho.',
+  delivering: 'Shipper đang giao hàng đến địa chỉ của bạn.',
+  delivered: 'Khách hàng đã nhận hàng thành công.',
+  delivery_failed: 'Giao hàng chưa thành công, cửa hàng sẽ liên hệ để hỗ trợ.',
+  returning: 'Đơn hàng đang được chuyển hoàn về kho.',
+  returned: 'Đơn hàng đã hoàn về kho NextGen.',
+}
+
+const getShipment = (order) => order?.du_lieu_thanh_toan?.shipping_demo || order?.shipping || null
+const hasShipment = (order) => Boolean(getShipment(order)?.tracking_code)
+const getShipmentFailureReason = (order) => {
+  const shipment = getShipment(order)
+  if (shipment?.failure_reason) return shipment.failure_reason
+  const failedStep = [...(shipment?.timeline || [])].reverse().find(step => step.status === 'delivery_failed')
+  const note = failedStep?.note || ''
+  if (!note || note.includes('Shipper giao không thành công')) return 'Không liên hệ được người nhận'
+  return note.replace(/^Giao hàng thất bại:\s*/i, '')
+}
+const getShipmentAttempts = (order) => Number(getShipment(order)?.delivery_attempts || 0)
+const getShipmentAttemptText = (order) => {
+  const attempts = getShipmentAttempts(order)
+  return attempts > 0 ? `Đã giao thất bại ${attempts}/3 lần` : ''
+}
+const getShipmentRefundNote = (order) => getShipment(order)?.refund_note || ''
+const canCancelOrder = (order) => {
+  if (!['pending', 'confirmed'].includes(order?.status)) return false
+
+  const shipmentStatus = getShipment(order)?.status
+  const lockedShipmentStatuses = [
+    'waiting_pickup',
+    'picked_up',
+    'delivering',
+    'delivered',
+    'delivery_failed',
+    'returning',
+    'returned',
+  ]
+
+  return !lockedShipmentStatuses.includes(shipmentStatus)
+}
+const canShowShippingPanel = (order) => {
+  const status = String(order?.status || '')
+  return Boolean(order) && !status.startsWith('refund') && !['cancelled'].includes(status)
+}
+const getShippingInfo = (order) => {
+  const shipment = getShipment(order)
+  if (shipment?.tracking_code) return shipment
+
+  const status = order?.status || 'pending'
+  const fallbackByStatus = {
+    pending: {
+      tracking_code: 'Chờ cửa hàng xác nhận',
+      service_area: 'Chưa xác định',
+      service_level: 'Chưa tạo vận đơn',
+      expected_delivery_date: '-',
+      timeline_status: 'created',
+      timeline_label: 'Chờ xác nhận đơn',
+      timeline_note: 'Đơn hàng đang chờ cửa hàng xác nhận trước khi tạo vận đơn.',
+    },
+    confirmed: {
+      tracking_code: 'Đang đồng bộ vận đơn',
+      service_area: 'Đang phân tuyến',
+      service_level: 'Chờ lấy hàng',
+      expected_delivery_date: '-',
+      timeline_status: 'waiting_pickup',
+      timeline_label: 'Chờ lấy hàng',
+      timeline_note: 'Đơn đã xác nhận, hệ thống đang đồng bộ vận đơn với NextGen Express.',
+    },
+    shipping: {
+      tracking_code: 'Đang cập nhật mã vận đơn',
+      service_area: 'Đang phân tuyến',
+      service_level: 'Đang giao hàng',
+      expected_delivery_date: '-',
+      timeline_status: 'delivering',
+      timeline_label: 'Đang giao hàng',
+      timeline_note: 'Đơn hàng đang được vận chuyển, thông tin chi tiết sẽ được cập nhật sau.',
+    },
+    done: {
+      tracking_code: 'Đã hoàn tất',
+      service_area: 'Hoàn thành',
+      service_level: 'Giao thành công',
+      expected_delivery_date: order?.date || '-',
+      timeline_status: 'delivered',
+      timeline_label: 'Giao thành công',
+      timeline_note: 'Đơn hàng đã hoàn thành.',
+    },
+  }
+
+  const fallback = fallbackByStatus[status] || fallbackByStatus.pending
+
+  return {
+    provider: 'NextGen Express',
+    tracking_code: fallback.tracking_code,
+    expected_delivery_date: fallback.expected_delivery_date,
+    service_area: fallback.service_area,
+    service_level: fallback.service_level,
+    cod_amount: 0,
+    status,
+    fallback_timeline: [{
+      status: fallback.timeline_status,
+      label: fallback.timeline_label,
+      note: fallback.timeline_note,
+      time: order?.rawDate || order?.date || null,
+    }],
+  }
+}
+const getDisplayStatus = (order) => {
+  const shipment = getShipment(order)
+  if (shipment?.status && ['confirmed', 'shipping', 'done'].includes(order.status)) {
+    return shipmentLabelMap[shipment.status] || shipment.status_label || statusMap[order.status]?.label || order.status
+  }
+  return statusMap[order.status]?.label || order.status
+}
+const getDisplayStatusStyle = (order) => {
+  const shipment = getShipment(order)
+  if (shipment?.status && shipmentStyleMap[shipment.status]) return shipmentStyleMap[shipment.status]
+  return statusMap[order.status] || statusMap.pending
+}
+const getOrderStatusSubtext = (order) => {
+  const shipment = getShipment(order)
+  if (shipment?.tracking_code) {
+    if (shipment.status === 'delivery_failed') {
+      const attemptText = getShipmentAttemptText(order)
+      return `Lý do: ${getShipmentFailureReason(order) || 'Không liên hệ được người nhận'}${attemptText ? ` · ${attemptText}` : ''}`
+    }
+    if (shipment.status === 'returned') {
+      return `${shipment.return_reason || 'Đã hoàn về kho'}${getShipmentRefundNote(order) ? ` · ${getShipmentRefundNote(order)}` : ''}`
+    }
+    return `${shipment.tracking_code} · Dự kiến ${shipment.expected_delivery_date || '-'}`
+  }
+
+  const fallback = {
+    pending: 'Đơn đang chờ cửa hàng xác nhận, chưa tạo vận đơn.',
+    confirmed: 'Đơn đã xác nhận, vận đơn đang được đồng bộ.',
+    shipping: 'Đơn đang được vận chuyển, đang cập nhật mã vận đơn.',
+    done: 'Đơn đã hoàn thành.',
+    cancelled: 'Đơn đã hủy, không tạo vận đơn.',
+    refund_pending: 'Yêu cầu hoàn trả đang chờ xử lý.',
+    refund_pickup: 'Đang chờ lấy hàng hoàn.',
+    refund_delivering: 'Hàng hoàn đang được vận chuyển.',
+    refund_received: 'Cửa hàng đã nhận hàng hoàn.',
+    refunded: 'Đã hoàn tiền cho đơn hàng.',
+    refund_rejected: 'Yêu cầu hoàn trả đã bị từ chối.',
+  }
+
+  return fallback[order?.status] || 'Trạng thái đơn hàng đang được cập nhật.'
+}
+const shippingTimelineFor = (order) => {
+  const timeline = getShippingInfo(order)?.timeline || getShippingInfo(order)?.fallback_timeline || []
+  const shouldSpread = shouldSpreadDemoTimeline(timeline)
+  const baseDate = parseTimelineTime(timeline[0]?.time) || parseTimelineTime(order?.created_at) || new Date()
+
+  return timeline.map((step, index) => ({
+    label: shipmentLabelMap[step.status] || step.label || step.status,
+    note: step.note || shipmentNoteMap[step.status] || 'Trạng thái vận chuyển đã được cập nhật.',
+    date: formatTimelineDate(shouldSpread ? realisticShipmentTime(order, step, index, baseDate) : step.time) || '-',
+  }))
+}
+
+const orders = ref([])
+let orderRefreshTimer = null
+
+const orderMode = ref('mua')
+
+const filteredOrders = computed(() => {
+  if (orderMode.value === 'mua') {
+    return orderTab.value === 'all'
+      ? orders.value.filter((o) => !o.status.startsWith('refund'))
+      : orders.value.filter((o) => o.status === orderTab.value)
+  } else {
+    return orderTab.value === 'all'
+      ? orders.value.filter((o) => o.status.startsWith('refund'))
+      : orders.value.filter((o) => o.status === orderTab.value)
+  }
+})
+
+const currentPage = ref(1)
+const itemsPerPage = 8
+const paginatedOrders = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage
+  return filteredOrders.value.slice(start, start + itemsPerPage)
+})
+
+const totalPages = computed(() => Math.ceil(filteredOrders.value.length / itemsPerPage))
+
+watch(orderTab, () => {
+  currentPage.value = 1
+})
+
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+//  TAB 3 â€” ADDRESS
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+const showAddrForm = ref(false)
+const editingAddrIdx = ref(null)
+const savingAddr = ref(false)
+const loadingAddresses = ref(false)
+const showMapPicker = ref(false)
+const loadingProvinces = ref(false)
+const loadingWards = ref(false)
+const locatingSelectedArea = ref(false)
+const selectedProvinceCode = ref('')
+const selectedWardCode = ref('')
+const provinces = ref([])
+const wards = ref([])
+const mapInitialPosition = ref(null)
+
+const defaultAddrForm = () => ({
+  id: null,
+  province: '',
+  ward: '',
+  detail: '',
+  fullAddress: '',
+  latitude: null,
+  longitude: null,
+  type: 'home',
+  isDefault: false,
+})
+
+const addrForm = ref(defaultAddrForm())
+
+const addresses = ref([])
+
+const addressApiBaseUrl = 'https://provinces.open-api.vn/api/v2'
+
+const addressSuggestions = ref([])
+const showSuggestions = ref(false)
+const detailWarning = ref('')
+const searchingDetail = ref(false)
+let searchDetailTimeout = null
+let currentSearchController = null
+let searchRequestId = 0
+
+const handleDetailInput = () => {
+  showSuggestions.value = false
+  detailWarning.value = ''
+
+  if (searchDetailTimeout) clearTimeout(searchDetailTimeout)
+  if (currentSearchController) {
+    currentSearchController.abort()
+  }
+
+  const detailLength = addrForm.value.detail ? addrForm.value.detail.trim().length : 0;
+  if (detailLength < 3) {
+    addressSuggestions.value = []
+    searchingDetail.value = false
+    return
+  }
+
+  searchDetailTimeout = setTimeout(async () => {
+    searchingDetail.value = true
+    const controller = new AbortController()
+    currentSearchController = controller
+    searchRequestId++
+    const currentReqId = searchRequestId
+
+    try {
+      const parts = [addrForm.value.detail, addrForm.value.ward, addrForm.value.district, addrForm.value.province]
+        .filter(item => item && item !== 'Không xác định')
+      const query = [...parts, 'Việt Nam'].join(', ')
+
+      const data = await searchSuggestions(query, controller.signal, {
+        province: addrForm.value.province !== 'Không xác định' ? addrForm.value.province : '',
+        ward: addrForm.value.ward !== 'Không xác định' ? addrForm.value.ward : ''
+      })
+
+      if (controller.signal.aborted || currentReqId !== searchRequestId) return;
+
+      let validResults = [];
+      if (data && data.length > 0) {
+        validResults = data.filter(item => (item.title || item.display_name || item.subtitle) && item.lat && item.lng);
+      }
+
+      if (validResults.length > 0) {
+        addressSuggestions.value = validResults
+        showSuggestions.value = true
+        detailWarning.value = ''
+      } else {
+        addressSuggestions.value = []
+        showSuggestions.value = false
+        detailWarning.value = 'Không tìm thấy địa chỉ cụ thể, bản đồ sẽ ghim ở khu vực gần nhất.'
+
+        // Cố gắng tìm vị trí fallback (Phường/Quận) và ghim bản đồ
+        const fallbackRes = await geocodeWithFallback(
+          addrForm.value.detail,
+          addrForm.value.ward,
+          addrForm.value.district,
+          addrForm.value.province
+        )
+        if (fallbackRes && fallbackRes.lat && fallbackRes.lng && currentReqId === searchRequestId) {
+          addrForm.value.latitude = Number(fallbackRes.lat)
+          addrForm.value.longitude = Number(fallbackRes.lng)
+          mapInitialPosition.value = { lat: addrForm.value.latitude, lng: addrForm.value.longitude }
+        }
+      }
+    } catch (error) {
+      if (error.name !== 'CanceledError' && error.code !== 'ERR_CANCELED' && !controller.signal.aborted) {
+        console.error('Lỗi tìm kiếm gợi ý:', error)
+      }
+      addressSuggestions.value = []
+      showSuggestions.value = false
+    } finally {
+      if (currentSearchController === controller) {
+        currentSearchController = null
+        searchingDetail.value = false
+      }
+    }
+  }, 900)
+}
+
+const selectSuggestion = (item) => {
+  showSuggestions.value = false
+  detailWarning.value = ''
+
+  if (item.title || item.display_name) {
+    addrForm.value.detail = item.title || item.display_name
+  }
+
+  const lat = Number(item.lat)
+  const lng = Number(item.lng)
+  mapInitialPosition.value = { lat, lng }
+  addrForm.value.latitude = lat
+  addrForm.value.longitude = lng
+}
+
+const handleDetailBlur = () => {
+  setTimeout(() => {
+    showSuggestions.value = false
+  }, 200)
+}
+
+const handleDetailKeydown = (e) => {
+  if (e.key === 'Escape') {
+    showSuggestions.value = false
+  }
+}
+
+const normalizeApiList = (data, keys = []) => {
+  if (Array.isArray(data)) return data
+
+  for (const key of keys) {
+    if (Array.isArray(data?.[key])) return data[key]
+  }
+
+  if (Array.isArray(data?.data)) return data.data
+  if (Array.isArray(data?.results)) return data.results
+  return []
+}
+
+const fetchProvinces = async () => {
+  if (provinces.value.length) return
+
+  loadingProvinces.value = true
+  try {
+    provinces.value = await fetchAddressProvinces()
+  } catch (error) {
+    console.error('Lỗi tải tỉnh/thành:', error)
+    showToast('Không thể tải danh sách tỉnh/thành.')
+  } finally {
+    loadingProvinces.value = false
+  }
+}
+
+const fetchWardsByProvince = async (provinceCode) => {
+  if (!provinceCode) {
+    wards.value = []
+    return
+  }
+
+  loadingWards.value = true
+  try {
+    wards.value = await fetchAddressWardsByProvince(provinceCode)
+  } catch (error) {
+    console.error('Lỗi tải phường/xã:', error)
+    showToast('Không thể tải danh sách phường/xã.')
+  } finally {
+    loadingWards.value = false
+  }
+}
+
+const normalizeAddressName = (name = '') => name
+  .toString()
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/^(tinh|thanh pho|tp|quan|huyen|thi xa|phuong|xa|thi tran)\s+/i, '')
+  .replace(/\s+/g, ' ')
+  .trim()
+  .toLowerCase()
+
+const findAddressCodeByName = (items, name) => {
+  const normalizedName = normalizeAddressName(name)
+  if (!normalizedName) return ''
+
+  return items.find((item) => {
+    const itemName = normalizeAddressName(item.name)
+    return itemName === normalizedName
+      || itemName.includes(normalizedName)
+      || normalizedName.includes(itemName)
+  })?.code || ''
+}
+
+const findProvinceCodeByName = (name) => findAddressCodeByName(provinces.value, name)
+const findWardCodeByName = (name) => findAddressCodeByName(wards.value, name)
+
+const handleProvinceChange = async () => {
+  const province = provinces.value.find((item) => String(item.code) === String(selectedProvinceCode.value))
+  addrForm.value.province = province?.name || ''
+  addrForm.value.ward = ''
+  addrForm.value.fullAddress = addrForm.value.province
+  selectedWardCode.value = ''
+  mapInitialPosition.value = null
+  await fetchWardsByProvince(selectedProvinceCode.value)
+  await prepareMapInitialPosition()
+}
+
+const handleWardChange = async () => {
+  const ward = wards.value.find((item) => String(item.code) === String(selectedWardCode.value))
+  addrForm.value.ward = ward?.name || ''
+  addrForm.value.fullAddress = [addrForm.value.province, addrForm.value.ward].filter(Boolean).join(', ')
+  mapInitialPosition.value = null
+  await prepareMapInitialPosition()
+}
+
+const prepareAddressSelectors = async (address = null) => {
+  await fetchProvinces()
+
+  selectedProvinceCode.value = address?.province ? findProvinceCodeByName(address.province) : ''
+  if (!selectedProvinceCode.value) {
+    selectedWardCode.value = ''
+    wards.value = []
+    return
+  }
+
+  await fetchWardsByProvince(selectedProvinceCode.value)
+  selectedWardCode.value = address?.ward ? findWardCodeByName(address.ward) : ''
+}
+
+const geocodeSelectedArea = async () => {
+  locatingSelectedArea.value = true
+  try {
+    const res = await geocodeWithFallback('', addrForm.value.ward, addrForm.value.district, addrForm.value.province)
+    if (res && res.lat && res.lng) {
+      return {
+        lat: Number(res.lat),
+        lng: Number(res.lng),
+        geojson: res.geojson,
+        boundingbox: res.boundingbox
+      }
+    }
+    return null
+  } catch (error) {
+    console.error('Lỗi tìm vị trí khu vực:', error)
+    return null
+  } finally {
+    locatingSelectedArea.value = false
+  }
+}
+
+const prepareMapInitialPosition = async () => {
+  mapInitialPosition.value = await geocodeSelectedArea()
+}
+
+const openMapPicker = async () => {
+  if (!addrForm.value.province) {
+    showToast('Vui lòng chọn tỉnh/thành phố trước khi ghim vị trí.')
+    return
+  }
+
+  showMapPicker.value = true
+  mapInitialPosition.value = await geocodeSelectedArea()
+}
+
+
+const mapAddressFromApi = (addr) => ({
+  id: addr.id_diachi,
+  province: addr.tinh_thanhpho || '',
+  ward: addr.phuong_xa || '',
+  detail: addr.diachi_cuthe || '',
+  fullAddress: [addr.phuong_xa, addr.tinh_thanhpho].filter((item) => item && item !== 'Không xác định').join(', '),
+  latitude: addr.latitude ?? null,
+  longitude: addr.longitude ?? null,
+  type: addr.loai_diachi || 'home',
+  isDefault: Boolean(addr.mac_dinh),
+})
+
+const mapAddressToApi = () => ({
+  tinh_thanhpho: addrForm.value.province || addrForm.value.fullAddress || 'Không xác định',
+  phuong_xa: addrForm.value.ward || addrForm.value.fullAddress || 'Không xác định',
+  diachi_cuthe: addrForm.value.detail,
+  latitude: addrForm.value.latitude,
+  longitude: addrForm.value.longitude,
+  loai_diachi: addrForm.value.type,
+  mac_dinh: addrForm.value.isDefault,
+})
+
+const applyMapAddress = (address) => {
+  const selectedProvince = provinces.value.find((item) => String(item.code) === String(selectedProvinceCode.value))
+  const selectedWard = wards.value.find((item) => String(item.code) === String(selectedWardCode.value))
+
+  addrForm.value.province = selectedProvince?.name || address.province || addrForm.value.province || ''
+  addrForm.value.ward = selectedWard?.name || address.ward || addrForm.value.ward || ''
+  addrForm.value.fullAddress = [
+    addrForm.value.ward,
+    addrForm.value.province,
+  ].filter((item) => item && item !== 'Không xác định').join(', ') || address.fullAddress || ''
+  addrForm.value.latitude = address.latitude ?? addrForm.value.latitude
+  addrForm.value.longitude = address.longitude ?? addrForm.value.longitude
+  mapInitialPosition.value = address.latitude && address.longitude
+    ? { lat: Number(address.latitude), lng: Number(address.longitude) }
+    : mapInitialPosition.value
+
+  if (!addrForm.value.detail && address.detail) {
+    addrForm.value.detail = address.detail
+  }
+}
+
+const fetchAddresses = async () => {
+  loadingAddresses.value = true
+  try {
+    const res = await api.get('/user/dia-chi')
+    addresses.value = (res.data.data || []).map(mapAddressFromApi)
+  } catch (error) {
+    console.error('Lỗi tải địa chỉ:', error)
+    showToast(error.response?.data?.message || 'Không thể tải danh sách địa chỉ.')
+  } finally {
+    loadingAddresses.value = false
+  }
+}
+
+const openAddAddr = async () => {
+  addrForm.value = defaultAddrForm()
+  editingAddrIdx.value = null
+  showAddrForm.value = true
+  await prepareAddressSelectors()
+}
+
+const openEditAddr = async (i) => {
+  addrForm.value = { ...addresses.value[i] }
+  editingAddrIdx.value = i
+  mapInitialPosition.value = addrForm.value.latitude && addrForm.value.longitude
+    ? { lat: Number(addrForm.value.latitude), lng: Number(addrForm.value.longitude) }
+    : null
+  showAddrForm.value = true
+  await prepareAddressSelectors(addrForm.value)
+  if (!mapInitialPosition.value) {
+    await prepareMapInitialPosition()
+  }
+}
+
+const isAddrFormDirty = () => {
+  if (editingAddrIdx.value === null) {
+    // Add mode
+    return (
+      selectedProvinceCode.value !== '' ||
+      selectedWardCode.value !== '' ||
+      addrForm.value.detail.trim() !== '' ||
+      addrForm.value.type !== 'home' ||
+      addrForm.value.isDefault !== false
+    );
+  } else {
+    // Edit mode
+    const original = addresses.value[editingAddrIdx.value];
+    if (!original) return false;
+    return (
+      addrForm.value.province !== original.province ||
+      addrForm.value.district !== original.district ||
+      addrForm.value.ward !== original.ward ||
+      addrForm.value.detail.trim() !== (original.detail || '').trim() ||
+      addrForm.value.type !== original.type ||
+      addrForm.value.isDefault !== original.isDefault ||
+      addrForm.value.latitude !== original.latitude ||
+      addrForm.value.longitude !== original.longitude
+    );
+  }
+}
+
+const cancelAddr = async () => {
+  if (isAddrFormDirty()) {
+    const confirmed = await swal.confirm(
+      'Xác nhận đóng',
+      'Bạn đang điền thông tin địa chỉ. Nếu đóng, các thông tin này sẽ bị mất. Bạn vẫn muốn tiếp tục chứ?',
+      'Có, đóng lại',
+      'Không, ở lại'
+    )
+    if (!confirmed) return
+  }
+  showAddrForm.value = false
+  addressSuggestions.value = []
+  showSuggestions.value = false
+  detailWarning.value = ''
+  isFormDirty.value = false
+}
+
+const saveAddr = async () => {
+  savingAddr.value = true
+  try {
+    if (editingAddrIdx.value !== null) {
+      const id = addresses.value[editingAddrIdx.value].id
+      await api.put(`/user/dia-chi/${id}`, mapAddressToApi())
+    } else {
+      await api.post('/user/dia-chi', mapAddressToApi())
+    }
+
+    await fetchAddresses()
+    showAddrForm.value = false
+    isFormDirty.value = false
+    showToast('Địa chỉ đã được cập nhật!')
+  } catch (error) {
+    const message = error.response?.data?.message
+      || Object.values(error.response?.data?.errors || {})?.[0]?.[0]
+      || 'Thao tác thất bại, vui lòng thử lại'
+    showToast(message)
+  } finally {
+    savingAddr.value = false
+  }
+}
+
+const setDefaultAddr = (i) => {
+  api.patch(`/user/dia-chi/${addresses.value[i].id}/mac-dinh`)
+    .then(async () => {
+      await fetchAddresses()
+      showToast('Đã cập nhật địa chỉ mặc định!')
+    })
+    .catch((error) => {
+      showToast(error.response?.data?.message || 'Thao tác thất bại, vui lòng thử lại')
+    })
+}
+
+const removeAddr = (i) => {
+  swal.confirm('Xóa địa chỉ', 'Bạn có chắc chắn muốn xóa địa chỉ này?')
+    .then(async (isConfirmed) => {
+      if (!isConfirmed) return
+      try {
+        await api.delete(`/user/dia-chi/${addresses.value[i].id}`)
+        await fetchAddresses()
+        showToast('Đã xóa địa chỉ!')
+      } catch (error) {
+        showToast(error.response?.data?.message || 'Thao tác thất bại, vui lòng thử lại')
+      }
+    })
+}
+
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+//  TAB 4 â€” PASSWORD
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+const pwForm = ref({ current: '', email: '', newPass: '', confirm: '' })
+const showPw = ref({ current: false, newPass: false, confirm: false })
+const savingPw = ref(false)
+const pwErrors = ref({})
+const pwCaptcha = ref({ question: '', answer: '' })
+const loadingPwCaptcha = ref(false)
+const captchaVerified = ref(false)
+const verifyingCaptcha = ref(false)
+const showPwCaptcha = ref(false)
+
+const solveCaptchaQuestion = (question) => {
+  const expression = String(question || '').match(/(-?\d+)\s*([+\-xX*])\s*(-?\d+)/)
+  if (!expression) return ''
+
+  const left = Number(expression[1])
+  const operator = expression[2]
+  const right = Number(expression[3])
+
+  if (operator === '+') return String(left + right)
+  if (operator === '-') return String(left - right)
+  return String(left * right)
+}
+
+const loadPwCaptcha = async () => {
+  loadingPwCaptcha.value = true
+  captchaVerified.value = false
+  try {
+    const res = await api.get('/user/change-password/captcha')
+    pwCaptcha.value = {
+      question: res.data?.question || '',
+      answer: '',
+    }
+  } catch (error) {
+    console.error('Lỗi tải captcha đổi mật khẩu:', error)
+    pwCaptcha.value = { question: '', answer: '' }
+  } finally {
+    loadingPwCaptcha.value = false
+  }
+}
+
+const toggleHumanCaptcha = async () => {
+  pwErrors.value.captcha = ''
+
+  if (captchaVerified.value) {
+    captchaVerified.value = false
+    pwCaptcha.value.answer = ''
+    return
+  }
+
+  verifyingCaptcha.value = true
+  try {
+    if (!pwCaptcha.value.question) {
+      await loadPwCaptcha()
+    }
+
+    const answer = solveCaptchaQuestion(pwCaptcha.value.question)
+    if (!answer) {
+      captchaVerified.value = false
+      pwErrors.value.captcha = 'Không thể xác minh captcha, vui lòng thử lại'
+      return
+    }
+
+    pwCaptcha.value.answer = answer
+    captchaVerified.value = true
+  } finally {
+    verifyingCaptcha.value = false
+  }
+}
+
+const pwStrength = computed(() => {
+  const p = pwForm.value.newPass
+  if (!p) return 0
+  let s = 0
+  if (p.length >= 8) s++
+  if (/[A-Z]/.test(p)) s++
+  if (/[0-9]/.test(p)) s++
+  if (/[^A-Za-z0-9]/.test(p)) s++
+  return s
+})
+
+const pwStrengthLabel = computed(
+  () => ['', 'Yếu', 'Trung bình', 'Mạnh', 'Rất mạnh'][pwStrength.value]
+)
+
+const pwStrengthColor = computed(
+  () => ['', '#ef4444', '#f59e0b', '#2563eb', '#2563eb'][pwStrength.value]
+)
+
+const pwRequirements = computed(() => [
+  { label: 'Tối thiểu 8 ký tự', ok: pwForm.value.newPass.length >= 8 },
+  { label: 'Có chữ hoa (A-Z)', ok: /[A-Z]/.test(pwForm.value.newPass) },
+  { label: 'Có số (0-9)', ok: /[0-9]/.test(pwForm.value.newPass) },
+  { label: 'Có ký tự đặc biệt', ok: /[^A-Za-z0-9]/.test(pwForm.value.newPass) },
+])
+
+const savePw = async () => {
+  pwErrors.value = {}
+
+  if (!pwForm.value.email) {
+    pwErrors.value.email = 'Vui lòng nhập email xác minh'
+  }
+
+  if (!pwForm.value.newPass) {
+    pwErrors.value.newPass = 'Vui lòng nhập mật khẩu mới'
+  } else if (pwStrength.value < 2) {
+    pwErrors.value.newPass = 'Mật khẩu quá yếu'
+  }
+
+  if (pwForm.value.newPass !== pwForm.value.confirm) {
+    pwErrors.value.confirm = 'Mật khẩu không khớp'
+  }
+
+  if (Object.keys(pwErrors.value).length) return
+
+  savingPw.value = true
+  try {
+    await api.post('/user/change-password/request-otp', {
+      email: pwForm.value.email,
+    })
+
+    passwordTabOtpPending.value = true
+    showProfileOtpModal.value = true
+    profileOtpCode.value = ['', '', '', '', '', '']
+    profilePwErrors.value = {}
+    startProfileOtpTimer()
+    showToast('Mã OTP đã được gửi đến email của bạn!')
+  } catch (error) {
+    const data = error.response?.data || {}
+
+    if (error.response?.status === 422) {
+      if (data.errors?.email?.[0]) {
+        pwErrors.value.email = data.errors.email[0]
+      } else if (data.message) {
+        pwErrors.value.email = data.message
+      }
+      return
+    }
+
+    showToast(data.message || 'Có lỗi xảy ra khi gửi mã OTP!')
+  } finally {
+    savingPw.value = false
+  }
+}
+
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+//  TAB 5 â€” PROMOTIONS
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+const promotions = ref([])
+const promoPage = ref(1)
+const promoPerPage = 5
+
+const fetchPromotions = async () => {
+  try {
+    const res = await api.get('/user/vouchers')
+    if (res.data.success) {
+      promotions.value = res.data.vouchers || []
+    } else {
+      promotions.value = []
+    }
+  } catch (error) {
+    console.error('Lỗi tải khuyến mãi:', error)
+  }
+}
+
+const paginatedPromos = computed(() => {
+  const start = (promoPage.value - 1) * promoPerPage
+  return promotions.value.slice(start, start + promoPerPage)
+})
+
+const totalPromoPages = computed(() =>
+  Math.ceil(promotions.value.length / promoPerPage)
+)
+
+const promoStatusMap = {
+  0: { label: 'Chưa sử dụng', color: '#2563eb', bg: '#dcfce7' },
+  1: { label: 'Đã sử dụng', color: '#94a3b8', bg: '#f1f5f9' },
+  expired: { label: 'Hết hạn', color: '#dc2626', bg: '#fee2e2' },
+}
+</script>
+
+<template>
+  <div class="page">
+
+    <!-- Global toast -->
+    <transition name="toast">
+      <div class="toast" v-if="toast.show">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+          <polyline points="22 4 12 14.01 9 11.01" />
+        </svg>
+        {{ toast.msg }}
+      </div>
+    </transition>
+
+    <!-- Order detail modal -->
+    <Teleport to="body">
+      <transition name="fade">
+        <div class="overlay" v-if="selectedOrder" @click.self="selectedOrder = null">
+          <div class="modal">
+            <div class="modal-head">
+              <div>
+                <h2 class="modal-title">Chi tiết đơn hàng</h2>
+                <p class="modal-id">Mã đơn: #VT-2026-{{ String(selectedOrder.id_dathang).padStart(3, '0') }}</p>
+              </div>
+              <button class="close-btn" @click="selectedOrder = null">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div class="modal-body">
+              <div class="modal-status"
+                :style="{ color: getDisplayStatusStyle(selectedOrder).color, background: getDisplayStatusStyle(selectedOrder).bg }">
+                {{ getDisplayStatus(selectedOrder) }}
+              </div>
+
+              <div v-if="canShowShippingPanel(selectedOrder)" class="customer-shipping-card">
+                <div class="shipping-card-head">
+                  <div class="shipping-title-row">
+                    <div class="shipping-icon">
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M3 7h11v9H3z" />
+                        <path d="M14 10h4l3 3v3h-7z" />
+                        <circle cx="7" cy="18" r="2" />
+                        <circle cx="18" cy="18" r="2" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p class="shipping-kicker">Theo dõi vận chuyển</p>
+                      <h3>{{ getShippingInfo(selectedOrder).provider || 'NextGen Express' }}</h3>
+                      <span>{{ getShippingInfo(selectedOrder).tracking_code }}</span>
+                    </div>
+                  </div>
+                  <span class="shipping-status"
+                    :style="{ color: getDisplayStatusStyle(selectedOrder).color, background: getDisplayStatusStyle(selectedOrder).bg }">
+                    {{ getDisplayStatus(selectedOrder) }}
+                  </span>
+                </div>
+                <div v-if="getShippingInfo(selectedOrder).status === 'delivery_failed'" class="shipping-failure-box">
+                  <span>Lý do giao thất bại</span>
+                  <b>{{ getShipmentFailureReason(selectedOrder) || 'Không liên hệ được người nhận' }}</b>
+                  <p v-if="getShipmentAttemptText(selectedOrder)">{{ getShipmentAttemptText(selectedOrder) }}. NextGen
+                    sẽ hỗ trợ giao lại nếu còn lượt.</p>
+                  <p v-else>NextGen sẽ liên hệ lại để hỗ trợ giao lại hoặc cập nhật phương án xử lý phù hợp.</p>
+                </div>
+                <div v-if="getShippingInfo(selectedOrder).status === 'returned'"
+                  class="shipping-failure-box is-returned">
+                  <span>Đơn đã chuyển hoàn</span>
+                  <b>{{ getShippingInfo(selectedOrder).return_reason || 'Đã hoàn về kho' }}</b>
+                  <p>{{ getShipmentRefundNote(selectedOrder) || 'Đơn đã kết thúc quy trình giao nhận.' }}</p>
+                </div>
+                <div class="shipping-info-grid">
+                  <div>
+                    <span>Dự kiến giao</span>
+                    <b>{{ getShippingInfo(selectedOrder).expected_delivery_date || '-' }}</b>
+                  </div>
+                  <div>
+                    <span>Khu vực</span>
+                    <b>{{ getShippingInfo(selectedOrder).service_area || 'Tiêu chuẩn' }}</b>
+                  </div>
+                  <div>
+                    <span>Gói giao</span>
+                    <b>{{ getShippingInfo(selectedOrder).service_level || 'Giao tiêu chuẩn' }}</b>
+                  </div>
+                  <div>
+                    <span>Thu hộ COD</span>
+                    <b>{{ new Intl.NumberFormat('vi-VN').format(getShippingInfo(selectedOrder).cod_amount || 0) }}đ</b>
+                  </div>
+                </div>
+                <div class="shipping-events">
+                  <div class="shipping-events-head">
+                    <span>Lịch trình đơn hàng</span>
+                    <b>{{ shippingTimelineFor(selectedOrder).length }} cập nhật</b>
+                  </div>
+                  <div class="shipping-events-rail">
+                    <div v-for="(event, idx) in shippingTimelineFor(selectedOrder)" :key="idx" class="shipping-event">
+                      <span></span>
+                      <div>
+                        <b>{{ event.label }}</b>
+                        <p>{{ event.note }}</p>
+                        <small>{{ event.date }}</small>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Cancellation info if cancelled or refund -->
+              <div
+                v-if="selectedOrder.status === 'cancelled' || selectedOrder.status?.startsWith('refund') || getRefundProofFiles(selectedOrder).length > 0"
+                style="margin-bottom: 18px; font-size: 14px; color: #1e293b; line-height: 1.5;">
+                <div style="margin-bottom: 8px;">
+                  <strong style="color: #0f172a; font-weight: 700;">Lý do:</strong> <span style="color: #334155;">{{
+                    selectedOrder.lydo || 'Khách hàng không nhập lý do' }}</span>
+                </div>
+
+                <!-- Ảnh / Video bằng chứng nằm ở ngay dưới lý do -->
+                <div v-if="getRefundProofFiles(selectedOrder).length > 0" class="proof-media-grid"
+                  style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-top: 10px;">
+                  <div v-for="(file, pIdx) in getRefundProofFiles(selectedOrder)" :key="pIdx" class="proof-media-item"
+                    style="border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); position: relative;">
+                    <template v-if="isImageFile(file)">
+                      <a :href="getProofMediaUrl(file)" target="_blank" title="Bấm để xem ảnh phóng to"
+                        style="display: block; text-align: center; background: #f8fafc;">
+                        <img :src="getProofMediaUrl(file)" @error="$event.target.src = getProofProxyUrl(file)"
+                          alt="Bằng chứng" style="width: 100%; height: 140px; object-fit: cover; transition: transform 0.2s;" />
+                      </a>
+                    </template>
+                    <template v-else-if="isVideoFile(file)">
+                      <video controls
+                        style="width: 100%; height: 140px; object-fit: cover; background: #000; display: block;"
+                        preload="metadata">
+                        <source :src="getProofMediaUrl(file)" />
+                        <source :src="getProofProxyUrl(file)" />
+                        Trình duyệt không hỗ trợ xem video.
+                      </video>
+                    </template>
+                    <template v-else>
+                      <div style="padding: 20px 10px; text-align: center;">
+                        <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#2563eb" stroke-width="2" style="margin: 0 auto 8px;">
+                          <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                          <polyline points="13 2 13 9 20 9"></polyline>
+                        </svg>
+                        <a :href="getProofProxyUrl(file)" target="_blank"
+                          style="color: #2563eb; font-size: 12px; font-weight: 600; text-decoration: underline; word-break: break-all;">Tải file bằng chứng #{{ pIdx + 1 }}</a>
+                      </div>
+                    </template>
+                    <a :href="getProofProxyUrl(file)" target="_blank"
+                      style="display: block; padding: 4px 6px; font-size: 11px; text-align: center; background: #f8fafc; color: #2563eb; font-weight: 600; text-decoration: underline; border-top: 1px solid #e2e8f0;">
+                      🔍 Mở tệp gốc / Tải về
+                    </a>
+                  </div>
+                </div>
+
+                <!-- Nếu đơn chưa có tệp bằng chứng -> Hiện nút bấm tải lên ngay dưới lý do -->
+                <div v-else style="margin-top: 10px; padding: 12px 14px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; font-size: 13px; color: #475569;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                    <span>📁 <strong>Bằng chứng:</strong> Chưa có tệp đính kèm</span>
+                    <label style="margin: 0; padding: 6px 14px; background: linear-gradient(135deg, #0284c7, #2563eb); color: #ffffff; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(37,99,235,0.2);">
+                      <span>📤 Tải lên ảnh / video</span>
+                      <input type="file" multiple accept="image/*,video/*" @change="uploadRefundProof($event, selectedOrder)" style="display: none;" />
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="timeline"
+                v-if="selectedOrder.steps && !canShowShippingPanel(selectedOrder) && !selectedOrder.status.startsWith('refund')">
+                <div class="tl-item" v-for="(step, i) in selectedOrder.steps" :key="i" :class="{ done: step.done }">
+                  <div class="tl-col">
+                    <div class="tl-dot"><svg v-if="step.done" viewBox="0 0 24 24" fill="none">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg></div>
+                    <div class="tl-line" v-if="i < selectedOrder.steps.length - 1" :class="{ done: step.done }"></div>
+                  </div>
+                  <div class="tl-content">
+                    <p class="tl-label">{{ step.label }}</p>
+                    <p class="tl-date">{{ step.date || '—' }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Quá trình hoàn trả (Chiều dọc - Vertical Timeline) -->
+              <div class="refund-timeline-vertical" v-if="selectedOrder.refundSteps" style="margin-top: 18px; margin-bottom: 22px;">
+                <h3 class="section-title" style="color: #ea580c; font-size: 14px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 6px;">
+                  <span>🔄</span> Quá trình hoàn trả
+                </h3>
+                <div style="display: flex; flex-direction: column; gap: 0; padding-left: 8px;">
+                  <div v-for="(step, i) in selectedOrder.refundSteps" :key="'rv'+i" style="display: flex; align-items: flex-start; gap: 14px; position: relative; padding-bottom: 18px;">
+                    <!-- Vertical line -->
+                    <div v-if="i < selectedOrder.refundSteps.length - 1" style="position: absolute; left: 13px; top: 26px; bottom: 0; width: 2px;" :style="step.done ? 'background: #f97316;' : 'background: #e2e8f0;'"></div>
+                    
+                    <!-- Dot icon -->
+                    <div style="width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; z-index: 2; transition: all 0.2s;" :style="step.done ? 'background: #f97316; color: #fff; box-shadow: 0 2px 6px rgba(249,115,22,0.35);' : 'background: #ffffff; border: 2px solid #cbd5e1; color: #94a3b8;'">
+                      <svg v-if="step.done" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                      <span v-else style="font-size: 11px; font-weight: 700;">{{ i + 1 }}</span>
+                    </div>
+
+                    <!-- Label and Date -->
+                    <div style="flex: 1; min-width: 0; padding-top: 3px;">
+                      <div style="font-size: 13.5px; font-weight: 600; line-height: 1.3;" :style="step.done ? 'color: #c2410c;' : 'color: #64748b;'">
+                        {{ step.label }}
+                      </div>
+                      <div style="font-size: 11.5px; margin-top: 2px;" :style="step.done ? 'color: #ea580c;' : 'color: #94a3b8;'">
+                        {{ step.date || '—' }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <h3 class="section-title">Sản phẩm</h3>
+              <div class="modal-item" v-for="item in getRefundModalItems(selectedOrder)"
+                :key="item.id_bienthe || item.id_dathang_chi_tiet">
+                <img :src="item.img" :alt="item.name" />
+                <div class="modal-item-info">
+                  <p class="modal-item-name">
+                    {{ item.name }}
+                    <span v-if="isRefundItem(item)"
+                      style="margin-left: 6px; font-size: 10px; font-weight: bold; color: #dc2626; background: #fee2e2; padding: 2px 5px; border-radius: 4px;">Đã
+                      hoàn trả</span>
+                  </p>
+                  <p class="modal-item-qty">Số lượng: {{ item.qty }}</p>
+                </div>
+                <div class="modal-item-right" style="text-align: right;">
+                  <p class="modal-item-price">{{ item.price }}</p>
+                  <button v-if="selectedOrder.status === 'done' && !item.is_reviewed" class="btn-review-small"
+                    @click="openReviewModal(selectedOrder, item)">Đánh giá</button>
+                  <span v-else-if="item.is_reviewed" class="reviewed-tag">Đã đánh giá</span>
+                </div>
+              </div>
+              <div class="modal-footer" style="display: flex; flex-direction: column; gap: 14px; padding-top: 16px; border-top: none; width: 100%;">
+                <!-- Total price breakdown -->
+                <div class="modal-total-wrap" style="width: 100%; display: flex; flex-direction: column; gap: 6px;">
+                  <div class="modal-breakdown" style="border-top: none; padding-top: 0; width: 100%; font-size: 13px; color: #94a3b8;" v-if="selectedOrder.xu_dung > 0 || selectedOrder.giam_gia > 0">
+                    <div class="d-flex justify-content-between mb-1" v-if="selectedOrder.giam_gia > 0" style="display: flex; justify-content: space-between; width: 100%;">
+                      <span>Giảm giá voucher:</span>
+                      <span style="color:#ef4444;">-{{ new Intl.NumberFormat('vi-VN').format(selectedOrder.giam_gia) }}đ</span>
+                    </div>
+                    <div class="d-flex justify-content-between" v-if="selectedOrder.xu_dung > 0" style="display: flex; justify-content: space-between; width: 100%;">
+                      <span>Sử dụng xu:</span>
+                      <span style="color:#f59e0b;">-{{ selectedOrder.xu_dung.toLocaleString('vi-VN') }} xu (-{{ new Intl.NumberFormat('vi-VN').format(selectedOrder.xu_dung) }}đ)</span>
+                    </div>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; font-weight: 700; border: none; background: transparent; padding: 4px 0;">
+                    <span class="total-label" style="font-size: 15px; color: #475569;">Thành tiền:</span>
+                    <span class="total-value" style="font-size: 20px; font-weight: 800; color: #2563eb;">{{ selectedOrder.total }}</span>
+                  </div>
+                </div>
+
+                <!-- Action buttons -->
+                <div class="modal-btns" style="width: 100%; display: flex; gap: 10px;">
+                  <button v-if="['pending', 'confirmed'].includes(selectedOrder.status)" class="btn-modal-huy"
+                    :class="{ 'is-hidden': !canCancelOrder(selectedOrder) }" :disabled="!canCancelOrder(selectedOrder)"
+                    @click="openCancelModal(selectedOrder)" style="flex: 1; padding: 12px; border-radius: 10px; font-weight: 700; cursor: pointer;">Hủy đơn</button>
+                  <button v-if="isRefundable(selectedOrder)" class="btn-modal-hoantra"
+                    @click="openRefundModal(selectedOrder)" style="flex: 1; padding: 12px; border-radius: 10px; font-weight: 700; cursor: pointer;">Hoàn trả</button>
+                  <button v-if="['done', 'cancelled', 'refunded', 'refund_rejected'].includes(selectedOrder.status)"
+                    class="btn-modal-mua" @click="handleReorder(selectedOrder)" style="flex: 1; width: 100%; padding: 12px; border-radius: 10px; font-weight: 700; background: linear-gradient(135deg, #0284c7, #2563eb); color: #ffffff; border: none; cursor: pointer;">Mua lại</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </transition>
+    </Teleport>
+
+    <!-- Cancellation Modal -->
+    <Teleport to="body">
+      <transition name="fade">
+        <div class="overlay" v-if="showCancelModal" @click.self="closeCancelModal" style="z-index: 9005;">
+          <div class="modal mini-modal">
+            <div class="modal-head">
+              <h2 class="modal-title">Lý do hủy đơn</h2>
+              <button class="close-btn" no-guard @click="closeCancelModal">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div class="modal-body">
+              <p class="mb-3 text-muted" style="font-size: 13px;">Vui lòng chọn lý do bạn muốn hủy đơn hàng này. Thao
+                tác
+                này không thể hoàn tác.</p>
+              <textarea v-model="cancelReason" class="cancel-textarea" placeholder="Nhập lý do hủy tại đây..."
+                rows="3"></textarea>
+              <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 24px;">
+                <button class="btn-danger-confirm" @click="confirmCancel" :disabled="isSubmitting">
+                  {{ isSubmitting ? 'Đang xử lý...' : 'Xác nhận hủy' }}
+                </button>
+                <button class="btn-cancel" no-guard @click="closeCancelModal">Quay lại</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </transition>
+    </Teleport>
+
+    <!-- Xu History Modal -->
+    <Teleport to="body">
+      <transition name="fade">
+        <div class="overlay" v-if="showXuHistoryModal" @click.self="showXuHistoryModal = false" style="z-index: 9005;">
+          <div class="modal" style="max-width: 550px;">
+            <div class="modal-head">
+              <div>
+                <h2 class="modal-title">Lịch sử giao dịch Xu</h2>
+                <p class="modal-id" style="color: #64748b; font-size: 12px; margin-top: 2px;">Theo dõi các giao dịch sử
+                  dụng
+                  và hoàn trả xu của bạn</p>
+              </div>
+              <button class="close-btn" @click="showXuHistoryModal = false">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div class="modal-body" style="padding-top: 10px;">
+              <div v-if="xuHistoryLoading" class="text-center py-4">
+                <div class="spinner-border text-primary" role="status" style="width: 2rem; height: 2rem;"></div>
+                <p class="mt-2 text-muted" style="font-size: 13px;">Đang tải lịch sử giao dịch...</p>
+              </div>
+              <div v-else-if="xuHistoryList.length === 0" class="text-center py-4" style="color: #64748b;">
+                <p style="font-size: 14px; margin: 0;">Bạn chưa có giao dịch xài xu nào.</p>
+              </div>
+              <div v-else>
+                <div class="table-responsive" style="max-height: 350px; overflow-y: auto;">
+                  <table class="table table-hover" style="font-size: 13px; margin: 0;">
+                    <thead>
+                      <tr style="border-bottom: 2px solid #e2e8f0;">
+                        <th style="font-weight: 600; color: #475569; padding: 10px 8px;">Thời gian</th>
+                        <th style="font-weight: 600; color: #475569; padding: 10px 8px; text-align: right;">Số xu</th>
+                        <th style="font-weight: 600; color: #475569; padding: 10px 8px;">Chi tiết giao dịch</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="item in xuHistoryList" :key="item.id_lichsu"
+                        style="border-bottom: 1px solid #f1f5f9; align-items: center;">
+                        <td style="padding: 10px 8px; color: #64748b;">
+                          {{ new Date(item.created_at).toLocaleString('vi-VN', {
+                            dateStyle: 'short', timeStyle: 'short'
+                          })
+                          }}
+                        </td>
+                        <td style="padding: 10px 8px; text-align: right; font-weight: 600; white-space: nowrap;"
+                          :style="item.so_xu > 0 ? 'color: #2563eb;' : 'color: #ef4444;'">
+                          {{ item.so_xu > 0 ? '+' : '' }}{{ item.so_xu.toLocaleString('vi-VN') }}
+                        </td>
+                        <td style="padding: 10px 8px; color: #1e293b; font-weight: 500;">
+                          {{ item.mo_ta }}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="d-flex justify-content-between align-items-center mt-3 pt-2"
+                  style="border-top: 1px solid #e2e8f0; font-size: 12px;" v-if="xuHistoryTotalPages > 1">
+                  <span class="text-muted">Trang {{ xuHistoryPage }}/{{ xuHistoryTotalPages }}</span>
+                  <div class="d-flex gap-1">
+                    <button class="btn btn-sm btn-outline-secondary py-1 px-2" :disabled="xuHistoryPage === 1"
+                      @click="fetchXuHistory(xuHistoryPage - 1)">
+                      ‹ Trước
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary py-1 px-2"
+                      :disabled="xuHistoryPage === xuHistoryTotalPages" @click="fetchXuHistory(xuHistoryPage + 1)">
+                      Sau ›
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </transition>
+    </Teleport>
+
+    <!-- Profile OTP Modal -->
+    <Teleport to="body">
+      <transition name="fade">
+        <div class="overlay" v-if="showProfileOtpModal" @click.self="showProfileOtpModal = false"
+          style="z-index: 9020;">
+          <div class="modal otp-modal" style="max-width: 400px; padding: 24px;">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <div
+                style="width: 56px; height: 56px; background: #eff6ff; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+                <svg style="width: 28px; height: 28px; stroke: #2563eb; stroke-width: 2; fill: none;">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+              </div>
+              <h2 style="font-size: 20px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">Xác thực bảo mật</h2>
+              <p style="font-size: 14px; color: #64748b; line-height: 1.5;">Vui lòng nhập mã OTP gồm 6 chữ số vừa được
+                gửi
+                đến email <strong>{{ passwordTabOtpPending ? (pwForm.email || user.email) : user.email }}</strong> để
+                hoàn
+                tất việc đổi mật khẩu.</p>
+            </div>
+
+            <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 20px;">
+              <input v-for="(val, idx) in 6" :key="idx" type="text" maxlength="1"
+                :ref="el => profileOtpInputRefs[idx] = el" v-model="profileOtpCode[idx]"
+                @input="handleProfileOtpInput(idx, $event)" @keydown="handleProfileOtpKeydown(idx, $event)"
+                @paste.prevent="handleProfileOtpInput(idx, { target: { value: $event.clipboardData.getData('text') } })"
+                style="width: 45px; height: 50px; text-align: center; font-size: 20px; font-weight: 700; border: 2px solid #e2e8f0; border-radius: 10px; transition: border-color 0.2s;"
+                onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'" />
+            </div>
+
+            <div v-if="profilePwErrors.otp"
+              style="color: #ef4444; font-size: 13px; text-align: center; margin-bottom: 16px; font-weight: 500;">
+              {{ profilePwErrors.otp }}
+            </div>
+
+            <div
+              style="display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; color: #64748b; margin-bottom: 24px;">
+              <svg style="width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2;">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
+              Mã hết hạn sau: <strong :style="{ color: profileOtpCountdown <= 60 ? '#ea580c' : '#0f172a' }">{{
+                Math.floor(profileOtpCountdown / 60) }}:{{ String(profileOtpCountdown % 60).padStart(2, '0') }}</strong>
+            </div>
+
+            <button @click="verifyProfileOtp" :disabled="verifyingProfileOtp || profileOtpCode.join('').length < 6"
+              style="width: 100%; padding: 12px; background: #2563eb; color: #fff; font-weight: 600; border: none; border-radius: 10px; margin-bottom: 16px; cursor: pointer; transition: background 0.2s;"
+              onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'"
+              :style="verifyingProfileOtp || profileOtpCode.join('').length < 6 ? 'opacity: 0.6; cursor: not-allowed;' : ''">
+              {{ verifyingProfileOtp ? 'Đang xác thực...' : 'Tiếp tục' }}
+            </button>
+
+            <div style="text-align: center; font-size: 13.5px;">
+              <span style="color: #64748b;">Chưa nhận được mã?</span>
+              <button @click="resendProfileOtp" :disabled="profileOtpResendCooldown > 0 || sendingProfileOtp"
+                style="background: none; border: none; color: #2563eb; font-weight: 600; cursor: pointer; margin-left: 6px; transition: opacity 0.2s;"
+                :style="profileOtpResendCooldown > 0 || sendingProfileOtp ? 'color: #94a3b8; cursor: not-allowed;' : ''"
+                onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+                {{ sendingProfileOtp ? 'Đang gửi...' : (profileOtpResendCooldown > 0 ? `Gửi lại
+                (${profileOtpResendCooldown}s)` : 'Gửi lại mã') }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </transition>
+    </Teleport>
+
+    <!-- Refund Modal -->
+    <Teleport to="body">
+      <transition name="fade">
+        <div class="overlay" v-if="showRefundModal" @click.self="closeRefundModal" style="z-index: 9005;">
+          <div class="modal mini-modal">
+            <div class="modal-head">
+              <h2 class="modal-title">Yêu cầu hoàn trả</h2>
+              <button class="close-btn" no-guard @click="closeRefundModal">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-3">
+                <label class="form-label" style="font-size: 13px; font-weight: 600;">Chọn sản phẩm hoàn trả</label>
+                <div class="refund-items-list">
+                  <div v-for="item in (orderToRefund?.items || [])" :key="item.id_bienthe" class="refund-product-card"
+                    :class="{ selected: refundSelectedItems.includes(item.id_bienthe) }">
+                    <label :for="'refund_item_' + item.id_bienthe" class="refund-product-label">
+                      <img :src="item.img" class="refund-product-img" :alt="item.name">
+                      <div class="refund-product-info">
+                        <div class="refund-product-name">{{ item.name }}</div>
+                        <div class="refund-product-qty">Số lượng: {{ item.qty }}</div>
+                      </div>
+                      <div class="refund-product-side">
+                        <div class="refund-product-price">{{ item.price }}</div>
+                        <span class="refund-check-pill">{{ refundSelectedItems.includes(item.id_bienthe) ? 'Đã chọn' :
+                          'Chọn' }}</span>
+                      </div>
+                      <input class="refund-product-checkbox" type="checkbox" :id="'refund_item_' + item.id_bienthe"
+                        :value="item.id_bienthe" v-model="refundSelectedItems">
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <p class="mb-3 text-muted" style="font-size: 13px;">Vui lòng nhập lý do và đính kèm bằng chứng.</p>
+              <textarea v-model="refundReason" class="cancel-textarea mb-3" placeholder="Nhập lý do hoàn trả tại đây..."
+                rows="3"></textarea>
+
+              <div class="mb-3">
+                <label class="form-label"
+                  style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">Hình ảnh / Video bằng
+                  chứng</label>
+                <input type="file" @change="handleProofUpload" class="form-control" accept="image/*,video/*" />
+                <small class="text-muted d-block mt-1" style="font-size: 11px;">Hỗ trợ ảnh hoặc video (tối đa
+                  20MB)</small>
+
+                <div v-if="refundProofUrl" class="mt-3" style="text-align: center;">
+                  <img v-if="refundProof && refundProof.type.startsWith('image/')" :src="refundProofUrl"
+                    alt="Bằng chứng"
+                    style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
+                  <video v-else-if="refundProof && refundProof.type.startsWith('video/')" :src="refundProofUrl" controls
+                    style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></video>
+                </div>
+              </div>
+
+              <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 24px;">
+                <button class="btn-warning-confirm" @click="confirmRefund" :disabled="isSubmitting"
+                  style="flex: 1; padding: 10px 16px; background: #f97316; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                  {{ isSubmitting ? 'Đang gửi...' : 'Gửi yêu cầu' }}
+                </button>
+                <button class="btn-cancel" no-guard @click="closeRefundModal">Quay lại</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </transition>
+    </Teleport>
+
+    <!-- Review Modal -->
+    <Teleport to="body">
+      <transition name="fade">
+        <div class="overlay" v-if="showReviewModal" @click.self="showReviewModal = false" style="z-index: 9010;">
+          <div class="modal review-modal">
+            <div class="modal-head">
+              <h2 class="modal-title">Đánh giá sản phẩm</h2>
+              <button class="close-btn" @click="showReviewModal = false">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div class="modal-body">
+              <div class="review-product-info" style="background: #f1f5f9; padding: 14px 16px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                <p class="review-product-name" style="font-weight: 700; font-size: 14.5px; color: #0f172a; line-height: 1.5; margin: 0;">{{ reviewForm.productName }}</p>
+              </div>
+
+              <div class="rating-selector">
+                <span class="rating-label" style="display: block; font-size: 14px; color: #334155; margin-bottom: 12px; font-weight: 700;">Chất lượng sản phẩm</span>
+                <div class="stars-input">
+                  <button v-for="i in 5" :key="i" class="star-btn"
+                    :class="{ filled: i <= (hoverRating || reviewForm.rating) }" @mouseenter="hoverRating = i"
+                    @mouseleave="hoverRating = 0" @click="reviewForm.rating = i" type="button">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                      <path
+                        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                    </svg>
+                  </button>
+                  <span class="rating-text" v-if="reviewForm.rating" style="margin-left: 12px; font-size: 14px; font-weight: 700; color: #d97706;">
+                    {{ ['Tệ', 'Không hài lòng', 'Bình thường', 'Hài lòng', 'Tuyệt vời'][reviewForm.rating - 1] }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="form-group mb-0">
+                <label style="display: block; font-size: 14px; font-weight: 700; color: #1e293b; margin-bottom: 8px;">Bình luận</label>
+                <textarea v-model="reviewForm.comment" class="form-control"
+                  placeholder="Hãy chia sẻ trải nghiệm của bạn về sản phẩm nhé..." rows="4"
+                  style="width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid #cbd5e1; background: #ffffff; color: #0f172a; font-size: 14px; line-height: 1.5; outline: none; box-sizing: border-box; resize: vertical; min-height: 110px;"></textarea>
+              </div>
+
+              <div class="modal-footer pt-4" style="border:none; padding-bottom:0;">
+                <button class="btn-save w-100" @click="submitReview" :disabled="isSubmittingReview"
+                  style="background: linear-gradient(135deg, #0284c7, #2563eb); color: #ffffff; border: none; border-radius: 10px; padding: 12px; font-weight: 700; font-size: 15px; cursor: pointer; box-shadow: 0 4px 12px rgba(37,99,235,0.25);">
+                  {{ isSubmittingReview ? 'Đang gửi...' : 'Gửi đánh giá' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </transition>
+    </Teleport>
+
+    <Teleport to="body">
+      <transition name="fade">
+        <div class="overlay" v-if="showAddrForm" @click.self="cancelAddr" style="z-index: 9015;">
+          <div class="modal address-modal">
+            <div class="modal-head">
+              <h2 class="modal-title">{{ editingAddrIdx !== null ? 'Chỉnh sửa địa chỉ' : 'Thêm địa chỉ mới' }}</h2>
+              <button class="close-btn" no-guard @click="cancelAddr">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div class="modal-body">
+              <form @submit.prevent="saveAddr" class="address-modal-form">
+                <div class="form-group form-full">
+                  <div class="region-picker-row">
+                    <div class="region-picker-field">
+                      <label>Tỉnh/Thành phố</label>
+                      <select v-model="selectedProvinceCode" :disabled="loadingProvinces" required
+                        @change="handleProvinceChange">
+                        <option value="" disabled>{{ loadingProvinces ? 'Đang tải tỉnh/thành...' : 'Chọn tỉnh/thành phố'
+                          }}
+                        </option>
+                        <option v-for="province in provinces" :key="province.code" :value="province.code">{{
+                          province.name
+                          }}</option>
+                      </select>
+                    </div>
+                    <div class="region-picker-field">
+                      <label>Phường/Xã</label>
+                      <select v-model="selectedWardCode" :disabled="!selectedProvinceCode || loadingWards" required
+                        @change="handleWardChange">
+                        <option value="" disabled>{{ loadingWards ? 'Đang tải phường/xã...' : 'Chọn phường/xã' }}
+                        </option>
+                        <option v-for="ward in wards" :key="ward.code" :value="ward.code">{{ ward.name }}</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                <div class="form-group form-full" style="position: relative;">
+                  <label>Địa chỉ chi tiết</label>
+                  <input v-model="addrForm.detail" @input="handleDetailInput" @blur="handleDetailBlur"
+                    @keydown="handleDetailKeydown" type="text" placeholder="Số nhà, tên đường..." required
+                    autocomplete="off" />
+                  <small v-if="searchingDetail" style="color: #64748b; margin-top: 4px; display: block;">Đang tìm kiếm
+                    gợi
+                    ý...</small>
+                  <small v-if="detailWarning" style="color: #dc2626; margin-top: 4px; display: block;">{{ detailWarning
+                    }}</small>
+
+                  <div v-if="showSuggestions && addressSuggestions.length > 0" class="suggestions-dropdown"
+                    style="position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); z-index: 1050; max-height: 250px; overflow-y: auto; margin-top: 4px;">
+                    <div v-for="(item, idx) in addressSuggestions" :key="idx" @click="selectSuggestion(item)"
+                      style="padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #f1f5f9; transition: background 0.2s;"
+                      onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                      <strong style="font-size: 13px; color: #334155; display: block; margin-bottom: 2px;">{{ item.title
+                        ||
+                        item.display_name || item.subtitle }}</strong>
+                      <span
+                        style="font-size: 11px; color: #64748b; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{
+                          item.subtitle || item.display_name }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="form-group form-full">
+                  <label>Vị trí giao hàng</label>
+                  <div class="inline-map-field">
+                    <AddressMapPicker inline :initial-position="mapInitialPosition" @selected="applyMapAddress"
+                      @open="openMapPicker" />
+                    <small v-if="locatingSelectedArea">Đang tìm vị trí khu vực...</small>
+                    <small v-else-if="addrForm.fullAddress">{{ addrForm.fullAddress }}</small>
+                  </div>
+                </div>
+                <div class="form-group"><label>Loại địa chỉ</label><select v-model="addrForm.type" required>
+                    <option value="home">Nhà riêng</option>
+                    <option value="company">Công ty</option>
+                  </select></div>
+                <div class="form-group form-full">
+                  <label class="checkbox-label"><input type="checkbox" v-model="addrForm.isDefault" /><span>Đặt làm địa
+                      chỉ
+                      mặc định</span></label>
+                </div>
+                <div class="form-actions form-full address-modal-actions">
+                  <button type="button" class="btn-cancel" no-guard @click="cancelAddr">Hủy</button>
+                  <button type="submit" class="btn-save" :disabled="savingAddr">
+                    <svg v-if="savingAddr" class="spin" viewBox="0 0 24 24" fill="none">
+                      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                    </svg>
+                    {{ savingAddr ? 'Đang lưu...' : 'Lưu địa chỉ' }}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </transition>
+    </Teleport>
+
+    <AddressMapPicker v-model="showMapPicker" :initial-position="mapInitialPosition" @selected="applyMapAddress" />
+
+    <div class="container">
+
+      <!-- â”€â”€ SIDEBAR â”€â”€ -->
+      <aside class="sidebar">
+        <!-- Input ẩn cho avatar upload -->
+        <input type="file" ref="fileInput" class="d-none" style="display:none" accept="image/jpeg, image/png"
+          @change="handleAvatarUpload" />
+        <div class="avatar-section">
+          <div class="avatar-sidebar-container">
+            <div class="avatar-circle" @click="triggerAvatarUpload"
+              style="cursor:pointer; position:relative; overflow: hidden;" title="Nhấn để thay đổi ảnh đại diện">
+              <img :src="formAvatarUrl" :alt="user.name" class="profile-avatar" />
+              <div v-if="isUploadingAvatar" class="avatar-hover-overlay"
+                style="position:absolute; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; color:#fff;">
+                <svg class="spin" viewBox="0 0 24 24" fill="none"
+                  style="width:24px;height:24px;animation: spin 1s linear infinite;">
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                </svg>
+              </div>
+              <div v-else class="avatar-hover-overlay"
+                style="position:absolute; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity 0.2s; color:#fff;"
+                onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0'">
+                <i class="fas fa-camera"></i> <span style="font-size: 12px; font-weight: 600; margin-left: 4px;">Đổi
+                  ảnh</span>
+              </div>
+            </div>
+          </div>
+          <h2 class="sidebar-name">{{ user.name }}</h2>
+          <span class="sidebar-badge">{{ user.memberSince }}</span>
+          <p class="sidebar-join">Thành viên từ {{ user.joinDate }}</p>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat-card" v-for="s in stats" :key="s.label">
+            <svg v-if="s.icon === 'orders'" viewBox="0 0 24 24" fill="none">
+              <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+              <rect x="9" y="3" width="6" height="4" rx="1" />
+              <path d="m9 12 2 2 4-4" />
+            </svg>
+            <svg v-else-if="s.icon === 'heart'" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            </svg>
+            <svg v-else viewBox="0 0 24 24" fill="none">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+            <span class="stat-val">{{ s.value }}</span>
+            <span class="stat-lbl">{{ s.label }}</span>
+          </div>
+        </div>
+
+        <!-- NAV BUTTONS -->
+        <nav class="side-nav">
+          <button v-for="tab in filteredTabs" :key="tab.key" class="side-btn" :class="{ active: activeTab === tab.key }"
+            @click="changeTab(tab.key)">
+            <!-- person -->
+            <svg v-if="tab.icon === 'person'" viewBox="0 0 24 24" fill="none">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            <!-- orders -->
+            <svg v-else-if="tab.icon === 'orders'" viewBox="0 0 24 24" fill="none">
+              <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+              <rect x="9" y="3" width="6" height="4" rx="1" />
+            </svg>
+            <!-- map -->
+            <svg v-else-if="tab.icon === 'map'" viewBox="0 0 24 24" fill="none">
+              <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+            <!-- tag (promotions) -->
+            <svg v-else-if="tab.icon === 'tag'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+              <line x1="7" y1="7" x2="7.01" y2="7" />
+            </svg>
+            <!-- lock -->
+            <svg v-else viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="11" width="18" height="11" rx="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+            <span>{{ tab.label }}</span>
+            <svg class="arrow" viewBox="0 0 24 24" fill="none">
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+          </button>
+        </nav>
+      </aside>
+
+      <!-- â”€â”€ MAIN CONTENT â”€â”€ -->
+      <main class="main">
+
+        <!-- â•â•â•â• TAB: PROFILE â•â•â•â• -->
+        <!-- â•â•â•â• TAB: PROFILE â•â•â•â• -->
+        <div v-if="activeTab === 'profile'" style="display: flex; flex-direction: column; gap: 24px;">
+          <!-- Thông tin cá nhân -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h1 class="card-title">Thông tin cá nhân</h1>
+                <p class="card-sub">Quản lý thông tin hồ sơ của bạn</p>
+              </div>
+              <button v-if="!editing" class="btn-edit" @click="startEdit">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+                Chỉnh sửa
+              </button>
+            </div>
+            <div v-if="!editing" class="info-grid">
+              <div class="info-row"><span class="info-lbl">Họ và tên</span><span class="info-val"
+                  :class="{ 'not-set': !user.name }">{{ user.name || 'Chưa cập nhật' }}</span></div>
+              <div class="info-row">
+                <span class="info-lbl">Xu tích lũy</span>
+                <span class="info-val" style="display: flex; align-items: center; gap: 10px;">
+                  <b style="color:#eab308; font-size:16px; font-weight: 700;">{{ (user.xu || 0).toLocaleString('vi-VN')
+                    }}
+                    Xu</b>
+                  <button type="button" class="btn-xem-lich-su-xu" @click="openXuHistoryModal"
+                    style="font-size: 10.5px; color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; padding: 3px 10px; cursor: pointer; border-radius: 20px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s ease; box-shadow: 0 1px 2px rgba(37,99,235,0.05);">
+                    <svg style="width: 12px; height: 12px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                      stroke-width="2.5">
+                      <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Lịch sử
+                  </button>
+                </span>
+              </div>
+              <div class="info-row"><span class="info-lbl">Email</span><span class="info-val"
+                  :class="{ 'not-set': !user.email }">{{ user.email || 'Chưa cập nhật' }}</span></div>
+              <div class="info-row"><span class="info-lbl">Số điện thoại</span><span class="info-val"
+                  :class="{ 'not-set': !user.phone }">{{ user.phone || 'Chưa cập nhật' }}</span></div>
+              <div class="info-row"><span class="info-lbl">Ngày sinh</span><span class="info-val"
+                  :class="{ 'not-set': !user.birthday }">{{ user.birthday || 'Chưa cập nhật' }}</span></div>
+              <div class="info-row">
+                <span class="info-lbl">Giới tính</span>
+                <span class="info-val" :class="{ 'not-set': !user.gender }">
+                  {{ user.gender ? (['male', 'Nam'].includes(user.gender) ? 'Nam' : ['female',
+                    'Nữ'].includes(user.gender) ?
+                  'Nữ' : 'Khác') : 'Chưa cập nhật' }}
+                </span>
+              </div>
+            </div>
+            <form v-else class="edit-form" @submit.prevent="saveProfile">
+              <div class="form-avatar-section" @click="triggerAvatarUpload" role="button" tabindex="0"
+                @keydown.enter.prevent="triggerAvatarUpload" @keydown.space.prevent="triggerAvatarUpload">
+                <div class="form-avatar-dashed-border">
+                  <div class="form-avatar-circle" style="position: relative; overflow: hidden;">
+                    <img :src="formAvatarUrl" :alt="user.name" class="form-avatar-img" />
+                    <div v-if="isUploadingAvatar" class="avatar-hover-overlay"
+                      style="position:absolute; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; color:#fff;">
+                      <svg class="spin" viewBox="0 0 24 24" fill="none"
+                        style="width:24px;height:24px;animation: spin 1s linear infinite;">
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56" stroke="currentColor" stroke-width="2"
+                          stroke-linecap="round" />
+                      </svg>
+                    </div>
+                    <div v-else class="form-avatar-plus-overlay">
+                      <i class="fas fa-plus"></i>
+                    </div>
+                  </div>
+                </div>
+                <p class="form-avatar-upload-text">Tải ảnh lên</p>
+              </div>
+
+              <div class="form-group"><label>Họ và tên</label><input v-model="profileForm.name" type="text" required />
+              </div>
+              <div class="form-group"><label>Email</label><input v-model="profileForm.email" type="email" required />
+              </div>
+              <div class="form-group"><label>Số điện thoại</label><input v-model="profileForm.phone" type="tel" /></div>
+              <div class="form-row">
+                <div class="form-group"><label>Ngày sinh</label><input v-model="profileForm.birthday" type="date" />
+                </div>
+                <div class="form-group">
+                  <label>Giới tính</label>
+                  <select v-model="profileForm.gender">
+                    <option value="male">Nam</option>
+                    <option value="female">Nữ</option>
+                    <option value="other">Khác</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button type="button" class="btn-cancel" no-guard @click="cancelEdit">Hủy</button>
+                <button type="submit" class="btn-save" :disabled="savingProfile">
+                  <svg v-if="savingProfile" class="spin" viewBox="0 0 24 24" fill="none">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                  </svg>
+                  {{ savingProfile ? 'Đang lưu...' : 'Lưu thay đổi' }}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Điểm danh hàng ngày -->
+          <div class="card attendance-card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title" style="display: flex; align-items: center; gap: 8px;">
+                  📅 Điểm danh nhận Xu hàng ngày
+                </h2>
+                <p class="card-sub">Điểm danh hàng ngày từ Thứ Hai đến Chủ Nhật để tích lũy thêm Xu mua sắm!</p>
+              </div>
+            </div>
+
+            <div class="attendance-days-grid">
+              <div v-for="d in attendanceData.days_progress" :key="d.day" class="attendance-day-box" :class="d.status">
+                <div class="day-num">{{ d.label }}</div>
+                <div class="day-xu">
+                  <span class="coin-icon">Xu</span>
+                  <span class="xu-val">+{{ d.xu }}</span>
+                </div>
+                <div class="day-status-icon">
+                  <svg v-if="d.status === 'checked'" class="icon-success" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  <svg v-else-if="d.status === 'current'" class="icon-current" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 12v10H4V12" />
+                    <path d="M2 7h20v5H2z" />
+                    <path d="M12 22V7" />
+                    <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
+                    <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
+                  </svg>
+                  <svg v-else class="icon-locked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div class="attendance-footer">
+              <div class="attendance-streak-info">
+                <span>Chuỗi điểm danh hiện tại: <strong>{{ attendanceData.current_streak }} ngày</strong> liên
+                  tục</span>
+              </div>
+              <button class="btn-checkin" :disabled="attendanceData.checked_today || checkingIn" @click="handleCheckIn">
+                <svg v-if="checkingIn" class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2.5"
+                  style="width: 18px; height: 18px; margin-right: 6px; animation: spin 1s linear infinite;">
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                </svg>
+                <svg v-else-if="attendanceData.checked_today" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+                  style="width: 18px; height: 18px; margin-right: 6px;">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; margin-right: 6px;">
+                  <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+                  <path d="m9 12 2 2 4-4" />
+                </svg>
+                <span>{{ attendanceData.checked_today ? 'Hôm nay đã điểm danh' : 'Điểm danh ngay' }}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- â•â•â•â• TAB: ORDERS â•â•â•â• -->
+        <div v-else-if="activeTab === 'orders'">
+          <div class="page-header-inline"
+            style="padding-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.07); margin-bottom: 24px;">
+            <h1 class="card-title" style="font-size: 26px; color: #e2e8f0;">Lịch sử đơn hàng</h1>
+          </div>
+
+          <div class="category-tabs" style="margin-bottom: 20px;">
+            <button :class="['cat-tab', { active: orderMode === 'mua' }]" @click="orderMode = 'mua'; orderTab = 'all'"
+              style="position: relative;">
+              Đơn mua hàng
+              <span class="badge-cart-like">{{orders.filter(o => !o.status.startsWith('refund')).length}}</span>
+            </button>
+            <button :class="['cat-tab', { active: orderMode === 'hoantra' }]"
+              @click="orderMode = 'hoantra'; orderTab = 'all'" style="position: relative;">
+              Đơn hoàn trả
+              <span class="badge-cart-like">{{orders.filter(o => o.status.startsWith('refund')).length}}</span>
+            </button>
+          </div>
+
+          <div class="tabs-group-wrapper" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px;">
+            <div class="order-tabs" style="margin-bottom: 0;">
+              <button
+                v-for="t in (orderMode === 'mua' ? orderTabs_mua : [{ key: 'all', label: 'Tất cả' }, ...orderTabs_hoantra])"
+                :key="t.key" class="order-tab" :class="{ active: orderTab === t.key }" @click="orderTab = t.key">
+                {{ t.label }}
+                <span class="otab-count" v-if="t.key !== 'all'">{{orders.filter(o => o.status === t.key).length
+                  }}</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="table-card">
+            <table class="order-data-table">
+              <thead>
+                <tr>
+                  <th>MÃ ĐƠN HÀNG</th>
+                  <th>Ngày đặt</th>
+                  <th>Tổng tiền</th>
+                  <th>Trạng thái</th>
+                  <th>Hành động</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="filteredOrders.length === 0">
+                  <td colspan="5" class="empty-state-cell">
+                    <div class="empty-state-container">
+                      <div class="empty-icon-wrapper">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                          class="empty-icon-custom">
+                          <rect x="2" y="3" width="20" height="14" rx="2" />
+                          <path d="M8 21h8M12 17v4" />
+                        </svg>
+                      </div>
+                      <h3 class="empty-state-title">Bạn chưa có đơn hàng nào</h3>
+                      <p class="empty-state-desc">Hãy khám phá các sản phẩm laptop cao cấp tại NextGen Group</p>
+                      <router-link to="/" class="btn-shop-now">Tiếp tục mua sắm</router-link>
+                    </div>
+                  </td>
+                </tr>
+                <tr v-for="order in paginatedOrders" :key="order.id" class="order-row">
+                  <td class="id-col"><span class="order-id">#VT-2026-{{ String(order.id_dathang).padStart(3, '0')
+                      }}</span>
+                  </td>
+                  <td>{{ order.date }}</td>
+                  <td>
+                    <div style="font-weight: 600;">{{ order.total }}</div>
+                    <div v-if="order.xu_dung > 0"
+                      style="font-size: 11px; color: #f59e0b; margin-top: 2px; white-space: nowrap;">
+                      Đã dùng: -{{ order.xu_dung.toLocaleString('vi-VN') }} xu
+                    </div>
+                  </td>
+                  <td>
+                    <div class="customer-shipment-state"
+                      :class="{ failed: getShipment(order)?.status === 'delivery_failed' }">
+                      <span class="status-cell"
+                        :style="{ color: getDisplayStatusStyle(order).color, background: getDisplayStatusStyle(order).bg }">
+                        {{ getDisplayStatus(order) }}
+                      </span>
+                      <span class="customer-tracking" :class="{ muted: !hasShipment(order) }">
+                        {{ getOrderStatusSubtext(order) }}
+                      </span>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="btn-group">
+                      <button class="order-action-btn btn-xem" @click="selectedOrder = order">Xem</button>
+                      <button v-if="['done', 'cancelled', 'refunded', 'refund_rejected'].includes(order.status)"
+                        class="order-action-btn btn-mua-lai" @click="handleReorder(order)">Mua lại</button>
+                      <button v-if="['pending', 'confirmed'].includes(order.status)"
+                        class="order-action-btn btn-huy-don" :class="{ 'is-hidden': !canCancelOrder(order) }"
+                        :disabled="!canCancelOrder(order)" @click="openCancelModal(order)">Hủy đơn</button>
+                      <button v-if="isRefundable(order)" class="order-action-btn btn-hoan-tra"
+                        @click="openRefundModal(order)">Hoàn trả</button>
+                    </div>
+
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="pagination-footer" v-if="totalPages > 1">
+              <p class="pagination-info">Hiển thị {{ (currentPage - 1) * itemsPerPage + 1 }} – {{ Math.min(currentPage *
+                itemsPerPage, filteredOrders.length) }} của {{ filteredOrders.length }} đơn hàng</p>
+              <div class="pagination">
+                <button class="p-arrow" :disabled="currentPage === 1" @click="currentPage--">‹ Trước</button>
+                <div class="p-nums">
+                  <button v-for="p in totalPages" :key="p" class="p-num" :class="{ active: currentPage === p }"
+                    @click="currentPage = p">{{ p }}</button>
+                </div>
+                <button class="p-arrow" :disabled="currentPage === totalPages" @click="currentPage++">Sau ›</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- â•â•â•â• TAB: ADDRESS â•â•â•â• -->
+        <div v-else-if="activeTab === 'address'">
+          <div class="page-header-inline" style="display:flex;align-items:flex-start;justify-content:space-between;">
+            <div>
+              <h1 class="card-title">Địa chỉ của tôi</h1>
+              <p class="card-sub">Quản lý địa chỉ giao hàng</p>
+            </div>
+            <button class="btn-add" @click="openAddAddr">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              Thêm địa chỉ
+            </button>
+          </div>
+          <div class="addr-list">
+            <div v-if="loadingAddresses" class="empty">
+              <p>Đang tải địa chỉ...</p>
+            </div>
+            <div v-else-if="addresses.length === 0" class="empty">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z" />
+                <circle cx="12" cy="10" r="3" />
+              </svg>
+              <p>Chưa có địa chỉ nào</p>
+            </div>
+            <div class="addr-card" v-for="(addr, i) in addresses" :key="addr.id"
+              :class="{ 'is-default': addr.isDefault }">
+              <div class="addr-head">
+                <div class="addr-name-wrap" style="flex: 1; margin-right: 12px;"><span class="addr-name"
+                    style="line-height: 1.4; word-break: break-word;">{{[addr.detail, addr.ward, addr.district,
+                    addr.province].filter(v => v && v !== 'Không xác định').join(', ') }}</span></div>
+                <span class="default-badge" v-if="addr.isDefault">Mặc định</span>
+              </div>
+              <p class="addr-full" style="color: #64748b; font-weight: 500; margin-top: 4px;">{{ addr.type === 'company'
+                ?
+                'Công ty' : 'Nhà riêng' }}</p>
+              <div class="addr-actions">
+                <button class="addr-btn" @click="openEditAddr(i)"><svg viewBox="0 0 24 24" fill="none">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>Chỉnh sửa</button>
+                <button class="addr-btn addr-btn-default" v-if="!addr.isDefault" @click="setDefaultAddr(i)"><svg
+                    viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                  </svg>Đặt mặc định</button>
+                <button class="addr-btn addr-btn-delete" @click="removeAddr(i)"><svg viewBox="0 0 24 24" fill="none">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6l-1 14H6L5 6" />
+                    <path d="M10 11v6M14 11v6M9 6V4h6v2" />
+                  </svg>Xóa</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- â•â•â•â• TAB: PROMOTIONS â•â•â•â• -->
+        <div v-else-if="activeTab === 'promotions'">
+          <div class="page-header-inline"
+            style="padding-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.07); margin-bottom: 24px;">
+            <h1 class="card-title" style="font-size: 26px; color: #e2e8f0;">Khuyến mãi</h1>
+            <p class="card-sub">Danh sách mã và chương trình khuyến mãi hiện có</p>
+          </div>
+
+          <div class="table-card">
+            <table class="order-data-table">
+              <thead>
+                <tr>
+                  <th>TÊN</th>
+                  <th>MÃ</th>
+                  <th>LOẠI</th>
+                  <th>GIÁ TRỊ</th>
+                  <th>THỜI GIAN HẾT HẠN </th>
+                  <th>TRẠNG THÁI</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="promotions.length === 0">
+                  <td colspan="6" class="empty-state-cell">
+                    <div class="empty-msg">
+                      <svg viewBox="0 0 24 24" fill="none" class="empty-icon" stroke="#cbd5e1" stroke-width="1.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+                        <line x1="7" y1="7" x2="7.01" y2="7" stroke-width="2.5" />
+                      </svg>
+                      <p>Không có khuyến mãi nào</p>
+                    </div>
+                  </td>
+                </tr>
+                <tr v-for="item in paginatedPromos" :key="item.id" class="order-row">
+                  <td><span style="font-weight:600; color: #1e293b;">{{ item.promotion?.ten }}</span></td>
+                  <td><span class="promo-code-badge">{{ item.promotion?.code }}</span></td>
+                  <td style="color: #64748b; font-size:13px;">
+                    {{ item.promotion?.loai === 'percent' ? 'Phần trăm' : (item.promotion?.loai === 'maxprice' ? 'Tối đa' : 'Cố định') }}
+                  </td>
+                  <td style="font-weight:700; color:#2563eb;">
+                    {{ item.promotion?.loai === 'percent'
+                      ? item.promotion?.giatri + '%'
+                      : new Intl.NumberFormat('vi-VN').format(item.promotion?.giatri || 0) + 'đ' }}
+                  </td>
+                  <td style="font-size:13px; color: #64748b;">
+                    <span v-if="item.promotion?.ngayketthuc">{{ new
+                      Date(item.promotion?.ngayketthuc).toLocaleDateString('vi-VN') }}</span>
+                    <span v-else>Không giới hạn</span>
+                  </td>
+                  <td>
+                    <span v-if="item.promotion?.ngayketthuc && new Date(item.promotion?.ngayketthuc) < new Date()"
+                      :style="{
+                        color: promoStatusMap.expired.color,
+                        background: promoStatusMap.expired.bg,
+                        padding: '4px 12px',
+                        borderRadius: '99px',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        display: 'inline-block'
+                      }">
+                      {{ promoStatusMap.expired.label }}
+                    </span>
+                    <span v-else :style="{
+                      color: (promoStatusMap[item.trang_thai] || promoStatusMap[1]).color,
+                      background: (promoStatusMap[item.trang_thai] || promoStatusMap[1]).bg,
+                      padding: '4px 12px',
+                      borderRadius: '99px',
+                      fontSize: '12px',
+                      fontWeight: '700',
+                      display: 'inline-block'
+                    }">
+                      {{ (promoStatusMap[item.trang_thai] || promoStatusMap[1]).label }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            <!-- Pagination -->
+            <div class="pagination-footer" v-if="totalPromoPages > 1">
+              <p class="pagination-info">
+                Hiển thị {{ (promoPage - 1) * promoPerPage + 1 }} –
+                {{ Math.min(promoPage * promoPerPage, promotions.length) }}
+                của {{ promotions.length }} khuyến mãi
+              </p>
+              <div class="pagination">
+                <button class="p-arrow" :disabled="promoPage === 1" @click="promoPage--">‹ Trước</button>
+                <div class="p-nums">
+                  <button v-for="p in totalPromoPages" :key="p" class="p-num" :class="{ active: promoPage === p }"
+                    @click="promoPage = p">{{ p }}</button>
+                </div>
+                <button class="p-arrow" :disabled="promoPage === totalPromoPages" @click="promoPage++">Sau ›</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- â•â•â•â• TAB: PASSWORD â•â•â•â• -->
+        <div v-else-if="activeTab === 'password'">
+          <div class="page-header-inline">
+            <h1 class="card-title">Đổi mật khẩu</h1>
+            <p class="card-sub">Cập nhật mật khẩu để bảo mật tài khoản</p>
+          </div>
+          <div class="pw-layout">
+            <div class="card">
+              <form @submit.prevent="savePw" class="form">
+                <div class="form-group" :class="{ error: pwErrors.email }">
+                  <label>Email xác minh</label>
+                  <div class="input-wrap">
+                    <svg class="input-icon" viewBox="0 0 24 24" fill="none">
+                      <path d="M4 6h16v12H4z" />
+                      <path d="m4 7 8 6 8-6" />
+                    </svg>
+                    <input type="email" v-model="pwForm.email" placeholder="Name@example.com" />
+                  </div>
+                  <span class="err-msg" v-if="pwErrors.email">{{ pwErrors.email }}</span>
+                  <p class="pw-hint">Nhập email tài khoản để nhận mã OTP xác minh trước khi đổi mật khẩu.</p>
+                </div>
+                <div class="form-group" :class="{ error: pwErrors.newPass }">
+                  <label>Mật khẩu mới</label>
+                  <div class="input-wrap">
+                    <svg class="input-icon" viewBox="0 0 24 24" fill="none">
+                      <rect x="3" y="11" width="18" height="11" rx="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                    <input :type="showPw.newPass ? 'text' : 'password'" v-model="pwForm.newPass"
+                      placeholder="••••••••" />
+                    <button type="button" class="eye-btn" @click="showPw.newPass = !showPw.newPass">
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    </button>
+                  </div>
+                  <div class="strength-bar" v-if="pwForm.newPass">
+                    <div class="strength-track">
+                      <div class="strength-fill"
+                        :style="{ width: (pwStrength / 4 * 100) + '%', background: pwStrengthColor }">
+                      </div>
+                    </div>
+                    <span class="strength-label" :style="{ color: pwStrengthColor }">{{ pwStrengthLabel }}</span>
+                  </div>
+                  <span class="err-msg" v-if="pwErrors.newPass">{{ pwErrors.newPass }}</span>
+                </div>
+                <div class="form-group" :class="{ error: pwErrors.confirm }">
+                  <label>Xác nhận mật khẩu mới</label>
+                  <div class="input-wrap">
+                    <svg class="input-icon" viewBox="0 0 24 24" fill="none">
+                      <rect x="3" y="11" width="18" height="11" rx="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                    <input :type="showPw.confirm ? 'text' : 'password'" v-model="pwForm.confirm"
+                      placeholder="••••••••" />
+                    <button type="button" class="eye-btn" @click="showPw.confirm = !showPw.confirm">
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    </button>
+                  </div>
+                  <span class="err-msg" v-if="pwErrors.confirm">{{ pwErrors.confirm }}</span>
+                </div>
+                <button type="submit" class="btn-save" style="margin-top:4px" :disabled="savingPw">
+                  <svg v-if="savingPw" class="spin" viewBox="0 0 24 24" fill="none">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                  </svg>
+                  {{ savingPw ? 'Đang gửi OTP...' : 'Tiếp tục' }}
+                </button>
+              </form>
+            </div>
+            <div>
+              <div class="req-card">
+                <h3 class="req-title">Yêu cầu mật khẩu</h3>
+                <ul class="req-list">
+                  <li v-for="req in pwRequirements" :key="req.label" :class="{ ok: req.ok }">
+                    <svg v-if="req.ok" viewBox="0 0 24 24" fill="none">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    <svg v-else viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" />
+                    </svg>
+                    {{ req.label }}
+                  </li>
+                </ul>
+              </div>
+              <div class="tip-card">
+                <div class="tip-icon"><svg viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 8v4" />
+                    <path d="M12 16h.01" />
+                  </svg></div>
+                <div>
+                  <h4 class="tip-title">Mẹo bảo mật</h4>
+                  <ul class="tip-list">
+                    <li>Không dùng thông tin cá nhân</li>
+                    <li>Dùng mật khẩu riêng cho mỗi trang</li>
+                    <li>Thay đổi định kỳ 3–6 tháng</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.page :is(h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  button,
+  .card-title,
+  .modal-title,
+  .side-btn,
+  .stat-lbl,
+  .info-lbl,
+  .section-title,
+  th,
+  label > span) {
+  text-transform: none !important;
+}
+
+
+/* â”€â”€ BASE â”€â”€ */
+.page {
+  min-height: 100vh;
+  background: radial-gradient(circle at 10% 20%, #0c192c 0%, #050b15 100%);
+  padding: 30px 24px;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.container {
+  max-width: 1080px;
+  margin: auto;
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+
+/* â”€â”€ SIDEBAR â”€â”€ */
+.sidebar {
+  background: rgba(17, 31, 53, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 20px;
+  border: 1px solid rgba(56, 189, 248, 0.12);
+  overflow: hidden;
+  position: sticky;
+  top: 20px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.25);
+}
+
+.avatar-section {
+  padding: 26px 20px 20px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.avatar-sidebar-container {
+  width: 84px;
+  height: 84px;
+  margin: 0 auto 14px;
+}
+
+.avatar-circle {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  position: relative;
+  border: 3px solid rgba(34, 211, 238, 0.8);
+  box-shadow: 0 0 20px rgba(34, 211, 238, 0.35);
+  transition: transform 0.3s ease;
+}
+
+.avatar-circle:hover {
+  transform: scale(1.03);
+}
+
+.profile-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-hover-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  color: #ffffff;
+}
+
+.avatar-hover-overlay i {
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.sidebar-name {
+  font-size: 17px;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 8px;
+  letter-spacing: -0.2px;
+}
+
+.sidebar-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #3b82f6;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.15), rgba(37, 99, 235, 0.15));
+  border: 1px solid rgba(37, 99, 235, 0.3);
+  padding: 3px 12px;
+  border-radius: 20px;
+  text-transform: capitalize;
+  letter-spacing: 0.5px;
+}
+
+.sidebar-join {
+  font-size: 12px;
+  color: #64748b;
+  margin: 8px 0 0;
+}
+
+/* â”€â”€ STAT GRID â”€â”€ */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+  padding: 14px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.stat-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  padding: 10px 5px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.25s ease;
+  cursor: pointer;
+}
+
+.stat-card:hover {
+  background: rgba(56, 189, 248, 0.08);
+  border-color: rgba(56, 189, 248, 0.25);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.stat-card svg {
+  width: 16px;
+  height: 16px;
+  stroke: #38bdf8;
+  stroke-width: 2;
+  fill: none;
+  transition: all 0.25s ease;
+}
+
+.stat-card:hover svg {
+  stroke: #3b82f6;
+  filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.5));
+}
+
+.stat-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.stat-lbl {
+  font-size: 10px;
+  color: #94a3b8;
+  text-transform: capitalize;
+  letter-spacing: 0.5px;
+}
+
+/* â”€â”€ SIDEBAR NAV BUTTONS â”€â”€ */
+.side-nav {
+  padding: 10px 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.side-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 13px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.side-btn svg:not(.arrow) {
+  width: 17px;
+  height: 17px;
+  stroke: #94a3b8;
+  stroke-width: 2;
+  fill: none;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.side-btn span {
+  flex: 1;
+}
+
+.side-btn .arrow {
+  width: 14px;
+  height: 14px;
+  stroke: #64748b;
+  stroke-width: 2.5;
+  fill: none;
+  flex-shrink: 0;
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: all 0.2s ease;
+}
+
+.side-btn:hover {
+  background: rgba(255, 255, 255, 0.03);
+  color: #ffffff;
+}
+
+.side-btn:hover svg:not(.arrow) {
+  stroke: #38bdf8;
+}
+
+.side-btn:hover .arrow {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.side-btn.active {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(37, 99, 235, 0.12));
+  border: 1px solid rgba(56, 189, 248, 0.15);
+  color: #3b82f6;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  font-weight: 700;
+}
+
+.side-btn.active svg:not(.arrow) {
+  stroke: #3b82f6;
+  filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.35));
+}
+
+.side-btn.active .arrow {
+  opacity: 1;
+  stroke: #3b82f6;
+  transform: translateX(0);
+}
+
+/* â”€â”€ MAIN â”€â”€ */
+.main {
+  min-width: 0;
+}
+
+.card {
+  background: rgba(17, 31, 53, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 20px;
+  border: 1px solid rgba(56, 189, 248, 0.12);
+  padding: 22px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.25);
+}
+
+.page-header-inline {
+  margin-bottom: 24px;
+}
+
+.card-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 6px;
+  letter-spacing: -0.3px;
+}
+
+.card-sub {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  gap: 16px;
+}
+
+/* PROFILE */
+.btn-edit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 17px;
+  border-radius: 11px;
+  background: transparent;
+  border: 1.5px solid rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.btn-edit:hover {
+  background: linear-gradient(135deg, #0284c7 0%, #1d4ed8 100%);
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.btn-edit svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  fill: none;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding-top: 2px;
+}
+
+.info-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-height: 72px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.info-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(56, 189, 248, 0.15);
+}
+
+.info-lbl {
+  font-size: 10px;
+  color: #64748b;
+  font-weight: 700;
+  text-transform: capitalize;
+  letter-spacing: 0.8px;
+}
+
+.info-val {
+  font-size: 13px;
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+.info-val.not-set {
+  color: #64748b;
+  font-style: italic;
+  font-weight: 500;
+}
+
+/* FORMS */
+.edit-form,
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* FORM AVATAR PICKER */
+.form-avatar-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.form-avatar-dashed-border {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  border: 2px dashed rgba(56, 189, 248, 0.4);
+  padding: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.form-avatar-dashed-border:hover {
+  border-color: #38bdf8;
+  transform: scale(1.02);
+}
+
+.form-avatar-circle {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  position: relative;
+  background: rgba(13, 27, 46, 0.4);
+}
+
+.form-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.form-avatar-plus-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.form-avatar-circle:hover .form-avatar-plus-overlay {
+  opacity: 1;
+}
+
+.form-avatar-upload-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.form-row,
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.form-full {
+  grid-column: 1 / -1;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #94a3b8;
+  letter-spacing: 0.2px;
+}
+
+.form-group input,
+.form-group select {
+  padding: 10px 14px;
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border-radius: 11px;
+  font-size: 13.5px;
+  color: #ffffff !important;
+  outline: none;
+  transition: all 0.2s ease;
+  background: rgba(13, 27, 46, 0.5);
+}
+
+.form-group input:disabled,
+.form-group select:disabled {
+  opacity: 0.5;
+  color: #64748b !important;
+  cursor: not-allowed;
+}
+
+.form-group select option {
+  background-color: #0f1c2e;
+  color: #e2e8f0;
+}
+
+.form-group select option:disabled {
+  color: #64748b;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+  background: rgba(13, 27, 46, 0.8);
+}
+
+.form-group.error input {
+  border-color: #ef4444;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #cbd5e1;
+  font-weight: 600;
+  user-select: none;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #38bdf8;
+  cursor: pointer;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.btn-cancel {
+  padding: 9px 19px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  color: #94a3b8;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.btn-save {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 21px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, #0284c7 0%, #1d4ed8 100%);
+  border: none;
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+.btn-save:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 15px rgba(37, 99, 235, 0.3);
+}
+
+.btn-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.spin {
+  width: 16px;
+  height: 16px;
+  stroke: #ffffff;
+  stroke-width: 2.5;
+  fill: none;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.err-msg {
+  font-size: 12px;
+  color: #ef4444;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.pw-hint {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* â”€â”€ CATEGORY TABS â”€â”€ */
+.category-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 0;
+}
+
+.cat-tab {
+  background: transparent;
+  border: none;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #94a3b8;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all 0.25s ease;
+  display: flex;
+  align-items: center;
+}
+
+.cat-tab:hover {
+  color: #38bdf8;
+}
+
+.cat-tab.active {
+  color: #3b82f6;
+  border-bottom-color: #3b82f6;
+}
+
+.badge-cart-like {
+  background-color: #f43f5e;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  padding: 2.5px 5.5px;
+  border-radius: 9999px;
+  border: 1.5px solid #111f35;
+  min-width: 18px;
+  text-align: center;
+  margin-left: 6px;
+}
+
+/* â”€â”€ ORDER TABS (Segmented Control) â”€â”€ */
+.order-tabs {
+  display: flex;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  padding: 4px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.order-tab {
+  padding: 8px 16px;
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.order-tab:hover {
+  background: rgba(255, 255, 255, 0.02);
+  color: #ffffff;
+}
+
+.order-tab.active {
+  background: #0284c7;
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
+}
+
+.otab-count {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 1.5px 6px;
+  border-radius: 99px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.order-tab.active .otab-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+/* â”€â”€ TABLES â”€â”€ */
+.table-card {
+  background: transparent;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+.order-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13.5px;
+}
+
+.order-data-table th {
+  background: rgba(255, 255, 255, 0.02);
+  padding: 16px 20px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: capitalize;
+  font-size: 11px;
+  letter-spacing: 0.8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.order-data-table td {
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  color: #cbd5e1;
+  vertical-align: middle;
+}
+
+.order-row {
+  transition: all 0.2s ease;
+}
+
+.order-row:hover {
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.id-col {
+  font-weight: 700;
+}
+
+.order-id {
+  color: #38bdf8;
+  text-shadow: 0 0 8px rgba(56, 189, 248, 0.15);
+}
+
+.status-cell {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid currentColor;
+  text-transform: capitalize;
+  letter-spacing: 0.5px;
+}
+
+.customer-shipment-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.customer-tracking {
+  max-width: 230px;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.customer-tracking.muted {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.customer-shipment-state.failed .customer-tracking {
+  color: #dc2626;
+  font-weight: 800;
+}
+
+.customer-shipping-card {
+  margin: 12px 0 16px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(125, 211, 252, 0.32);
+  background:
+    linear-gradient(180deg, rgba(239, 246, 255, 0.98), rgba(248, 250, 252, 0.96)),
+    #f8fafc;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.14);
+  overflow: hidden;
+}
+
+.shipping-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.shipping-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.shipping-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  color: #0284c7;
+  background: #e0f2fe;
+  border: 1px solid #bae6fd;
+  flex-shrink: 0;
+}
+
+.shipping-icon svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.shipping-kicker {
+  margin: 0 0 3px;
+  color: #0284c7;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.shipping-card-head h3 {
+  margin: 0 0 2px;
+  color: #0f172a;
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.shipping-card-head span:not(.shipping-status) {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.shipping-status {
+  padding: 6px 11px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
+}
+
+.shipping-failure-box {
+  margin: 0 0 10px;
+  padding: 11px 13px;
+  border-radius: 13px;
+  border: 1px solid #fecaca;
+  background: #fff1f2;
+}
+
+.shipping-failure-box span {
+  display: block;
+  color: #ef4444;
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.shipping-failure-box b {
+  display: block;
+  color: #991b1b;
+  font-size: 13.5px;
+  line-height: 1.35;
+}
+
+.shipping-failure-box p {
+  margin: 6px 0 0;
+  color: #7f1d1d;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.shipping-failure-box.is-returned {
+  border-color: #ddd6fe;
+  background: #f5f3ff;
+}
+
+.shipping-failure-box.is-returned span {
+  color: #7c3aed;
+}
+
+.shipping-failure-box.is-returned b,
+.shipping-failure-box.is-returned p {
+  color: #5b21b6;
+}
+
+.shipping-info-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.shipping-info-grid>div {
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+  padding: 9px 10px;
+  background: rgba(255, 255, 255, 0.9);
+  min-height: 52px;
+  min-width: 0;
+}
+
+.shipping-info-grid span {
+  display: block;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.shipping-info-grid b {
+  color: #0f172a;
+  display: block;
+  font-size: 12.5px;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shipping-events {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.shipping-events-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.shipping-events-head span {
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.shipping-events-head b {
+  color: #0284c7;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.shipping-events-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  max-height: 220px;
+  padding: 1px 4px 1px 1px;
+  scrollbar-width: thin;
+  scrollbar-color: #93c5fd #eff6ff;
+}
+
+.shipping-events-rail::-webkit-scrollbar {
+  width: 6px;
+}
+
+.shipping-events-rail::-webkit-scrollbar-track {
+  background: #eff6ff;
+  border-radius: 999px;
+}
+
+.shipping-events-rail::-webkit-scrollbar-thumb {
+  background: #93c5fd;
+  border-radius: 999px;
+}
+
+.shipping-event {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: 10px;
+  position: relative;
+  padding: 10px 12px;
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffffff, #f8fbff);
+  min-height: 82px;
+}
+
+.shipping-event:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 23px;
+  top: 40px;
+  bottom: -12px;
+  width: 2px;
+  background: #bae6fd;
+}
+
+.shipping-event>span {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #0ea5e9;
+  border: 5px solid #e0f2fe;
+  margin-top: 0;
+  z-index: 1;
+  box-shadow: 0 6px 14px rgba(14, 165, 233, 0.22);
+}
+
+.shipping-event b {
+  color: #0f172a;
+  font-size: 12.5px;
+  font-weight: 900;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.shipping-event p {
+  margin: 3px 0;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.shipping-event small {
+  color: #64748b;
+  font-size: 10.5px;
+  font-weight: 800;
+}
+
+@media (max-width: 640px) {
+  .shipping-card-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .shipping-info-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Buttons inside tables */
+.btn-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 240px;
+}
+
+.order-action-btn {
+  min-width: 66px;
+  height: 30px;
+  padding: 0 13px;
+  border-radius: 11px;
+  font-weight: 700;
+  font-size: 11.5px;
+  line-height: 1.05;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border: 1.5px solid transparent;
+  white-space: nowrap;
+  box-shadow: 0 5px 12px rgba(15, 23, 42, 0.05);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.order-action-btn:hover {
+  transform: translateY(-1px);
+}
+
+.order-action-btn.is-hidden,
+.btn-modal-huy.is-hidden {
+  opacity: 0.45;
+  filter: grayscale(0.45);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.order-action-btn.is-hidden:hover,
+.btn-modal-huy.is-hidden:hover {
+  transform: none;
+  cursor: not-allowed;
+}
+
+.btn-xem {
+  background: linear-gradient(135deg, #0284c7, #38bdf8);
+  color: #ffffff;
+  border-color: transparent;
+}
+
+.btn-xem:hover {
+  box-shadow: 0 12px 24px rgba(14, 165, 233, 0.24);
+}
+
+.btn-hoan-tra {
+  background: #fff7ed;
+  color: #ea580c;
+  border-color: #fed7aa;
+}
+
+.btn-hoan-tra:hover {
+  background: #f97316;
+  color: #ffffff;
+  border-color: #f97316;
+  box-shadow: 0 12px 24px rgba(249, 115, 22, 0.22);
+}
+
+.btn-mua-lai {
+  background: linear-gradient(135deg, #16a34a, #22c55e);
+  color: #ffffff;
+  border-color: transparent;
+}
+
+.btn-mua-lai:hover {
+  box-shadow: 0 12px 24px rgba(34, 197, 94, 0.24);
+}
+
+.btn-huy-don {
+  background: #fff7f7;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.btn-huy-don:hover {
+  background: #ef4444;
+  color: #ffffff;
+  border-color: #ef4444;
+  box-shadow: 0 12px 24px rgba(239, 68, 68, 0.22);
+}
+
+/* Pagination */
+.pagination-footer {
+  padding: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.pagination-info {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.p-arrow {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 6px 14px;
+  border-radius: 8px;
+  color: #cbd5e1;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s ease;
+}
+
+.p-arrow:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.p-arrow:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.p-nums {
+  display: flex;
+  gap: 6px;
+}
+
+.p-num {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+  color: #94a3b8;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.p-num:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.p-num.active {
+  background: #0284c7;
+  border-color: #0284c7;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.empty-state-cell {
+  padding: 0;
+}
+
+/* Empty State Custom styles */
+.empty-state-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
+  text-align: center;
+}
+
+.empty-icon-wrapper {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(34, 211, 238, 0.06);
+  border: 1px dashed rgba(34, 211, 238, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  color: #3b82f6;
+  box-shadow: 0 0 20px rgba(34, 211, 238, 0.05);
+}
+
+.empty-icon-custom {
+  width: 36px;
+  height: 36px;
+}
+
+.empty-state-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 8px;
+  letter-spacing: -0.2px;
+}
+
+.empty-state-desc {
+  font-size: 13.5px;
+  color: #64748b;
+  max-width: 340px;
+  margin: 0 0 24px;
+  line-height: 1.5;
+}
+
+.btn-shop-now {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 11px 26px;
+  background: linear-gradient(135deg, #0284c7 0%, #1d4ed8 100%);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 12px;
+  text-decoration: none;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
+}
+
+.btn-shop-now:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+}
+
+/* ADDRESS */
+.btn-add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #0284c7 0%, #1d4ed8 100%);
+  border: none;
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-add:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.btn-add svg {
+  width: 15px;
+  height: 15px;
+  stroke: #ffffff;
+  stroke-width: 2.5;
+  fill: none;
+}
+
+.addr-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.addr-card {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 18px;
+  border: 1.5px solid rgba(255, 255, 255, 0.06);
+  padding: 20px 24px;
+  transition: all 0.25s ease;
+}
+
+.addr-card.is-default {
+  border-color: rgba(56, 189, 248, 0.3);
+  background: rgba(56, 189, 248, 0.02);
+}
+
+.addr-card:hover {
+  border-color: rgba(56, 189, 248, 0.2);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.addr-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.addr-name {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.default-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #3b82f6;
+  background: rgba(37, 99, 235, 0.12);
+  border: 1px solid rgba(37, 99, 235, 0.25);
+  padding: 3px 10px;
+  border-radius: 99px;
+}
+
+.addr-full {
+  font-size: 13.5px;
+  color: #94a3b8;
+  margin: 0 0 16px;
+  line-height: 1.5;
+}
+
+.addr-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 14px;
+}
+
+.addr-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.addr-btn svg {
+  width: 13px;
+  height: 13px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  fill: none;
+}
+
+.addr-btn:hover {
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+.addr-btn-default {
+  border-color: #dbeafe;
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.addr-btn-default:hover {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+
+.addr-btn-delete {
+  border-color: #fee2e2;
+  color: #ef4444;
+  background: #fff5f5;
+}
+
+.addr-btn-delete:hover {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+
+/* PASSWORD */
+.pw-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 24px;
+  align-items: start;
+}
+
+.input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 14px;
+  width: 16px;
+  height: 16px;
+  stroke: #64748b;
+  stroke-width: 2;
+  fill: none;
+  pointer-events: none;
+}
+
+.input-wrap input {
+  width: 100%;
+  padding: 11px 44px 11px 40px;
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  font-size: 14px;
+  color: #ffffff;
+  background: rgba(13, 27, 46, 0.5);
+  outline: none;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.input-wrap input:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+  background: rgba(13, 27, 46, 0.8);
+}
+
+.form-group.error .input-wrap input {
+  border-color: #ef4444;
+}
+
+.form-group.error .captcha-input {
+  border-color: #ef4444;
+}
+
+.eye-btn {
+  position: absolute;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.eye-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke: #94a3b8;
+  stroke-width: 2;
+  fill: none;
+}
+
+.captcha-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.captcha-question {
+  flex: 1;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px dashed rgba(56, 189, 248, 0.25);
+  border-radius: 12px;
+  background: rgba(13, 27, 46, 0.5);
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.captcha-refresh {
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 12px;
+  background: rgba(56, 189, 248, 0.06);
+  color: #38bdf8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.captcha-refresh:hover:not(:disabled) {
+  background: rgba(56, 189, 248, 0.12);
+  color: #3b82f6;
+}
+
+.captcha-refresh:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.captcha-refresh svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+}
+
+.captcha-input {
+  width: 100%;
+  margin-top: 8px;
+  padding: 11px 14px;
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(13, 27, 46, 0.5);
+  color: #ffffff;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.captcha-input:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+  background: rgba(13, 27, 46, 0.8);
+}
+
+.strength-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.strength-track {
+  flex: 1;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.strength-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.3s ease, background 0.3s ease;
+}
+
+.strength-label {
+  font-size: 12px;
+  font-weight: 700;
+  min-width: 72px;
+  text-align: right;
+}
+
+.req-card {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.req-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: capitalize;
+  letter-spacing: 0.8px;
+  margin: 0 0 14px;
+}
+
+.req-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.req-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.req-list li svg {
+  width: 16px;
+  height: 16px;
+  stroke: #64748b;
+  stroke-width: 2.5;
+  fill: none;
+  flex-shrink: 0;
+  transition: stroke 0.2s ease;
+}
+
+.req-list li.ok {
+  color: #2563eb;
+}
+
+.req-list li.ok svg {
+  stroke: #2563eb;
+}
+
+.tip-card {
+  background: rgba(56, 189, 248, 0.03);
+  border: 1px solid rgba(56, 189, 248, 0.15);
+  border-radius: 18px;
+  padding: 18px;
+  display: flex;
+  gap: 12px;
+}
+
+.tip-icon svg {
+  width: 20px;
+  height: 20px;
+  stroke: #38bdf8;
+  stroke-width: 2;
+  fill: none;
+}
+
+.tip-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #38bdf8;
+  margin: 0 0 8px;
+}
+
+.tip-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tip-list li {
+  font-size: 12px;
+  color: #64748b;
+  padding-left: 12px;
+  position: relative;
+  font-weight: 500;
+}
+
+.tip-list li::before {
+  content: 'â€¢';
+  position: absolute;
+  left: 0;
+  color: #38bdf8;
+}
+
+/* PROMOTIONS */
+.promo-code-badge {
+  display: inline-block;
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px dashed rgba(251, 191, 36, 0.5);
+  padding: 3px 12px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  font-family: monospace;
+}
+
+/* EMPTY */
+.empty {
+  text-align: center;
+  padding: 48px 0;
+  color: #64748b;
+}
+
+.empty svg {
+  width: 44px;
+  height: 44px;
+  stroke: #64748b;
+  stroke-width: 1.5;
+  fill: none;
+  margin-bottom: 10px;
+}
+
+.empty p {
+  font-size: 14px;
+}
+
+/* MODAL OVERLAY */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 11, 21, 0.75);
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.modal {
+  background: #0f1c30;
+  border: 1px solid rgba(56, 189, 248, 0.15);
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.4);
+  border-radius: 24px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 88vh;
+  overflow-y: auto;
+}
+
+.modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 24px 28px 0;
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 4px;
+  letter-spacing: -0.2px;
+}
+
+.modal-id {
+  font-size: 12.5px;
+  color: #64748b;
+  margin: 0;
+}
+
+.close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  transition: all 0.2s ease;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.close-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 2.5;
+}
+
+.modal-body {
+  padding: 20px 28px 28px;
+}
+
+.modal-status {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 99px;
+  margin-bottom: 20px;
+  text-transform: capitalize;
+  letter-spacing: 0.5px;
+  border: 1px solid currentColor;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.address-modal {
+  max-width: 720px;
+}
+
+.address-modal-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.address-modal-form .form-group {
+  margin: 0;
+}
+
+.address-modal-form input,
+.address-modal-form select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.address-modal-actions {
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.btn-modal-mua {
+  background: linear-gradient(135deg, #1D4ED8 0%, #1E40AF 100%);
+  color: #ffffff;
+  border: none;
+  padding: 11px 24px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.btn-modal-mua:hover {
+  box-shadow: 0 0 15px rgba(5, 150, 105, 0.35);
+}
+
+.btn-modal-hoantra {
+  background: transparent;
+  color: #f97316;
+  border: 1.5px solid rgba(249, 115, 22, 0.6);
+  padding: 10px 24px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.btn-modal-hoantra:hover {
+  background: #f97316;
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 0 15px rgba(249, 115, 22, 0.35);
+}
+
+.region-picker-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.region-picker-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.inline-map-field small {
+  display: block;
+  margin-top: 6px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+/* TIMELINE */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 24px;
+}
+
+.tl-item {
+  display: flex;
+  gap: 16px;
+}
+
+.tl-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  width: 24px;
+}
+
+.tl-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  background: #0f1c30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.25s ease;
+}
+
+.tl-item.done .tl-dot {
+  background: #38bdf8;
+  border-color: #38bdf8;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+}
+
+.tl-dot svg {
+  width: 12px;
+  height: 12px;
+  stroke: #ffffff;
+  stroke-width: 3;
+  fill: none;
+}
+
+.tl-line {
+  width: 2px;
+  flex: 1;
+  min-height: 24px;
+  background: rgba(255, 255, 255, 0.12);
+  margin: 2px 0;
+}
+
+.tl-line.done {
+  background: #38bdf8;
+}
+
+.tl-content {
+  padding-bottom: 20px;
+  flex: 1;
+}
+
+.tl-label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 2px 0;
+}
+
+.tl-date {
+  font-size: 11px;
+  color: #64748b;
+  margin: 0;
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: capitalize;
+  letter-spacing: 0.8px;
+  margin: 0 0 12px;
+}
+
+.modal-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  margin-bottom: 10px;
+}
+
+.modal-item img {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.modal-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.modal-item-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.modal-item-qty {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0;
+}
+
+.modal-item-price {
+  font-size: 14px;
+  font-weight: 700;
+  color: #38bdf8;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: 16px;
+}
+
+.modal-btns {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-modal-huy {
+  background: transparent;
+  border: 1.5px solid rgba(239, 68, 68, 0.5);
+  color: #ef4444;
+  padding: 8px 18px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 13.5px;
+  transition: all 0.2s ease;
+}
+
+.btn-modal-huy:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: transparent;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.25);
+}
+
+.modal-total-wrap {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.total-label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 700;
+  text-transform: capitalize;
+  letter-spacing: 0.5px;
+}
+
+.total-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: #38bdf8;
+  text-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
+}
+
+/* TOAST STYLE */
+.toast {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 9999;
+  background: #0f1c30;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  color: #ffffff;
+  padding: 14px 24px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+
+.toast svg {
+  width: 18px;
+  height: 18px;
+  stroke: #4ade80;
+  stroke-width: 2.5;
+  fill: none;
+}
+
+/* REVIEW STYLES */
+.btn-review-small {
+  background: rgba(56, 189, 248, 0.06);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #38bdf8;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 6px;
+  transition: all 0.2s ease;
+}
+
+.btn-review-small:hover {
+  background: #38bdf8;
+  color: #ffffff;
+  border-color: transparent;
+}
+
+.reviewed-tag {
+  display: inline-block;
+  font-size: 11px;
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.1);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  padding: 2.5px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+  margin-top: 6px;
+}
+
+.review-modal {
+  max-width: 480px !important;
+}
+
+.refund-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 0;
+  border-radius: 14px;
+}
+
+.refund-product-card {
+  background: #f8fbff;
+  border: 1px solid #bae6fd;
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(14, 165, 233, 0.08);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.refund-product-card:hover,
+.refund-product-card.selected {
+  border-color: #38bdf8;
+  box-shadow: 0 12px 28px rgba(14, 165, 233, 0.14);
+}
+
+.refund-product-card.selected {
+  background: #eff6ff;
+}
+
+.refund-product-label {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-height: 104px;
+  padding: 16px;
+  cursor: pointer;
+  margin: 0;
+}
+
+.refund-product-img {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+.refund-product-info {
+  min-width: 0;
+}
+
+.refund-product-name {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.refund-product-qty {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+  margin-top: 8px;
+}
+
+.refund-product-side {
+  min-width: 96px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 14px;
+}
+
+.refund-product-price {
+  color: #0284c7;
+  font-size: 14px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.refund-check-pill {
+  min-width: 76px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.refund-product-card.selected .refund-check-pill {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.refund-product-checkbox {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.review-product-info {
+  background: #f1f5f9;
+  padding: 14px 16px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  border: 1px solid #e2e8f0;
+}
+
+.review-product-name {
+  font-weight: 700;
+  font-size: 14.5px;
+  color: #0f172a;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.rating-selector {
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.rating-label {
+  display: block;
+  font-size: 14px;
+  color: #334155;
+  margin-bottom: 12px;
+  font-weight: 700;
+}
+
+.stars-input {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.star-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: #cbd5e1;
+  transition: all 0.2s ease;
+}
+
+.star-btn svg {
+  width: 32px;
+  height: 32px;
+}
+
+.star-btn.filled {
+  color: #fbbf24;
+  transform: scale(1.15);
+  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.35));
+}
+
+.rating-text {
+  margin-left: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #d97706;
+  min-width: 100px;
+  text-align: left;
+}
+
+.w-100 {
+  width: 100%;
+}
+
+/* Animations and transitions */
+.toast-enter-active {
+  transition: all 0.3s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.toast-leave-active {
+  transition: all 0.2s ease;
+}
+
+.toast-enter-from {
+  opacity: 0;
+  transform: translateY(-12px);
+}
+
+.toast-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.fade-enter-active {
+  transition: opacity 0.2s;
+}
+
+.fade-leave-active {
+  transition: opacity 0.15s;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.d-none {
+  display: none;
+}
+
+/* ===================== RESPONSIVE STYLES ===================== */
+@media (max-width: 1024px) {
+  .container {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .sidebar {
+    position: static;
+  }
+}
+
+@media (max-width: 768px) {
+  .page {
+    padding: 24px 16px;
+  }
+
+  .card {
+    padding: 24px 20px;
+  }
+
+  .form-row,
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .pw-layout {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .table-card {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .order-data-table {
+    min-width: 600px;
+  }
+}
+
+@media (max-width: 576px) {
+  .info-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .info-row {
+    min-height: 68px;
+    padding: 10px 14px;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .btn-edit {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .order-tabs {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding: 4px;
+  }
+
+  .order-tab {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .modal {
+    width: calc(100% - 24px);
+    margin: 12px;
+  }
+
+  .modal-head {
+    padding: 18px 20px 0;
+  }
+
+  .modal-body {
+    padding: 16px 20px 20px;
+  }
+
+  .modal-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .modal-item-right {
+    width: 100%;
+    text-align: left !important;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    padding-top: 8px;
+    margin-top: 4px;
+  }
+
+  .modal-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .modal-btns {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .btn-modal-huy,
+  .btn-modal-mua,
+  .btn-modal-hoantra {
+    width: 100%;
+    text-align: center;
+  }
+
+  .modal-total-wrap {
+    text-align: left;
+  }
+}
+</style>
+
+<style scoped>
+.category-tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: -4px;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 0;
+}
+
+.cat-tab {
+  background: transparent;
+  border: none;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.2s;
+}
+
+.cat-tab:hover {
+  color: #2563eb;
+}
+
+.cat-tab.active {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+}
+
+.empty-msg {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: #64748b;
+  font-size: 15px;
+}
+
+.empty-icon {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 16px;
+  stroke-width: 1.2;
+}
+
+.turnstile-box {
+  width: 100%;
+  max-width: 390px;
+  min-height: 50px;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 102px;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 11px;
+  border: 1px solid #d1d5db;
+  border-radius: 3px;
+  background: #fafafa;
+  box-shadow: 0 1px 1px rgba(15, 23, 42, 0.04);
+  margin: 0 auto;
+}
+
+.turnstile-box.checked {
+  border-color: #cbd5e1;
+  background: #ffffff;
+}
+
+.turnstile-check {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #64748b;
+  border-radius: 3px;
+  background: #f8fafc;
+  color: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.turnstile-check:disabled {
+  cursor: wait;
+  opacity: 0.8;
+}
+
+.turnstile-check svg {
+  width: 17px;
+  height: 17px;
+  stroke: currentColor;
+  stroke-width: 3;
+}
+
+.turnstile-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+  line-height: 1.3;
+}
+
+.turnstile-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: #1f2937;
+  text-align: center;
+  line-height: 1.05;
+}
+
+.cloudflare-mark {
+  width: 28px;
+  height: 19px;
+  position: relative;
+}
+
+.cloudflare-mark::before,
+.cloudflare-mark::after,
+.cloudflare-mark span {
+  content: '';
+  position: absolute;
+  background: #f97316;
+}
+
+.cloudflare-mark::before {
+  width: 17px;
+  height: 10px;
+  border-radius: 12px 12px 4px 4px;
+  left: 7px;
+  top: 6px;
+}
+
+.cloudflare-mark::after {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  left: 2px;
+  top: 7px;
+}
+
+.cloudflare-mark span {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  left: 9px;
+  top: 1px;
+}
+
+.turnstile-brand strong {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.turnstile-brand small {
+  font-size: 8px;
+  color: #475569;
+  text-decoration: underline;
+}
+
+.turnstile-refresh {
+  width: 15px;
+  height: 15px;
+  border: 0;
+  background: transparent;
+  color: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+}
+
+.turnstile-refresh svg {
+  width: 12px;
+  height: 12px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+}
+
+.turnstile-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #cbd5e1;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@media (max-width: 576px) {
+  .turnstile-box {
+    grid-template-columns: 34px minmax(0, 1fr);
+  }
+
+  .turnstile-brand {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+
+  .cloudflare-mark {
+    transform: scale(0.82);
+  }
+}
+</style>
+
+<style scoped>
+/* Light customer account theme */
+.page {
+  background: #ffffff;
+  padding: 32px 24px 48px;
+  color: #0f172a;
+}
+
+.container {
+  max-width: 1240px;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 24px;
+}
+
+.sidebar,
+.card,
+.modal,
+.req-card,
+.tip-card,
+.table-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.sidebar {
+  border-radius: 16px;
+  top: 24px;
+}
+
+.avatar-section,
+.stat-grid,
+.form-actions,
+.modal-footer,
+.pagination-footer {
+  border-color: #bae6fd;
+}
+
+.avatar-circle {
+  border-color: #0284c7;
+  box-shadow: 0 8px 24px rgba(2, 132, 199, 0.28);
+}
+
+.sidebar-name,
+.card-title,
+.page-header-inline .card-title,
+.modal-title,
+.modal-item-name,
+.order-data-table td,
+.info-val,
+.req-title,
+.tip-title {
+  color: #0f172a !important;
+}
+
+.sidebar-badge {
+  color: #ffffff;
+  background: linear-gradient(135deg, #0284c7 0%, #1d4ed8 100%);
+  border-color: #0284c7;
+}
+
+.sidebar-join,
+.card-sub,
+.info-lbl,
+.info-val.not-set,
+.stat-lbl,
+.form-group label,
+.checkbox-label,
+.pagination-info,
+.modal-id,
+.modal-item-qty,
+.tip-list,
+.req-list li,
+.empty-msg {
+  color: #64748b !important;
+}
+
+.stat-card,
+.info-row,
+.modal-item,
+.review-product-info,
+.captcha-question {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.stat-card:hover,
+.info-row:hover {
+  background: #ffffff;
+  border-color: #93c5fd;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.08);
+}
+
+.stat-val {
+  color: #0f172a;
+}
+
+.stat-card svg,
+.side-btn svg:not(.arrow),
+.side-btn:hover svg:not(.arrow),
+.side-btn.active svg:not(.arrow) {
+  stroke: #0284c7;
+  filter: none;
+}
+
+.side-btn {
+  color: #475569;
+  border-radius: 10px;
+}
+
+.side-btn:hover {
+  background: #eff6ff;
+  color: #0369a1;
+}
+
+.side-btn.active {
+  background: linear-gradient(135deg, #0284c7 0%, #1d4ed8 100%);
+  border-color: #0284c7;
+  color: #ffffff;
+  box-shadow: 0 10px 24px rgba(2, 132, 199, 0.26);
+}
+
+.side-btn.active svg:not(.arrow),
+.side-btn.active .arrow {
+  stroke: #ffffff;
+}
+
+.side-btn .arrow,
+.side-btn:hover .arrow {
+  stroke: #0284c7;
+}
+
+.card {
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.btn-edit {
+  background: #f0f9ff;
+  border-color: #0ea5e9;
+  color: #0284c7;
+}
+
+.btn-edit:hover,
+.btn-save,
+.order-tab.active,
+.btn-xem:not(.order-action-btn),
+.p-num.active,
+.btn-add,
+.btn-modal-mua {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+  box-shadow: none;
+}
+
+.btn-save:hover,
+.btn-xem:not(.order-action-btn):hover,
+.btn-add:hover,
+.btn-modal-mua:hover {
+  background: #0369a1;
+  box-shadow: none;
+}
+
+.btn-cancel,
+.p-arrow,
+.p-num,
+.close-btn {
+  background: #f0f9ff;
+  border-color: #bae6fd;
+  color: #475569;
+}
+
+.btn-cancel:hover,
+.p-arrow:hover:not(:disabled),
+.p-num:hover,
+.close-btn:hover {
+  background: #e0f2fe;
+  border-color: #38bdf8;
+  color: #075985;
+}
+
+.form-group input,
+.form-group select,
+.captcha-input,
+.input-wrap input,
+.address-modal-form input,
+.address-modal-form select {
+  background: #f8fbff;
+  border-color: #bfdbfe;
+  color: #0f172a !important;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.captcha-input:focus,
+.input-wrap input:focus,
+.address-modal-form input:focus,
+.address-modal-form select:focus {
+  background: #ffffff;
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14);
+}
+
+.form-group input:disabled,
+.form-group select:disabled {
+  color: #94a3b8 !important;
+  background: #eaf6ff;
+}
+
+.form-group select option {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.checkbox-label input[type="checkbox"] {
+  accent-color: #0284c7;
+}
+
+.category-tabs {
+  border-bottom-color: #e2e8f0;
+}
+
+.cat-tab {
+  color: #64748b;
+}
+
+.cat-tab:hover,
+.cat-tab.active {
+  color: #0284c7;
+}
+
+.cat-tab.active {
+  border-bottom-color: #0284c7;
+}
+
+.badge-cart-like {
+  border-color: #ffffff;
+}
+
+.order-tabs {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
+.order-tab {
+  color: #475569;
+}
+
+.order-tab:hover {
+  background: #0ea5e9;
+  color: #ffffff;
+}
+
+.order-tab.active {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+}
+
+.order-tab.active:hover {
+  background: #0369a1;
+  color: #ffffff;
+}
+
+.order-tab:hover .otab-count,
+.order-tab.active:hover .otab-count {
+  background: rgba(255, 255, 255, 0.26);
+  color: #ffffff;
+}
+
+.order-data-table th {
+  background: #f8fafc;
+  color: #64748b;
+  border-bottom-color: #e2e8f0;
+}
+
+.order-data-table td {
+  border-bottom-color: #e2e8f0;
+}
+
+.order-row:hover {
+  background: #f8fafc;
+}
+
+.order-id,
+.modal-item-price,
+.total-amount,
+.promo-code-badge,
+.tip-icon {
+  color: #0284c7;
+  text-shadow: none;
+}
+
+.status-cell {
+  background: #ffffff;
+}
+
+.pagination-footer {
+  background: #ffffff;
+}
+
+.pw-layout {
+  align-items: start;
+}
+
+.input-wrap {
+  background: #ffffff;
+}
+
+.input-icon,
+.eye-btn svg {
+  stroke: #64748b;
+}
+
+.req-list li.ok,
+.req-list li.ok svg {
+  color: #2563eb;
+  stroke: #2563eb;
+}
+
+.tip-card {
+  background: #f8fafc;
+}
+
+.overlay {
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.modal {
+  border-radius: 16px;
+}
+
+.modal-status {
+  border: 1px solid currentColor;
+}
+
+.modal-total-wrap span:first-child {
+  color: #64748b;
+}
+
+.modal .tl-dot {
+  width: 28px;
+  height: 28px;
+  background: #ffffff;
+  border: 2px solid #cbd5e1;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+
+.modal .tl-item.done .tl-dot {
+  background: linear-gradient(135deg, #0ea5e9, #2563eb);
+  border-color: #7dd3fc;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
+}
+
+.modal .tl-line {
+  width: 2px;
+  background: #dbeafe;
+  margin: 3px 0;
+}
+
+.modal .tl-line.done {
+  background: linear-gradient(180deg, #38bdf8, #2563eb);
+}
+
+.modal .tl-label {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.modal .tl-date {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.modal .tl-item:not(.done) .tl-label {
+  color: #334155;
+}
+
+.modal .section-title {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.9px;
+}
+
+.modal .modal-item {
+  background: #f8fbff;
+  border: 1px solid #bae6fd;
+  box-shadow: 0 8px 24px rgba(14, 165, 233, 0.08);
+}
+
+.modal .modal-item img {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
+.modal .modal-item-name {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.modal .modal-item-qty {
+  color: #64748b;
+  font-weight: 600;
+}
+
+.modal .modal-footer {
+  border-top-color: #dbeafe;
+  align-items: center;
+  gap: 18px;
+}
+
+.modal .modal-btns {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.modal .btn-modal-huy,
+.modal .btn-modal-hoantra,
+.modal .btn-modal-mua,
+.modal .btn-review-small {
+  min-height: 42px;
+  border-radius: 14px;
+  font-weight: 900;
+  letter-spacing: 0;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+}
+
+.modal .btn-modal-huy {
+  background: #ffffff;
+  border: 1.5px solid #fecaca;
+  color: #dc2626;
+  padding: 9px 18px;
+}
+
+.modal .btn-modal-huy:hover {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(239, 68, 68, 0.22);
+}
+
+.modal .btn-modal-hoantra {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #ea580c;
+}
+
+.modal .btn-modal-hoantra:hover {
+  background: #f97316;
+  border-color: #f97316;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(249, 115, 22, 0.22);
+}
+
+.modal .btn-modal-mua {
+  background: linear-gradient(135deg, #2563eb, #0ea5e9);
+  border: 0;
+  color: #ffffff;
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.20);
+}
+
+.modal .btn-modal-mua:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 30px rgba(37, 99, 235, 0.28);
+}
+
+.modal .btn-review-small {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+  padding: 7px 12px;
+}
+
+.modal .btn-review-small:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.modal .modal-total-wrap {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+
+.modal .modal-total-wrap>div:last-child {
+  border-top-color: #dbeafe !important;
+}
+
+.modal .total-label {
+  color: #475569;
+  font-size: 12px;
+}
+
+.modal .total-value {
+  color: #2563eb !important;
+  text-shadow: none;
+  font-size: 22px !important;
+}
+
+.overlay:has(.timeline) {
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow: hidden;
+}
+
+.modal:has(.timeline) {
+  max-width: 560px;
+  max-height: none;
+  overflow: visible;
+  border-radius: 18px;
+}
+
+.modal:has(.timeline) .modal-head {
+  padding: 18px 24px 0;
+}
+
+.modal:has(.timeline) .modal-title {
+  font-size: 17px;
+}
+
+.modal:has(.timeline) .modal-id {
+  font-size: 12px;
+}
+
+.modal:has(.timeline) .close-btn {
+  width: 34px;
+  height: 34px;
+  background: #eff6ff;
+  color: #334155;
+}
+
+.modal:has(.timeline) .modal-body {
+  padding: 14px 24px 22px;
+}
+
+.modal:has(.timeline) .modal-status {
+  margin-bottom: 14px;
+  padding: 6px 14px;
+  font-size: 10.5px;
+}
+
+.modal:has(.timeline) .timeline {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 2px 0 18px;
+  padding: 12px;
+  border-radius: 16px;
+  background: #f8fbff;
+  border: 1px solid #dbeafe;
+}
+
+.modal:has(.timeline) .tl-item {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  min-width: 0;
+}
+
+.modal:has(.timeline) .tl-col {
+  width: 28px;
+}
+
+.modal:has(.timeline) .tl-dot {
+  width: 26px;
+  height: 26px;
+}
+
+.modal:has(.timeline) .tl-line {
+  display: none;
+}
+
+.modal:has(.timeline) .tl-content {
+  padding-bottom: 0;
+  min-width: 0;
+}
+
+.modal:has(.timeline) .tl-label {
+  font-size: 12.5px;
+  line-height: 1.25;
+  margin: 1px 0 3px;
+  white-space: nowrap;
+}
+
+.modal:has(.timeline) .tl-date {
+  font-size: 10.5px;
+  line-height: 1.25;
+  margin: 0;
+  color: #64748b;
+}
+
+.modal:has(.timeline) .section-title {
+  margin-bottom: 8px;
+}
+
+.modal:has(.timeline) .modal-item {
+  padding: 10px 12px;
+  border-radius: 14px;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.modal:has(.timeline) .modal-item img {
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+}
+
+.modal:has(.timeline) .modal-item-name {
+  font-size: 13px;
+}
+
+.modal:has(.timeline) .modal-item-qty,
+.modal:has(.timeline) .modal-item-price {
+  font-size: 12px;
+}
+
+.modal:has(.timeline) .modal-footer {
+  margin-top: 8px;
+  padding-top: 10px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.modal:has(.timeline) .modal-btns {
+  align-items: stretch;
+  gap: 10px;
+}
+
+.modal:has(.timeline) .btn-modal-huy,
+.modal:has(.timeline) .btn-modal-hoantra,
+.modal:has(.timeline) .btn-modal-mua {
+  min-height: 34px;
+  padding: 0 18px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  line-height: 1.1;
+}
+
+.modal:has(.timeline) .modal-total-wrap {
+  min-height: 34px;
+  padding: 6px 12px;
+  border-radius: 9px;
+  justify-content: center;
+  gap: 2px !important;
+}
+
+.modal:has(.timeline) .total-value {
+  font-size: 17px !important;
+  line-height: 1.05;
+}
+
+.modal:has(.timeline) .total-label {
+  font-size: 10.5px;
+  line-height: 1;
+}
+
+.overlay:has(.customer-shipping-card) {
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow: hidden;
+}
+
+.modal:has(.customer-shipping-card) {
+  max-width: 620px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 18px;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.modal:has(.customer-shipping-card) .modal-head {
+  padding: 16px 22px 0;
+}
+
+.modal:has(.customer-shipping-card) .modal-title {
+  color: #0f172a;
+  font-size: 17px;
+}
+
+.modal:has(.customer-shipping-card) .modal-id {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.modal:has(.customer-shipping-card) .close-btn {
+  width: 34px;
+  height: 34px;
+  background: #eff6ff;
+  color: #334155;
+}
+
+.modal:has(.customer-shipping-card) .modal-body {
+  padding: 12px 22px 20px;
+}
+
+.modal:has(.customer-shipping-card) .modal-status {
+  margin-bottom: 10px;
+  padding: 6px 14px;
+  font-size: 10.5px;
+}
+
+.modal:has(.customer-shipping-card) .section-title {
+  margin: 12px 0 8px;
+  color: #64748b;
+}
+
+.modal:has(.customer-shipping-card) .modal-item {
+  padding: 10px 12px;
+  border-radius: 14px;
+  gap: 12px;
+  margin-bottom: 8px;
+  border-color: #dbeafe;
+  background: #f8fbff;
+}
+
+.modal:has(.customer-shipping-card) .modal-item img {
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+}
+
+.modal:has(.customer-shipping-card) .modal-item-name {
+  color: #0f172a;
+  font-size: 13px;
+}
+
+.modal:has(.customer-shipping-card) .modal-item-qty,
+.modal:has(.customer-shipping-card) .modal-item-price {
+  font-size: 12px;
+}
+
+.modal:has(.customer-shipping-card) .modal-footer {
+  margin-top: 8px;
+  padding-top: 10px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.modal:has(.customer-shipping-card) .modal-btns {
+  align-items: stretch;
+  gap: 10px;
+}
+
+.modal:has(.customer-shipping-card) .btn-modal-huy,
+.modal:has(.customer-shipping-card) .btn-modal-hoantra,
+.modal:has(.customer-shipping-card) .btn-modal-mua {
+  min-height: 34px;
+  padding: 0 18px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  line-height: 1.1;
+}
+
+.modal:has(.customer-shipping-card) .modal-total-wrap {
+  min-height: 34px;
+  padding: 6px 12px;
+  border-radius: 9px;
+  justify-content: center;
+  gap: 2px !important;
+}
+
+.modal:has(.customer-shipping-card) .total-value {
+  font-size: 17px !important;
+  line-height: 1.05;
+}
+
+.modal:has(.customer-shipping-card) .total-label {
+  font-size: 10.5px;
+  line-height: 1;
+}
+
+.timeline-dot {
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+
+.timeline-line {
+  background: #e2e8f0;
+}
+
+.review-rating .star {
+  color: #cbd5e1;
+}
+
+.review-rating .star.active,
+.review-rating .star:hover {
+  color: #f59e0b;
+}
+
+@media (max-width: 900px) {
+  .container {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+  }
+}
+
+@media (max-width: 576px) {
+  .refund-product-label {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+
+  .refund-product-img {
+    width: 48px;
+    height: 48px;
+  }
+
+  .refund-product-side {
+    grid-column: 1 / -1;
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    min-width: 0;
+  }
+
+  .overlay:has(.timeline) {
+    align-items: center;
+    padding: 12px;
+  }
+
+  .modal:has(.timeline) {
+    width: calc(100% - 12px);
+    max-height: 94vh;
+    overflow-y: auto;
+  }
+
+  .modal:has(.timeline) .timeline {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .modal:has(.timeline) .modal-footer {
+    grid-template-columns: 1fr;
+  }
+
+  .page {
+    padding: 20px 14px 48px;
+  }
+
+  .card {
+    padding: 22px 16px;
+  }
+
+  .modal-item-right {
+    border-top-color: #e2e8f0;
+  }
+}
+
+/* â”€â”€ DAILY CHECK-IN CARD â”€â”€ */
+.attendance-card {
+  margin-top: 10px;
+}
+
+.attendance-card .card-title {
+  font-size: 18px;
+}
+
+.attendance-card .card-sub {
+  font-size: 13px;
+}
+
+.attendance-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(88px, 104px));
+  justify-content: space-between;
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.attendance-day-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(253, 230, 138, 0.35);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 13px;
+  padding: 10px 6px;
+  min-height: 104px;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  color: #1f2937;
+}
+
+.attendance-day-box::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 13px;
+  padding: 1.5px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.12));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Checked Day */
+.attendance-day-box.checked {
+  background: rgba(251, 191, 36, 0.18);
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.attendance-day-box.checked .day-num {
+  color: #92400e;
+  font-weight: 800;
+}
+
+.attendance-day-box.checked .xu-val {
+  color: #b45309;
+}
+
+/* Current Day */
+.attendance-day-box.current {
+  background: rgba(253, 224, 71, 0.3);
+  border-color: rgba(234, 179, 8, 0.85);
+  box-shadow: 0 0 20px rgba(234, 179, 8, 0.28);
+  transform: translateY(-4px);
+  animation: pulse-border 2s infinite;
+}
+
+.attendance-day-box.current .day-num {
+  color: #92400e;
+  font-weight: 800;
+}
+
+.attendance-day-box.current .xu-val {
+  color: #92400e;
+  font-weight: 800;
+}
+
+/* Locked Day */
+.attendance-day-box.locked {
+  background: rgba(250, 204, 21, 0.12);
+  opacity: 1;
+}
+
+.attendance-day-box.locked .day-num,
+.attendance-day-box.locked .xu-val {
+  color: #4b5563;
+}
+
+.day-num {
+  font-size: 12px;
+  font-weight: 800;
+  color: #1f2937;
+  margin-bottom: 6px;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+.day-xu {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin-bottom: 7px;
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 999px;
+  padding: 6px 10px;
+  width: fit-content;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 4px 12px rgba(249, 115, 22, 0.08);
+}
+
+.coin-icon {
+  font-size: 13px;
+}
+
+.xu-val {
+  font-size: 13px;
+  font-weight: 900;
+  color: #92400e;
+  text-shadow: 0 1px 3px rgba(255, 255, 255, 0.75);
+  letter-spacing: 0.02em;
+}
+
+.day-status-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.icon-success {
+  stroke: #10b981;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.icon-current {
+  stroke: #eab308;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.icon-locked {
+  stroke: #64748b;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Footer layout */
+.attendance-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 12px;
+}
+
+.attendance-streak-info {
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+.attendance-streak-info strong {
+  color: #2563eb;
+  font-size: 16px;
+}
+
+/* Button Checkin */
+.btn-checkin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 16px;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+}
+
+.btn-checkin:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.btn-checkin:disabled {
+  background: rgba(148, 163, 184, 0.15);
+  box-shadow: none;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+.btn-checkin:disabled svg {
+  stroke: #64748b;
+}
+
+@keyframes pulse-border {
+  0% {
+    box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.4);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px rgba(234, 179, 8, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(234, 179, 8, 0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .attendance-days-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .attendance-days-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .attendance-footer {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+    text-align: center;
+  }
+}
+
+/* MODAL TEXTAREA & CONFIRM BUTTONS */
+.cancel-textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1.5px solid #cbd5e1;
+  background: #ffffff;
+  color: #1e293b;
+  font-size: 13.5px;
+  outline: none;
+  transition: all 0.2s ease;
+  resize: none;
+}
+
+.cancel-textarea:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.btn-danger-confirm {
+  padding: 10px 20px;
+  border-radius: 10px;
+  background: #ef4444;
+  color: #ffffff;
+  border: none;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-danger-confirm:hover {
+  background: #dc2626;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+}
+
+.btn-danger-confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-warning-confirm {
+  padding: 10px 20px;
+  border-radius: 10px;
+  background: #f97316;
+  color: #ffffff;
+  border: none;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-warning-confirm:hover {
+  background: #ea580c;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.25);
+}
+
+.btn-warning-confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.modal-footer {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  border-top: none !important;
+  padding-top: 12px !important;
+  background: transparent !important;
+}
+
+.modal-total-wrap {
+  width: 100% !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.modal-btns {
+  width: 100% !important;
+  display: flex !important;
+  gap: 10px !important;
+}
+
+.btn-modal-mua {
+  width: 100% !important;
+  padding: 12px 20px !important;
+  border-radius: 12px !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  background: linear-gradient(135deg, #0284c7 0%, #1d4ed8 100%) !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25) !important;
+}
+</style>

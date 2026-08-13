@@ -1,0 +1,1806 @@
+/* ============================================================
+   Admin design system polish
+   Scoped to .admin-layout so storefront pages are untouched.
+   ============================================================ */
+
+.admin-layout {
+  --admin-bg: #f6f8fb;
+  --admin-surface: #ffffff;
+  --admin-surface-soft: #f1f5f9;
+  --admin-border: #e2e8f0;
+  --admin-border-strong: #cbd5e1;
+  --admin-text: #0f172a;
+  --admin-text-soft: #334155;
+  --admin-muted: #64748b;
+  --admin-primary: var(--ds-primary);
+  --admin-primary-hover: var(--ds-primary-hover);
+  --admin-radius: var(--ds-radius-lg);
+  --admin-radius-sm: var(--ds-radius-md);
+  --admin-shadow: var(--ds-shadow-sm);
+  --admin-shadow-raised: var(--ds-shadow-md);
+
+  background: var(--admin-bg) !important;
+  color: var(--admin-text) !important;
+}
+
+.admin-layout .main {
+  background: var(--admin-bg) !important;
+}
+
+.admin-layout .sidebar {
+  background: #0b0d12 !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 18px 0 44px rgba(0, 0, 0, 0.16) !important;
+}
+
+.admin-layout .sidebar-logo,
+.admin-layout .sidebar-user {
+  border-color: rgba(226, 232, 240, 0.10) !important;
+}
+
+.admin-layout .item,
+.admin-layout .submenu-item,
+.admin-layout .topbar-home-link,
+.admin-layout .topbar-icon-button,
+.admin-layout .topbar-user-btn,
+.admin-layout .dropdown-item,
+.admin-layout .sidebar-logout-btn {
+  border-radius: var(--admin-radius-sm) !important;
+}
+
+.admin-layout .item.active,
+.admin-layout .submenu-item.active {
+  background: var(--admin-primary) !important;
+  color: #ffffff !important;
+}
+
+.admin-layout .item.parent-active:not(.active) {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #93c5fd !important;
+  box-shadow: none !important;
+}
+
+.admin-layout .item:hover,
+.admin-layout .submenu-item:hover {
+  background: linear-gradient(135deg, #1d4ed8, #2563eb) !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.24) !important;
+}
+
+.admin-layout .submenu-item:hover .bullet-dot,
+.admin-layout .submenu-item.active .bullet-dot {
+  background-color: #7dd3fc !important;
+  box-shadow: 0 0 8px rgba(125, 211, 252, 0.9) !important;
+}
+
+.admin-layout .submenu-item:hover .submenu-badge,
+.admin-layout .submenu-item.active .submenu-badge {
+  background: rgba(15, 23, 42, 0.22) !important;
+  color: #dbeafe !important;
+}
+
+.admin-layout .admin-topbar {
+  border: 0 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 0 !important;
+  background: #0b0d12 !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16) !important;
+  backdrop-filter: blur(14px);
+}
+
+.admin-layout .topbar-dropdown,
+.admin-layout .user-dropdown {
+  border: 1px solid var(--admin-border) !important;
+  border-radius: var(--admin-radius) !important;
+  background: rgba(255, 255, 255, 0.94) !important;
+  box-shadow: var(--admin-shadow) !important;
+  backdrop-filter: blur(14px);
+}
+
+.admin-layout .admin-topbar-title h2,
+.admin-layout h1,
+.admin-layout h2,
+.admin-layout h3,
+.admin-layout h4,
+.admin-layout .card-title,
+.admin-layout .section-title,
+.admin-layout .modal-title,
+.admin-layout .page-title,
+.admin-layout .title,
+.admin-layout .stat-value,
+.admin-layout .stat-val,
+.admin-layout .big-growth {
+  color: var(--admin-text) !important;
+  letter-spacing: 0 !important;
+}
+
+.admin-layout .admin-topbar-title p,
+.admin-layout p,
+.admin-layout .text-muted,
+.admin-layout .card-subtitle,
+.admin-layout .card-sub,
+.admin-layout .section-subtitle,
+.admin-layout .stat-label,
+.admin-layout .stat-lbl,
+.admin-layout .date-cell,
+.admin-layout .showing,
+.admin-layout .pagination-info {
+  color: var(--admin-muted) !important;
+}
+
+.admin-layout .admin-topbar .admin-topbar-title h2 {
+  color: #ffffff !important;
+}
+
+.admin-layout .admin-topbar .admin-topbar-title p {
+  color: rgba(219, 234, 254, 0.76) !important;
+}
+
+.admin-layout .admin-topbar .topbar-home-link,
+.admin-layout .admin-topbar .topbar-icon-button,
+.admin-layout .admin-topbar .topbar-user-btn {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(191, 219, 254, 0.24) !important;
+  color: #e0f2fe !important;
+}
+
+.admin-layout .admin-topbar .topbar-home-link:hover,
+.admin-layout .admin-topbar .topbar-icon-button:hover,
+.admin-layout .admin-topbar .topbar-icon-button.active,
+.admin-layout .admin-topbar .topbar-user-btn:hover {
+  background: rgba(37, 99, 235, 0.42) !important;
+  border-color: rgba(125, 211, 252, 0.46) !important;
+  color: #ffffff !important;
+}
+
+.admin-layout .admin-topbar .user-name,
+.admin-layout .admin-topbar .icon-flag {
+  color: #ffffff !important;
+}
+
+.admin-layout .admin-topbar .user-role,
+.admin-layout .admin-topbar .topbar-user-btn svg {
+  color: rgba(219, 234, 254, 0.72) !important;
+}
+
+.admin-layout .admin-topbar .topbar-divider {
+  background: rgba(191, 219, 254, 0.22) !important;
+}
+
+/* Header chính của layout đã hiển thị tên trang. Ẩn các tiêu đề lặp lại
+   trong phần nội dung nhưng vẫn giữ nguyên nút thao tác, tìm kiếm và bộ lọc. */
+.admin-layout .page > .topbar:first-child .topbar-left > h1,
+.admin-layout .page > .topbar:first-child .topbar-left > h2,
+.admin-layout .page > .topbar:first-child .topbar-left > p,
+.admin-layout .page > .page-header > div:first-child:has(> h1),
+.admin-layout .page > .page-header > div:first-child:has(> h2),
+.admin-layout .page > .top > div:first-child:has(> h1),
+.admin-layout .page > .top > div:first-child:has(> h2),
+.admin-layout .page > .top > h1,
+.admin-layout .top-header > .header-left:has(> .page-title),
+.admin-layout .roles-management > .top-header > div:first-child:has(> h1),
+.admin-layout .admin-vongquay-page > .top-header > div:first-child:has(> .page-title) {
+  display: none !important;
+}
+
+.admin-layout .page > .hero > .hero-text:has(> h1) {
+  display: none !important;
+}
+
+.admin-layout .page > .topbar:first-child,
+.admin-layout .page > .page-header,
+.admin-layout .page > .top,
+.admin-layout .roles-management > .top-header {
+  justify-content: flex-end !important;
+}
+
+.admin-layout .page > .hero:has(> .hero-text > h1) {
+  min-height: 0 !important;
+  justify-content: flex-end !important;
+  padding-top: 0 !important;
+}
+
+.admin-layout .page > .topbar:first-child:has(.topbar-left) {
+  min-height: 0 !important;
+  padding-top: 0 !important;
+}
+
+.admin-layout .page > .page-header:has(> div:first-child > h1),
+.admin-layout .page > .top:has(> div:first-child > h1),
+.admin-layout .roles-management > .top-header:has(> div:first-child > h1) {
+  min-height: 0 !important;
+  margin-top: 0 !important;
+}
+
+.admin-layout .page > .breadcrumb,
+.admin-layout .page > .breadcrumbs {
+  display: none !important;
+}
+
+.admin-layout .top-header:not(:has(button)):has(.page-title) {
+  display: none !important;
+}
+
+.admin-layout .section-card,
+.admin-layout .data-card,
+.admin-layout .card,
+.admin-layout .stats-card,
+.admin-layout .stat-card,
+.admin-layout .bottom-card,
+.admin-layout .table-wrap,
+.admin-layout .table-container,
+.admin-layout .chart-card,
+.admin-layout .panel,
+.admin-layout .profile-page .left,
+.admin-layout .profile-page .right,
+.admin-layout .xu-pane,
+.admin-layout .modal,
+.admin-layout .confirm-box,
+.admin-layout .withdraw-card,
+.admin-layout .affiliate-video-admin-card,
+.admin-layout .filter-row,
+.admin-layout .filters-bar,
+.admin-layout .toolbar,
+.admin-layout .page-card {
+  border: 1px solid var(--admin-border) !important;
+  border-radius: var(--admin-radius) !important;
+  background: var(--admin-surface) !important;
+  box-shadow: var(--admin-shadow) !important;
+}
+
+.admin-layout .section-card:hover,
+.admin-layout .data-card:hover,
+.admin-layout .stat-card:hover,
+.admin-layout .bottom-card:hover,
+.admin-layout .withdraw-card:hover,
+.admin-layout .affiliate-video-admin-card:hover {
+  border-color: var(--admin-border-strong) !important;
+  box-shadow: var(--admin-shadow-raised) !important;
+}
+
+.admin-layout table,
+.admin-layout .audit-table,
+.admin-layout .modern-table,
+.admin-layout .order-data-table {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  color: var(--admin-text) !important;
+}
+
+.admin-layout th {
+  background: var(--admin-surface-soft) !important;
+  color: var(--admin-text-soft) !important;
+  font-weight: 800 !important;
+  border-bottom: 1px solid var(--admin-border) !important;
+}
+
+.admin-layout td {
+  color: var(--admin-text) !important;
+  border-bottom-color: var(--admin-border) !important;
+}
+
+.admin-layout tr:hover td {
+  background: rgba(37, 99, 235, 0.035) !important;
+}
+
+.admin-layout input,
+.admin-layout select,
+.admin-layout textarea,
+.admin-layout .input-field,
+.admin-layout .search-input,
+.admin-layout .select-field,
+.admin-layout .form-control,
+.admin-layout .link-input,
+.admin-layout .reject-input,
+.admin-layout .generator-input,
+.admin-layout .generator-select,
+.admin-layout .dropdown-trigger {
+  border: 1px solid var(--admin-border) !important;
+  border-radius: var(--admin-radius-sm) !important;
+  background: var(--admin-surface) !important;
+  color: var(--admin-text) !important;
+  box-shadow: none !important;
+}
+
+.admin-layout input:focus,
+.admin-layout select:focus,
+.admin-layout textarea:focus,
+.admin-layout .input-field:focus,
+.admin-layout .form-control:focus,
+.admin-layout .dropdown-trigger:focus {
+  border-color: var(--admin-primary) !important;
+  box-shadow: var(--ds-focus-ring) !important;
+  outline: none !important;
+}
+
+.admin-layout label,
+.admin-layout .form-group label,
+.admin-layout .generator-label,
+.admin-layout .input-group label {
+  color: var(--admin-text-soft) !important;
+  font-weight: 800 !important;
+}
+
+.admin-layout .btn,
+.admin-layout button,
+.admin-layout .act-btn,
+.admin-layout .action,
+.admin-layout .mini,
+.admin-layout .page-btn,
+.admin-layout .btn-page,
+.admin-layout .tab,
+.admin-layout .tab-btn,
+.admin-layout .edit-btn,
+.admin-layout .save-btn,
+.admin-layout .ghost-btn,
+.admin-layout .btn-submit,
+.admin-layout .btn-cancel,
+.admin-layout .btn-filter,
+.admin-layout .btn-export,
+.admin-layout .btn-new-user,
+.admin-layout .btn-primary-sm,
+.admin-layout .btn-ghost-sm {
+  border-radius: var(--admin-radius-sm) !important;
+}
+
+.admin-layout .btn-primary,
+.admin-layout .btn-submit,
+.admin-layout .save-btn,
+.admin-layout .btn-new-user,
+.admin-layout .btn-primary-sm,
+.admin-layout .page-btn.active,
+.admin-layout .btn-page.active,
+.admin-layout .pagination .active,
+.admin-layout .tab.active,
+.admin-layout .tab-btn.active,
+.admin-layout .action.approve,
+.admin-layout .mini.approve,
+.admin-layout .confirm-ok,
+.admin-layout .btn-copy {
+  background: var(--admin-primary) !important;
+  color: #ffffff !important;
+  border-color: var(--admin-primary) !important;
+}
+
+.admin-layout .btn-primary:hover,
+.admin-layout .btn-submit:hover,
+.admin-layout .save-btn:hover,
+.admin-layout .btn-new-user:hover,
+.admin-layout .btn-primary-sm:hover {
+  background: var(--admin-primary-hover) !important;
+  border-color: var(--admin-primary-hover) !important;
+}
+
+.admin-layout .btn-secondary,
+.admin-layout .ghost-btn,
+.admin-layout .btn-cancel,
+.admin-layout .btn-ghost-sm,
+.admin-layout .page-btn,
+.admin-layout .btn-page {
+  background: var(--admin-surface) !important;
+  color: var(--admin-text-soft) !important;
+  border: 1px solid var(--admin-border) !important;
+}
+
+.admin-layout .status-pill,
+.admin-layout .role-badge,
+.admin-layout .badge-status,
+.admin-layout .action-tag,
+.admin-layout .model-badge,
+.admin-layout .submenu-badge,
+.admin-layout .badge-up,
+.admin-layout .badge-neutral,
+.admin-layout .badge-down {
+  border-radius: 999px !important;
+  font-weight: 800 !important;
+}
+
+.admin-layout .modal-overlay,
+.admin-layout .confirm-overlay {
+  background: rgba(15, 23, 42, 0.46) !important;
+  backdrop-filter: blur(8px);
+}
+
+.admin-layout .pagination,
+.admin-layout .pagination-bar,
+.admin-layout .table-footer {
+  border-color: var(--admin-border) !important;
+}
+
+.admin-layout .empty,
+.admin-layout .empty-state,
+.admin-layout .table-empty,
+.admin-layout .state,
+.admin-layout .state-placeholder,
+.admin-layout .loading-row {
+  color: var(--admin-muted) !important;
+  background: var(--admin-surface-soft) !important;
+  border-radius: var(--admin-radius-sm) !important;
+}
+
+@media (max-width: 980px) {
+  .admin-layout .admin-topbar {
+    align-items: flex-start !important;
+    gap: var(--ds-space-4) !important;
+  }
+
+  .admin-layout .admin-topbar-actions {
+    flex-wrap: wrap !important;
+  }
+}
+
+/* ============================================================
+   Native admin dark theme. Only active after using the topbar
+   switch; the storefront and other application areas are untouched.
+   ============================================================ */
+.admin-layout.theme-dark {
+  --admin-bg: #181a1b;
+  --admin-surface: #111315;
+  --admin-surface-soft: #1d2024;
+  --admin-border: #3b3f44;
+  --admin-border-strong: #52575e;
+  --admin-text: #f1f5f9;
+  --admin-text-soft: #d5dbe3;
+  --admin-muted: #9ca8b8;
+  --admin-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+  --admin-shadow-raised: 0 16px 38px rgba(0, 0, 0, 0.30);
+  color-scheme: dark;
+  /* Khung layout có thể nhận focus vì chứa vùng cuộn. Trình duyệt vẽ
+     focus ring màu cam quanh toàn bộ viewport ở chế độ tối. */
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+}
+
+.admin-layout.theme-dark:focus,
+.admin-layout.theme-dark:focus-visible,
+.admin-layout.theme-dark:focus-within {
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+}
+
+.admin-layout,
+.admin-layout .main,
+.admin-layout .admin-page-shell,
+.admin-layout .section-card,
+.admin-layout .data-card,
+.admin-layout .card,
+.admin-layout .panel,
+.admin-layout input,
+.admin-layout select,
+.admin-layout textarea {
+  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease;
+}
+
+.admin-layout.theme-dark,
+.admin-layout.theme-dark .main,
+.admin-layout.theme-dark .admin-page-shell,
+.admin-layout.theme-dark .page,
+.admin-layout.theme-dark .attendance-page,
+.admin-layout.theme-dark .attendance-admin-page {
+  background: var(--admin-bg) !important;
+  color: var(--admin-text) !important;
+}
+
+.admin-layout.theme-dark .dashboard-cluster,
+.admin-layout.theme-dark .metric-panel,
+.admin-layout.theme-dark .analysis-card,
+.admin-layout.theme-dark .workbench-card,
+.admin-layout.theme-dark .operation-flow-card,
+.admin-layout.theme-dark .staff-activity-card,
+.admin-layout.theme-dark .customer-activity-card,
+.admin-layout.theme-dark .chart-summary-item,
+.admin-layout.theme-dark .task-column,
+.admin-layout.theme-dark .activity-column,
+.admin-layout.theme-dark .chamcong-card,
+.admin-layout.theme-dark .employee-directory,
+.admin-layout.theme-dark .employee-setup-card,
+.admin-layout.theme-dark .calendar-day-detail,
+.admin-layout.theme-dark .directory-heading,
+.admin-layout.theme-dark .recognized-employee {
+  border-color: var(--admin-border) !important;
+  background: var(--admin-surface) !important;
+  color: var(--admin-text) !important;
+  box-shadow: var(--admin-shadow) !important;
+}
+
+.admin-layout.theme-dark .period-bar,
+.admin-layout.theme-dark .period-tabs,
+.admin-layout.theme-dark .dashboard-controls,
+.admin-layout.theme-dark .filter-row,
+.admin-layout.theme-dark .filters-bar,
+.admin-layout.theme-dark .toolbar,
+.admin-layout.theme-dark .table-footer,
+.admin-layout.theme-dark .pagination-bar,
+.admin-layout.theme-dark .calendar-toolbar,
+.admin-layout.theme-dark .employee-search,
+.admin-layout.theme-dark .assignment-heading,
+.admin-layout.theme-dark .work-assignment-block {
+  border-color: var(--admin-border) !important;
+  background: var(--admin-surface-soft) !important;
+  color: var(--admin-text-soft) !important;
+}
+
+.admin-layout.theme-dark h1,
+.admin-layout.theme-dark h2,
+.admin-layout.theme-dark h3,
+.admin-layout.theme-dark h4,
+.admin-layout.theme-dark h5,
+.admin-layout.theme-dark h6,
+.admin-layout.theme-dark strong,
+.admin-layout.theme-dark b,
+.admin-layout.theme-dark .title,
+.admin-layout.theme-dark .card-title,
+.admin-layout.theme-dark .section-title,
+.admin-layout.theme-dark .cluster-subhead,
+.admin-layout.theme-dark .analysis-card strong,
+.admin-layout.theme-dark .staff-main strong {
+  color: var(--admin-text) !important;
+}
+
+.admin-layout.theme-dark input::placeholder,
+.admin-layout.theme-dark textarea::placeholder {
+  color: #7f8a99 !important;
+}
+
+.admin-layout.theme-dark select {
+  color-scheme: dark;
+}
+
+.admin-layout.theme-dark th {
+  background: #202328 !important;
+}
+
+.admin-layout.theme-dark tbody tr,
+.admin-layout.theme-dark tbody td,
+.admin-layout.theme-dark .employee-table tbody tr,
+.admin-layout.theme-dark .staff-row,
+.admin-layout.theme-dark .notify-item,
+.admin-layout.theme-dark .dropdown-item {
+  border-color: var(--admin-border) !important;
+  background-color: var(--admin-surface) !important;
+}
+
+.admin-layout.theme-dark tbody tr:hover td,
+.admin-layout.theme-dark .employee-table tbody tr:hover,
+.admin-layout.theme-dark .staff-row:hover {
+  background: #20252c !important;
+}
+
+.admin-layout.theme-dark .topbar-dropdown,
+.admin-layout.theme-dark .user-dropdown,
+.admin-layout.theme-dark .schedule-modal,
+.admin-layout.theme-dark .correction-modal,
+.admin-layout.theme-dark .employee-calendar-modal {
+  border-color: var(--admin-border) !important;
+  background: #15181c !important;
+  color: var(--admin-text) !important;
+}
+
+.admin-layout.theme-dark .enrollment-banner,
+.admin-layout.theme-dark .verification-intro {
+  border-color: #315587 !important;
+  background: linear-gradient(135deg, #14243a, #171a1f) !important;
+}
+
+.admin-layout.theme-dark .calendar-day {
+  border-color: var(--admin-border) !important;
+  background: #171a1e !important;
+  color: var(--admin-text) !important;
+}
+
+.admin-layout.theme-dark .calendar-day.muted {
+  background: #111315 !important;
+}
+
+.admin-layout.theme-dark .theme-toggle-button {
+  color: #fbbf24 !important;
+}
+
+/* Dashboard: keep every nested control on the same native dark palette. */
+.admin-layout.theme-dark .dashboard-controls {
+  background: transparent !important;
+}
+
+.admin-layout.theme-dark .period-tabs {
+  background: #23272d !important;
+  border: 1px solid #343941 !important;
+}
+
+.admin-layout.theme-dark .period-tab {
+  background: transparent !important;
+  color: #aab4c2 !important;
+  box-shadow: none !important;
+}
+
+.admin-layout.theme-dark .period-tab:hover {
+  background: #2b3037 !important;
+  color: #e5eaf1 !important;
+}
+
+.admin-layout.theme-dark .period-tab.active {
+  background: #343a43 !important;
+  color: #78a9ff !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35) !important;
+}
+
+.admin-layout.theme-dark .admin-report-export,
+.admin-layout.theme-dark .export-btn {
+  border-color: #454c56 !important;
+  background: #20242a !important;
+  color: #e5eaf1 !important;
+  box-shadow: none !important;
+}
+
+.admin-layout.theme-dark .admin-report-export:hover,
+.admin-layout.theme-dark .export-btn:hover {
+  border-color: #5b8def !important;
+  background: #282e37 !important;
+  color: #8fb6ff !important;
+}
+
+.admin-layout.theme-dark .search-box {
+  background: transparent !important;
+}
+
+.admin-layout.theme-dark .search-box input,
+.admin-layout.theme-dark .search-input,
+.admin-layout.theme-dark input,
+.admin-layout.theme-dark textarea,
+.admin-layout.theme-dark select {
+  border-color: #454b54 !important;
+  background: #171a1f !important;
+  color: #e8edf4 !important;
+  box-shadow: none !important;
+}
+
+.admin-layout.theme-dark .search-box input:focus,
+.admin-layout.theme-dark input:focus,
+.admin-layout.theme-dark textarea:focus,
+.admin-layout.theme-dark select:focus {
+  border-color: #5b8def !important;
+  box-shadow: 0 0 0 3px rgba(91, 141, 239, 0.14) !important;
+}
+
+.admin-layout.theme-dark .cluster-head small,
+.admin-layout.theme-dark .chart-period-trigger,
+.admin-layout.theme-dark .dashboard-chip {
+  border-color: #383e46 !important;
+  background: #22262c !important;
+  color: #aeb8c6 !important;
+}
+
+.admin-layout.theme-dark .metric-panel,
+.admin-layout.theme-dark .analysis-card,
+.admin-layout.theme-dark .ops-card:not(:first-child),
+.admin-layout.theme-dark .task-item,
+.admin-layout.theme-dark .flow-grid > div,
+.admin-layout.theme-dark .staff-row,
+.admin-layout.theme-dark .customer-live-strip > div,
+.admin-layout.theme-dark .chart-summary-item {
+  border-color: #383e46 !important;
+  background: #181b20 !important;
+  color: #e8edf4 !important;
+  box-shadow: none !important;
+}
+
+.admin-layout.theme-dark .ops-card:not(:first-child):hover,
+.admin-layout.theme-dark .task-item:hover,
+.admin-layout.theme-dark .chart-summary-item:hover {
+  border-color: #526986 !important;
+  background: #20252c !important;
+}
+
+.admin-layout.theme-dark .analysis-head > span,
+.admin-layout.theme-dark .analysis-card > p,
+.admin-layout.theme-dark .ops-copy > span,
+.admin-layout.theme-dark .ops-copy > small,
+.admin-layout.theme-dark .task-item small,
+.admin-layout.theme-dark .flow-grid span,
+.admin-layout.theme-dark .customer-live-strip span,
+.admin-layout.theme-dark .period-bar-label {
+  color: #9ba7b7 !important;
+}
+
+.admin-layout.theme-dark .ops-copy > b,
+.admin-layout.theme-dark .task-item b,
+.admin-layout.theme-dark .flow-grid b,
+.admin-layout.theme-dark .customer-live-strip b {
+  color: #edf2f8 !important;
+}
+
+.admin-layout.theme-dark .trend-pill.up,
+.admin-layout.theme-dark .badge-up {
+  background: #123b2b !important;
+  color: #6ee7a8 !important;
+}
+
+.admin-layout.theme-dark .trend-pill.down,
+.admin-layout.theme-dark .badge-down {
+  background: #442126 !important;
+  color: #ff9a9a !important;
+}
+
+.admin-layout.theme-dark .trend-pill.flat,
+.admin-layout.theme-dark .badge-neutral {
+  background: #2a3038 !important;
+  color: #b7c1ce !important;
+}
+
+.admin-layout.theme-dark .staff-summary .online {
+  background: #123b2b !important;
+  color: #6ee7a8 !important;
+}
+
+.admin-layout.theme-dark .staff-summary .idle {
+  background: #403214 !important;
+  color: #f8cf69 !important;
+}
+
+.admin-layout.theme-dark .staff-summary .offline {
+  background: #292e35 !important;
+  color: #adb7c5 !important;
+}
+
+.admin-layout.theme-dark .flow-progress {
+  background: #2b3139 !important;
+}
+
+.admin-layout.theme-dark .chart-period-dropdown .dropdown-menu,
+.admin-layout.theme-dark .custom-dropdown .dropdown-menu {
+  border-color: #3d434c !important;
+  background: #171a1f !important;
+  box-shadow: var(--admin-shadow-raised) !important;
+}
+
+.admin-layout.theme-dark .chart-period-dropdown .dropdown-menu li,
+.admin-layout.theme-dark .custom-dropdown .dropdown-menu li {
+  color: #c8d0db !important;
+}
+
+.admin-layout.theme-dark .chart-period-dropdown .dropdown-menu li:hover,
+.admin-layout.theme-dark .chart-period-dropdown .dropdown-menu li.active,
+.admin-layout.theme-dark .custom-dropdown .dropdown-menu li:hover,
+.admin-layout.theme-dark .custom-dropdown .dropdown-menu li.active {
+  background: #252b33 !important;
+  color: #79a7ff !important;
+}
+
+.admin-layout.theme-dark .dashboard-error {
+  border-color: #6a3035 !important;
+  background: #351c20 !important;
+  color: #ffb4b4 !important;
+}
+
+.admin-layout.theme-dark .dashboard-error span {
+  color: #ff9f9f !important;
+}
+
+/* Dashboard charts and lower operational sections. */
+.admin-layout.theme-dark .chart-tabs-nav {
+  border: 1px solid #383e46 !important;
+  background: #20242a !important;
+}
+
+.admin-layout.theme-dark .chart-nav-btn {
+  background: transparent !important;
+  color: #9ba7b7 !important;
+  box-shadow: none !important;
+}
+
+.admin-layout.theme-dark .chart-nav-btn:hover {
+  background: #292f37 !important;
+  color: #e8edf4 !important;
+}
+
+.admin-layout.theme-dark .chart-nav-btn.active {
+  background: #303640 !important;
+  color: #79a7ff !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+}
+
+.admin-layout.theme-dark .chart-summary-trend {
+  border-color: #434a54 !important;
+  background: #1c2025 !important;
+  color: #b5bfcc !important;
+}
+
+.admin-layout.theme-dark .chart-summary-trend.up {
+  border-color: #276046 !important;
+  background: #153527 !important;
+  color: #6ee7a8 !important;
+}
+
+.admin-layout.theme-dark .chart-summary-trend.down {
+  border-color: #71353c !important;
+  background: #3b2024 !important;
+  color: #ff9a9a !important;
+}
+
+.admin-layout.theme-dark .chart-summary-trend span,
+.admin-layout.theme-dark .revenue-legend,
+.admin-layout.theme-dark .legend-item,
+.admin-layout.theme-dark .chart-bar-meta span,
+.admin-layout.theme-dark .mini-row,
+.admin-layout.theme-dark .empty-mini {
+  color: #96a3b4 !important;
+}
+
+.admin-layout.theme-dark .chart-title,
+.admin-layout.theme-dark .donut-card .chart-title {
+  color: #edf2f8 !important;
+}
+
+.admin-layout.theme-dark .revenue-grid {
+  stroke: #39414c !important;
+}
+
+.admin-layout.theme-dark .axis-label,
+.admin-layout.theme-dark .x-axis-label {
+  fill: #8492a6 !important;
+}
+
+.admin-layout.theme-dark .orders-point,
+.admin-layout.theme-dark .customer-point {
+  fill: #171a1f !important;
+}
+
+.admin-layout.theme-dark .donut-svg circle:first-child {
+  stroke: #2b3139 !important;
+}
+
+.admin-layout.theme-dark .donut-svg text[fill="#0f172a"] {
+  fill: #edf2f8 !important;
+}
+
+.admin-layout.theme-dark .donut-svg text[fill="#94a3b8"] {
+  fill: #9ba7b7 !important;
+}
+
+.admin-layout.theme-dark .follow-item,
+.admin-layout.theme-dark .stock-item {
+  border-color: #383e46 !important;
+  background: #181b20 !important;
+  color: #e8edf4 !important;
+}
+
+.admin-layout.theme-dark .follow-item:hover,
+.admin-layout.theme-dark .stock-item:hover {
+  border-color: #526986 !important;
+  background: #20252c !important;
+}
+
+.admin-layout.theme-dark .follow-item b,
+.admin-layout.theme-dark .stock-item b,
+.admin-layout.theme-dark .mini-section > b,
+.admin-layout.theme-dark .mini-row strong,
+.admin-layout.theme-dark .chart-bar-meta b {
+  color: #edf2f8 !important;
+}
+
+.admin-layout.theme-dark .follow-item span,
+.admin-layout.theme-dark .stock-item span,
+.admin-layout.theme-dark .follow-right small,
+.admin-layout.theme-dark .chart-bar-row small {
+  color: #96a3b4 !important;
+}
+
+.admin-layout.theme-dark .mini-section {
+  border-color: #353b43 !important;
+}
+
+.admin-layout.theme-dark .mini-donut > div {
+  background: #181b20 !important;
+  box-shadow: inset 0 0 0 1px #343a43 !important;
+}
+
+.admin-layout.theme-dark .mini-donut b {
+  color: #edf2f8 !important;
+}
+
+.admin-layout.theme-dark .mini-donut span {
+  color: #9ba7b7 !important;
+}
+
+.admin-layout.theme-dark .chart-track {
+  background: #303741 !important;
+}
+
+.admin-layout.theme-dark .operation-panel,
+.admin-layout.theme-dark .chart-card,
+.admin-layout.theme-dark .donut-card,
+.admin-layout.theme-dark .insight-chart-card,
+.admin-layout.theme-dark .orders-card {
+  border-color: var(--admin-border) !important;
+  background: var(--admin-surface) !important;
+  color: var(--admin-text) !important;
+  box-shadow: var(--admin-shadow) !important;
+}
+
+.admin-layout.theme-dark .staff-row em.online {
+  background: #123b2b !important;
+  color: #6ee7a8 !important;
+}
+
+.admin-layout.theme-dark .staff-row em.idle {
+  background: #403214 !important;
+  color: #f8cf69 !important;
+}
+
+.admin-layout.theme-dark .staff-row em.offline {
+  background: #292e35 !important;
+  color: #b7c1ce !important;
+}
+
+.admin-layout.theme-dark .product-item {
+  background: transparent !important;
+  color: #e8edf4 !important;
+}
+
+.admin-layout.theme-dark .product-item:hover {
+  background: #20252c !important;
+}
+
+.admin-layout.theme-dark .product-item .product-info strong,
+.admin-layout.theme-dark .product-item .product-price {
+  color: #edf2f8 !important;
+}
+
+.admin-layout.theme-dark .product-item .product-info span {
+  color: #96a3b4 !important;
+}
+
+/* Shared legacy admin surfaces used across inventory, marketing and accounts. */
+.admin-layout.theme-dark .table-card,
+.admin-layout.theme-dark .table-card-wrap,
+.admin-layout.theme-dark .bulk-toolbar,
+.admin-layout.theme-dark .filter-bar,
+.admin-layout.theme-dark .filter-wrap,
+.admin-layout.theme-dark .tabs-group,
+.admin-layout.theme-dark .dashboard-container,
+.admin-layout.theme-dark .tabs-header,
+.admin-layout.theme-dark .combo-list-panel,
+.admin-layout.theme-dark .panel-head,
+.admin-layout.theme-dark .control-panel,
+.admin-layout.theme-dark .select-box,
+.admin-layout.theme-dark .publisher-row,
+.admin-layout.theme-dark .rate-editor,
+.admin-layout.theme-dark .copy-card,
+.admin-layout.theme-dark .banner-card,
+.admin-layout.theme-dark .chat-layout-card,
+.admin-layout.theme-dark .chat-sidebar-pane,
+.admin-layout.theme-dark .chat-main-pane,
+.admin-layout.theme-dark .empty-chat-pane,
+.admin-layout.theme-dark .left-card,
+.admin-layout.theme-dark .employee-registry,
+.admin-layout.theme-dark .payroll-panel,
+.admin-layout.theme-dark .dashboard-grid.verification-grid {
+  border-color: var(--admin-border) !important;
+  background: var(--admin-surface) !important;
+  color: var(--admin-text) !important;
+  box-shadow: var(--admin-shadow) !important;
+}
+
+.admin-layout.theme-dark thead,
+.admin-layout.theme-dark thead tr,
+.admin-layout.theme-dark thead th {
+  border-color: #3d434c !important;
+  background: #20242a !important;
+  color: #cbd3df !important;
+}
+
+.admin-layout.theme-dark .btn-excel.btn-import,
+.admin-layout.theme-dark .btn-filter,
+.admin-layout.theme-dark .btn-advanced,
+.admin-layout.theme-dark .btn-refresh,
+.admin-layout.theme-dark .btn-action.btn-refresh,
+.admin-layout.theme-dark .affiliate-toolbar-btn.export,
+.admin-layout.theme-dark .bulk-btn.ghost,
+.admin-layout.theme-dark .menu-item,
+.admin-layout.theme-dark .tab,
+.admin-layout.theme-dark .tab-btn,
+.admin-layout.theme-dark .parent-tab-btn,
+.admin-layout.theme-dark .tab-nav-btn {
+  border-color: #454c56 !important;
+  background: #20242a !important;
+  color: #cbd3df !important;
+  box-shadow: none !important;
+}
+
+/* Nhóm tab danh mục sản phẩm: bỏ nền kính sáng còn sót lại ở chế độ tối. */
+.admin-layout.theme-dark .parent-tabs {
+  border-color: #414a56 !important;
+  background: #171b20 !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02) !important;
+  backdrop-filter: none !important;
+}
+
+/* Cấu hình gửi mã sinh nhật: đồng bộ toàn bộ biểu mẫu với giao diện tối. */
+.admin-layout.theme-dark .config-card {
+  border-color: #3b424b !important;
+  background: #171b20 !important;
+  color: #e8edf4 !important;
+  box-shadow: none !important;
+}
+
+.admin-layout.theme-dark .config-card .card-header-icon-row h3,
+.admin-layout.theme-dark .config-card .bold-label,
+.admin-layout.theme-dark .config-card .option-title,
+.admin-layout.theme-dark .config-card .validity-input-wrap strong {
+  color: #edf2f8 !important;
+}
+
+.admin-layout.theme-dark .config-card .card-hint-text,
+.admin-layout.theme-dark .config-card .label-subtext,
+.admin-layout.theme-dark .config-card .form-help-text,
+.admin-layout.theme-dark .config-card .option-desc {
+  color: #aeb8c6 !important;
+}
+
+.admin-layout.theme-dark .config-card .card-divider,
+.admin-layout.theme-dark .config-card .config-save-footer {
+  border-color: #343b44 !important;
+}
+
+.admin-layout.theme-dark .config-card .time-picker-24,
+.admin-layout.theme-dark .config-card .time-spinner-control,
+.admin-layout.theme-dark .config-card .styled-time-input,
+.admin-layout.theme-dark .config-card .styled-select-full {
+  border-color: #46505c !important;
+  background: #20252c !important;
+  color: #edf2f8 !important;
+  box-shadow: none !important;
+}
+
+.admin-layout.theme-dark .config-card .time-spinner-control > strong {
+  background: #171b20 !important;
+  color: #f1f5f9 !important;
+}
+
+.admin-layout.theme-dark .config-card .time-spinner-control button {
+  background: #252b33 !important;
+  color: #aeb8c6 !important;
+}
+
+.admin-layout.theme-dark .config-card .time-spinner-control button:hover,
+.admin-layout.theme-dark .config-card .time-spinner-control button:focus-visible {
+  background: #263b5c !important;
+  color: #8fb6ff !important;
+}
+
+.admin-layout.theme-dark .config-card .time-picker-24 .time-part > span,
+.admin-layout.theme-dark .config-card .time-picker-24 > strong {
+  color: #aeb8c6 !important;
+}
+
+.admin-layout.theme-dark .config-card .checkbox-option-item:hover:not(.disabled) {
+  background: #20262e !important;
+}
+
+/* Các nút thêm phụ trong biểu mẫu (ví dụ Thêm màu) không được giữ nền trắng. */
+.admin-layout.theme-dark .btn-add-sm,
+.admin-layout.theme-dark .btn-add-manual,
+.admin-layout.theme-dark .add-option-btn {
+  border-color: #36557f !important;
+  background: #1b2736 !important;
+  color: #8fb6ff !important;
+  box-shadow: none !important;
+}
+
+.admin-layout.theme-dark .btn-add-sm:hover,
+.admin-layout.theme-dark .btn-add-manual:hover,
+.admin-layout.theme-dark .add-option-btn:hover {
+  border-color: #6ea0ff !important;
+  background: #2563eb !important;
+  color: #ffffff !important;
+}
+
+/* Trạng thái khóa phải dễ nhận biết và không tạo cảm giác vẫn bấm được. */
+.admin-layout button:disabled,
+.admin-layout a[aria-disabled='true'] {
+  cursor: not-allowed !important;
+  opacity: 0.52 !important;
+  pointer-events: none;
+}
+
+/* Hộp thoại Thêm/Sửa dùng class modal cục bộ vẫn phải theo theme chung. */
+.admin-layout.theme-dark .modal {
+  border: 1px solid #3b424b !important;
+  background: #111315 !important;
+  color: #e8edf4 !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.46) !important;
+}
+
+.admin-layout.theme-dark .modal .modal-header,
+.admin-layout.theme-dark .modal .modal-footer {
+  border-color: #343b44 !important;
+  background: #171b20 !important;
+  color: #e8edf4 !important;
+}
+
+.admin-layout.theme-dark .modal .modal-title,
+.admin-layout.theme-dark .modal h2,
+.admin-layout.theme-dark .modal h3,
+.admin-layout.theme-dark .modal label {
+  color: #edf2f8 !important;
+}
+
+.admin-layout.theme-dark .modal .modal-subtitle,
+.admin-layout.theme-dark .modal .form-hint,
+.admin-layout.theme-dark .modal small {
+  color: #aeb8c6 !important;
+}
+
+.admin-layout.theme-dark .modal .modal-close {
+  border-color: #46505c !important;
+  background: #20252c !important;
+  color: #cbd5e1 !important;
+}
+
+.admin-layout.theme-dark .modal .modal-close svg {
+  stroke: currentColor !important;
+}
+
+.admin-layout.theme-dark .modal .modal-close:hover {
+  border-color: #ef5b68 !important;
+  background: #321d22 !important;
+  color: #ff8e98 !important;
+}
+
+/* Modal được Teleport ra body (không còn nằm bên trong .admin-layout). */
+html[data-admin-theme='dark'] body > .modal-overlay .modal,
+html[data-admin-theme='dark'] body > div > .modal-overlay .modal {
+  border: 1px solid #3b424b !important;
+  background: #111315 !important;
+  color: #e8edf4 !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.46) !important;
+}
+
+html[data-admin-theme='dark'] .modal-overlay .modal .modal-header,
+html[data-admin-theme='dark'] .modal-overlay .modal .modal-footer {
+  border-color: #343b44 !important;
+  background: #171b20 !important;
+  color: #e8edf4 !important;
+}
+
+html[data-admin-theme='dark'] .modal-overlay .modal .modal-title,
+html[data-admin-theme='dark'] .modal-overlay .modal h2,
+html[data-admin-theme='dark'] .modal-overlay .modal h3,
+html[data-admin-theme='dark'] .modal-overlay .modal label {
+  color: #edf2f8 !important;
+}
+
+html[data-admin-theme='dark'] .modal-overlay .modal .modal-subtitle,
+html[data-admin-theme='dark'] .modal-overlay .modal .form-hint,
+html[data-admin-theme='dark'] .modal-overlay .modal small {
+  color: #aeb8c6 !important;
+}
+
+html[data-admin-theme='dark'] .modal-overlay .modal input,
+html[data-admin-theme='dark'] .modal-overlay .modal select,
+html[data-admin-theme='dark'] .modal-overlay .modal textarea {
+  border-color: #46505c !important;
+  background: #20252c !important;
+  color: #edf2f8 !important;
+}
+
+html[data-admin-theme='dark'] .modal-overlay .modal input::placeholder,
+html[data-admin-theme='dark'] .modal-overlay .modal textarea::placeholder {
+  color: #7f8a99 !important;
+}
+
+html[data-admin-theme='dark'] .modal-overlay .modal .modal-close {
+  border-color: #46505c !important;
+  background: #20252c !important;
+  color: #cbd5e1 !important;
+}
+
+html[data-admin-theme='dark'] .modal-overlay .modal .modal-close svg {
+  stroke: currentColor !important;
+}
+
+html[data-admin-theme='dark'] .modal-overlay .modal .modal-close:hover {
+  border-color: #ef5b68 !important;
+  background: #321d22 !important;
+  color: #ff8e98 !important;
+}
+
+html[data-admin-theme='dark'] .modal-overlay .modal .upload-zone,
+html[data-admin-theme='dark'] .modal-overlay .modal .img-preview-wrap {
+  border-color: #46505c !important;
+  background: #20252c !important;
+  color: #cbd5e1 !important;
+}
+
+html[data-admin-theme='dark'] .modal-overlay .modal .upload-zone:hover {
+  border-color: #6ea0ff !important;
+  background: #222d3c !important;
+}
+
+html[data-admin-theme='dark'] .modal-overlay .modal .upload-zone p {
+  color: #cbd5e1 !important;
+}
+
+html[data-admin-theme='dark'] .modal-overlay .modal .upload-zone small,
+html[data-admin-theme='dark'] .modal-overlay .modal .field-hint {
+  color: #94a3b8 !important;
+}
+
+html[data-admin-theme='dark'] .modal-overlay .modal .upload-zone svg {
+  color: #8fb6ff !important;
+}
+
+html[data-admin-theme='dark'] .modal-overlay .modal .btn-draft,
+html[data-admin-theme='dark'] .modal-overlay .modal .btn-cancel,
+html[data-admin-theme='dark'] .modal-overlay .modal .img-change {
+  border-color: #46505c !important;
+  background: #20252c !important;
+  color: #d9e2ee !important;
+}
+
+html[data-admin-theme='dark'] .modal-overlay .modal .btn-draft:hover,
+html[data-admin-theme='dark'] .modal-overlay .modal .btn-cancel:hover,
+html[data-admin-theme='dark'] .modal-overlay .modal .img-change:hover {
+  border-color: #5b8def !important;
+  background: #292f37 !important;
+  color: #8fb6ff !important;
+}
+
+/* Các biểu mẫu Thêm/Sửa hiển thị trực tiếp thay cho bảng danh sách. */
+.admin-layout.theme-dark .inline-form-body,
+.admin-layout.theme-dark .form-card,
+.admin-layout.theme-dark .form-section-card,
+.admin-layout.theme-dark .inline-form-header,
+.admin-layout.theme-dark .form-actions {
+  border-color: #3b424b !important;
+  background: #171b20 !important;
+  color: #e8edf4 !important;
+  box-shadow: none !important;
+}
+
+.admin-layout.theme-dark .inline-form-body .condition-row {
+  border-color: #4c4262 !important;
+  background: #211d2b !important;
+  color: #e8edf4 !important;
+}
+
+.admin-layout.theme-dark .btn-gen-code {
+  border-color: #36557f !important;
+  background: #1b2736 !important;
+  color: #8fb6ff !important;
+}
+
+.admin-layout.theme-dark .btn-gen-code:hover {
+  border-color: #6ea0ff !important;
+  background: #2563eb !important;
+  color: #ffffff !important;
+}
+
+.admin-layout.theme-dark .logo-upload-wrap,
+.admin-layout.theme-dark .upload-zone {
+  border-color: #46505c !important;
+  background: #20252c !important;
+  color: #cbd5e1 !important;
+}
+
+.admin-layout.theme-dark .logo-upload-wrap:hover,
+.admin-layout.theme-dark .upload-zone:hover {
+  border-color: #6ea0ff !important;
+  background: #222d3c !important;
+}
+
+.admin-layout.theme-dark .upload-zone p,
+.admin-layout.theme-dark .logo-upload-wrap p,
+.admin-layout.theme-dark .logo-upload-wrap span {
+  color: #cbd5e1 !important;
+}
+
+.admin-layout.theme-dark .upload-zone small,
+.admin-layout.theme-dark .logo-upload-wrap small {
+  color: #94a3b8 !important;
+}
+
+/* Modal đặc thù của Vòng quay và Quản lý vai trò. */
+html[data-admin-theme='dark'] .modal-card,
+html[data-admin-theme='dark'] .modal-container {
+  border: 1px solid #3b424b !important;
+  background: #111315 !important;
+  color: #e8edf4 !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.46) !important;
+}
+
+html[data-admin-theme='dark'] .modal-card h2,
+html[data-admin-theme='dark'] .modal-card h3,
+html[data-admin-theme='dark'] .modal-card label,
+html[data-admin-theme='dark'] .modal-container h2,
+html[data-admin-theme='dark'] .modal-container h3,
+html[data-admin-theme='dark'] .modal-container label {
+  color: #edf2f8 !important;
+}
+
+html[data-admin-theme='dark'] .modal-card input,
+html[data-admin-theme='dark'] .modal-card select,
+html[data-admin-theme='dark'] .modal-card textarea,
+html[data-admin-theme='dark'] .modal-container input,
+html[data-admin-theme='dark'] .modal-container select,
+html[data-admin-theme='dark'] .modal-container textarea {
+  border-color: #46505c !important;
+  background: #20252c !important;
+  color: #edf2f8 !important;
+}
+
+html[data-admin-theme='dark'] .matrix-card,
+html[data-admin-theme='dark'] .matrix-card-header,
+html[data-admin-theme='dark'] .matrix-card-body {
+  border-color: #3b424b !important;
+  background: #171b20 !important;
+  color: #d9e2ee !important;
+}
+
+html[data-admin-theme='dark'] .matrix-card-header {
+  background: #20252c !important;
+  color: #edf2f8 !important;
+}
+
+html[data-admin-theme='dark'] .modal-container .modal-header,
+html[data-admin-theme='dark'] .modal-container .modal-footer {
+  border-color: #343b44 !important;
+  background: #171b20 !important;
+  color: #e8edf4 !important;
+}
+
+html[data-admin-theme='dark'] .modal-container .perms-matrix-section {
+  border-color: #343b44 !important;
+}
+
+html[data-admin-theme='dark'] .modal-container .perms-matrix-section h4,
+html[data-admin-theme='dark'] .modal-container .group-select-label span {
+  color: #edf2f8 !important;
+}
+
+html[data-admin-theme='dark'] .modal-container .matrix-info,
+html[data-admin-theme='dark'] .modal-container .perm-name {
+  color: #cbd5e1 !important;
+}
+
+html[data-admin-theme='dark'] .modal-container .perm-code-lbl {
+  color: #93c5fd !important;
+}
+
+html[data-admin-theme='dark'] .modal-container .perm-row-item:hover {
+  border-radius: 6px;
+  background: #20262e !important;
+}
+
+html[data-admin-theme='dark'] .modal-container input[type='checkbox'] {
+  accent-color: #3b82f6;
+}
+
+html[data-admin-theme='dark'] .modal-container .btn-cancel {
+  border-color: #46505c !important;
+  background: #20252c !important;
+  color: #d9e2ee !important;
+}
+
+html[data-admin-theme='dark'] .modal-container .btn-cancel:hover {
+  border-color: #5b8def !important;
+  background: #292f37 !important;
+  color: #8fb6ff !important;
+}
+
+/* Form Combo có các thẻ bước và danh sách sản phẩm với nền riêng. */
+.admin-layout.theme-dark .inline-form-body > .form-group,
+.admin-layout.theme-dark .inline-form-body > .products-selection-section,
+.admin-layout.theme-dark .inline-form-body > .form-cols-2 > .form-group,
+.admin-layout.theme-dark .inline-form-body > .form-row > .form-group {
+  border-color: #3b424b !important;
+  background: #171b20 !important;
+  color: #e8edf4 !important;
+  box-shadow: none !important;
+}
+
+.admin-layout.theme-dark .inline-form-body .products-pool {
+  border-color: #46505c !important;
+  background: #111315 !important;
+}
+
+.admin-layout.theme-dark .inline-form-body .pool-item {
+  border-color: #3b424b !important;
+  background: #20252c !important;
+  color: #d9e2ee !important;
+  box-shadow: none !important;
+}
+
+.admin-layout.theme-dark .inline-form-body .pool-item:hover {
+  border-color: #5b8def !important;
+  background: #292f37 !important;
+}
+
+.admin-layout.theme-dark .inline-form-body .pool-item.selected {
+  border-color: #416eb8 !important;
+  background: #22334d !important;
+}
+
+.admin-layout.theme-dark .inline-form-body .pool-item .p-info b {
+  color: #edf2f8 !important;
+}
+
+.admin-layout.theme-dark .inline-form-body .pool-item .p-info span {
+  color: #aeb8c6 !important;
+}
+
+/* Các trạng thái tổng hợp còn dùng nền sáng ở màn hình mặc định. */
+.admin-layout.theme-dark .error-row {
+  border-color: #70343b !important;
+  background: #321d22 !important;
+  color: #ff9a9a !important;
+}
+
+.admin-layout.theme-dark .error-row svg {
+  stroke: currentColor !important;
+}
+
+.admin-layout.theme-dark .box {
+  border-color: #3b424b !important;
+  background: #20252c !important;
+  color: #e8edf4 !important;
+}
+
+.admin-layout.theme-dark .box span {
+  color: #aeb8c6 !important;
+}
+
+.admin-layout.theme-dark .box b,
+.admin-layout.theme-dark .box strong {
+  color: #edf2f8 !important;
+}
+
+/* Select nhiều và khu tải logo trong modal Thương hiệu. */
+html[data-admin-theme='dark'] select[multiple].form-input {
+  border-color: #46505c !important;
+  background: #20252c !important;
+  color: #e5eaf1 !important;
+  color-scheme: dark;
+}
+
+html[data-admin-theme='dark'] select[multiple].form-input option {
+  background: #20252c !important;
+  color: #e5eaf1 !important;
+  padding: 3px 8px;
+}
+
+html[data-admin-theme='dark'] select[multiple].form-input option:checked {
+  background: #2563eb linear-gradient(0deg, #2563eb 0%, #2563eb 100%) !important;
+  color: #ffffff !important;
+}
+
+html[data-admin-theme='dark'] .logo-upload-wrap .logo-preview-box {
+  border-color: #46505c !important;
+  background: #171b20 !important;
+}
+
+html[data-admin-theme='dark'] .logo-upload-wrap .btn-upload-file {
+  border-color: #36557f !important;
+  background: #1b2736 !important;
+  color: #8fb6ff !important;
+}
+
+html[data-admin-theme='dark'] .logo-upload-wrap .btn-upload-file:hover {
+  border-color: #6ea0ff !important;
+  background: #2563eb !important;
+  color: #ffffff !important;
+}
+
+html[data-admin-theme='dark'] .logo-upload-wrap .file-info-text,
+html[data-admin-theme='dark'] .logo-upload-wrap .logo-placeholder-text {
+  color: #aeb8c6 !important;
+}
+
+.admin-layout.theme-dark .btn-excel.btn-import:hover,
+.admin-layout.theme-dark .btn-filter:hover,
+.admin-layout.theme-dark .btn-advanced:hover,
+.admin-layout.theme-dark .btn-refresh:hover,
+.admin-layout.theme-dark .btn-action.btn-refresh:hover,
+.admin-layout.theme-dark .affiliate-toolbar-btn.export:hover,
+.admin-layout.theme-dark .bulk-btn.ghost:hover,
+.admin-layout.theme-dark .menu-item:hover,
+.admin-layout.theme-dark .tab:hover,
+.admin-layout.theme-dark .tab-btn:hover,
+.admin-layout.theme-dark .parent-tab-btn:hover,
+.admin-layout.theme-dark .tab-nav-btn:hover {
+  border-color: #5b8def !important;
+  background: #292f37 !important;
+  color: #8fb6ff !important;
+}
+
+.admin-layout.theme-dark .menu-item.active,
+.admin-layout.theme-dark .tab.active,
+.admin-layout.theme-dark .tab-btn.active,
+.admin-layout.theme-dark .parent-tab-btn.active,
+.admin-layout.theme-dark .tab-nav-btn.active,
+.admin-layout.theme-dark .publisher-row.selected {
+  border-color: #416eb8 !important;
+  background: #22334d !important;
+  color: #8fb6ff !important;
+}
+
+.admin-layout.theme-dark .bulk-btn.danger-outline,
+.admin-layout.theme-dark .action.danger {
+  border-color: #71353c !important;
+  background: #351e22 !important;
+  color: #ff9a9a !important;
+}
+
+.admin-layout.theme-dark .search-input-box,
+.admin-layout.theme-dark .revenue-chip,
+.admin-layout.theme-dark .view-switcher,
+.admin-layout.theme-dark .identified-employee,
+.admin-layout.theme-dark .employee-card,
+.admin-layout.theme-dark .chamcong-stat-card,
+.admin-layout.theme-dark .schedule-guide,
+.admin-layout.theme-dark .schedule-guide > div,
+.admin-layout.theme-dark .summary-grid > article,
+.admin-layout.theme-dark .payroll-summary > article {
+  border-color: #383e46 !important;
+  background: #181b20 !important;
+  color: #e8edf4 !important;
+  box-shadow: none !important;
+}
+
+.admin-layout.theme-dark .schedule-guide {
+  border-color: #315587 !important;
+  background: #172438 !important;
+}
+
+.admin-layout.theme-dark .total-weight-badge,
+.admin-layout.theme-dark label.selected {
+  border-color: #416eb8 !important;
+  background: #22334d !important;
+  color: #8fb6ff !important;
+}
+
+.admin-layout.theme-dark .tab-nav-list {
+  border-color: #383e46 !important;
+  background: #20242a !important;
+}
+
+.admin-layout.theme-dark .empty-icon-wrap {
+  background: #22334d !important;
+  color: #8fb6ff !important;
+}
+
+.admin-layout.theme-dark .topbar:not(.admin-topbar) {
+  border-color: var(--admin-border) !important;
+  background: var(--admin-surface) !important;
+  color: var(--admin-text) !important;
+}
+
+.admin-layout.theme-dark .btn-new-sm.green-btn {
+  border-color: #276046 !important;
+  background: #153527 !important;
+  color: #6ee7a8 !important;
+}
+
+.admin-layout.theme-dark .btn-new-sm.purple-btn {
+  border-color: #5b477b !important;
+  background: #2c233a !important;
+  color: #d0a9ff !important;
+}
+
+.admin-layout.theme-dark .color-row-item,
+.admin-layout.theme-dark .loading-card,
+.admin-layout.theme-dark .chamcong-table-card,
+.admin-layout.theme-dark .schedule-slots > div,
+.admin-layout.theme-dark .payroll-summary-grid > article,
+.admin-layout.theme-dark .calendar-payroll-summary > div {
+  border-color: #383e46 !important;
+  background: #181b20 !important;
+  color: #e8edf4 !important;
+  box-shadow: none !important;
+}
+
+.admin-layout.theme-dark .color-row-item:hover {
+  border-color: #526986 !important;
+  background: #20252c !important;
+}
+
+.admin-layout.theme-dark .payroll-summary-grid .summary-late,
+.admin-layout.theme-dark .payroll-summary-grid .summary-penalty,
+.admin-layout.theme-dark .calendar-payroll-summary .deduction {
+  border-color: #71353c !important;
+  background: #351e22 !important;
+}
+
+.admin-layout.theme-dark .payroll-summary-grid .summary-net,
+.admin-layout.theme-dark .calendar-payroll-summary .net {
+  border-color: #276046 !important;
+  background: #153527 !important;
+}
+
+.admin-layout.theme-dark .weekday-options label,
+.admin-layout.theme-dark .setup-links button {
+  border-color: #454c56 !important;
+  background: #20242a !important;
+  color: #cbd3df !important;
+}
+
+.admin-layout.theme-dark .weekday-options label:hover,
+.admin-layout.theme-dark .setup-links button:hover {
+  border-color: #5b8def !important;
+  background: #292f37 !important;
+  color: #8fb6ff !important;
+}
+
+.admin-layout.theme-dark .weekday-options label.selected {
+  border-color: #416eb8 !important;
+  background: #22334d !important;
+  color: #8fb6ff !important;
+}
+
+/* Text contrast and interactive states across legacy admin pages. */
+.admin-layout.theme-dark .price,
+.admin-layout.theme-dark .combo-product-stack span,
+.admin-layout.theme-dark .combo-product-stack small,
+.admin-layout.theme-dark .day-label,
+.admin-layout.theme-dark .mo-ta-text,
+.admin-layout.theme-dark .chat-sidebar-pane .user-name,
+.admin-layout.theme-dark .field > span,
+.admin-layout.theme-dark .weekday-field > span,
+.admin-layout.theme-dark .assignment-heading span,
+.admin-layout.theme-dark .work-assignment-block label > span,
+.admin-layout.theme-dark .registry-header p,
+.admin-layout.theme-dark .payroll-filter label,
+.admin-layout.theme-dark .menu-item span:last-child,
+.admin-layout.theme-dark .profile-stats span {
+  color: #aeb8c6 !important;
+}
+
+.admin-layout.theme-dark td > span:not(.status-badge):not(.badge):not(.role-badge):not([class*='badge']):not([class*='pill']):not([class*='tag']):not([class*='chip']):not([class*='status']),
+.admin-layout.theme-dark .variant-count,
+.admin-layout.theme-dark .product-meta {
+  color: #aeb8c6 !important;
+}
+
+.admin-layout.theme-dark .stat-card-btn,
+.admin-layout.theme-dark .stat-card-btn span,
+.admin-layout.theme-dark .stat-card-btn strong,
+.admin-layout.theme-dark .stat-card-btn small {
+  color: #edf2f8 !important;
+}
+
+.admin-layout.theme-dark .stat-card-btn:hover,
+.admin-layout.theme-dark .stat-card-btn.active {
+  border-color: #5b8def !important;
+  color: #ffffff !important;
+}
+
+.admin-layout.theme-dark .cat-badge,
+.admin-layout.theme-dark .status-badge.info,
+.admin-layout.theme-dark .status-badge.confirmed,
+.admin-layout.theme-dark .status-badge.ok {
+  border-color: #315587 !important;
+  background: #1d3655 !important;
+  color: #8fc0ff !important;
+}
+
+.admin-layout.theme-dark .status-badge.warn,
+.admin-layout.theme-dark .status-badge.pending {
+  border-color: #6a5421 !important;
+  background: #3e3218 !important;
+  color: #f8cf69 !important;
+}
+
+.admin-layout.theme-dark .status-badge.out,
+.admin-layout.theme-dark .status-badge.rejected {
+  border-color: #71353c !important;
+  background: #351e22 !important;
+  color: #ff9a9a !important;
+}
+
+.admin-layout.theme-dark .badge-success,
+.admin-layout.theme-dark .badge-success-outline {
+  border-color: #276046 !important;
+  background: #153527 !important;
+  color: #6ee7a8 !important;
+}
+
+.admin-layout.theme-dark .chip-out {
+  border-color: #71353c !important;
+  background: #351e22 !important;
+  color: #ff9a9a !important;
+}
+
+.admin-layout.theme-dark .tool-switch {
+  border-color: #454c56 !important;
+  background: #292e35 !important;
+  color: #cbd3df !important;
+}
+
+.admin-layout.theme-dark .tool-switch.active {
+  border-color: #276046 !important;
+  background: #153527 !important;
+  color: #6ee7a8 !important;
+}
+
+.admin-layout.theme-dark .tool-switch strong,
+.admin-layout.theme-dark .tool-switch span {
+  color: inherit !important;
+}
+
+.admin-layout.theme-dark .registry-summary > span {
+  border-color: #454c56 !important;
+  background: #292e35 !important;
+  color: #cbd3df !important;
+}
+
+.admin-layout.theme-dark .registry-summary .summary-ready {
+  border-color: #276046 !important;
+  background: #153527 !important;
+  color: #6ee7a8 !important;
+}
+
+.admin-layout.theme-dark .registry-summary .summary-pending {
+  border-color: #6a5421 !important;
+  background: #3e3218 !important;
+  color: #f8cf69 !important;
+}
+
+.admin-layout.theme-dark .registry-summary strong,
+.admin-layout.theme-dark .profile-stats strong {
+  color: inherit !important;
+}
+
+.admin-layout.theme-dark .payroll-summary-grid span,
+.admin-layout.theme-dark .payroll-summary-grid small,
+.admin-layout.theme-dark .calendar-payroll-summary span {
+  color: #aeb8c6 !important;
+}
+
+html[data-admin-theme='dark'] .swal2-popup {
+  border: 1px solid #3b3f44 !important;
+  background: #15181c !important;
+  color: #f1f5f9 !important;
+}
+
+html[data-admin-theme='dark'] .swal2-title,
+html[data-admin-theme='dark'] .swal2-html-container {
+  color: #f1f5f9 !important;
+}
+
+html[data-admin-theme='dark'] .swal2-custom-cancel {
+  border-color: #4b5563 !important;
+  background: #252a31 !important;
+  color: #e2e8f0 !important;
+}
+
+html[data-admin-theme='dark'] .quick-attendance-modal,
+html[data-admin-theme='dark'] .correction-modal,
+html[data-admin-theme='dark'] .employee-calendar-modal,
+html[data-admin-theme='dark'] .schedule-modal {
+  border-color: #3b3f44 !important;
+  background: #15181c !important;
+  color: #f1f5f9 !important;
+}
+
+html[data-admin-theme='dark'] .quick-attendance-modal h3,
+html[data-admin-theme='dark'] .quick-attendance-modal strong,
+html[data-admin-theme='dark'] .correction-modal h3,
+html[data-admin-theme='dark'] .employee-calendar-modal h3,
+html[data-admin-theme='dark'] .schedule-modal h3 {
+  color: #f1f5f9 !important;
+}
+
+html[data-admin-theme='dark'] .quick-attendance-modal p,
+html[data-admin-theme='dark'] .quick-attendance-modal small,
+html[data-admin-theme='dark'] .correction-modal p,
+html[data-admin-theme='dark'] .correction-modal small {
+  color: #9ca8b8 !important;
+}
+
+html[data-admin-theme='dark'] .recognized-employee,
+html[data-admin-theme='dark'] .calendar-day-detail {
+  border-color: #3b3f44 !important;
+  background: #1d2024 !important;
+  color: #f1f5f9 !important;
+}

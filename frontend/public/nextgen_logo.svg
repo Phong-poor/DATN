@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="96" viewBox="0 0 360 96" role="img" aria-label="NextGen">
+  <rect width="360" height="96" fill="white"/>
+  <g transform="translate(24 18)">
+    <path d="M30 0 60 17.5v25L30 60 0 42.5v-25L30 0Z" fill="#0f172a"/>
+    <path d="M30 8 51 20.2v17.6L30 50 9 37.8V20.2L30 8Z" fill="#2563eb"/>
+    <path d="M30 17 43 24.5v11L30 43 17 35.5v-11L30 17Z" fill="#ffffff"/>
+  </g>
+  <text x="104" y="47" fill="#0f172a" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="800" letter-spacing="8">NEXTGEN</text>
+  <line x1="104" y1="62" x2="306" y2="62" stroke="#2563eb" stroke-width="3" stroke-linecap="round"/>
+</svg>

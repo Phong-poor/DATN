@@ -1,16 +1,19 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import axios from 'axios'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+import api from '@/services/api'
 import { getUser } from '../../services/auth.js'
+import { storageUrl } from '@/services/urls'
+import * as XLSX from 'xlsx'
+import BulkDeleteToolbar from './BulkDeleteToolbar.vue'
+import { useAdminBulkDelete } from '@/services/adminBulkDelete'
 
 // ─── API ─────────────────────────────
-const api = axios.create({
-    baseURL: 'http://127.0.0.1:8000/api'
-})
-
 // ─── STATE ───────────────────────────
 const searchQuery = ref('')
-const activeTab = ref('Tất cả')
+const activeTab = ref('Quản lý nhân viên')
+const selectedStatus = ref('Tất cả')
+const isOpenStatusDropdown = ref(false)
 
 const currentUser = ref(null)
 
@@ -22,33 +25,62 @@ const editError = ref('')
 
 const users = ref([])
 const loading = ref(false)
+const router = useRouter()
+const pendingAffiliateRequests = ref(0)
+const hideAffiliateCard = ref(false)
 
 // ─── PAGINATION ──────────────────────
 const currentPage = ref(1)
 const pageSize = 7
 
-const tabs = ['Tất cả', 'Admin', 'Khách hàng']
+const tabs = ['Quản lý nhân viên', 'Quản lý khách hàng']
+const statusOptions = ['Tất cả', 'Hoạt động', 'Bị khóa']
 
 const roleStyle = {
     'ADMIN': { bg: '#fee2e2', color: '#b91c1c' },
-    'KHÁCH HÀNG': { bg: '#dcfce7', color: '#15803d' }
+    'KHÁCH HÀNG': { bg: '#dcfce7', color: '#1d4ed8' },
+    'THỦ KHO': { bg: '#ffedd5', color: '#ea580c' },
+    'XỬ LÝ ĐƠN HÀNG': { bg: '#e0f2fe', color: '#0369a1' },
+    'MARKETING': { bg: '#fce7f3', color: '#db2777' },
+    'QUẢN LÝ AFFILIATE': { bg: '#f3e8ff', color: '#1d4ed8' },
+    'BIÊN TẬP VIÊN': { bg: '#e0e7ff', color: '#1d4ed8' },
+    'TƯ VẤN VIÊN': { bg: '#ccfbf1', color: '#1d4ed8' },
+    'KẾ TOÁN': { bg: '#fae8ff', color: '#a21caf' }
 }
 
 const statusStyle = {
-    'Hoạt động': { color: '#16a34a' },
+    'Hoạt động': { color: '#2563eb' },
     'Bị khóa': { color: '#dc2626' }
 }
 
 // ─── MAPPING ─────────────────────────
 const roleMap = {
     admin: 'ADMIN',
-    user: 'KHÁCH HÀNG'
+    user: 'KHÁCH HÀNG',
+    inventory: 'THỦ KHO',
+    order_manager: 'XỬ LÝ ĐƠN HÀNG',
+    marketing: 'MARKETING',
+    affiliate_manager: 'QUẢN LÝ AFFILIATE',
+    editor: 'BIÊN TẬP VIÊN',
+    support: 'TƯ VẤN VIÊN',
+    accountant: 'KẾ TOÁN'
 }
 
 const roleReverseMap = {
     'ADMIN': 'admin',
-    'KHÁCH HÀNG': 'user'
+    'KHÁCH HÀNG': 'user',
+    'THỦ KHO': 'inventory',
+    'XỬ LÝ ĐƠN HÀNG': 'order_manager',
+    'MARKETING': 'marketing',
+    'QUẢN LÝ AFFILIATE': 'affiliate_manager',
+    'BIÊN TẬP VIÊN': 'editor',
+    'TƯ VẤN VIÊN': 'support',
+    'KẾ TOÁN': 'accountant'
 }
+
+const staffRoles = computed(() => {
+    return Object.keys(roleReverseMap).filter(role => role !== 'KHÁCH HÀNG' && role !== 'ADMIN' && role !== 'QUẢN TRỊ VIÊN')
+})
 
 const mapRoleFromDB = (r) => roleMap[r?.toLowerCase()] || 'KHÁCH HÀNG'
 const mapRoleToDB = (r) => roleReverseMap[r] || 'user'
@@ -57,57 +89,128 @@ const mapStatus = (s) => s === 'locked' ? 'Bị khóa' : 'Hoạt động'
 const mapStatusToDB = (s) => s === 'Bị khóa' ? 'locked' : 'active'
 
 // ─── NORMALIZE ───────────────────────
-const normalizeUser = (u) => ({
-    id: u.id,
-    name: u.name || '',
-    email: u.email || '',
-    phone: u.phone || '',
-    role: mapRoleFromDB(u.role),
-    joined: u.created_at
-        ? new Date(u.created_at).toLocaleDateString('vi-VN')
-        : '',
-    status: mapStatus(u.status)
-})
+const protectedDeleteEmails = ['nextgenshop@gmail.com']
+const isProtectedDeleteUser = (user) => protectedDeleteEmails.includes(String(user?.email || '').toLowerCase())
+
+const normalizeUser = (u) => {
+    const avatar = u.anhdaidien || u.avatar || ''
+    const avatarUrl = avatar ? (avatar.startsWith('http') ? avatar : storageUrl(avatar)) : ''
+    return {
+        id: u.id,
+        name: u.ten || u.name || '',
+        email: u.email || '',
+        phone: u.sodienthoai || u.phone || '',
+        role: mapRoleFromDB(u.vaitro || u.role),
+        joined: u.created_at
+            ? new Date(u.created_at).toLocaleDateString('vi-VN')
+            : '',
+        status: mapStatus(u.trangthai || u.status),
+        avatar: avatarUrl
+    }
+}
 
 // ─── FETCH ───────────────────────────
 const fetchUsers = async () => {
     loading.value = true
     try {
-        const { data } = await api.get('/users')
+        const { data } = await api.get('/admin/users')
         users.value = Array.isArray(data) ? data.map(normalizeUser) : []
     } catch (err) {
-        console.log('Load lỗi:', err.response?.data || err.message)
+        console.error('Load users failed:', err.response?.data || err.message)
     } finally {
         loading.value = false
+    }
+}
+
+const fetchPendingAffiliateRequests = async () => {
+    try {
+        const { data } = await api.get('/admin/affiliates')
+        const profiles = Array.isArray(data?.profiles) ? data.profiles : []
+        pendingAffiliateRequests.value = profiles.filter(p => String(p?.status || '').toLowerCase() === 'pending').length
+    } catch {
+        pendingAffiliateRequests.value = 0
+    }
+}
+
+const closeStatusDropdown = (e) => {
+    if (!e.target.closest('.status-filter-dropdown')) {
+        isOpenStatusDropdown.value = false
     }
 }
 
 onMounted(() => {
     currentUser.value = getUser()
     fetchUsers()
+    fetchPendingAffiliateRequests()
+    document.addEventListener('click', closeStatusDropdown)
 })
+
+onUnmounted(() => {
+    document.removeEventListener('click', closeStatusDropdown)
+})
+
+const openAffiliateList = () => {
+    router.push('/admin/affiliates')
+}
+
+const dismissAffiliateCard = () => {
+    hideAffiliateCard.value = true
+}
 
 // ─── FILTER (reset page khi search/tab thay đổi) ──
 const filtered = computed(() => {
     const q = searchQuery.value.toLowerCase()
-    const map = {
-        'Admin': 'ADMIN',
-        'Khách hàng': 'KHÁCH HÀNG'
-    }
     return users.value.filter(u => {
         const matchSearch =
             u.name.toLowerCase().includes(q) ||
             u.email.toLowerCase().includes(q)
-        const matchTab =
-            activeTab.value === 'Tất cả' ||
-            u.role === map[activeTab.value]
-        return matchSearch && matchTab
+        const matchTab = activeTab.value === 'Quản lý nhân viên'
+            ? u.role !== 'KHÁCH HÀNG'
+            : u.role === 'KHÁCH HÀNG'
+        const matchStatus =
+            selectedStatus.value === 'Tất cả' ||
+            u.status === selectedStatus.value
+        return matchSearch && matchTab && matchStatus
     })
 })
 
 // Reset về trang 1 khi search/tab thay đổi
 const onSearch = () => { currentPage.value = 1 }
 const onTabChange = (t) => { activeTab.value = t; currentPage.value = 1 }
+const onStatusChange = () => { currentPage.value = 1 }
+
+const resetAdvancedFilters = () => {
+    searchQuery.value = ''
+    activeTab.value = 'Quản lý nhân viên'
+    selectedStatus.value = 'Tất cả'
+    currentPage.value = 1
+}
+
+const exportUsersReport = () => {
+    const rows = filtered.value.map((u, idx) => ({
+        STT: idx + 1,
+        'Họ tên': u.name,
+        Email: u.email,
+        'Số điện thoại': u.phone || '',
+        'Vai trò': u.role,
+        'Ngày tham gia': u.joined,
+        'Trạng thái': u.status,
+    }))
+
+    const ws = XLSX.utils.json_to_sheet(rows)
+    ws['!cols'] = [
+        { wch: 8 },
+        { wch: 24 },
+        { wch: 30 },
+        { wch: 16 },
+        { wch: 14 },
+        { wch: 14 },
+        { wch: 14 },
+    ]
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'NguoiDung')
+    XLSX.writeFile(wb, `bao-cao-nguoi-dung-${Date.now()}.xlsx`)
+}
 
 // ─── PAGINATION COMPUTED ─────────────
 const totalPages = computed(() => Math.max(1, Math.ceil(filtered.value.length / pageSize)))
@@ -117,17 +220,30 @@ const paginatedUsers = computed(() => {
     return filtered.value.slice(start, start + pageSize)
 })
 
+const {
+    selectedIds,
+    isBulkDeleting,
+    allCurrentPageSelected,
+    toggleItemSelection,
+    toggleCurrentPageSelection,
+    clearSelection,
+    removeSelected,
+    removeAllFiltered,
+} = useAdminBulkDelete({
+    items: users,
+    filteredItems: filtered,
+    pageItems: paginatedUsers,
+    getId: item => item.id,
+    endpoint: id => `/admin/users/${id}`,
+    entityLabel: 'người dùng',
+    fetchItems: fetchUsers,
+    canDelete: item => item.id !== currentUser.value?.id && !isProtectedDeleteUser(item),
+    cannotDeleteMessage: 'Một số tài khoản không thể xóa, ví dụ tài khoản đang đăng nhập.',
+})
+
 // Dãy số trang hiển thị (tối đa 5 nút)
 const pageNumbers = computed(() => {
-    const total = totalPages.value
-    const current = currentPage.value
-    if (total <= 5) return Array.from({ length: total }, (_, i) => i + 1)
-
-    let start = Math.max(1, current - 2)
-    let end = Math.min(total, start + 4)
-    if (end - start < 4) start = Math.max(1, end - 4)
-
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+    return []
 })
 
 const goToPage = (p) => {
@@ -136,7 +252,7 @@ const goToPage = (p) => {
 
 // ─── AVATAR ──────────────────────────
 const avatarColors = ['#dbeafe', '#dcfce7', '#ede9fe', '#fef9c3', '#fee2e2', '#ffedd5']
-const avatarText = ['#1d4ed8', '#15803d', '#6d28d9', '#a16207', '#b91c1c', '#c2410c']
+const avatarText = ['#1d4ed8', '#1d4ed8', '#1d4ed8', '#a16207', '#b91c1c', '#c2410c']
 
 const getAvatarStyle = (name) => {
     const i = (name || 'A').charCodeAt(0) % avatarColors.length
@@ -195,10 +311,10 @@ const toggleStatus = (u) => {
         onConfirm: async () => {
             const next = isLocking ? 'Bị khóa' : 'Hoạt động'
             try {
-                await api.put(`/users/${u.id}`, { status: mapStatusToDB(next) })
+                await api.put(`/admin/users/${u.id}`, { trangthai: mapStatusToDB(next) })
                 u.status = next
             } catch (err) {
-                console.log('Toggle lỗi:', err)
+                console.error('Toggle user status failed:', err)
             }
         }
     })
@@ -216,13 +332,13 @@ const removeUser = (id) => {
         icon: 'trash',
         onConfirm: async () => {
             try {
-                await api.delete(`/users/${id}`)
+                await api.delete(`/admin/users/${id}`)
                 users.value = users.value.filter(u => u.id !== id)
                 if (paginatedUsers.value.length === 0 && currentPage.value > 1) {
                     currentPage.value--
                 }
             } catch (err) {
-                console.log('Xóa lỗi:', err)
+                console.error('Delete user failed:', err)
             }
         }
     })
@@ -230,7 +346,7 @@ const removeUser = (id) => {
 
 // ─── CREATE ──────────────────────────
 const defaultForm = () => ({
-    name: '', email: '', phone: '', role: 'KHÁCH HÀNG',
+    name: '', email: '', phone: '', role: 'ADMIN',
     status: 'Hoạt động', password: ''
 })
 
@@ -249,14 +365,14 @@ const submitForm = async () => {
     if (err) return formError.value = err
 
     try {
-        const { data } = await api.post('/users', {
-            name: form.value.name,
+        const { data } = await api.post('/admin/users', {
+            ten: form.value.name,
             email: form.value.email,
-            phone: form.value.phone,
-            role: mapRoleToDB(form.value.role),
-            status: mapStatusToDB(form.value.status),
-            password: form.value.password,
-            password_confirmation: form.value.password
+            sodienthoai: form.value.phone,
+            vaitro: mapRoleToDB(form.value.role),
+            trangthai: mapStatusToDB(form.value.status),
+            matkhau: form.value.password,
+            matkhau_confirmation: form.value.password
         })
         users.value.unshift(normalizeUser(data.user))
         currentPage.value = 1
@@ -287,14 +403,18 @@ const submitEdit = async () => {
     if (err) return editError.value = err
 
     const payload = {
-        ...editForm.value,
-        role: mapRoleToDB(editForm.value.role),
-        status: mapStatusToDB(editForm.value.status)
+        ten: editForm.value.name,
+        email: editForm.value.email,
+        sodienthoai: editForm.value.phone,
+        vaitro: mapRoleToDB(editForm.value.role),
+        trangthai: mapStatusToDB(editForm.value.status),
+        matkhau: editForm.value.password || undefined,
+        matkhau_confirmation: editForm.value.password || undefined,
     }
-    if (!payload.password) delete payload.password
+    if (!payload.matkhau) { delete payload.matkhau; delete payload.matkhau_confirmation }
 
     try {
-        const { data } = await api.put(`/users/${editingUser.value.id}`, payload)
+        const { data } = await api.put(`/admin/users/${editingUser.value.id}`, payload)
         const i = users.value.findIndex(u => u.id === editingUser.value.id)
         if (i !== -1) users.value[i] = normalizeUser(data.user)
         closeEditModal()
@@ -307,43 +427,9 @@ const submitEdit = async () => {
 <template>
     <div class="page">
 
-        <!-- TOPBAR -->
-        <div class="topbar">
-            <div class="search-box">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                    <circle cx="11" cy="11" r="8" />
-                    <path d="m21 21-4.35-4.35" />
-                </svg>
-                <input v-model="searchQuery" @input="onSearch"
-                    placeholder="Tìm kiếm người dùng, email hoặc vai trò..." />
-            </div>
-            <div class="topbar-right">
-                <button class="icon-btn">🔔</button>
-                <button class="icon-btn">🌙</button>
-                <button class="icon-btn">❓</button>
-                <div class="admin-wrap">
-                    <div class="admin-text">
-                        <b>Admin VinaTech</b>
-                        <span>Quản trị viên cao cấp</span>
-                    </div>
-                    <div class="av-circle">AV</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- PAGE HEADER -->
-        <div class="page-header">
-            <div>
-                <h1>Quản lý người dùng</h1>
-                <p>Theo dõi, điều chỉnh quyền hạn và trạng thái hoạt động của toàn bộ thành viên trong hệ thống
-                    VinaTech.</p>
-            </div>
-
-        </div>
-
         <!-- STATS -->
         <div class="stats">
-            <div class="stat-card">
+            <div class="stat-card stat-blue">
                 <div class="stat-info">
                     <p>TỔNG NGƯỜI DÙNG</p>
                     <div class="stat-val-row">
@@ -352,7 +438,7 @@ const submitEdit = async () => {
                     </div>
                 </div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card stat-teal">
                 <div class="stat-info">
                     <p>ĐANG HOẠT ĐỘNG</p>
                     <div class="stat-val-row">
@@ -361,7 +447,7 @@ const submitEdit = async () => {
                     </div>
                 </div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card stat-orange">
                 <div class="stat-info">
                     <p>BỊ KHÓA</p>
                     <div class="stat-val-row">
@@ -384,28 +470,50 @@ const submitEdit = async () => {
 
         <!-- FILTER ROW -->
         <div class="filter-row">
+            <div class="search-box">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="m21 21-4.35-4.35" />
+                </svg>
+                <input v-model="searchQuery" @input="onSearch"
+                    placeholder="Tìm kiếm người dùng, email..." />
+            </div>
             <div class="tabs-group">
                 <button v-for="t in tabs" :key="t" class="tab" :class="{ active: activeTab === t }"
                     @click="onTabChange(t)">{{ t }}</button>
                 <div class="tab-divider"></div>
-                <button class="tab status-tab">
-                    Trạng thái: Tất cả
-                    <svg viewBox="0 0 20 20" fill="none" style="width:12px;height:12px">
-                        <path d="M5 7L10 12L15 7" stroke="currentColor" stroke-width="2" />
-                    </svg>
-                </button>
+                <div class="tab status-tab">
+                    <span>Trạng thái:</span>
+                    <div class="custom-dropdown status-filter-dropdown">
+                        <div class="dropdown-trigger" @click.stop="isOpenStatusDropdown = !isOpenStatusDropdown">
+                            <span>{{ selectedStatus }}</span>
+                            <svg class="chevron" :class="{ open: isOpenStatusDropdown }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </div>
+                        <transition name="fade-slide">
+                            <ul v-if="isOpenStatusDropdown" class="dropdown-menu">
+                                <li v-for="s in statusOptions" :key="s"
+                                    :class="{ active: selectedStatus === s }"
+                                    @click="selectedStatus = s; onStatusChange(); isOpenStatusDropdown = false">
+                                    {{ s }}
+                                </li>
+                            </ul>
+                        </transition>
+                    </div>
+                </div>
             </div>
             <div class="filter-actions">
-                <button class="btn-filter">
+                <button class="btn-filter" @click="resetAdvancedFilters">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                         style="width:14px;height:14px">
                         <line x1="4" y1="6" x2="20" y2="6" />
                         <line x1="8" y1="12" x2="16" y2="12" />
                         <line x1="11" y1="18" x2="13" y2="18" />
                     </svg>
-                    Bộ lọc nâng cao
+                    Đặt lại bộ lọc
                 </button>
-                <button class="btn-export">
+                <button class="btn-export" @click="exportUsersReport" :disabled="filtered.length === 0">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                         style="width:14px;height:14px">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -414,8 +522,27 @@ const submitEdit = async () => {
                     </svg>
                     Xuất báo cáo
                 </button>
+                <button :style="{ visibility: activeTab === 'Quản lý nhân viên' ? 'visible' : 'hidden' }" class="btn-new-user" @click="openModal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                        style="width:14px;height:14px">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    Thêm người dùng
+                </button>
             </div>
         </div>
+
+        <BulkDeleteToolbar
+            class="users-bulk-toolbar"
+            :selected-count="selectedIds.length"
+            :total-count="filtered.length"
+            label="người dùng"
+            :loading="isBulkDeleting"
+            @clear="clearSelection"
+            @delete-selected="removeSelected"
+            @delete-all="removeAllFiltered"
+        />
 
         <!-- TABLE -->
         <div class="table-wrap">
@@ -423,6 +550,9 @@ const submitEdit = async () => {
             <table v-else>
                 <thead>
                     <tr>
+                        <th class="select-col">
+                            <input type="checkbox" :checked="allCurrentPageSelected" :disabled="!paginatedUsers.length" @change="toggleCurrentPageSelection" />
+                        </th>
                         <th>NGƯỜI DÙNG</th>
                         <th>VAI TRÒ</th>
                         <th>NGÀY THAM GIA</th>
@@ -432,12 +562,18 @@ const submitEdit = async () => {
                 </thead>
                 <tbody>
                     <tr v-if="paginatedUsers.length === 0">
-                        <td colspan="5" class="empty">Không tìm thấy người dùng nào.</td>
+                        <td colspan="6" class="empty">Không tìm thấy người dùng nào.</td>
                     </tr>
-                    <tr v-for="u in paginatedUsers" :key="u.id">
+                    <tr v-for="u in paginatedUsers" :key="u.id" :class="{ 'row-selected': selectedIds.includes(u.id) }">
+                        <td class="select-col">
+                            <input type="checkbox" :checked="selectedIds.includes(u.id)" :disabled="u.id === currentUser?.id || isProtectedDeleteUser(u)" @change="toggleItemSelection(u.id)" />
+                        </td>
                         <td>
                             <div class="user-cell">
-                                <div class="user-avatar" :style="getAvatarStyle(u.name)">{{ initials(u.name) }}</div>
+                                <div class="user-avatar" :style="u.avatar ? {} : getAvatarStyle(u.name)">
+                                    <img v-if="u.avatar" :src="u.avatar" alt="Avatar" class="user-avatar-img" />
+                                    <span v-else>{{ initials(u.name) }}</span>
+                                </div>
                                 <div>
                                     <b>{{ u.name }}</b>
                                     <span>{{ u.email }}</span>
@@ -468,9 +604,9 @@ const submitEdit = async () => {
                                 </button>
                                 <!-- Khóa / Mở khóa (có confirm) -->
                                 <button class="act-btn" :class="{ 'lock-active': u.status === 'Bị khóa' }"
-                                    :title="u.id === currentUser?.id ? 'Không thể tự khóa tài khoản' : (u.status === 'Hoạt động' ? 'Khóa tài khoản' : 'Mở khóa tài khoản')"
-                                    :disabled="u.id === currentUser?.id"
-                                    :style="u.id === currentUser?.id ? 'opacity: 0.4; cursor: not-allowed' : ''"
+                                    :title="u.id === currentUser?.id ? 'Không thể tự khóa tài khoản' : (['nextgenshop@gmail.com', 'phongtqpk04300@gmail.com'].includes(u.email) ? 'Không thể khóa tài khoản Giám đốc sáng lập' : (u.status === 'Hoạt động' ? 'Khóa tài khoản' : 'Mở khóa tài khoản'))"
+                                    :disabled="u.id === currentUser?.id || ['nextgenshop@gmail.com', 'phongtqpk04300@gmail.com'].includes(u.email)"
+                                    :style="u.id === currentUser?.id || ['nextgenshop@gmail.com', 'phongtqpk04300@gmail.com'].includes(u.email) ? 'opacity: 0.4; cursor: not-allowed' : ''"
                                     @click="toggleStatus(u)">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                         stroke-linecap="round">
@@ -480,10 +616,10 @@ const submitEdit = async () => {
                                     </svg>
                                 </button>
                                 <!-- Xóa -->
-                                <button class="act-btn danger"
-                                    :title="u.id === currentUser?.id ? 'Không thể tự xóa tài khoản' : 'Xóa'"
-                                    :disabled="u.id === currentUser?.id"
-                                    :style="u.id === currentUser?.id ? 'opacity: 0.4; cursor: not-allowed' : ''"
+                                <button v-if="!isProtectedDeleteUser(u)" class="act-btn danger"
+                                    :title="u.id === currentUser?.id ? 'Không thể tự xóa tài khoản' : (['nextgenshop@gmail.com', 'phongtqpk04300@gmail.com'].includes(u.email) ? 'Không thể xóa tài khoản Giám đốc sáng lập' : 'Xóa')"
+                                    :disabled="u.id === currentUser?.id || ['nextgenshop@gmail.com', 'phongtqpk04300@gmail.com'].includes(u.email)"
+                                    :style="u.id === currentUser?.id || ['nextgenshop@gmail.com', 'phongtqpk04300@gmail.com'].includes(u.email) ? 'opacity: 0.4; cursor: not-allowed' : ''"
                                     @click="removeUser(u.id)">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                         stroke-linecap="round">
@@ -510,6 +646,7 @@ const submitEdit = async () => {
                 <button :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">‹</button>
 
                 <!-- Nút trang đầu nếu không hiển thị -->
+                <span class="active page-indicator">{{ currentPage }}/{{ totalPages }}</span>
                 <template v-if="pageNumbers[0] > 1">
                     <button @click="goToPage(1)">1</button>
                     <button class="dots" v-if="pageNumbers[0] > 2" disabled>...</button>
@@ -531,7 +668,7 @@ const submitEdit = async () => {
 
         <!-- BOTTOM CARDS -->
         <div class="bottom-grid">
-            <div class="bottom-card">
+            <div class="bottom-card" v-if="!hideAffiliateCard">
                 <div class="bottom-icon orange">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -542,10 +679,10 @@ const submitEdit = async () => {
                 </div>
                 <div class="bottom-text">
                     <h4>Yêu cầu đăng ký mới</h4>
-                    <p>Hiện có 12 yêu cầu đăng ký đang chờ phê duyệt từ hệ thống VinaTech Partner.</p>
+                    <p>Hiện có {{ pendingAffiliateRequests }} yêu cầu đăng ký đang chờ phê duyệt từ hệ thống VinaTech Partner.</p>
                     <div class="bottom-actions">
-                        <button class="btn-primary-sm">Xem danh sách</button>
-                        <button class="btn-ghost-sm">Để sau</button>
+                        <button class="btn-primary-sm" @click="openAffiliateList">Xem danh sách</button>
+                        <button class="btn-ghost-sm" @click="dismissAffiliateCard">Để sau</button>
                     </div>
                 </div>
             </div>
@@ -579,7 +716,7 @@ const submitEdit = async () => {
                             </div>
                             <div class="form-group">
                                 <label>EMAIL <span class="req">*</span></label>
-                                <input v-model="form.email" type="email" placeholder="VD: user@vinatech.com" />
+                                <input v-model="form.email" type="email" placeholder="VD: user@gmail.com" />
                             </div>
                         </div>
                         <div class="form-row">
@@ -594,10 +731,9 @@ const submitEdit = async () => {
                         </div>
                         <div class="form-row">
                             <div class="form-group">
-                                <label>VAI TRÒ</label>
+                                <label>VAI TRÒ / CHỨC VỤ</label>
                                 <select v-model="form.role">
-                                    <option>KHÁCH HÀNG</option>
-                                    <option>ADMIN</option>
+                                    <option v-for="r in staffRoles" :key="r">{{ r }}</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -686,16 +822,16 @@ const submitEdit = async () => {
                         <div class="form-row">
                             <div class="form-group">
                                 <label>VAI TRÒ / PHÂN QUYỀN</label>
-                                <select v-model="editForm.role" :disabled="editingUser?.id === currentUser?.id"
-                                    :title="editingUser?.id === currentUser?.id ? 'Không thể tự thay đổi quyền của chính mình' : ''">
-                                    <option>KHÁCH HÀNG</option>
-                                    <option>ADMIN</option>
+                                <select v-model="editForm.role" :disabled="editingUser?.id === currentUser?.id || ['nextgenshop@gmail.com', 'phongtqpk04300@gmail.com'].includes(editingUser?.email) || editingUser?.role === 'KHÁCH HÀNG'"
+                                    :title="editingUser?.id === currentUser?.id ? 'Không thể tự thay đổi quyền của chính mình' : (['nextgenshop@gmail.com', 'phongtqpk04300@gmail.com'].includes(editingUser?.email) ? 'Không thể thay đổi quyền của Giám đốc sáng lập' : (editingUser?.role === 'KHÁCH HÀNG' ? 'Không thể thay đổi vai trò của Khách hàng' : ''))">
+                                    <option v-if="editingUser?.role === 'KHÁCH HÀNG'">KHÁCH HÀNG</option>
+                                    <option v-for="r in staffRoles" :key="r">{{ r }}</option>
                                 </select>
                             </div>
                             <div class="form-group">
                                 <label>TRẠNG THÁI</label>
-                                <select v-model="editForm.status" :disabled="editingUser?.id === currentUser?.id"
-                                    :title="editingUser?.id === currentUser?.id ? 'Không thể tự khóa tài khoản của chính mình' : ''">
+                                <select v-model="editForm.status" :disabled="editingUser?.id === currentUser?.id || ['nextgenshop@gmail.com', 'phongtqpk04300@gmail.com'].includes(editingUser?.email)"
+                                    :title="editingUser?.id === currentUser?.id ? 'Không thể tự khóa tài khoản của chính mình' : (['nextgenshop@gmail.com', 'phongtqpk04300@gmail.com'].includes(editingUser?.email) ? 'Không thể khóa tài khoản Giám đốc sáng lập' : '')">
                                     <option>Hoạt động</option>
                                     <option>Bị khóa</option>
                                 </select>
@@ -735,18 +871,8 @@ const submitEdit = async () => {
 .page {
     background: #f5f7fb;
     min-height: 100vh;
-    font-family: sans-serif;
+    padding-top: 24px;
     padding-bottom: 40px;
-}
-
-/* TOPBAR */
-.topbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 32px;
-    background: white;
-    border-bottom: 1px solid #f1f5f9;
 }
 
 .search-box {
@@ -781,134 +907,100 @@ const submitEdit = async () => {
     background: white;
 }
 
-.topbar-right {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.icon-btn {
-    background: none;
-    border: none;
-    font-size: 15px;
-    cursor: pointer;
-    padding: 6px 8px;
-    border-radius: 8px;
-}
-
-.icon-btn:hover {
-    background: #f1f5f9;
-}
-
-.admin-wrap {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-left: 6px;
-}
-
-.admin-text b {
-    display: block;
-    font-size: 12px;
-    font-weight: 600;
-    color: #0f172a;
-}
-
-.admin-text span {
-    font-size: 10px;
-    color: #94a3b8;
-}
-
-.av-circle {
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #2563eb, #4f46e5);
-    color: white;
-    font-size: 11px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* PAGE HEADER */
-.page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    padding: 24px 32px 20px;
-}
-
-.page-header h1 {
-    font-size: 28px;
-    font-weight: 800;
-    color: #0f172a;
-    margin: 0 0 6px;
-    letter-spacing: -0.02em;
-}
-
-.page-header p {
-    font-size: 13px;
-    color: #64748b;
-    margin: 0;
-    max-width: 480px;
-    line-height: 1.6;
-}
-
-.btn-new {
-    display: flex;
+.btn-new-user {
+    display: inline-flex;
     align-items: center;
     gap: 8px;
     white-space: nowrap;
-    padding: 11px 20px;
+    padding: 9px 16px;
     border-radius: 10px;
     border: none;
-    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    background: linear-gradient(135deg, #2563eb, #1D4ED8);
     color: white;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     transition: opacity 0.2s, transform 0.2s;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
 }
 
-.btn-new svg {
-    width: 15px;
-    height: 15px;
-}
-
-.btn-new:hover {
+.btn-new-user:hover {
     opacity: 0.9;
     transform: translateY(-1px);
+}
+
+.btn-new-user svg {
+    width: 14px;
+    height: 14px;
+}
+
+.users-bulk-toolbar {
+    margin: 0 32px 14px;
 }
 
 /* STATS */
 .stats {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1.2fr;
-    gap: 16px;
+    grid-template-columns: repeat(4, minmax(220px, 1fr));
+    gap: 20px;
     padding: 0 32px 20px;
 }
 
 .stat-card {
     background: white;
-    border-radius: 14px;
-    border: 1px solid #f1f5f9;
-    padding: 20px 22px;
+    min-height: 136px;
+    border-radius: 16px;
+    border: 1px solid transparent;
+    padding: 26px 28px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 12px 26px rgba(15, 23, 42, 0.12);
+    display: flex;
+    align-items: center;
+}
+
+.stat-card::after {
+    content: '';
+    position: absolute;
+    width: 150px;
+    height: 150px;
+    border-radius: 999px;
+    right: -28px;
+    top: -54px;
+    background: rgba(255, 255, 255, 0.13);
+    pointer-events: none;
+}
+
+.stat-card.stat-blue {
+    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+    color: #fff;
+}
+
+.stat-card.stat-teal {
+    background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%);
+    color: #fff;
+}
+
+.stat-card.stat-orange {
+    background: linear-gradient(135deg, #c2410c 0%, #f97316 100%);
+    color: #fff;
 }
 
 .stat-info p {
-    font-size: 10px;
-    font-weight: 700;
-    color: #94a3b8;
-    letter-spacing: 0.08em;
-    margin: 0 0 8px;
+    font-size: 12px;
+    line-height: 1.2;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.88);
+    letter-spacing: 0.03em;
+    margin: 0 0 20px;
+    text-transform: capitalize;
 }
 
 .stat-info b {
-    font-size: 26px;
+    font-size: 34px;
+    line-height: 1;
     font-weight: 800;
-    color: #0f172a;
+    color: #fff;
 }
 
 .stat-val-row {
@@ -918,29 +1010,29 @@ const submitEdit = async () => {
 }
 
 .badge-up {
-    font-size: 11px;
-    font-weight: 700;
-    color: #16a34a;
+    font-size: 14px;
+    font-weight: 800;
+    color: #2563eb;
     background: #dcfce7;
-    padding: 3px 8px;
+    padding: 6px 10px;
     border-radius: 20px;
 }
 
 .badge-down {
-    font-size: 11px;
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: 800;
     color: #dc2626;
     background: #fee2e2;
-    padding: 3px 8px;
+    padding: 6px 10px;
     border-radius: 20px;
 }
 
 .badge-neutral {
-    font-size: 11px;
-    font-weight: 700;
+    font-size: 14px;
+    font-weight: 800;
     color: #2563eb;
     background: #dbeafe;
-    padding: 3px 8px;
+    padding: 6px 10px;
     border-radius: 20px;
 }
 
@@ -959,14 +1051,15 @@ const submitEdit = async () => {
 }
 
 .big-growth {
-    font-size: 30px;
+    font-size: 34px;
+    line-height: 1;
     font-weight: 800;
     color: white !important;
 }
 
 .trend-svg {
-    width: 80px;
-    height: 40px;
+    width: 96px;
+    height: 48px;
     opacity: 0.8;
 }
 
@@ -1023,7 +1116,120 @@ const submitEdit = async () => {
 .status-tab {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 8px;
+    padding: 2px 8px 2px 14px !important;
+}
+
+.status-tab:hover {
+    background: transparent !important; /* Keep transparent hover since child dropdown handles interaction */
+}
+
+/* Custom Premium Dropdown specifically for status filter */
+.status-filter-dropdown {
+    position: relative;
+    display: inline-block;
+    min-width: 120px;
+    user-select: none;
+}
+
+.status-filter-dropdown .dropdown-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1.5px solid #cbd5e1;
+    background: white;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    cursor: pointer;
+    transition: all .2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.status-filter-dropdown .dropdown-trigger:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 4px 12px rgba(37,99,235,0.06);
+}
+
+.status-filter-dropdown .dropdown-trigger .chevron {
+    width: 14px;
+    height: 14px;
+    color: #64748b;
+    transition: transform .2s ease;
+}
+
+.status-filter-dropdown .dropdown-trigger .chevron.open {
+    transform: rotate(180deg);
+}
+
+.status-filter-dropdown .dropdown-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 6px;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+/* Custom Scrollbar for Dropdown Menu */
+.status-filter-dropdown .dropdown-menu::-webkit-scrollbar {
+    width: 6px;
+}
+
+.status-filter-dropdown .dropdown-menu::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.status-filter-dropdown .dropdown-menu::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+.status-filter-dropdown .dropdown-menu li {
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    text-align: left;
+}
+
+.status-filter-dropdown .dropdown-menu li:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.status-filter-dropdown .dropdown-menu li.active {
+    background: #475569;
+    color: white;
+    font-weight: 600;
+}
+
+/* Dropdown Transitions */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+    transition: all .2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fade-slide-enter-from,
+.fade-slide-leave-to {
+    opacity: 0;
+    transform: translateY(-8px);
 }
 
 .filter-actions {
@@ -1050,6 +1256,11 @@ const submitEdit = async () => {
 .btn-export:hover {
     border-color: #2563eb;
     color: #2563eb;
+}
+
+.btn-export:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 /* TABLE */
@@ -1100,10 +1311,31 @@ tbody tr:hover {
     background: #fafbff;
 }
 
+tbody tr.row-selected {
+    background: #eff6ff;
+}
+
 tbody td {
     padding: 16px 18px;
     font-size: 13px;
     vertical-align: middle;
+}
+
+.select-col {
+    width: 44px;
+    text-align: center;
+}
+
+.select-col input {
+    width: 16px;
+    height: 16px;
+    accent-color: #2563eb;
+    cursor: pointer;
+}
+
+.select-col input:disabled {
+    cursor: not-allowed;
+    opacity: .45;
 }
 
 .empty {
@@ -1128,14 +1360,24 @@ tbody td {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    overflow: hidden;
+}
+
+.user-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
 }
 
 .user-cell b {
     display: block;
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 13.5px;
+    font-weight: 700;
     color: #0f172a;
     margin-bottom: 2px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 .user-cell span {
@@ -1358,7 +1600,7 @@ tbody td {
     width: 52px;
     height: 52px;
     border-radius: 14px;
-    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    background: linear-gradient(135deg, #2563eb, #2563eb);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1536,7 +1778,7 @@ tbody td {
     padding: 10px 22px;
     border-radius: 8px;
     border: none;
-    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    background: linear-gradient(135deg, #2563eb, #2563eb);
     color: white;
     font-size: 13px;
     font-weight: 600;
@@ -1781,12 +2023,6 @@ tbody td {
 }
 
 @media (max-width: 640px) {
-    .page-header {
-        flex-direction: column;
-        gap: 14px;
-        padding: 16px;
-    }
-
     .stats {
         padding: 0 16px 16px;
         grid-template-columns: 1fr 1fr;
@@ -1794,6 +2030,10 @@ tbody td {
 
     .filter-row {
         padding: 0 16px 12px;
+    }
+
+    .users-bulk-toolbar {
+        margin: 0 16px 14px;
     }
 
     .table-wrap {
@@ -1817,10 +2057,6 @@ tbody td {
 
     .form-row {
         grid-template-columns: 1fr;
-    }
-
-    .topbar {
-        padding: 12px 16px;
     }
 }
 </style>

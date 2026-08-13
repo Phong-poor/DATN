@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\SanPham;
+use App\Models\DanhMuc;
 use App\Models\BienThe;
 use App\Models\ThuocTinh;
 use App\Models\BienTheHinhAnh;
@@ -11,21 +12,47 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Database\QueryException;
 
+/**
+ * Cung cấp dữ liệu sản phẩm và xử lý tìm kiếm, thêm, sửa, xóa sản phẩm.
+ */
 class SanPhamController extends Controller
 {
     public function index(Request $request)
     {
-        $cacheKey = 'sanpham_index_' . md5(json_encode($request->all()));
+        $imageVersion = $this->sanPhamCacheVersion();
         
-        $sanphams = Cache::remember($cacheKey, 120, function () use ($request) {
+        $user = request()->user('sanctum');
+        $isAdmin = $user && $user->vaitro !== 'user';
+        $referer = request()->header('referer');
+        $isFromAdminPanel = $referer && str_contains($referer, '/admin');
+        $isAdminRequest = $isAdmin && $isFromAdminPanel;
+        
+        $isAdminStr = $isAdminRequest ? 'admin' : 'public';
+        
+        $cacheKey = 'sanpham_index_' . $imageVersion . '_' . $isAdminStr . '_' . md5(json_encode($request->all()));
+        
+        $sanphams = Cache::remember($cacheKey, 600, function () use ($request, $imageVersion, $isAdminRequest) {
             $query = SanPham::with([
                 'danhMuc',
                 'thuongHieu',
                 'bienThes',
                 'hinhAnhs'
-            ])->orderByDesc('id_sanpham');
+            ])
+            ->withAvg(['reviews as rating_avg' => function ($q) {
+                $q->where('trangthai', 'approved');
+            }], 'danhgia')
+            ->withCount(['reviews as rating_count' => function ($q) {
+                $q->where('trangthai', 'approved');
+            }]);
 
+            if (!$isAdminRequest) {
+                $query->where('trangthai', '!=', 0);
+            }
+
+            $query->orderByDesc('id_sanpham');
+        
         $attributesToFilter = [
             'ram'      => 'ram',
             'cpu'      => 'cpu',
@@ -50,13 +77,129 @@ class SanPhamController extends Controller
             }
         }
 
-            return $query->get();
+            $products = $query->get();
+            
+            // Map to include thong_so_ky_thuat
+            return $products->map(function ($p) use ($imageVersion) {
+                return [
+                    'id_sanpham' => $p->id_sanpham,
+                    'tenSP' => $p->tenSP,
+                    'SKU' => $p->SKU,
+                    'hinhanh' => $p->hinhanh,
+                    'trangthai' => $p->trangthai,
+                    'khoiluong' => $p->khoiluong,
+                    'id_danhmuc' => $p->id_danhmuc,
+                    'id_thuonghieu' => $p->id_thuonghieu,
+                    'thong_so_ky_thuat' => $p->thong_so_ky_thuat,
+                    'updated_at' => $imageVersion,
+                    'danh_muc' => $p->danhMuc,
+                    'thuong_hieu' => $p->thuongHieu,
+                    'hinh_anhs' => $p->hinhAnhs,
+                    'bien_thes' => $p->bienThes,
+                    'rating_avg' => $p->rating_avg ? round((float)$p->rating_avg, 1) : null,
+                    'rating_count' => $p->rating_count ?? 0,
+                ];
+            });
         });
 
         return response()->json($sanphams);
     }
 
+    // Gộp 4 API làm 1 để tăng tốc độ load trên môi trường Windows
+    public function init(Request $request)
+    {
+        $cacheKey = 'sanpham_init_' . $this->sanPhamCacheVersion() . '_' . md5(json_encode($request->query()));
+
+        $payload = Cache::remember($cacheKey, 600, function () use ($request) {
+            if ($request->has('q')) {
+                $sanphams = $this->search($request)->getData(true);
+            } else {
+                $sanphams = $this->index($request)->getData(true);
+            }
+            $danhmucs = app(\App\Http\Controllers\DanhMucController::class)->index()->getData(true);
+            $thuonghieus = app(\App\Http\Controllers\ThuongHieuController::class)->index()->getData(true);
+            $attributes = $this->attributeOptions()->getData(true);
+
+            return [
+                'products' => $sanphams,
+                'categories' => $danhmucs['data'] ?? $danhmucs,
+                'brands' => $thuonghieus['data'] ?? $thuonghieus,
+                'attributes' => $attributes
+            ];
+        });
+
+        return response()->json($payload);
+    }
+
     // Trả về danh sách các giá trị thuộc tính có trong DB
+    public function mobileHome()
+    {
+        $imageVersion = $this->sanPhamCacheVersion();
+        $payload = Cache::remember('mobile_home_v2_' . $imageVersion, 120, function () use ($imageVersion) {
+            $categories = DanhMuc::query()
+                ->select('id_danhmuc', 'ten_danhmuc', 'trangthai', 'id_danhmuc_cha')
+                ->orderBy('id_danhmuc')
+                ->get();
+
+            $products = SanPham::query()
+                ->select(
+                    'id_sanpham',
+                    'tenSP',
+                    'SKU',
+                    'hinhanh',
+                    'trangthai',
+                    'id_danhmuc',
+                    'id_thuonghieu',
+                )
+                ->with([
+                    'danhMuc:id_danhmuc,ten_danhmuc,trangthai,id_danhmuc_cha',
+                    'thuongHieu:id_thuonghieu,ten_thuonghieu',
+                    'bienThes:id_bienthe,id_sanpham,ten_bienthe,gia,soluong,thuoc_tinh_json',
+                ])
+                ->orderByDesc('id_sanpham')
+                ->limit(12)
+                ->get()
+                ->map(function ($product) use ($imageVersion) {
+                    $variants = $product->bienThes
+                        ->sortByDesc(fn ($variant) => (int) $variant->soluong > 0)
+                        ->take(1)
+                        ->values()
+                        ->map(function ($variant) {
+                            return [
+                                'id_bienthe' => $variant->id_bienthe,
+                                'ten_bienthe' => $variant->ten_bienthe,
+                                'gia' => $variant->gia,
+                                'soluong' => $variant->soluong,
+                                'thuoc_tinh_json' => $variant->thuoc_tinh_json,
+                            ];
+                        });
+
+                    return [
+                        'id_sanpham' => $product->id_sanpham,
+                        'tenSP' => $product->tenSP,
+                        'SKU' => $product->SKU,
+                        'hinhanh' => $product->hinhanh,
+                        'trangthai' => $product->trangthai,
+                        'id_danhmuc' => $product->id_danhmuc,
+                        'id_thuonghieu' => $product->id_thuonghieu,
+                        'updated_at' => $imageVersion,
+                        'thong_so_ky_thuat' => [],
+                        'danh_muc' => $product->danhMuc,
+                        'thuong_hieu' => $product->thuongHieu,
+                        'hinh_anhs' => [],
+                        'bien_thes' => $variants,
+                    ];
+                });
+
+            return [
+                'products' => $products,
+                'categories' => $categories,
+            ];
+        });
+
+        return response()->json($payload);
+    }
+
     public function attributeOptions()
     {
         $options = Cache::remember('sanpham_attribute_options', 120, function () {
@@ -95,17 +238,37 @@ class SanPhamController extends Controller
             return response()->json([]);
         }
 
-        $sanphams = Cache::remember('sanpham_search_' . md5($keyword), 120, function () use ($keyword) {
+        $user = request()->user('sanctum');
+        $isAdmin = $user && $user->vaitro !== 'user';
+        $referer = request()->header('referer');
+        $isFromAdminPanel = $referer && str_contains($referer, '/admin');
+        $isAdminRequest = $isAdmin && $isFromAdminPanel;
+
+        $isAdminStr = $isAdminRequest ? 'admin' : 'public';
+
+        $sanphams = Cache::remember('sanpham_search_' . $this->sanPhamCacheVersion() . '_' . $isAdminStr . '_' . md5($keyword), 120, function () use ($keyword, $isAdminRequest) {
             $idsByBienThe = BienThe::where('ten_bienthe', 'LIKE', "%{$keyword}%")
                 ->pluck('id_sanpham')
                 ->toArray();
 
-            return SanPham::with([
+            $query = SanPham::with([
                 'danhMuc',
                 'thuongHieu',
-                'bienThes'
+                'bienThes',
+                'hinhAnhs'
             ])
-            ->where(function ($q) use ($keyword, $idsByBienThe) {
+            ->withAvg(['reviews as rating_avg' => function ($q) {
+                $q->where('trangthai', 'approved');
+            }], 'danhgia')
+            ->withCount(['reviews as rating_count' => function ($q) {
+                $q->where('trangthai', 'approved');
+            }]);
+
+            if (!$isAdminRequest) {
+                $query->where('trangthai', '!=', 0);
+            }
+
+            return $query->where(function ($q) use ($keyword, $idsByBienThe) {
                 $q->where('tenSP', 'LIKE', "%{$keyword}%");
 
                 if (!empty($idsByBienThe)) {
@@ -121,17 +284,32 @@ class SanPhamController extends Controller
 
     public function show($id)
     {
-        $result = Cache::remember("sanpham_show_{$id}", 120, function () use ($id) {
-            $sanpham = SanPham::with([
+        $cacheVersion = $this->sanPhamCacheVersion();
+        $user = request()->user('sanctum');
+        $isAdmin = $user && $user->vaitro !== 'user';
+        $referer = request()->header('referer');
+        $isFromAdminPanel = $referer && str_contains($referer, '/admin');
+        $isAdminRequest = $isAdmin && $isFromAdminPanel;
+
+        $isAdminStr = $isAdminRequest ? 'admin' : 'public';
+
+        $result = Cache::remember("sanpham_show_{$cacheVersion}_{$isAdminStr}_{$id}", 600, function () use ($id, $isAdminRequest, $cacheVersion) {
+            $query = SanPham::with([
                 'danhMuc',
                 'thuongHieu',
                 'hinhAnhs',
-                'bienThes'
-            ])->find($id);
+                'bienThes.comboOffers.sanPhams.bienThes'
+            ]);
+
+            if (!$isAdminRequest) {
+                $query->where('trangthai', '!=', 0);
+            }
+
+            $sanpham = $query->find($id);
 
             if (!$sanpham) return null;
 
-            $allThuocTinhs = ThuocTinh::all()->keyBy('ten_thuoctinh');
+            $allThuocTinhs = ThuocTinh::select('id_thuoctinh', 'ten_thuoctinh')->get()->keyBy('ten_thuoctinh');
 
         $result = [
             'id_sanpham'     => $sanpham->id_sanpham,
@@ -143,10 +321,12 @@ class SanPhamController extends Controller
             'id_danhmuc'        => $sanpham->id_danhmuc,
             'id_thuonghieu'     => $sanpham->id_thuonghieu,
             'thong_so_ky_thuat' => $sanpham->thong_so_ky_thuat,
+            'updated_at'        => $cacheVersion,
 
             'danh_muc' => $sanpham->danhMuc ? [
                 'id_danhmuc'   => $sanpham->danhMuc->id_danhmuc,
                 'ten_danhmuc'  => $sanpham->danhMuc->ten_danhmuc,
+                'id_danhmuc_cha' => $sanpham->danhMuc->id_danhmuc_cha,
             ] : null,
 
             'thuong_hieu' => $sanpham->thuongHieu ? [
@@ -186,7 +366,42 @@ class SanPhamController extends Controller
                     'ten_bienthe' => $bt->ten_bienthe,
                     'gia'         => $bt->gia,
                     'soluong'     => $bt->soluong,
+                    'hinhanh'     => $bt->hinhanh,
                     'thuoc_tinh'  => $thuocTinhJson,
+                    'combo_offers' => $bt->comboOffers->filter(function ($combo) {
+                        $offer = (object)[
+                            'id_combo' => $combo->id_combo,
+                            'trangthai' => $combo->pivot->trangthai,
+                            'gioi_han_soluong' => $combo->pivot->gioi_han_soluong,
+                            'da_su_dung' => $combo->pivot->da_su_dung,
+                            'ngay_het_han' => $combo->pivot->ngay_het_han
+                        ];
+                        return \App\Http\Controllers\ComboController::isOfferValid($offer);
+                    })->map(function ($combo) {
+                        return [
+                            'id_combo' => $combo->id_combo,
+                            'ten_combo' => $combo->ten_combo,
+                            'giakhuyenmai' => $combo->pivot->loai_uudai === 'free' ? 0.00 : ($combo->pivot->giakhuyenmai_override ?? $combo->giakhuyenmai),
+                            'mota_uudai' => $combo->pivot->mota_uudai,
+                            'loai_uudai' => $combo->pivot->loai_uudai,
+                            'hinhanh' => $combo->hinhanh ? asset('storage/' . $combo->hinhanh) : null,
+                            'products' => $combo->sanPhams->map(function ($p) {
+                                return [
+                                    'id_sanpham' => $p->id_sanpham,
+                                    'tenSP' => $p->tenSP,
+                                    'hinhanh' => $p->hinhanh ? asset('storage/' . $p->hinhanh) : null,
+                                    'bien_thes' => $p->bienThes->map(function ($v) {
+                                        return [
+                                            'id_bienthe' => $v->id_bienthe,
+                                            'ten_bienthe' => $v->ten_bienthe,
+                                            'gia' => $v->gia,
+                                            'soluong' => $v->soluong,
+                                        ];
+                                    })
+                                ];
+                            })
+                        ];
+                    })
                 ];
             })->values()
             ];
@@ -233,7 +448,12 @@ class SanPhamController extends Controller
 
         try {
             $sku       = $this->generateUniqueSKU($request->id_thuonghieu);
-            $coverPath = ImageHelper::saveBase64Image($request->hinhanh, 'uploads/sanpham');
+            $coverPath = null;
+            if ($request->filled('hinhanh')) {
+                $coverPath = str_starts_with($request->hinhanh, 'data:image')
+                    ? ImageHelper::saveBase64Image($request->hinhanh, 'uploads/sanpham')
+                    : ImageHelper::normalizePublicPath($request->hinhanh);
+            }
 
             $sanpham = SanPham::create([
                 'id_danhmuc'    => $request->id_danhmuc,
@@ -248,13 +468,15 @@ class SanPhamController extends Controller
 
             if ($request->has('hinh_anhs') && is_array($request->hinh_anhs)) {
                 foreach ($request->hinh_anhs as $index => $ha) {
-                    $imagePath = ImageHelper::saveBase64Image($ha['duongdan'] ?? null, 'uploads/sanpham');
+                    $rawImagePath = $ha['duongdan'] ?? null;
+                    $imagePath = $rawImagePath && str_starts_with($rawImagePath, 'data:image')
+                        ? ImageHelper::saveBase64Image($rawImagePath, 'uploads/sanpham')
+                        : ImageHelper::normalizePublicPath($rawImagePath);
                     if ($imagePath) {
                         BienTheHinhAnh::create([
                             'id_sanpham' => $sanpham->id_sanpham,
                             'duongdan'   => $imagePath,
                             'thutu'      => $ha['thutu'] ?? $index,
-                            'macdinh'    => $ha['macdinh'] ?? 0,
                         ]);
                     }
                 }
@@ -276,6 +498,8 @@ class SanPhamController extends Controller
 
             $sanpham = SanPham::with(['danhMuc', 'thuongHieu', 'bienThes', 'hinhAnhs'])
                 ->find($sanpham->id_sanpham);
+
+            $this->clearSanPhamCaches($sanpham->id_sanpham);
 
             return response()->json([
                 'message' => 'Thêm sản phẩm thành công.',
@@ -313,6 +537,7 @@ class SanPhamController extends Controller
             'hinh_anhs.*.thutu'    => 'nullable|integer|min:0',
 
             'bienthes'                => 'nullable|array',
+            'bienthes.*.id_bienthe'   => 'nullable|integer',
             'bienthes.*.ten_bienthe'  => 'nullable|string|max:255',
             'bienthes.*.gia'          => 'required_with:bienthes|numeric|min:0',
             'bienthes.*.soluong'      => 'required_with:bienthes|integer|min:0',
@@ -328,15 +553,13 @@ class SanPhamController extends Controller
         try {
             $coverPath = $sanpham->hinhanh;
 
-            if ($request->filled('hinhanh') && str_starts_with($request->hinhanh, 'data:image')) {
-                $coverPath = ImageHelper::saveBase64Image($request->hinhanh, 'uploads/sanpham');
-            }
-
-            if ($request->filled('hinhanh') && !str_starts_with($request->hinhanh, 'data:image')) {
-                $incoming = $request->hinhanh;
-                if (str_contains($incoming, '/storage/')) {
-                    $coverPath = ltrim(str_replace('http://127.0.0.1:8000/storage/', '', $incoming), '/');
-                    $coverPath = ltrim(str_replace('/storage/', '', $coverPath), '/');
+            if ($request->has('hinhanh')) {
+                if (blank($request->hinhanh)) {
+                    $coverPath = null;
+                } elseif (str_starts_with($request->hinhanh, 'data:image')) {
+                    $coverPath = ImageHelper::saveBase64Image($request->hinhanh, 'uploads/sanpham');
+                } else {
+                    $coverPath = ImageHelper::normalizePublicPath($request->hinhanh);
                 }
             }
 
@@ -360,8 +583,7 @@ class SanPhamController extends Controller
                     if (str_starts_with($imagePath, 'data:image')) {
                         $imagePath = ImageHelper::saveBase64Image($imagePath, 'uploads/sanpham');
                     } else {
-                        $imagePath = ltrim(str_replace('http://127.0.0.1:8000/storage/', '', $imagePath), '/');
-                        $imagePath = ltrim(str_replace('/storage/', '', $imagePath), '/');
+                        $imagePath = ImageHelper::normalizePublicPath($imagePath);
                     }
 
                     if ($imagePath) {
@@ -374,17 +596,40 @@ class SanPhamController extends Controller
                 }
             }
 
-            BienThe::where('id_sanpham', $sanpham->id_sanpham)->delete();
+            $existingIds = BienThe::where('id_sanpham', $sanpham->id_sanpham)->pluck('id_bienthe')->toArray();
+
+            $incomingIds = collect($request->bienthes)
+                ->pluck('id_bienthe')
+                ->filter()
+                ->map(fn($id) => (int)$id)
+                ->toArray();
+
+            // Xóa những biến thể không được gửi lên (đã bị xóa ở giao diện)
+            $idsToDelete = array_diff($existingIds, $incomingIds);
+            if (!empty($idsToDelete)) {
+                BienThe::whereIn('id_bienthe', $idsToDelete)->delete();
+            }
 
             if ($request->has('bienthes') && is_array($request->bienthes)) {
                 foreach ($request->bienthes as $bt) {
-                    BienThe::create([
-                        'id_sanpham'      => $sanpham->id_sanpham,
-                        'ten_bienthe'     => $bt['ten_bienthe'] ?? null,
-                        'gia'             => $bt['gia'],
-                        'soluong'         => $bt['soluong'],
-                        'thuoc_tinh_json' => json_encode($bt['thuoc_tinh'] ?? [], JSON_UNESCAPED_UNICODE),
-                    ]);
+                    if (!empty($bt['id_bienthe']) && in_array((int)$bt['id_bienthe'], $existingIds)) {
+                        // Cập nhật tại chỗ
+                        BienThe::where('id_bienthe', $bt['id_bienthe'])->update([
+                            'ten_bienthe'     => $bt['ten_bienthe'] ?? null,
+                            'gia'             => $bt['gia'],
+                            'soluong'         => $bt['soluong'],
+                            'thuoc_tinh_json' => json_encode($bt['thuoc_tinh'] ?? [], JSON_UNESCAPED_UNICODE),
+                        ]);
+                    } else {
+                        // Tạo mới
+                        BienThe::create([
+                            'id_sanpham'      => $sanpham->id_sanpham,
+                            'ten_bienthe'     => $bt['ten_bienthe'] ?? null,
+                            'gia'             => $bt['gia'],
+                            'soluong'         => $bt['soluong'],
+                            'thuoc_tinh_json' => json_encode($bt['thuoc_tinh'] ?? [], JSON_UNESCAPED_UNICODE),
+                        ]);
+                    }
                 }
             }
 
@@ -392,8 +637,7 @@ class SanPhamController extends Controller
 
             $sanpham = SanPham::with(['danhMuc', 'thuongHieu', 'bienThes', 'hinhAnhs'])
                 ->find($sanpham->id_sanpham);
-
-            Cache::forget("sanpham_show_{$id}");
+            $this->clearSanPhamCaches($id);
 
             return response()->json([
                 'message' => 'Cập nhật sản phẩm thành công.',
@@ -417,11 +661,59 @@ class SanPhamController extends Controller
             return response()->json(['message' => 'Không tìm thấy sản phẩm.'], 404);
         }
 
-        $sanpham->delete();
+        DB::beginTransaction();
+        try {
+            // Xóa dữ liệu phụ thuộc trước để tránh lỗi ràng buộc khóa ngoại
+            BienThe::where('id_sanpham', $sanpham->id_sanpham)->delete();
+            BienTheHinhAnh::where('id_sanpham', $sanpham->id_sanpham)->delete();
+            $sanpham->delete();
 
-        Cache::forget("sanpham_show_{$id}");
+            DB::commit();
+            $this->clearSanPhamCaches($id);
 
-        return response()->json(['message' => 'Xóa sản phẩm thành công.']);
+            return response()->json(['message' => 'Xóa sản phẩm thành công.']);
+        } catch (QueryException $e) {
+            DB::rollBack();
+            // SQLSTATE 23000: lỗi ràng buộc khóa ngoại
+            if (($e->errorInfo[0] ?? null) === '23000') {
+                return response()->json([
+                    'message' => 'Không thể xóa sản phẩm vì đang có dữ liệu liên quan (đơn hàng/chi tiết khác).'
+                ], 409);
+            }
+            return response()->json([
+                'message' => 'Không xóa được sản phẩm.',
+                'error' => $e->getMessage()
+            ], 500);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Không xóa được sản phẩm.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    private function clearSanPhamCaches(?int $id = null): void
+    {
+        Cache::put('sanpham_cache_bust', (string) microtime(true));
+
+        if ($id) {
+            Cache::forget("sanpham_show_{$id}");
+            Cache::forget("sanpham_show_" . $this->sanPhamCacheVersion() . "_{$id}");
+        }
+
+        // Danh sách admin/frontend thường gọi /sanpham không query
+        Cache::forget('sanpham_index_' . md5(json_encode([])));
+        Cache::forget('mobile_home_v2');
+        Cache::forget('sanpham_attribute_options');
+    }
+
+    private function sanPhamCacheVersion(): string
+    {
+        $cacheBust = Cache::get('sanpham_cache_bust', '0');
+        $count = SanPham::count();
+
+        return md5($cacheBust . '|' . $count);
     }
 
     private function generateUniqueSKU($id_thuonghieu)
@@ -443,6 +735,7 @@ class SanPhamController extends Controller
         ]);
 
         $successCount = 0;
+        $productIds = [];
         foreach ($request->updates as $item) {
             $updateData = [];
             if (isset($item['soluong']) && $item['soluong'] !== '') {
@@ -453,9 +746,17 @@ class SanPhamController extends Controller
             }
 
             if (!empty($updateData)) {
-                BienThe::where('id_bienthe', $item['id_bienthe'])->update($updateData);
-                $successCount++;
+                $bienThe = BienThe::find($item['id_bienthe']);
+                if ($bienThe) {
+                    $bienThe->update($updateData);
+                    $productIds[$bienThe->id_sanpham] = true;
+                    $successCount++;
+                }
             }
+        }
+
+        foreach (array_keys($productIds) as $id_sanpham) {
+            $this->clearSanPhamCaches($id_sanpham);
         }
 
         return response()->json([

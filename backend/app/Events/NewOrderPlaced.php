@@ -25,6 +25,7 @@ class NewOrderPlaced implements ShouldBroadcastNow
     public function broadcastOn(): array
     {
         return [
+            new Channel('admin-orders'),
             new PrivateChannel('admin.orders'),
         ];
     }

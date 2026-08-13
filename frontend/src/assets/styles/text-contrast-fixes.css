@@ -1,0 +1,381 @@
+/* ============================================================
+   Text contrast fixes
+   Keeps white text for dark media/hero cards, but restores readable
+   headings and labels on light page sections.
+   ============================================================ */
+
+.web-layout :is(
+  .section:not(.promotions-shell *),
+  .product-section,
+  .category-section,
+  .ecosystem-section,
+  .values-section,
+  .magazine-news-section,
+  .reviews-slider-section,
+  .combos-section,
+  .partners-section,
+  .brand-section,
+  .brands-section,
+  .brand-partners-section,
+  .partner-section,
+  .featured-brands-section,
+  .news-section,
+  .contact-section,
+  .affiliate-center,
+  .profile-page,
+  .orders-page,
+  .wishlist-page
+) :is(.section-header, .label-wrapper) :is(h1, h2, h3) {
+  color: var(--ds-text) !important;
+  -webkit-text-fill-color: var(--ds-text) !important;
+  background: none !important;
+  text-shadow: none !important;
+}
+
+.web-layout :is(
+  .section:not(.promotions-shell *),
+  .product-section,
+  .category-section,
+  .ecosystem-section,
+  .values-section,
+  .magazine-news-section,
+  .reviews-slider-section,
+  .combos-section,
+  .partners-section,
+  .brand-section,
+  .brands-section,
+  .brand-partners-section,
+  .partner-section,
+  .featured-brands-section
+) :is(.section-header, .label-wrapper) p {
+  color: var(--ds-text-muted) !important;
+  -webkit-text-fill-color: var(--ds-text-muted) !important;
+  text-shadow: none !important;
+}
+
+.web-layout :is(
+  .section:not(.promotions-shell *),
+  .product-section,
+  .category-section,
+  .ecosystem-section,
+  .values-section,
+  .magazine-news-section,
+  .reviews-slider-section,
+  .combos-section,
+  .partners-section,
+  .brand-section,
+  .brands-section,
+  .brand-partners-section,
+  .partner-section,
+  .featured-brands-section
+) :is(.ambient-label, .section-label, .eyebrow, .kicker, .sub-label) {
+  color: var(--ds-primary) !important;
+  -webkit-text-fill-color: var(--ds-primary) !important;
+  background: rgba(37, 99, 235, 0.08) !important;
+  border-color: rgba(37, 99, 235, 0.18) !important;
+  text-shadow: none !important;
+}
+
+.web-layout :is(
+  .section:not(.promotions-shell *),
+  .product-section,
+  .category-section,
+  .ecosystem-section,
+  .values-section,
+  .magazine-news-section,
+  .reviews-slider-section,
+  .combos-section,
+  .partners-section,
+  .brand-section,
+  .brands-section,
+  .brand-partners-section,
+  .partner-section,
+  .featured-brands-section
+) :is(.gradient-text, .text-gradient, .gradient-heading) {
+  color: var(--ds-primary) !important;
+  -webkit-text-fill-color: var(--ds-primary) !important;
+  background: none !important;
+}
+
+.web-layout :is(.hero-viewport, .newsletter-neon-box, .footer, .bento-block, .category-premium-card, .affiliate-video-card, .flash-cyber-section)
+  :is(h1, h2, h3, p, span, strong, em, a, button) {
+  -webkit-text-fill-color: currentColor;
+}
+
+/* Laptop listing brand marquee has direct p/h2 children, not section-header markup. */
+.web-layout .lp-brands {
+  /*
+   * Keep this full-width section on the same canvas as the laptop page.
+   * A white surface here used to split the body into two visibly different
+   * colour bands; the logo cards remain white to preserve their contrast.
+   */
+  background: var(--ds-bg) !important;
+  border-color: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.web-layout .lp-brands > p {
+  color: var(--ds-primary) !important;
+  -webkit-text-fill-color: var(--ds-primary) !important;
+  font-weight: 900 !important;
+  text-shadow: none !important;
+}
+
+.web-layout .lp-brands > h2 {
+  color: var(--ds-text) !important;
+  -webkit-text-fill-color: var(--ds-text) !important;
+  background: none !important;
+  text-shadow: none !important;
+  font-weight: 900 !important;
+}
+
+/* Promotion stats cards are displayed on a light design-system surface. */
+.web-layout .stats-banner-wrapper {
+  background: linear-gradient(180deg, #f8fbff 0%, #eef4ff 100%) !important;
+  border-top: 1px solid var(--ds-border) !important;
+  border-bottom: 1px solid var(--ds-border) !important;
+}
+
+.web-layout .stats-banner-wrapper .stat-box-card {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: rgba(203, 213, 225, 0.92) !important;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08) !important;
+}
+
+.web-layout .stats-banner-wrapper .stat-box-card:hover {
+  background: #ffffff !important;
+  border-color: rgba(37, 99, 235, 0.28) !important;
+}
+
+.web-layout .stats-banner-wrapper .stat-visual {
+  background: #eff6ff !important;
+  border: 1px solid #dbeafe !important;
+}
+
+.web-layout .stats-banner-wrapper .stat-info h3 {
+  color: var(--ds-text) !important;
+  -webkit-text-fill-color: var(--ds-text) !important;
+  text-shadow: none !important;
+}
+
+.web-layout .stats-banner-wrapper .stat-info p {
+  color: var(--ds-text-muted) !important;
+  -webkit-text-fill-color: var(--ds-text-muted) !important;
+  text-shadow: none !important;
+  font-weight: 700 !important;
+}
+
+/* Featured promotion heading sits on a dark campaign band, so keep it bright and crisp. */
+.web-layout .discount-products-section {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(37, 99, 235, 0.16), transparent 42%),
+    linear-gradient(180deg, #071120 0%, #0b1424 100%) !important;
+}
+
+.web-layout .discount-products-section .section-header {
+  max-width: 820px !important;
+}
+
+.web-layout .discount-products-section .section-header .ambient-label {
+  color: #60a5fa !important;
+  -webkit-text-fill-color: #60a5fa !important;
+  background: rgba(37, 99, 235, 0.16) !important;
+  border-color: rgba(96, 165, 250, 0.34) !important;
+  box-shadow: 0 10px 28px rgba(37, 99, 235, 0.14) !important;
+}
+
+.web-layout .discount-products-section .section-header .pill-icon {
+  color: #60a5fa !important;
+}
+
+.web-layout .discount-products-section .section-header h2 {
+  color: #f8fafc !important;
+  -webkit-text-fill-color: #f8fafc !important;
+  background: none !important;
+  text-shadow: 0 8px 28px rgba(0, 0, 0, 0.48) !important;
+  font-weight: 900 !important;
+  letter-spacing: 0 !important;
+}
+
+.web-layout .discount-products-section .section-header .section-sub {
+  color: #cbd5e1 !important;
+  -webkit-text-fill-color: #cbd5e1 !important;
+  text-shadow: none !important;
+  font-weight: 600 !important;
+}
+
+/* Promotion page campaign sections use a dark background; keep every heading readable. */
+.web-layout .promotions-shell .section-header {
+  max-width: 820px !important;
+}
+
+.web-layout .promotions-shell .section-header .ambient-label {
+  color: #60a5fa !important;
+  -webkit-text-fill-color: #60a5fa !important;
+  background: rgba(37, 99, 235, 0.16) !important;
+  border-color: rgba(96, 165, 250, 0.34) !important;
+  box-shadow: 0 10px 28px rgba(37, 99, 235, 0.14) !important;
+}
+
+.web-layout .promotions-shell .section-header .pill-icon {
+  color: #60a5fa !important;
+}
+
+.web-layout .promotions-shell .section-header h2 {
+  color: #f8fafc !important;
+  -webkit-text-fill-color: #f8fafc !important;
+  background: none !important;
+  text-shadow: 0 8px 28px rgba(0, 0, 0, 0.5) !important;
+  font-weight: 900 !important;
+  letter-spacing: 0 !important;
+}
+
+.web-layout .promotions-shell .section .section-header p,
+.web-layout .promotions-shell .section-header .section-sub,
+.promotions-shell .section .section-header p,
+.promotions-shell .section-header .section-sub,
+.promotions-shell p.section-sub {
+  color: #e2e8f0 !important;
+  -webkit-text-fill-color: #e2e8f0 !important;
+  text-shadow: none !important;
+  font-weight: 600 !important;
+  opacity: 1 !important;
+}
+
+.web-layout .promotions-shell .section .section-header p strong,
+.web-layout .promotions-shell .section-header .section-sub strong,
+.promotions-shell .section-header .section-sub strong {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 800 !important;
+}
+
+.web-layout .promotions-shell .section-header h2,
+.promotions-shell .section-header h2 {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background: none !important;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+  font-weight: 900 !important;
+}
+
+.web-layout .promotions-shell :is(.combo-details, .magazine-main-article, .magazine-mini-article, .newsletter-headline, .voucher-body) p,
+.promotions-shell :is(.combo-details, .magazine-main-article, .magazine-mini-article, .newsletter-headline, .voucher-body) p {
+  color: #cbd5e1 !important;
+  -webkit-text-fill-color: #cbd5e1 !important;
+  opacity: 1 !important;
+}
+
+.web-layout .promotions-shell :is(.magazine-main-article, .magazine-mini-article) h3,
+.promotions-shell :is(.magazine-main-article, .magazine-mini-article) h3,
+.promotions-shell .magazine-main-article .main-art-info h3,
+.promotions-shell .magazine-mini-article .mini-art-info h3 {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background: none !important;
+}
+
+/* Home Page Magazine News Section Light Card Contrast Fixes */
+.web-layout .magazine-news-section :is(.magazine-main-article, .magazine-mini-article),
+.magazine-news-section :is(.magazine-main-article, .magazine-mini-article) {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04) !important;
+}
+
+.web-layout .magazine-news-section :is(.magazine-main-article, .magazine-mini-article) h3,
+.magazine-news-section .main-art-info h3,
+.magazine-news-section .mini-art-info h3 {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  background: none !important;
+  text-shadow: none !important;
+}
+
+.web-layout .magazine-news-section :is(.magazine-main-article, .magazine-mini-article) p,
+.magazine-news-section .main-art-info p {
+  color: #475569 !important;
+  -webkit-text-fill-color: #475569 !important;
+  opacity: 1 !important;
+}
+
+.web-layout .magazine-news-section :is(.art-deep-link, .mini-art-info a, .magazine-explore-btn),
+.magazine-news-section :is(.art-deep-link, .mini-art-info a, .magazine-explore-btn) {
+  color: #2563eb !important;
+  -webkit-text-fill-color: #2563eb !important;
+  font-weight: 700 !important;
+}
+
+.web-layout .promotions-shell :is(.magazine-main-article, .magazine-mini-article) :is(.art-deep-link, .mini-art-link),
+.promotions-shell :is(.magazine-main-article, .magazine-mini-article) :is(.art-deep-link, .mini-art-link) {
+  color: #38bdf8 !important;
+  -webkit-text-fill-color: #38bdf8 !important;
+}
+
+/* ============================================================
+   GLOBAL DOUBLE-BORDER FIX FOR ALL INPUT FIELDS ACROSS ALL PAGES
+   Removes inner borders when an input is inside a border container.
+   ============================================================ */
+.newsletter-interactive-form input,
+.newsletter-form-group input,
+.input-glow-group input,
+.promotions-shell .newsletter-interactive-form input,
+.promotions-shell input {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #3b82f6 !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.input-wrapper input,
+.input-group input,
+.search-box input,
+.search-wrapper input,
+.form-input-wrapper input,
+.field-wrapper input,
+.news-search-tools input,
+.employee-search input,
+.confirm-code input,
+.input-wrapper input:focus,
+.search-box input:focus {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  caret-color: #2563eb !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.newsletter-interactive-form input::placeholder,
+.newsletter-form-group input::placeholder,
+.promotions-shell input::placeholder,
+.input-glow-group input::placeholder {
+  color: #94a3b8 !important;
+  -webkit-text-fill-color: #94a3b8 !important;
+  opacity: 0.7 !important;
+}
+
+.input-wrapper input::placeholder,
+.input-group input::placeholder,
+.search-box input::placeholder,
+.search-wrapper input::placeholder,
+.form-input-wrapper input::placeholder,
+.field-wrapper input::placeholder,
+.news-search-tools input::placeholder,
+.employee-search input::placeholder,
+.confirm-code input::placeholder,
+input::placeholder {
+  color: #9ca3af !important;
+  -webkit-text-fill-color: #9ca3af !important;
+  opacity: 0.65 !important;
+  font-weight: 400 !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none !important;
+}

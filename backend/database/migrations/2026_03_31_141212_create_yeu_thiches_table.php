@@ -1,4 +1,5 @@
 <?php
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -9,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('yeuthich', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('id_khachhang')->constrained('khachhang')->onDelete('cascade');
             $table->unsignedBigInteger('id_bienthe');
             // Khoá ngoại liên kết với bảng bienthe
             $table->foreign('id_bienthe')->references('id_bienthe')->on('bienthe')->onDelete('cascade');
@@ -23,4 +24,3 @@ return new class extends Migration
         Schema::dropIfExists('yeuthich');
     }
 };
-

@@ -16,7 +16,7 @@
                     <!-- HEADER -->
                     <tr>
                         <td style="background:linear-gradient(135deg,#4f46e5,#7c3aed);padding:30px;text-align:center;color:white;">
-                            <h1 style="margin:0;">NextGen Labtop</h1>
+                            <h1 style="margin:0;">NextGen</h1>
                             <p style="margin:5px 0 0;">Chinh phục tầm cao mới</p>
                         </td>
                     </tr>
@@ -25,7 +25,7 @@
                     <tr>
                         <td style="padding:30px;">
                             <h2 style="margin-top:0;color:#333;">
-                                Xin chào {{ $user->name }} 👋
+                                Xin chào {{ $user->ten }} 👋
                             </h2>
 
                             <p style="color:#555;font-size:15px;">
@@ -38,7 +38,7 @@
 
                             <!-- BUTTON -->
                             <div style="text-align:center;margin:30px 0;">
-                                <a href="http://localhost:5173/login"
+                                <a href="{{ rtrim(config('app.frontend_url'), '/') }}/login"
                                    style="background:linear-gradient(135deg,#4f46e5,#7c3aed);
                                           color:#fff;
                                           padding:12px 25px;

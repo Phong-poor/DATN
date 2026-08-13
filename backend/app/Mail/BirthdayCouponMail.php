@@ -11,6 +11,7 @@ class BirthdayCouponMail extends Mailable
     use Queueable, SerializesModels;
 
     public string $customerName;
+
     public string $couponCode;
 
     public function __construct(string $customerName, string $couponCode)

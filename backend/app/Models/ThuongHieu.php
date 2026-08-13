@@ -4,14 +4,25 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Đại diện thương hiệu được gắn với các sản phẩm trong hệ thống.
+ */
 class ThuongHieu extends Model
 {
-      public $timestamps = false;
+    public $timestamps = false;
+
     protected $table = 'thuonghieu';
+
     protected $primaryKey = 'id_thuonghieu';
 
-    protected $fillable = 
-    [
-        'ten_thuonghieu'
+    protected $fillable =
+        [
+            'ten_thuonghieu',
+            'logo',
+            'danh_muc_ids',
+        ];
+
+    protected $casts = [
+        'danh_muc_ids' => 'array',
     ];
 }

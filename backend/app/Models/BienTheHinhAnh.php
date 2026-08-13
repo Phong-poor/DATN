@@ -6,14 +6,17 @@ use Illuminate\Database\Eloquent\Model;
 
 class BienTheHinhAnh extends Model
 {
-    protected $table      = 'bienthe_hinhanh';
+    protected $table = 'bienthe_hinhanh';
+
     protected $primaryKey = 'id_bienthe_hinhanh';
-    public $timestamps    = false;
+
+    public $timestamps = false;
 
     protected $fillable = [
         'id_sanpham',
         'duongdan',
         'thutu',
+        'macdinh',
     ];
 
     public function sanPham()

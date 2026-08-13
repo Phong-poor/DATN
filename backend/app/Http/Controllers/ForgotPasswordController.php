@@ -6,41 +6,71 @@ use App\Mail\SendResetOtpMail;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class ForgotPasswordController extends Controller
 {
+    public function captcha()
+    {
+        $token = Str::random(40);
+        Cache::put("forgot_password_captcha:{$token}", true, now()->addMinutes(5));
+
+        return response()->json([
+            'token' => $token,
+            'type' => 'checkbox',
+            'label' => 'Xác minh bạn là con người',
+            'expires_in' => 300,
+        ]);
+    }
+
     public function sendOtp(Request $request)
     {
         $request->validate([
             'email' => ['required', 'email'],
+            'captcha_token' => ['required', 'string'],
+            'captcha_verified' => ['accepted'],
+        ], [
+            'email.required' => 'Vui lòng nhập email.',
+            'email.email' => 'Email không đúng định dạng.',
+            'captcha_token.required' => 'Vui lòng tải mã xác minh.',
+            'captcha_verified.accepted' => 'Vui lòng xác minh bạn là con người.',
         ]);
+
+        $isCaptchaValid = Cache::pull("forgot_password_captcha:{$request->captcha_token}");
+
+        if (!$isCaptchaValid) {
+            throw ValidationException::withMessages([
+                'captcha_verified' => ['Captcha không đúng hoặc đã hết hạn.'],
+            ]);
+        }
 
         $user = User::where('email', $request->email)->first();
 
         if (!$user) {
             throw ValidationException::withMessages([
-                'email' => ['Email không tồn tại'],
+                'email' => ['Email không tồn tại.'],
             ]);
         }
 
-        $otp = rand(100000, 999999);
+        $otp = random_int(100000, 999999);
 
-        $user->reset_otp = $otp;
-        $user->reset_otp_expires_at = Carbon::now()->addMinutes(5);
+        $user->otp_khoiphuc = $otp;
+        $user->otp_khoiphuc_hethan_luc = Carbon::now()->addMinutes(5);
         $user->save();
 
         try {
             Mail::to($user->email)->send(new SendResetOtpMail($otp));
 
             return response()->json([
-                'message' => 'OTP đã được gửi về email',
+                'message' => 'Mã OTP đã được gửi về email.',
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Gửi mail thất bại: ' . $e->getMessage(),
+                'message' => 'Gửi email thất bại: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -50,60 +80,190 @@ class ForgotPasswordController extends Controller
         $request->validate([
             'email' => ['required', 'email'],
             'otp' => ['required'],
+        ], [
+            'email.required' => 'Vui lòng nhập email.',
+            'email.email' => 'Email không đúng định dạng.',
+            'otp.required' => 'Vui lòng nhập mã OTP.',
         ]);
 
         $user = User::where('email', $request->email)
-            ->where('reset_otp', $request->otp)
+            ->where('otp_khoiphuc', $request->otp)
             ->first();
 
         if (!$user) {
             throw ValidationException::withMessages([
-                'otp' => ['OTP không đúng'],
+                'otp' => ['Mã OTP không đúng.'],
             ]);
         }
 
-        if (!$user->reset_otp_expires_at || now()->gt($user->reset_otp_expires_at)) {
+        if (!$user->otp_khoiphuc_hethan_luc || now()->gt($user->otp_khoiphuc_hethan_luc)) {
             throw ValidationException::withMessages([
-                'otp' => ['OTP đã hết hạn'],
+                'otp' => ['Mã OTP đã hết hạn.'],
             ]);
         }
 
         return response()->json([
-            'message' => 'OTP hợp lệ',
+            'message' => 'Mã OTP hợp lệ.',
         ]);
     }
 
     public function resetPassword(Request $request)
     {
+        if (!$request->filled('matkhau') && $request->filled('password')) {
+            $request->merge([
+                'matkhau' => $request->input('password'),
+                'matkhau_confirmation' => $request->input('password_confirmation'),
+            ]);
+        }
+
         $request->validate([
             'email' => ['required', 'email'],
             'otp' => ['required'],
-            'password' => ['required', 'min:6', 'confirmed'],
+            'matkhau' => [
+                'required',
+                'min:8',
+                'confirmed',
+                'regex:/[A-Z]/',
+                'regex:/[a-z]/',
+                'regex:/[0-9]/',
+                'regex:/[^A-Za-z0-9]/',
+            ],
+        ], [
+            'email.required' => 'Vui lòng nhập email.',
+            'email.email' => 'Email không đúng định dạng.',
+            'otp.required' => 'Vui lòng nhập mã OTP.',
+            'matkhau.required' => 'Vui lòng nhập mật khẩu mới.',
+            'matkhau.min' => 'Mật khẩu phải có ít nhất 8 ký tự.',
+            'matkhau.confirmed' => 'Xác nhận mật khẩu không khớp.',
+            'matkhau.regex' => 'Mật khẩu cần có chữ hoa, chữ thường, số và ký tự đặc biệt.',
         ]);
 
         $user = User::where('email', $request->email)
-            ->where('reset_otp', $request->otp)
+            ->where('otp_khoiphuc', $request->otp)
             ->first();
 
         if (!$user) {
             throw ValidationException::withMessages([
-                'otp' => ['OTP không đúng'],
+                'otp' => ['Mã OTP không đúng.'],
             ]);
         }
 
-        if (!$user->reset_otp_expires_at || now()->gt($user->reset_otp_expires_at)) {
+        if (!$user->otp_khoiphuc_hethan_luc || now()->gt($user->otp_khoiphuc_hethan_luc)) {
             throw ValidationException::withMessages([
-                'otp' => ['OTP đã hết hạn'],
+                'otp' => ['Mã OTP đã hết hạn.'],
             ]);
         }
 
-        $user->password = Hash::make($request->password);
-        $user->reset_otp = null;
-        $user->reset_otp_expires_at = null;
+        $user->matkhau = Hash::make($request->matkhau);
+        $user->otp_khoiphuc = null;
+        $user->otp_khoiphuc_hethan_luc = null;
         $user->save();
 
         return response()->json([
-            'message' => 'Đổi mật khẩu thành công',
+            'message' => 'Đổi mật khẩu thành công.',
+        ]);
+    }
+
+    /**
+     * Mobile-specific: Send OTP without captcha requirement
+     * POST /api/mobile/forgot-password/send-otp
+     */
+    public function sendOtpMobile(Request $request)
+    {
+        $request->validate([
+            'email' => ['required', 'email'],
+        ], [
+            'email.required' => 'Vui lòng nhập email.',
+            'email.email' => 'Email không đúng định dạng.',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            // Return generic success to avoid email enumeration
+            return response()->json([
+                'message' => 'Nếu email tồn tại, mã OTP đã được gửi.',
+            ]);
+        }
+
+        $otp = random_int(100000, 999999);
+
+        $user->otp_khoiphuc = $otp;
+        $user->otp_khoiphuc_hethan_luc = Carbon::now()->addMinutes(5);
+        $user->save();
+
+        try {
+            Mail::to($user->email)->send(new SendResetOtpMail($otp));
+
+            return response()->json([
+                'message' => 'Mã OTP đã được gửi về email của bạn.',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Gửi email thất bại: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Mobile-specific: Reset password with new_password field (instead of matkhau)
+     * POST /api/mobile/forgot-password/reset-password
+     */
+    public function resetPasswordMobile(Request $request)
+    {
+        // Support both 'new_password' (mobile) and 'matkhau' (web)
+        if (!$request->filled('matkhau') && $request->filled('new_password')) {
+            $request->merge([
+                'matkhau' => $request->input('new_password'),
+                'matkhau_confirmation' => $request->input('new_password_confirmation'),
+            ]);
+        }
+
+        $request->validate([
+            'email' => ['required', 'email'],
+            'otp' => ['required'],
+            'matkhau' => [
+                'required',
+                'min:8',
+                'confirmed',
+                'regex:/[A-Z]/',
+                'regex:/[a-z]/',
+                'regex:/[0-9]/',
+                'regex:/[^A-Za-z0-9]/',
+            ],
+        ], [
+            'email.required' => 'Vui lòng nhập email.',
+            'email.email' => 'Email không đúng định dạng.',
+            'otp.required' => 'Vui lòng nhập mã OTP.',
+            'matkhau.required' => 'Vui lòng nhập mật khẩu mới.',
+            'matkhau.min' => 'Mật khẩu phải có ít nhất 8 ký tự.',
+            'matkhau.confirmed' => 'Xác nhận mật khẩu không khớp.',
+            'matkhau.regex' => 'Mật khẩu cần có chữ hoa, chữ thường, số và ký tự đặc biệt.',
+        ]);
+
+        $user = User::where('email', $request->email)
+            ->where('otp_khoiphuc', $request->otp)
+            ->first();
+
+        if (!$user) {
+            throw ValidationException::withMessages([
+                'otp' => ['Mã OTP không đúng.'],
+            ]);
+        }
+
+        if (!$user->otp_khoiphuc_hethan_luc || now()->gt($user->otp_khoiphuc_hethan_luc)) {
+            throw ValidationException::withMessages([
+                'otp' => ['Mã OTP đã hết hạn.'],
+            ]);
+        }
+
+        $user->matkhau = Hash::make($request->matkhau);
+        $user->otp_khoiphuc = null;
+        $user->otp_khoiphuc_hethan_luc = null;
+        $user->save();
+
+        return response()->json([
+            'message' => 'Đổi mật khẩu thành công. Vui lòng đăng nhập lại.',
         ]);
     }
 }

@@ -1,17 +1,25 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
 class NhomThuocTinh extends Model
 {
-    protected $table      = 'nhom_thuoctinh';
+    protected $table = 'nhom_thuoctinh';
+
     protected $primaryKey = 'id_nhom';
-    public $timestamps    = false;
+
+    public $timestamps = false;
 
     protected $fillable = [
         'ten_nhom',
+        'danh_muc_ids',
         'trangthai',
+    ];
+
+    protected $casts = [
+        'danh_muc_ids' => 'array',
     ];
 
     // 1 nhóm có nhiều thuộc tính

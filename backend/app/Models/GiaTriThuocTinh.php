@@ -1,14 +1,16 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\BienThe;
 
 class GiaTriThuocTinh extends Model
 {
-    protected $table      = 'giatri_thuoctinh';
+    protected $table = 'giatri_thuoctinh';
+
     protected $primaryKey = 'id_giatri';
-    public $timestamps    = false;
+
+    public $timestamps = false;
 
     protected $fillable = [
         'id_thuoctinh',

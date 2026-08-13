@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\BienThe;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
@@ -36,9 +37,9 @@ class BienTheController extends Controller
             return BienThe::with('sanPham')->find($id);
         });
 
-        if (!$bienthe) {
+        if (! $bienthe) {
             return response()->json([
-                'message' => 'Không tìm thấy biến thể.'
+                'message' => 'Không tìm thấy biến thể.',
             ], 404);
         }
 
@@ -48,39 +49,40 @@ class BienTheController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'id_sanpham'   => 'required|integer|exists:sanpham,id_sanpham',
-            'ten_bienthe'  => 'nullable|string|max:255',
-            'gia'          => 'required|numeric|min:0',
-            'soluong'      => 'required|integer|min:0',
+            'id_sanpham' => 'required|integer|exists:sanpham,id_sanpham',
+            'ten_bienthe' => 'nullable|string|max:255',
+            'gia' => 'required|numeric|min:0',
+            'soluong' => 'required|integer|min:0',
         ], [
             'id_sanpham.required' => 'Vui lòng chọn sản phẩm.',
-            'id_sanpham.exists'   => 'Sản phẩm không tồn tại.',
+            'id_sanpham.exists' => 'Sản phẩm không tồn tại.',
 
-            'ten_bienthe.max'     => 'Tên biến thể không được vượt quá 255 ký tự.',
+            'ten_bienthe.max' => 'Tên biến thể không được vượt quá 255 ký tự.',
 
-            'gia.required'        => 'Giá không được để trống.',
-            'gia.numeric'         => 'Giá phải là số.',
-            'gia.min'             => 'Giá phải lớn hơn hoặc bằng 0.',
+            'gia.required' => 'Giá không được để trống.',
+            'gia.numeric' => 'Giá phải là số.',
+            'gia.min' => 'Giá phải lớn hơn hoặc bằng 0.',
 
-            'soluong.required'    => 'Số lượng không được để trống.',
-            'soluong.integer'     => 'Số lượng phải là số nguyên.',
-            'soluong.min'         => 'Số lượng phải lớn hơn hoặc bằng 0.',
+            'soluong.required' => 'Số lượng không được để trống.',
+            'soluong.integer' => 'Số lượng phải là số nguyên.',
+            'soluong.min' => 'Số lượng phải lớn hơn hoặc bằng 0.',
         ]);
 
         $bienthe = BienThe::create([
-            'id_sanpham'  => $request->id_sanpham,
+            'id_sanpham' => $request->id_sanpham,
             'ten_bienthe' => $request->ten_bienthe,
-            'gia'         => $request->gia,
-            'soluong'     => $request->soluong,
+            'gia' => $request->gia,
+            'soluong' => $request->soluong,
             'thuoc_tinh_json' => json_encode($request->thuoc_tinh ?? [], JSON_UNESCAPED_UNICODE),
         ]);
 
         Cache::forget('bienthe_all');
         Cache::forget("bienthe_sp_{$request->id_sanpham}");
+        Cache::increment('sanpham_cache_bust');
 
         return response()->json([
             'message' => 'Thêm biến thể thành công.',
-            'data' => $bienthe
+            'data' => $bienthe,
         ], 201);
     }
 
@@ -88,47 +90,49 @@ class BienTheController extends Controller
     {
         $bienthe = BienThe::find($id);
 
-        if (!$bienthe) {
+        if (! $bienthe) {
             return response()->json([
-                'message' => 'Không tìm thấy biến thể.'
+                'message' => 'Không tìm thấy biến thể.',
             ], 404);
         }
 
         $request->validate([
-            'id_sanpham'   => 'required|integer|exists:sanpham,id_sanpham',
-            'ten_bienthe'  => 'nullable|string|max:255',
-            'gia'          => 'required|numeric|min:0',
-            'soluong'      => 'required|integer|min:0',
+            'id_sanpham' => 'required|integer|exists:sanpham,id_sanpham',
+            'ten_bienthe' => 'nullable|string|max:255',
+            'gia' => 'required|numeric|min:0',
+            'soluong' => 'required|integer|min:0',
         ], [
             'id_sanpham.required' => 'Vui lòng chọn sản phẩm.',
-            'id_sanpham.exists'   => 'Sản phẩm không tồn tại.',
+            'id_sanpham.exists' => 'Sản phẩm không tồn tại.',
 
-            'ten_bienthe.max'     => 'Tên biến thể không được vượt quá 255 ký tự.',
+            'ten_bienthe.max' => 'Tên biến thể không được vượt quá 255 ký tự.',
 
-            'gia.required'        => 'Giá không được để trống.',
-            'gia.numeric'         => 'Giá phải là số.',
-            'gia.min'             => 'Giá phải lớn hơn hoặc bằng 0.',
+            'gia.required' => 'Giá không được để trống.',
+            'gia.numeric' => 'Giá phải là số.',
+            'gia.min' => 'Giá phải lớn hơn hoặc bằng 0.',
 
-            'soluong.required'    => 'Số lượng không được để trống.',
-            'soluong.integer'     => 'Số lượng phải là số nguyên.',
-            'soluong.min'         => 'Số lượng phải lớn hơn hoặc bằng 0.',
+            'soluong.required' => 'Số lượng không được để trống.',
+            'soluong.integer' => 'Số lượng phải là số nguyên.',
+            'soluong.min' => 'Số lượng phải lớn hơn hoặc bằng 0.',
         ]);
 
         $bienthe->update([
-            'id_sanpham'  => $request->id_sanpham,
+            'id_sanpham' => $request->id_sanpham,
             'ten_bienthe' => $request->ten_bienthe,
-            'gia'         => $request->gia,
-            'soluong'     => $request->soluong,
+            'gia' => $request->gia,
+            'soluong' => $request->soluong,
             'thuoc_tinh_json' => json_encode($request->thuoc_tinh ?? [], JSON_UNESCAPED_UNICODE),
         ]);
 
         Cache::forget('bienthe_all');
         Cache::forget("bienthe_sp_{$request->id_sanpham}");
         Cache::forget("bienthe_{$id}");
+        Cache::forget("sanpham_show_{$request->id_sanpham}");
+        Cache::increment('sanpham_cache_bust');
 
         return response()->json([
             'message' => 'Cập nhật biến thể thành công.',
-            'data' => $bienthe
+            'data' => $bienthe,
         ]);
     }
 
@@ -136,21 +140,40 @@ class BienTheController extends Controller
     {
         $bienthe = BienThe::find($id);
 
-        if (!$bienthe) {
+        if (! $bienthe) {
             return response()->json([
-                'message' => 'Không tìm thấy biến thể.'
+                'message' => 'Không tìm thấy biến thể.',
             ], 404);
         }
 
         $id_sanpham = $bienthe->id_sanpham;
-        $bienthe->delete();
 
-        Cache::forget('bienthe_all');
-        Cache::forget("bienthe_sp_{$id_sanpham}");
-        Cache::forget("bienthe_{$id}");
+        try {
+            $bienthe->delete();
 
-        return response()->json([
-            'message' => 'Xóa biến thể thành công.'
-        ]);
+            Cache::forget('bienthe_all');
+            Cache::forget("bienthe_sp_{$id_sanpham}");
+            Cache::forget("bienthe_{$id}");
+
+            return response()->json([
+                'message' => 'Xóa biến thể thành công.',
+            ]);
+        } catch (QueryException $e) {
+            if (($e->errorInfo[0] ?? null) === '23000') {
+                return response()->json([
+                    'message' => 'Không thể xóa biến thể này vì đang có dữ liệu đơn hàng liên quan.',
+                ], 409);
+            }
+
+            return response()->json([
+                'message' => 'Không xóa được biến thể.',
+                'error' => $e->getMessage(),
+            ], 500);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => 'Không xóa được biến thể.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 }

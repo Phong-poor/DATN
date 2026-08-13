@@ -4,7 +4,8 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::create('giatri_thuoctinh', function (Blueprint $table) {
@@ -14,9 +15,9 @@ return new class extends Migration {
             $table->string('giatri'); // 16GB, i5, RTX 3060...
 
             $table->foreign('id_thuoctinh')
-                  ->references('id_thuoctinh')
-                  ->on('thuoctinh')
-                  ->onDelete('cascade');
+                ->references('id_thuoctinh')
+                ->on('thuoctinh')
+                ->onDelete('cascade');
 
             $table->boolean('trangthai')->default(1);
             $table->timestamps();

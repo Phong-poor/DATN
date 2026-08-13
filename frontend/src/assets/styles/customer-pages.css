@@ -1,0 +1,351 @@
+/* ============================================================
+   Customer page polish
+   Uses the design-system tokens while preserving existing Vue markup.
+   ============================================================ */
+
+.laptop-page,
+.product-detail-wrapper,
+.cart-root,
+.checkout-page {
+  background: var(--ds-bg) !important;
+  color: var(--ds-text);
+}
+
+.laptop-page section,
+.product-detail-wrapper > div,
+.cart-page,
+.checkout-page {
+  scroll-margin-top: 96px;
+}
+
+/* Catalog / product listing */
+.laptop-page {
+  --lp-primary: var(--ds-primary);
+  --lp-accent: var(--ds-primary-hover);
+  --lp-price: var(--ds-danger);
+  --lp-ease: var(--ds-duration) var(--ds-ease);
+}
+
+.laptop-page .lp-sidebar,
+.laptop-page .lp-brands,
+.laptop-page .lp-flagship,
+.laptop-page .lp-catalog,
+.laptop-page .lp-accessories,
+.laptop-page .lp-combos,
+.laptop-page .lp-showroom,
+.laptop-page .filter-card,
+.laptop-page .product-card,
+.laptop-page .flag-card,
+.laptop-page .combo-bento-card {
+  border: 1px solid var(--ds-border) !important;
+  border-radius: var(--ds-radius-lg) !important;
+  background: var(--ds-surface) !important;
+  box-shadow: var(--ds-shadow-sm) !important;
+}
+
+.laptop-page .product-card,
+.laptop-page .flag-card,
+.laptop-page .combo-bento-card,
+.laptop-page .brand-pill {
+  transition:
+    transform var(--ds-duration) var(--ds-ease),
+    box-shadow var(--ds-duration) var(--ds-ease),
+    border-color var(--ds-duration) var(--ds-ease) !important;
+}
+
+.laptop-page .product-card:hover,
+.laptop-page .flag-card:hover,
+.laptop-page .combo-bento-card:hover,
+.laptop-page .brand-pill:hover {
+  border-color: var(--ds-border-strong) !important;
+  box-shadow: var(--ds-shadow-md) !important;
+  transform: translateY(-3px) !important;
+}
+
+.laptop-page .section-copy h2,
+.laptop-page .catalog-title h2,
+.laptop-page .combos-header h2,
+.laptop-page .lp-showroom-copy h2 {
+  color: var(--ds-text) !important;
+  letter-spacing: 0 !important;
+}
+
+.laptop-page .section-copy p,
+.laptop-page .catalog-title p,
+.laptop-page .combos-header .section-sub,
+.laptop-page .lp-showroom-copy p {
+  color: var(--ds-text-muted) !important;
+}
+
+.laptop-page .line-btn,
+.laptop-page .sort-tab,
+.laptop-page .page-nav,
+.laptop-page .page-number,
+.laptop-page .combo-action-btn,
+.laptop-page .lp-showroom-btn {
+  border-radius: var(--ds-radius-md) !important;
+}
+
+.laptop-page input,
+.laptop-page select {
+  border-color: var(--ds-border) !important;
+  border-radius: var(--ds-radius-md) !important;
+}
+
+.laptop-page input:focus,
+.laptop-page select:focus {
+  border-color: var(--ds-primary) !important;
+  box-shadow: var(--ds-focus-ring) !important;
+}
+
+/* Product detail */
+.product-detail-wrapper {
+  --primary: var(--ds-primary);
+  --primary-glow: rgba(37, 99, 235, 0.16);
+  --secondary: var(--ds-primary-hover);
+  --light-bg: var(--ds-bg);
+  --text-primary: var(--ds-text);
+  --text-secondary: var(--ds-text-muted);
+}
+
+.product-detail-wrapper .premium-hero-container,
+.product-detail-wrapper .premium-specs-section,
+.product-detail-wrapper .premium-highlights-section,
+.product-detail-wrapper .premium-reviews-section,
+.product-detail-wrapper .premium-related-products-section {
+  background: var(--ds-bg) !important;
+}
+
+.product-detail-wrapper .main-image-viewport,
+.product-detail-wrapper .premium-thumbs-container,
+.product-detail-wrapper .premium-price-container,
+.product-detail-wrapper .premium-selectors-wrapper,
+.product-detail-wrapper .product-benefits-box,
+.product-detail-wrapper .product-guarantees-box,
+.product-detail-wrapper .premium-product-card,
+.product-detail-wrapper .related-combos-box,
+.product-detail-wrapper .variant-offers-box,
+.product-detail-wrapper .upsell-teaser-box,
+.product-detail-wrapper .newsletter-neon-box {
+  border: 1px solid var(--ds-border) !important;
+  border-radius: var(--ds-radius-lg) !important;
+  background: var(--ds-surface) !important;
+  box-shadow: var(--ds-shadow-sm) !important;
+}
+
+.product-detail-wrapper .premium-product-title,
+.product-detail-wrapper .premium-section-header h2,
+.product-detail-wrapper .benefits-title,
+.product-detail-wrapper .product-card-title {
+  color: var(--ds-text) !important;
+  letter-spacing: 0 !important;
+}
+
+.product-detail-wrapper .premium-price,
+.product-detail-wrapper .price-value-glow {
+  color: #2563eb !important;
+  text-shadow: none !important;
+}
+
+.product-detail-wrapper .dropdown-trigger,
+.product-detail-wrapper .premium-qty-stepper,
+.product-detail-wrapper .thumb-card,
+.product-detail-wrapper .pag-btn {
+  border-radius: var(--ds-radius-md) !important;
+}
+
+.product-detail-wrapper .btn-buy-now,
+.product-detail-wrapper .btn-add-cart,
+.product-detail-wrapper .btn-buy-combo,
+.product-detail-wrapper .btn-claim-offer {
+  border-radius: var(--ds-radius-md) !important;
+  background: var(--ds-primary) !important;
+  color: var(--ds-text-inverse) !important;
+  box-shadow: 0 12px 26px rgba(37, 99, 235, 0.22) !important;
+}
+
+.product-detail-wrapper .btn-buy-now:hover,
+.product-detail-wrapper .btn-add-cart:hover,
+.product-detail-wrapper .btn-buy-combo:hover,
+.product-detail-wrapper .btn-claim-offer:hover {
+  background: var(--ds-primary-hover) !important;
+}
+
+/* Cart */
+.cart-root {
+  --primary: var(--ds-primary);
+  --primary-dark: var(--ds-primary-hover);
+  --primary-light: var(--ds-primary-soft);
+  --primary-glow: rgba(37, 99, 235, 0.16);
+  --success: var(--ds-success);
+  --danger: var(--ds-danger);
+  --card: var(--ds-surface);
+  --border: var(--ds-border);
+  --radius: var(--ds-radius-lg);
+  --text-1: var(--ds-text);
+  --text-2: var(--ds-text-soft);
+  --text-3: var(--ds-text-muted);
+  --tr: var(--ds-duration) var(--ds-ease);
+}
+
+.cart-root .cart-page {
+  background: var(--ds-bg) !important;
+}
+
+.cart-root .cart-wrap {
+  max-width: var(--ds-container) !important;
+}
+
+.cart-root .cart-page-header,
+.cart-root .empty-cart,
+.cart-root .cart-item-card,
+.cart-root .summary-card,
+.cart-root .combo-item-group {
+  border: 1px solid var(--ds-border) !important;
+  border-radius: var(--ds-radius-lg) !important;
+  background: var(--ds-surface) !important;
+  box-shadow: var(--ds-shadow-sm) !important;
+}
+
+.cart-root .cart-item-card:hover,
+.cart-root .summary-card:hover {
+  box-shadow: var(--ds-shadow-md) !important;
+}
+
+.cart-root .header-eyebrow,
+.cart-root .item-brand,
+.cart-root .summary-count,
+.cart-root .promo-badge {
+  color: var(--ds-primary) !important;
+}
+
+.cart-root .header-title,
+.cart-root .empty-title,
+.cart-root .summary-title,
+.cart-root .item-name {
+  color: var(--ds-text) !important;
+  letter-spacing: 0 !important;
+}
+
+.cart-root .btn-continue,
+.cart-root .empty-cta,
+.cart-root .checkout-btn {
+  border-radius: var(--ds-radius-md) !important;
+  background: var(--ds-primary) !important;
+  color: var(--ds-text-inverse) !important;
+}
+
+.cart-root .btn-continue:hover,
+.cart-root .empty-cta:hover,
+.cart-root .checkout-btn:hover {
+  background: var(--ds-primary-hover) !important;
+}
+
+.cart-root .coupon-select,
+.cart-root .qty-controls {
+  border-color: var(--ds-border) !important;
+  border-radius: var(--ds-radius-md) !important;
+}
+
+.cart-root .coupon-select:focus {
+  border-color: var(--ds-primary) !important;
+  box-shadow: var(--ds-focus-ring) !important;
+}
+
+/* Checkout */
+.checkout-page {
+  --checkout-card: var(--ds-surface);
+  --checkout-border: var(--ds-border);
+  background: var(--ds-bg) !important;
+}
+
+.checkout-page > .container {
+  display: flex;
+  justify-content: center;
+  gap: var(--ds-space-6);
+  align-items: flex-start;
+  max-width: var(--ds-container) !important;
+  margin-inline: auto !important;
+  padding: 32px var(--ds-page-gutter) 72px !important;
+}
+
+.checkout-page .box,
+.checkout-page .summary,
+.checkout-page .checkout-combo-group,
+.checkout-page .voucher-section {
+  border: 1px solid var(--ds-border) !important;
+  border-radius: var(--ds-radius-lg) !important;
+  background: var(--ds-surface) !important;
+  box-shadow: var(--ds-shadow-sm) !important;
+}
+
+.checkout-page .box-title,
+.checkout-page .summary h3,
+.checkout-page .checkout-combo-header h4,
+.checkout-page .voucher-section-title {
+  color: var(--ds-text) !important;
+  font-weight: 800 !important;
+  letter-spacing: 0 !important;
+}
+
+.checkout-page .step {
+  background: var(--ds-primary) !important;
+}
+
+.checkout-page .checkout-input,
+.checkout-page .checkout-textarea,
+.checkout-page .voucher-select,
+.checkout-page .pay-item {
+  border: 1px solid var(--ds-border) !important;
+  border-radius: var(--ds-radius-md) !important;
+  background: var(--ds-surface) !important;
+  color: var(--ds-text) !important;
+  display: grid !important;
+  grid-template-columns: 20px 40px 1fr !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 12px 16px !important;
+  width: 100% !important;
+}
+
+.checkout-page .checkout-input:focus,
+.checkout-page .checkout-textarea:focus,
+.checkout-page .voucher-select:focus {
+  border-color: var(--ds-primary) !important;
+  box-shadow: var(--ds-focus-ring) !important;
+}
+
+.checkout-page .pay-item.active {
+  border-color: var(--ds-primary) !important;
+  background: var(--ds-primary-soft) !important;
+}
+
+.checkout-page .btn {
+  border-radius: var(--ds-radius-md) !important;
+  background: var(--ds-primary) !important;
+  color: var(--ds-text-inverse) !important;
+  font-weight: 800 !important;
+}
+
+.checkout-page .btn:hover {
+  background: var(--ds-primary-hover) !important;
+}
+
+.checkout-page .right {
+  position: sticky !important;
+  top: 140px !important;
+  align-self: flex-start !important;
+}
+
+@media (max-width: 992px) {
+  .checkout-page > .container {
+    flex-direction: column;
+  }
+
+  .checkout-page .left,
+  .checkout-page .right {
+    width: 100% !important;
+    flex-basis: auto !important;
+    position: static !important;
+  }
+}

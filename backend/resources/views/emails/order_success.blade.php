@@ -1,132 +1,215 @@
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Xác nhận đơn hàng</title>
 </head>
-<body style="margin:0;padding:0;background:#f4f6f8;font-family:Arial, sans-serif;">
+<body style="margin:0;padding:0;background:#f2f5f8;font-family:'Segoe UI',Roboto,Arial,Helvetica,sans-serif;color:#202938;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;">
+    @php
+        $customerName = $user->ten ?? $user->name ?? 'Quý khách';
+        $orderTotal = (float) ($order->tongtien ?? 0);
+        $depositAmount = (int) ceil($orderTotal * 0.5);
+        $remainingAmount = max(0, (int) $orderTotal - $depositAmount);
+        $paymentMethod = ($order->PTTT ?? '') === 'COD'
+            ? 'Thanh toán khi nhận hàng (COD)'
+            : ($order->PTTT ?? 'Chuyển khoản');
+        $orderCode = 'NG-' . str_pad((string) ($order->id_dathang ?? 0), 6, '0', STR_PAD_LEFT);
+    @endphp
 
-    <table width="100%" cellspacing="0" cellpadding="0" style="background:#f4f6f8;padding:30px 0;">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
+        NextGen đã tiếp nhận đơn hàng #{{ $order->id_dathang }}. Vui lòng đặt cọc 50%, phần còn lại thanh toán khi nhận hàng.
+    </div>
+
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#f2f5f8;padding:28px 12px;font-family:'Segoe UI',Roboto,Arial,Helvetica,sans-serif;">
         <tr>
             <td align="center">
-
-                <!-- BOX -->
-                <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.1);">
-
-                    <!-- HEADER -->
+                <table width="640" cellpadding="0" cellspacing="0" role="presentation" style="width:640px;max-width:100%;background:#ffffff;border-collapse:separate;border-spacing:0;overflow:hidden;border-radius:18px;box-shadow:0 18px 50px rgba(15,23,42,0.12);font-family:'Segoe UI',Roboto,Arial,Helvetica,sans-serif;">
                     <tr>
-                        <td style="background:blue;padding:30px;text-align:center;color:white;">
-                            <h1 style="margin:0;">NextGen Shop</h1>
-                            <p style="margin:5px 0 0;">Xác nhận đặt hàng thành công</p>
+                        <td style="background:#08b957;padding:0;">
+                            <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+                                <tr>
+                                    <td style="padding:28px 34px 22px;color:#ffffff;">
+                                        <div style="font-size:13px;letter-spacing:2px;text-transform:uppercase;font-weight:700;opacity:.92;">NextGen E-Receipt</div>
+                                        <h1 style="margin:16px 0 6px;font-size:28px;line-height:1.22;font-weight:700;letter-spacing:-.15px;">Đơn hàng đã được tiếp nhận</h1>
+                                        <p style="margin:0;font-size:14px;line-height:1.6;opacity:.94;">Cảm ơn {{ $customerName }} đã mua sắm tại NextGen.</p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="height:16px;background:linear-gradient(150deg,#ffffff 0,#ffffff 18%,#08b957 18%,#08b957 24%,#ffffff 24%,#ffffff 34%,#08b957 34%);opacity:.9;"></td>
+                                </tr>
+                            </table>
                         </td>
                     </tr>
 
-                    <!-- CONTENT -->
                     <tr>
-                        <td style="padding:30px;">
-                            <h2 style="margin-top:0;color:#333;">
-                                Xin chào {{ $user->name }} 👋
-                            </h2>
+                        <td style="padding:28px 34px 8px;">
+                            <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+                                <tr>
+                                    <td width="52%" valign="top" style="padding-bottom:18px;">
+                                        <div style="font-size:13px;color:#64748b;font-weight:700;text-transform:uppercase;">Tổng giá trị đơn hàng</div>
+                                        <div style="margin-top:6px;font-size:34px;line-height:1;font-weight:800;color:#08a848;letter-spacing:-.25px;">{{ number_format($orderTotal, 0, ',', '.') }}đ</div>
+                                    </td>
+                                    <td width="48%" valign="top" align="right" style="padding-bottom:18px;">
+                                        <div style="font-size:13px;color:#64748b;font-weight:700;text-transform:uppercase;">Ngày | Giờ</div>
+                                        <div style="margin-top:8px;font-size:18px;font-weight:700;color:#111827;">{{ optional($order->created_at)->format('d/m/Y H:i') }}</div>
+                                        <div style="margin-top:6px;font-size:13px;color:#64748b;">Mã đơn: <strong style="color:#111827;">{{ $orderCode }}</strong></div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
 
-                            <p style="color:#555;font-size:15px;">
-                                Cảm ơn bạn đã tin tưởng mua sắm tại <strong>NextGen Laptop</strong>. Đơn hàng của bạn đã được tiếp nhận và đang được xử lý.
-                            </p>
+                    <tr>
+                        <td style="padding:0 34px 22px;">
+                            <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;">
+                                <tr>
+                                    <td width="48%" valign="top" style="padding:24px 24px 18px;">
+                                        <div style="font-size:15px;color:#08a848;font-weight:800;letter-spacing:.4px;text-transform:uppercase;">Chi tiết đơn hàng</div>
+                                        <div style="height:14px;"></div>
+                                        <div style="font-size:13px;color:#9aa4b2;">Người nhận</div>
+                                        <div style="font-size:15px;font-weight:700;color:#111827;margin:3px 0 12px;">{{ $customerName }}</div>
 
-                            <div style="margin:25px 0; padding:20px; background:#f8fafc; border-radius:8px; border:1px solid #e2e8f0;">
-                                <h3 style="margin-top:0; color:#0f2b5b; font-size:16px; border-bottom:1px solid #e2e8f0; padding-bottom:10px;">
-                                    Thông tin đơn hàng #{{ $order->id_dathang }}
-                                </h3>
-                                <table width="100%" style="font-size:14px; color:#475569; line-height:2;">
-                                    <tr>
-                                        <td><strong>Ngày đặt:</strong></td>
-                                        <td align="right">{{ $order->created_at->format('d/m/Y H:i') }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Trạng thái:</strong></td>
-                                        <td align="right" style="color:#2563eb; font-weight:bold;">Chờ xác nhận</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Phương thức:</strong></td>
-                                        <td align="right">{{ $order->PTTT === 'COD' ? 'Thanh toán khi nhận hàng (COD)' : $order->PTTT }}</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Địa chỉ:</strong></td>
-                                        <td align="right">{{ $order->diachi }}</td>
-                                    </tr>
-                                </table>
-                            </div>
+                                        <div style="font-size:13px;color:#9aa4b2;">Mã đơn hàng</div>
+                                        <div style="font-size:15px;font-weight:700;color:#111827;margin:3px 0 12px;">#{{ $order->id_dathang }}</div>
 
-                            <h3 style="color:#333; font-size:16px;">Chi tiết sản phẩm</h3>
-                            <table width="100%" cellspacing="0" cellpadding="10" style="border-collapse:collapse; font-size:14px;">
-                                <thead style="background:#f1f5f9;">
+                                        <div style="font-size:13px;color:#9aa4b2;">Phương thức</div>
+                                        <div style="font-size:15px;font-weight:700;color:#111827;margin:3px 0 12px;">{{ $paymentMethod }}</div>
+
+                                        <div style="font-size:13px;color:#9aa4b2;">Giao đến</div>
+                                        <div style="font-size:15px;font-weight:700;color:#111827;line-height:1.45;margin-top:3px;">{{ $order->diachi }}</div>
+                                    </td>
+                                    <td width="52%" valign="top" style="padding:24px 24px 18px;background:#ffffff;border-left:1px solid #e2e8f0;">
+                                        <div style="font-size:15px;color:#08a848;font-weight:800;letter-spacing:.4px;text-transform:uppercase;">Hóa đơn của bạn</div>
+                                        <div style="margin-top:14px;border:1px solid #d7dde5;background:#ffffff;padding:16px 16px 12px;">
+                                            <div style="font-size:13px;color:#64748b;">Bạn thanh toán bằng:</div>
+                                            <div style="font-size:17px;font-weight:700;color:#111827;margin-top:4px;">{{ $paymentMethod }}</div>
+
+                                            <div style="border-top:1px dashed #b9c3d0;margin:16px 0 12px;"></div>
+
+                                            <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="font-size:13px;color:#111827;">
+                                                <tr>
+                                                    <td style="padding:0 0 9px;color:#64748b;">Chi tiết</td>
+                                                    <td align="center" style="padding:0 0 9px;color:#64748b;">SL</td>
+                                                    <td align="right" style="padding:0 0 9px;color:#64748b;">Số tiền</td>
+                                                </tr>
+                                                @foreach($order->chiTiets as $ct)
+                                                    <tr>
+                                                        <td valign="top" style="padding:8px 0;border-top:1px dashed #d7dde5;font-weight:700;line-height:1.35;">
+                                                            {{ $ct->bienThe->sanPham->tenSP ?? 'Sản phẩm' }}
+                                                            @if(!empty($ct->bienThe->ten_bienthe))
+                                                                <div style="font-size:12px;color:#64748b;font-weight:400;">{{ $ct->bienThe->ten_bienthe }}</div>
+                                                            @endif
+                                                        </td>
+                                                        <td align="center" valign="top" style="padding:8px 8px;border-top:1px dashed #d7dde5;">{{ $ct->soluong }}</td>
+                                                        <td align="right" valign="top" style="padding:8px 0;border-top:1px dashed #d7dde5;font-weight:700;">{{ number_format((float) $ct->gia * (int) $ct->soluong, 0, ',', '.') }}đ</td>
+                                                    </tr>
+                                                @endforeach
+                                            </table>
+
+                                            <div style="border-top:1px dashed #b9c3d0;margin:12px 0;"></div>
+
+                                            <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="font-size:14px;color:#111827;">
+                                                <tr>
+                                                    <td style="padding:5px 0;">Tổng giá trị đơn hàng</td>
+                                                    <td align="right" style="padding:5px 0;font-weight:700;">{{ number_format($orderTotal, 0, ',', '.') }}đ</td>
+                                                </tr>
+                                                <tr>
+                                                    <td style="padding:5px 0;">Phí vận chuyển</td>
+                                                    <td align="right" style="padding:5px 0;font-weight:700;color:#08a848;">Miễn phí</td>
+                                                </tr>
+                                                <tr>
+                                                    <td style="padding:8px 0;color:#ef4444;font-weight:700;">Đặt cọc cần chuyển trước (50%)</td>
+                                                    <td align="right" style="padding:8px 0;color:#ef4444;font-weight:800;">{{ number_format($depositAmount, 0, ',', '.') }}đ</td>
+                                                </tr>
+                                                <tr>
+                                                    <td style="padding:8px 0;color:#08a848;font-weight:800;">Còn lại khi giao tận nhà</td>
+                                                    <td align="right" style="padding:8px 0;color:#08a848;font-size:18px;font-weight:800;">{{ number_format($remainingAmount, 0, ',', '.') }}đ</td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding:0 34px 24px;">
+                            <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#ecfdf3;border:1px solid #b7ebc9;border-radius:14px;">
+                                <tr>
+                                    <td style="padding:18px 20px;">
+                                        <div style="font-size:16px;font-weight:800;color:#067a38;">Lưu ý thanh toán rõ ràng</div>
+                                        <p style="margin:8px 0 0;font-size:14px;line-height:1.7;color:#1f5135;">
+                                            Đơn hàng cần đặt cọc trước <strong>{{ number_format($depositAmount, 0, ',', '.') }}đ</strong> để xác nhận uy tín.
+                                            Khi nhân viên giao hàng đến, khách chỉ thanh toán nốt <strong>{{ number_format($remainingAmount, 0, ',', '.') }}đ</strong>,
+                                            không thanh toán lại toàn bộ giá trị đơn hàng.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding:0 34px 30px;">
+                            <div style="font-size:18px;font-weight:800;color:#111827;margin-bottom:12px;">Chi tiết sản phẩm</div>
+                            <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:collapse;font-size:14px;">
+                                <thead>
                                     <tr>
-                                        <th align="left" style="border-bottom:2px solid #e2e8f0;">Sản phẩm</th>
-                                        <th align="center" style="border-bottom:2px solid #e2e8f0;">SL</th>
-                                        <th align="right" style="border-bottom:2px solid #e2e8f0;">Giá</th>
-                                        <th><img src="" alt=""></th>
+                                        <th align="left" style="background:#eef2f7;color:#111827;padding:13px 12px;border-bottom:1px solid #dbe3ee;">Sản phẩm</th>
+                                        <th align="center" style="background:#eef2f7;color:#111827;padding:13px 12px;border-bottom:1px solid #dbe3ee;">SL</th>
+                                        <th align="right" style="background:#eef2f7;color:#111827;padding:13px 12px;border-bottom:1px solid #dbe3ee;">Giá</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @foreach($order->chiTiets as $ct)
-                                    <tr>
-                                        <td style="border-bottom:1px solid #f1f5f9; padding:12px 0;">
-                                            <div style="font-weight:bold; color:#1e293b;">{{ $ct->bienThe->sanPham->tenSP ?? 'Sản phẩm' }}</div>
-                                            <div style="font-size:12px; color:#64748b;">{{ $ct->bienThe->ten_bienthe }}</div>
-                                        </td>
-                                        <td align="center" style="border-bottom:1px solid #f1f5f9;">{{ $ct->soluong }}</td>
-                                        <td align="right" style="border-bottom:1px solid #f1f5f9;">{{ number_format($ct->gia, 0, ',', '.') }}đ</td>
-                                    </tr>
+                                        <tr>
+                                            <td style="padding:14px 12px;border-bottom:1px solid #eef2f7;font-weight:700;color:#1f2937;">
+                                                {{ $ct->bienThe->sanPham->tenSP ?? 'Sản phẩm' }}
+                                                @if(!empty($ct->bienThe->ten_bienthe))
+                                                    <div style="margin-top:3px;font-size:12px;color:#64748b;font-weight:400;">{{ $ct->bienThe->ten_bienthe }}</div>
+                                                @endif
+                                            </td>
+                                            <td align="center" style="padding:14px 12px;border-bottom:1px solid #eef2f7;">{{ $ct->soluong }}</td>
+                                            <td align="right" style="padding:14px 12px;border-bottom:1px solid #eef2f7;font-weight:700;">{{ number_format((float) $ct->gia * (int) $ct->soluong, 0, ',', '.') }}đ</td>
+                                        </tr>
                                     @endforeach
                                 </tbody>
-                                <tfoot>
-                                    <tr>
-                                        <td colspan="2" align="right" style="padding-top:20px; font-weight:bold; color:#333;">Tạm tính:</td>
-                                        <td align="right" style="padding-top:20px; font-weight:bold; color:#333;">{{ number_format($order->tongtien, 0, ',', '.') }}đ</td>
-                                    </tr>
-                                    <tr>
-                                        <td colspan="2" align="right" style="color:#64748b; font-size:12px;">Phí vận chuyển:</td>
-                                        <td align="right" style="color:#64748b; font-size:12px;">Miễn phí</td>
-                                    </tr>
-                                    <tr>
-                                        <td colspan="2" align="right" style="padding-top:10px; font-size:18px; font-weight:800; color:#1e6be6;">TỔNG CỘNG:</td>
-                                        <td align="right" style="padding-top:10px; font-size:18px; font-weight:800; color:#1e6be6;">{{ number_format($order->tongtien, 0, ',', '.') }}đ</td>
-                                    </tr>
-                                </tfoot>
                             </table>
 
-                            <div style="text-align:center;margin:40px 0 20px;">
-                                <a href="http://localhost:5173/profile"
-                                   style="background:#1e6be6;
-                                          color:#fff;
-                                          padding:12px 30px;
-                                          border-radius:8px;
-                                          text-decoration:none;
-                                          font-weight:bold;
-                                          display:inline-block;
-                                          box-shadow:0 4px 12px rgba(30,107,230,0.2);">
-                                    Theo dõi đơn hàng
-                                </a>
+                            <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-top:18px;font-size:15px;">
+                                <tr>
+                                    <td align="right" style="padding:6px 12px;color:#64748b;">Tổng giá trị đơn hàng:</td>
+                                    <td align="right" width="180" style="padding:6px 12px;font-weight:800;color:#111827;">{{ number_format($orderTotal, 0, ',', '.') }}đ</td>
+                                </tr>
+                                <tr>
+                                    <td align="right" style="padding:6px 12px;color:#ef4444;">Đặt cọc trước 50%:</td>
+                                    <td align="right" style="padding:6px 12px;font-weight:800;color:#ef4444;">{{ number_format($depositAmount, 0, ',', '.') }}đ</td>
+                                </tr>
+                                <tr>
+                                    <td align="right" style="padding:10px 12px;font-size:18px;font-weight:800;color:#08a848;">Thanh toán còn lại khi nhận hàng:</td>
+                                    <td align="right" style="padding:10px 12px;font-size:22px;font-weight:800;color:#08a848;">{{ number_format($remainingAmount, 0, ',', '.') }}đ</td>
+                                </tr>
+                            </table>
+
+                            <div style="text-align:center;margin-top:26px;">
+                                <a href="{{ rtrim(config('app.frontend_url'), '/') }}/profile" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;font-weight:700;padding:14px 34px;border-radius:10px;">Theo dõi đơn hàng</a>
                             </div>
-
-                            <p style="color:#94a3b8;font-size:13px;text-align:center;margin-top:30px;">
-                                Nếu bạn có bất kỳ câu hỏi nào, vui lòng liên hệ hotline 1800 9999 hoặc trả lời thư này.
-                            </p>
                         </td>
                     </tr>
 
-                    <!-- FOOTER -->
                     <tr>
-                        <td style="background:#f8fafc;padding:20px;text-align:center;color:#94a3b8;font-size:12px;border-top:1px solid #e2e8f0;">
-                            © 2026 NextGen Laptop. All rights reserved.<br>
-                            Địa chỉ: 123 Đường Công Nghệ, TP. Hồ Chí Minh.
+                        <td style="background:#f8fafc;padding:22px 34px;text-align:center;border-top:1px solid #e2e8f0;">
+                            <div style="font-size:13px;line-height:1.6;color:#64748b;">
+                                Nếu cần hỗ trợ, vui lòng liên hệ hotline <strong style="color:#111827;">1800 9999</strong> hoặc phản hồi email này.
+                            </div>
+                            <div style="margin-top:10px;font-size:12px;color:#94a3b8;">© 2026 NextGen Laptop. Premium Tech Store.</div>
                         </td>
                     </tr>
-
                 </table>
-
             </td>
         </tr>
     </table>
-
 </body>
 </html>

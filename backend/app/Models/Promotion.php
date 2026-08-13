@@ -4,27 +4,39 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Đại diện chương trình khuyến mãi và các điều kiện sử dụng mã giảm giá.
+ */
 class Promotion extends Model
 {
-    /**
-     * Get the user vouchers for the promotion.
-     */
+    protected $table = 'vouchers';
+
     public function userVouchers()
     {
-        return $this->hasMany(UserVoucher::class, 'id_promotion');
+        return $this->hasMany(UserVoucher::class, 'id_voucher');
     }
 
     protected $fillable = [
-        'name',
-        'category',
+        'ten',
+        'danhmuc',
         'code',
-        'type',
-        'value',
-        'end_date',
-        'status',
+        'ngay_su_kien',
+        'tu_dong_gui',
+        'loai',
+        'giatri',
+        'ngaybatdau',
+        'ngayketthuc',
+        'trangthai',
         'mota',
         'loai_dieu_kien',
         'dieu_kien',
+        'congkhai',
+        'dieu_kien_tang',
+        'so_luong_phat',
+    ];
+
+    protected $casts = [
+        'tu_dong_gui' => 'boolean',
     ];
 
     public $timestamps = false;

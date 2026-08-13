@@ -1,13 +1,13 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import axios from 'axios'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import api from '@/services/api'
 import * as XLSX from 'xlsx'
-
-const api = axios.create({
-  baseURL: 'http://127.0.0.1:8000/api',
-})
+import swal from '@/services/swal'
 
 const activeTab = ref('Biến thể cấu hình')
+const newButtonLabel = computed(() => activeTab.value === 'Biến thể cấu hình' ? 'Thêm biến thể mới' : 'Thêm màu mới')
+const newButtonModalType = computed(() => activeTab.value === 'Biến thể cấu hình' ? 'variant' : 'color')
+const isOpenAttributeDropdown = ref(false)
 
 const showModal = ref(false)
 const modalType = ref('variant')
@@ -16,8 +16,8 @@ const loading = ref(false)
 
 const typePalette = [
   { bg: '#dbeafe', color: '#1d4ed8' },
-  { bg: '#dcfce7', color: '#15803d' },
-  { bg: '#ede9fe', color: '#6d28d9' },
+  { bg: '#dcfce7', color: '#1d4ed8' },
+  { bg: '#ede9fe', color: '#1d4ed8' },
   { bg: '#fef3c7', color: '#b45309' },
   { bg: '#fee2e2', color: '#b91c1c' },
   { bg: '#e0f2fe', color: '#0369a1' },
@@ -38,18 +38,76 @@ const groups = ref([])
 const attrs = ref([])
 const colors = ref([])
 const categories = ref([])
+const parentCategories = ref([])
+const selectedParentCategoryId = computed({
+  get: () => groupForm.value.danh_muc_ids?.[0] ?? '',
+  set: (val) => {
+    groupForm.value.danh_muc_ids = val ? [Number(val)] : []
+  }
+})
 const selectedColor = ref(null)
 
 // ── Filter ──
 const selectedAttribute = ref('')
+const selectedGroup = ref('')
+const variantSearchQuery = ref('')
+const filterSearchQuery = ref('')
+
+const selectGroup = (groupName) => {
+  selectedGroup.value = groupName
+  selectedAttribute.value = ''
+  isOpenAttributeDropdown.value = false
+}
+
+const selectAttribute = (attrName) => {
+  selectedGroup.value = ''
+  selectedAttribute.value = attrName
+  isOpenAttributeDropdown.value = false
+}
+
+const clearFilters = () => {
+  selectedGroup.value = ''
+  selectedAttribute.value = ''
+  isOpenAttributeDropdown.value = false
+}
+
+const filteredGroupedAttributes = computed(() => {
+  const query = filterSearchQuery.value.toLowerCase().trim()
+  const map = {}
+  attrs.value.forEach(a => {
+    if (query && !a.name.toLowerCase().includes(query) && !a.group.toLowerCase().includes(query)) {
+      return
+    }
+    if (!map[a.group]) {
+      map[a.group] = []
+    }
+    map[a.group].push(a.name)
+  })
+  return map
+})
 
 const filteredVariants = computed(() => {
-  if (!selectedAttribute.value) return variants.value
-  return variants.value.filter(item => item.type === selectedAttribute.value)
+  let result = variants.value
+  if (selectedGroup.value) {
+    const groupAttrs = attrs.value
+      .filter(a => a.group === selectedGroup.value)
+      .map(a => a.name)
+    result = result.filter(item => groupAttrs.includes(item.type))
+  } else if (selectedAttribute.value) {
+    result = result.filter(item => item.type === selectedAttribute.value)
+  }
+  if (variantSearchQuery.value.trim()) {
+    const q = variantSearchQuery.value.toLowerCase().trim()
+    result = result.filter(item => 
+      item.name.toLowerCase().includes(q) || 
+      item.type.toLowerCase().includes(q)
+    )
+  }
+  return result
 })
 
 // Reset về trang 1 khi đổi filter
-watch(selectedAttribute, () => { variantPage.value = 1 })
+watch([selectedAttribute, selectedGroup, variantSearchQuery], () => { variantPage.value = 1 })
 
 // ── Pagination ──
 const PER_PAGE = 6
@@ -105,7 +163,7 @@ const defaultVariantForm = () => ({
   danh_muc_ids: []
 })
 const defaultColorForm = () => ({ name: '', hex: '#000000', stock: 'Khả dụng' })
-const defaultGroupForm = () => ({ name: '' })
+const defaultGroupForm = () => ({ name: '', danh_muc_ids: [] })
 const defaultAttrForm = () => ({ name: '', group: groups.value[0]?.name || '', status: 'Hoạt động' })
 
 const variantForm = ref(defaultVariantForm())
@@ -163,7 +221,12 @@ const normalizeData = (payload) => {
 
   const normalizedGroups = nhoms.map((g) => {
     const thuocTinhs = Array.isArray(g.thuoc_tinhs) ? g.thuoc_tinhs : Array.isArray(g.thuocTinhs) ? g.thuocTinhs : []
-    return { id: g.id_nhom, name: g.ten_nhom, attrCount: thuocTinhs.length }
+    let dsId = g.danh_muc_ids || []
+    if (typeof dsId === 'string') {
+      try { dsId = JSON.parse(dsId) } catch(e) { dsId = [] }
+    }
+    dsId = Array.isArray(dsId) ? dsId.map(Number) : []
+    return { id: g.id_nhom, name: g.ten_nhom, attrCount: thuocTinhs.length, danh_muc_ids: dsId }
   })
 
   const normalizedAttrs = []
@@ -172,7 +235,13 @@ const normalizeData = (payload) => {
   nhoms.forEach((g) => {
     const thuocTinhs = Array.isArray(g.thuoc_tinhs) ? g.thuoc_tinhs : Array.isArray(g.thuocTinhs) ? g.thuocTinhs : []
     thuocTinhs.forEach((a) => {
-      normalizedAttrs.push({ id: a.id_thuoctinh, name: a.ten_thuoctinh, group: g.ten_nhom, groupId: g.id_nhom, status: 'Hoạt động' })
+      normalizedAttrs.push({
+        id: a.id_thuoctinh,
+        name: a.ten_thuoctinh,
+        group: g.ten_nhom,
+        groupId: g.id_nhom,
+        status: Number(a.trangthai) === 1 ? 'Hoạt động' : 'Nháp'
+      })
       const giaTris = Array.isArray(a.giatri_thuoc_tinhs) ? a.giatri_thuoc_tinhs : Array.isArray(a.giatriThuocTinhs) ? a.giatriThuocTinhs : []
       giaTris.forEach((v) => {
         normalizedVariants.push({
@@ -227,7 +296,7 @@ const fetchAll = async () => {
 const fetchColors = async () => {
   try {
     const res = await api.get('/colors')
-    colors.value = res.data.map(c => ({ id: c.id, name: c.name, hex: c.hex || c.hex_code }))
+    colors.value = res.data.map(c => ({ id: c.id, name: c.ten, hex: c.hex || c.mamau }))
     if (!selectedColor.value && colors.value.length > 0) selectedColor.value = colors.value[0]
     colorPagination.goToPage(1)
   } catch (error) {
@@ -241,6 +310,19 @@ const fetchCategories = async () => {
     categories.value = Array.isArray(res.data) ? res.data : (res.data?.data || [])
   } catch (error) {
     console.error('Không tải được danh mục')
+  }
+}
+
+const fetchParentCategories = async () => {
+  try {
+    const res = await api.get('/danhmuc/parents')
+    const list = Array.isArray(res.data) ? res.data : (res.data?.data || [])
+    parentCategories.value = list.map(c => ({
+      id_danhmuc: c.id_danhmuc_cha,
+      ten_danhmuc: c.ten_danhmuc
+    }))
+  } catch (error) {
+    console.error('Không tải được danh mục cha', error)
   }
 }
 
@@ -261,7 +343,12 @@ const openModal = (type, item = null) => {
   else if (type === 'color') colorForm.value = defaultColorForm()
   else if (type === 'editColor' && item) colorForm.value = { ...item }
   else if (type === 'group') groupForm.value = defaultGroupForm()
-  else if (type === 'editGroup' && item) groupForm.value = { name: item.name }
+  else if (type === 'editGroup' && item) {
+    groupForm.value = { 
+      name: item.name,
+      danh_muc_ids: Array.isArray(item.danh_muc_ids) ? [...item.danh_muc_ids].map(Number) : []
+    }
+  }
   else if (type === 'attr') attrForm.value = defaultAttrForm()
   else if (type === 'editAttr' && item) attrForm.value = { name: item.name, group: item.group, status: item.status }
 
@@ -308,9 +395,9 @@ const submitVariant = async () => {
         formError.value = 'Không tìm thấy ID biến thể để cập nhật.'
         return
       }
-      await api.put(`/giatrithuoctinh/${editingId}`, payload)
+      await api.put(`/admin/giatrithuoctinh/${editingId}`, payload)
     } else {
-      await api.post('/giatrithuoctinh', payload)
+      await api.post('/admin/giatrithuoctinh', payload)
     }
     await fetchAll()
     variantPagination.goToPage(1)
@@ -331,9 +418,9 @@ const submitColor = async () => {
   }
   try {
     if (modalType.value === 'editColor') {
-      await api.put(`/colors/${editingId}`, { name: colorForm.value.name, hex_code: colorForm.value.hex })
+      await api.put(`/admin/colors/${editingId}`, { ten: colorForm.value.name, mamau: colorForm.value.hex })
     } else {
-      await api.post('/colors', { name: colorForm.value.name, hex_code: colorForm.value.hex })
+      await api.post('/admin/colors', { ten: colorForm.value.name, mamau: colorForm.value.hex })
     }
     await fetchColors()
     closeModal()
@@ -352,10 +439,14 @@ const submitGroup = async () => {
     return
   }
   try {
+    const payload = { 
+      ten_nhom: groupForm.value.name,
+      danh_muc_ids: groupForm.value.danh_muc_ids
+    }
     if (modalType.value === 'editGroup') {
-      await api.put(`/nhomthuoctinh/${editingId}`, { ten_nhom: groupForm.value.name })
+      await api.put(`/admin/nhomthuoctinh/${editingId}`, payload)
     } else {
-      await api.post('/nhomthuoctinh', { ten_nhom: groupForm.value.name })
+      await api.post('/admin/nhomthuoctinh', payload)
     }
     await fetchAll()
     groupPagination.goToPage(1)
@@ -383,11 +474,18 @@ const submitAttr = async () => {
     formError.value = `Thuộc tính "${attrForm.value.name}" đã tồn tại trong nhóm "${attrForm.value.group}".`
     return
   }
+
+  const payload = {
+    ten_thuoctinh: attrForm.value.name,
+    id_nhom: selectedGroup.id,
+    trangthai: attrForm.value.status === 'Hoạt động' ? 1 : 0
+  }
+
   try {
     if (modalType.value === 'editAttr') {
-      await api.put(`/thuoctinh/${editingId}`, { ten_thuoctinh: attrForm.value.name, id_nhom: selectedGroup.id })
+      await api.put(`/admin/thuoctinh/${editingId}`, payload)
     } else {
-      await api.post('/thuoctinh', { ten_thuoctinh: attrForm.value.name, id_nhom: selectedGroup.id })
+      await api.post('/admin/thuoctinh', payload)
     }
     await fetchAll()
     attrPagination.goToPage(1)
@@ -406,42 +504,82 @@ const handleSubmit = () => {
 
 // ── Delete ──
 const removeVariant = async (id) => {
+  const ok = await swal.confirm(
+    'Xác nhận xóa',
+    'Bạn có chắc chắn muốn xóa biến thể này không? Thao tác này không thể hoàn tác.',
+    'Xóa',
+    'Hủy'
+  )
+  if (!ok) return
+
   try {
-    await api.delete(`/giatrithuoctinh/${id}`)
+    await api.delete(`/admin/giatrithuoctinh/${id}`)
     await fetchAll()
     variantPagination.goToPage(variantPage.value)
+    swal.success('Xóa biến thể thành công')
   } catch (error) {
-    formError.value = getErrorMessage(error, 'Không xóa được biến thể.')
+    const msg = getErrorMessage(error, 'Không xóa được biến thể.')
+    swal.error('Lỗi', msg)
   }
 }
 
 const removeColor = async (id) => {
+  const ok = await swal.confirm(
+    'Xác nhận xóa',
+    'Bạn có chắc chắn muốn xóa màu sắc này không? Thao tác này không thể hoàn tác.',
+    'Xóa',
+    'Hủy'
+  )
+  if (!ok) return
+
   try {
-    await api.delete(`/colors/${id}`)
+    await api.delete(`/admin/colors/${id}`)
     if (selectedColor.value?.id === id) selectedColor.value = colors.value.find(c => c.id !== id) || null
     await fetchColors()
+    swal.success('Xóa màu sắc thành công')
   } catch (error) {
-    formError.value = getErrorMessage(error, 'Không xóa được màu.')
+    const msg = getErrorMessage(error, 'Không xóa được màu.')
+    swal.error('Lỗi', msg)
   }
 }
 
 const removeGroup = async (id) => {
+  const ok = await swal.confirm(
+    'Xác nhận xóa',
+    'Bạn có chắc chắn muốn xóa nhóm thuộc tính này không? Tất cả thuộc tính con thuộc nhóm này cũng sẽ bị ảnh hưởng.',
+    'Xóa',
+    'Hủy'
+  )
+  if (!ok) return
+
   try {
-    await api.delete(`/nhomthuoctinh/${id}`)
+    await api.delete(`/admin/nhomthuoctinh/${id}`)
     await fetchAll()
     groupPagination.goToPage(groupPage.value)
+    swal.success('Xóa nhóm thuộc tính thành công')
   } catch (error) {
-    formError.value = getErrorMessage(error, 'Không xóa được nhóm thuộc tính.')
+    const msg = getErrorMessage(error, 'Không xóa được nhóm thuộc tính.')
+    swal.error('Lỗi', msg)
   }
 }
 
 const removeAttr = async (id) => {
+  const ok = await swal.confirm(
+    'Xác nhận xóa',
+    'Bạn có chắc chắn muốn xóa loại thuộc tính này không? Các giá trị biến thể thuộc về loại thuộc tính này cũng sẽ bị xóa.',
+    'Xóa',
+    'Hủy'
+  )
+  if (!ok) return
+
   try {
-    await api.delete(`/thuoctinh/${id}`)
+    await api.delete(`/admin/thuoctinh/${id}`)
     await fetchAll()
     attrPagination.goToPage(attrPage.value)
+    swal.success('Xóa loại thuộc tính thành công')
   } catch (error) {
-    formError.value = getErrorMessage(error, 'Không xóa được loại thuộc tính.')
+    const msg = getErrorMessage(error, 'Không xóa được loại thuộc tính.')
+    swal.error('Lỗi', msg)
   }
 }
 
@@ -467,10 +605,22 @@ const modalBtnLabel = computed(() =>
   })[modalType.value] || 'Lưu'
 )
 
+const closeAttributeDropdown = (e) => {
+  if (!e.target.closest('.attribute-filter-dropdown')) {
+    isOpenAttributeDropdown.value = false
+  }
+}
+
 onMounted(() => {
   fetchAll()
   fetchColors()
   fetchCategories()
+  fetchParentCategories()
+  document.addEventListener('click', closeAttributeDropdown)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', closeAttributeDropdown)
 })
 
 // ══════════════════════════════════════════════════════
@@ -557,10 +707,10 @@ async function handleImportFile(e) {
           const existingColor = colors.value.find(c => c.name.trim().toLowerCase() === name.toLowerCase())
           if (existingColor) {
             // Cập nhật màu hiện có
-            await api.put(`/colors/${existingColor.id}`, { name, hex_code: hex })
+            await api.put(`/admin/colors/${existingColor.id}`, { ten: name, mamau: hex })
           } else {
             // Thêm màu mới
-            await api.post('/colors', { name, hex_code: hex })
+            await api.post('/admin/colors', { ten: name, mamau: hex })
           }
         } else {
           const varName = String(obj['Tên biến thể'] || '').trim()
@@ -580,7 +730,7 @@ async function handleImportFile(e) {
 
           if (existingVar) {
             // Cập nhật biến thể hiện có
-            await api.put(`/giatrithuoctinh/${existingVar.id}`, {
+            await api.put(`/admin/giatrithuoctinh/${existingVar.id}`, {
               id_thuoctinh: attr.id,
               giatri: varName,
               gia_cong_them: giaCongThem,
@@ -588,7 +738,7 @@ async function handleImportFile(e) {
             })
           } else {
             // Thêm biến thể mới
-            await api.post('/giatrithuoctinh', { 
+            await api.post('/admin/giatrithuoctinh', { 
               id_thuoctinh: attr.id, 
               giatri: varName,
               gia_cong_them: giaCongThem,
@@ -609,8 +759,10 @@ async function handleImportFile(e) {
     if (skipCount) parts.push(`bỏ qua ${skipCount} dòng`)
     if (failCount) parts.push(`thất bại ${failCount} dòng`)
     importSuccess.value = parts.join(', ') + '.'
+    await swal.success('Nhập dữ liệu thành công', importSuccess.value)
   } catch (err) {
     importError.value = err.message || 'Đọc file thất bại. Hãy dùng file xuất từ hệ thống.'
+    await swal.error('Nhập dữ liệu thất bại', importError.value)
   } finally {
     importLoading.value = false
   }
@@ -663,15 +815,6 @@ async function handleImportFile(e) {
         <h1>Quản lý biến thể &amp; Màu sắc</h1>
         <p>Cấu hình các thuộc tính kỹ thuật và dải màu sắc dành cho dòng sản phẩm cao cấp VinaTech 2026.</p>
       </div>
-      <div class="action-row">
-        <button class="btn-new" @click="openModal(activeTab === 'Biến thể cấu hình' ? 'variant' : 'color')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          Thêm biến thể mới
-        </button>
-      </div>
     </div>
 
     <!-- ══ TOP TABLES: GROUP + ATTR ══ -->
@@ -692,6 +835,7 @@ async function handleImportFile(e) {
           <thead>
             <tr>
               <th>TÊN NHÓM</th>
+              <th>DANH MỤC CHA</th>
               <th>SỐ THUỘC TÍNH</th>
               <th>THAO TÁC</th>
             </tr>
@@ -712,6 +856,14 @@ async function handleImportFile(e) {
                     </svg>
                   </div>
                   <span class="variant-name">{{ g.name }}</span>
+                </div>
+              </td>
+              <td>
+                <div class="badges">
+                  <span v-for="id in g.danh_muc_ids" :key="id" class="badge bg-blue">
+                    {{ parentCategories.find(c => String(c.id_danhmuc) === String(id))?.ten_danhmuc || 'N/A' }}
+                  </span>
+                  <span v-if="!g.danh_muc_ids || g.danh_muc_ids.length === 0" class="badge bg-gray">Tất cả</span>
                 </div>
               </td>
               <td><span class="count-badge">{{ g.attrCount }}</span></td>
@@ -743,9 +895,7 @@ async function handleImportFile(e) {
                 <polyline points="15 18 9 12 15 6" />
               </svg>
             </button>
-            <button v-for="(p, index) in groupPageItems" :key="`${p}-${index}`" class="page-btn"
-              :class="{ active: p === groupPage, dots: p === '...' }" :disabled="p === '...'"
-              @click="p !== '...' && groupPagination.goToPage(p)">{{ p }}</button>
+            <span class="page-btn active page-indicator">{{ groupPage }}/{{ groupPages }}</span>
             <button class="page-btn" :disabled="groupPage === groupPages" @click="groupPagination.nextPage()">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <polyline points="9 18 15 12 9 6" />
@@ -824,9 +974,7 @@ async function handleImportFile(e) {
                 <polyline points="15 18 9 12 15 6" />
               </svg>
             </button>
-            <button v-for="(p, index) in attrPageItems" :key="`${p}-${index}`" class="page-btn"
-              :class="{ active: p === attrPage, dots: p === '...' }" :disabled="p === '...'"
-              @click="p !== '...' && attrPagination.goToPage(p)">{{ p }}</button>
+            <span class="page-btn active page-indicator">{{ attrPage }}/{{ attrPages }}</span>
             <button class="page-btn" :disabled="attrPage === attrPages" @click="attrPagination.nextPage()">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <polyline points="9 18 15 12 9 6" />
@@ -839,10 +987,19 @@ async function handleImportFile(e) {
 
     <!-- TABS -->
     <div class="tabs">
-      <button class="tab" :class="{ active: activeTab === 'Biến thể cấu hình' }"
-        @click="activeTab = 'Biến thể cấu hình'">Biến thể cấu hình</button>
-      <button class="tab" :class="{ active: activeTab === 'Bảng màu sản phẩm' }"
-        @click="activeTab = 'Bảng màu sản phẩm'">Bảng màu sản phẩm</button>
+      <div class="tab-buttons">
+        <button class="tab" :class="{ active: activeTab === 'Biến thể cấu hình' }"
+          @click="activeTab = 'Biến thể cấu hình'">Biến thể cấu hình</button>
+        <button class="tab" :class="{ active: activeTab === 'Bảng màu sản phẩm' }"
+          @click="activeTab = 'Bảng màu sản phẩm'">Bảng màu sản phẩm</button>
+      </div>
+      <button class="btn-new" @click="openModal(newButtonModalType)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        {{ newButtonLabel }}
+      </button>
     </div>
 
     <!-- MAIN LAYOUT -->
@@ -853,15 +1010,53 @@ async function handleImportFile(e) {
           <div class="card-header">
             <div class="card-title"><span class="bar blue"></span>Danh sách biến thể</div>
             <div class="card-header-right">
-              <!-- ── FILTER SELECT ── -->
-              <div class="filter-wrap">
-                <svg class="filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                  <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+              <!-- Search box for variants -->
+              <div class="variant-search-wrap">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
                 </svg>
-                <select v-model="selectedAttribute" class="filter-select">
-                  <option value="">Tất cả loại</option>
-                  <option v-for="opt in variantTypeOptions" :key="opt" :value="opt">{{ opt }}</option>
-                </select>
+                <input v-model="variantSearchQuery" placeholder="Tìm tên biến thể..." class="variant-search-input" />
+              </div>
+              
+              <!-- ── FILTER SELECT ── -->
+              <div class="filter-wrap attribute-filter-dropdown">
+                <div class="dropdown-trigger" @click.stop="isOpenAttributeDropdown = !isOpenAttributeDropdown">
+                  <svg class="filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+                  </svg>
+                  <span class="selected-val">{{ selectedGroup ? `Nhóm: ${selectedGroup}` : (selectedAttribute || 'Tất cả loại') }}</span>
+                  <svg class="chevron" :class="{ open: isOpenAttributeDropdown }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </div>
+                <transition name="fade-slide">
+                  <ul v-if="isOpenAttributeDropdown" class="dropdown-menu">
+                    <!-- Search input inside dropdown -->
+                    <div class="dropdown-search" @click.stop>
+                      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.35-4.35" />
+                      </svg>
+                      <input v-model="filterSearchQuery" placeholder="Tìm thuộc tính..." />
+                    </div>
+                    
+                    <li :class="{ active: selectedAttribute === '' && selectedGroup === '' }" @click="clearFilters">
+                      Tất cả loại
+                    </li>
+                    
+                    <div v-for="(groupAttrs, groupName) in filteredGroupedAttributes" :key="groupName" class="dropdown-group">
+                      <div class="dropdown-group-title" :class="{ active: selectedGroup === groupName }" @click="selectGroup(groupName)">
+                        {{ groupName }}
+                      </div>
+                      <li v-for="opt in groupAttrs" :key="opt"
+                        :class="{ active: selectedAttribute === opt }"
+                        @click="selectAttribute(opt)">
+                        {{ opt }}
+                      </li>
+                    </div>
+                  </ul>
+                </transition>
               </div>
               <div class="card-tools">
                 <button class="tool-btn">
@@ -936,9 +1131,7 @@ async function handleImportFile(e) {
                   <polyline points="15 18 9 12 15 6" />
                 </svg>
               </button>
-              <button v-for="(p, index) in variantPageItems" :key="`${p}-${index}`" class="page-btn"
-                :class="{ active: p === variantPage, dots: p === '...' }" :disabled="p === '...'"
-                @click="p !== '...' && variantPagination.goToPage(p)">{{ p }}</button>
+              <span class="page-btn active page-indicator">{{ variantPage }}/{{ variantPages }}</span>
               <button class="page-btn" :disabled="variantPage === variantPages" @click="variantPagination.nextPage()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                   <polyline points="9 18 15 12 9 6" />
@@ -952,7 +1145,6 @@ async function handleImportFile(e) {
         <div v-else class="card">
           <div class="card-header">
             <div class="card-title"><span class="bar purple"></span>Bảng màu sản phẩm</div>
-            <button class="btn-new-sm purple-btn" @click="openModal('color')">+ Thêm màu</button>
           </div>
           <table>
             <thead>
@@ -996,9 +1188,7 @@ async function handleImportFile(e) {
                   <polyline points="15 18 9 12 15 6" />
                 </svg>
               </button>
-              <button v-for="(p, index) in colorPageItems" :key="`${p}-${index}`" class="page-btn"
-                :class="{ active: p === colorPage, dots: p === '...' }" :disabled="p === '...'"
-                @click="p !== '...' && colorPagination.goToPage(p)">{{ p }}</button>
+              <span class="page-btn active page-indicator">{{ colorPage }}/{{ colorPages }}</span>
               <button class="page-btn" :disabled="colorPage === colorPages" @click="colorPagination.nextPage()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                   <polyline points="9 18 15 12 9 6" />
@@ -1099,9 +1289,13 @@ async function handleImportFile(e) {
           <p>Import biến thể hoặc màu từ file Excel</p>
           <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center">
             <button class="export-sm-btn green-sm" :disabled="importLoading" @click="triggerImport">
-              {{ importLoading ? 'Đang nhập...' : 'Chọn file Excel' }}
+              <span v-if="importLoading" class="btn-loading-wrap">
+                <span class="btn-spinner"></span>
+                Đang nhập...
+              </span>
+              <span v-else>Chọn file Excel</span>
             </button>
-            <span v-if="importSuccess" style="font-size:11px;color:#16a34a;font-weight:600">✓ {{ importSuccess }}</span>
+            <span v-if="importSuccess" style="font-size:11px;color:#2563eb;font-weight:600">✓ {{ importSuccess }}</span>
             <span v-if="importError" style="font-size:11px;color:#dc2626;font-weight:600">✗ {{ importError }}</span>
           </div>
           <input ref="importFileRef" type="file" accept=".xlsx,.xls" style="display:none" @change="handleImportFile" />
@@ -1264,6 +1458,19 @@ async function handleImportFile(e) {
                     <label>TÊN NHÓM THUỘC TÍNH <span class="req">*</span></label>
                     <input v-model="groupForm.name" placeholder="VD: Cấu hình Laptop" />
                   </div>
+                  <div class="form-group">
+                    <label>ÁP DỤNG CHO DANH MỤC CHA <span class="req">*</span></label>
+                    <select v-model="selectedParentCategoryId">
+                      <option value="">-- Chọn danh mục cha --</option>
+                      <option 
+                        v-for="cat in parentCategories" 
+                        :key="cat.id_danhmuc" 
+                        :value="Number(cat.id_danhmuc)"
+                      >
+                        {{ cat.ten_danhmuc }}
+                      </option>
+                    </select>
+                  </div>
                 </template>
 
                 <!-- ATTR -->
@@ -1378,11 +1585,7 @@ async function handleImportFile(e) {
   font-family: inherit;
 }
 
-.topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
+.topbar-right { display: none !important; }
 
 .nav-link {
   font-size: 13px;
@@ -1435,7 +1638,7 @@ async function handleImportFile(e) {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  background: linear-gradient(135deg, #2563eb, #2563eb);
   color: white;
   font-size: 11px;
   font-weight: 700;
@@ -1499,7 +1702,7 @@ async function handleImportFile(e) {
   padding: 10px 18px;
   border-radius: 10px;
   border: none;
-  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  background: linear-gradient(135deg, #2563eb, #2563eb);
   color: white;
   font-size: 13px;
   font-weight: 600;
@@ -1533,8 +1736,14 @@ async function handleImportFile(e) {
 
 .tabs {
   display: flex;
-  gap: 4px;
+  justify-content: space-between;
+  align-items: center;
   padding: 0 32px 14px;
+}
+
+.tab-buttons {
+  display: flex;
+  gap: 4px;
 }
 
 .tab {
@@ -1592,15 +1801,40 @@ async function handleImportFile(e) {
 }
 
 /* ── FILTER SELECT ── */
-.filter-wrap {
+.attribute-filter-dropdown {
   position: relative;
-  display: flex;
-  align-items: center;
+  display: inline-block;
+  min-width: 140px;
+  user-select: none;
 }
 
-.filter-icon {
+.attribute-filter-dropdown .dropdown-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 12px 7px 28px;
+  border-radius: 8px;
+  border: 1.5px solid #cbd5e1;
+  background: white;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: all .2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.attribute-filter-dropdown .dropdown-trigger:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(37,99,235,0.06);
+}
+
+.attribute-filter-dropdown .filter-icon {
   position: absolute;
-  left: 9px;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
   width: 12px;
   height: 12px;
   color: #64748b;
@@ -1608,31 +1842,198 @@ async function handleImportFile(e) {
   z-index: 1;
 }
 
-.filter-select {
-  padding: 7px 30px 7px 28px;
+.attribute-filter-dropdown .dropdown-trigger .chevron {
+  width: 14px;
+  height: 14px;
+  color: #64748b;
+  transition: transform .2s ease;
+}
+
+.attribute-filter-dropdown .dropdown-trigger .chevron.open {
+  transform: rotate(180deg);
+}
+
+.attribute-filter-dropdown .dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 6px;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  max-height: 240px;
+  overflow-y: auto;
+  min-width: 210px;
+}
+
+/* Custom Scrollbar for Dropdown Menu */
+.attribute-filter-dropdown .dropdown-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.attribute-filter-dropdown .dropdown-menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.attribute-filter-dropdown .dropdown-menu::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+.attribute-filter-dropdown .dropdown-menu li {
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
   border-radius: 8px;
-  border: 1.5px solid #e2e8f0;
-  font-size: 12px;
-  font-weight: 500;
-  color: #374151;
-  background: #f8fafc url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 8px center;
-  appearance: none;
-  -webkit-appearance: none;
   cursor: pointer;
-  font-family: inherit;
+  transition: all 0.12s ease;
+  text-align: left;
+}
+
+.attribute-filter-dropdown .dropdown-menu li:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.attribute-filter-dropdown .dropdown-menu li.active {
+  background: #475569;
+  color: white;
+  font-weight: 600;
+}
+
+/* ── Search inputs and grouped items ── */
+.variant-search-wrap {
+  position: relative;
+  width: 180px;
+}
+
+.variant-search-wrap svg.search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.variant-search-wrap input.variant-search-input {
+  width: 100%;
+  padding: 7px 12px 7px 30px;
+  border-radius: 8px;
+  border: 1.5px solid #cbd5e1;
+  font-size: 13px;
+  font-weight: 500;
+  color: #0f172a;
   outline: none;
-  transition: border-color .2s, box-shadow .2s;
-  min-width: 140px;
+  background: white;
+  transition: all .2s ease;
+  font-family: inherit;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
-.filter-select:focus {
-  border-color: #2563eb;
-  background-color: white;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, .08);
+.variant-search-wrap input.variant-search-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(37,99,235,0.06);
 }
 
-.filter-select:hover {
-  border-color: #cbd5e1;
+.attribute-filter-dropdown .dropdown-search {
+  position: relative;
+  padding: 4px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.attribute-filter-dropdown .dropdown-search svg.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 12px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.attribute-filter-dropdown .dropdown-search input {
+  width: 100%;
+  padding: 6px 10px 6px 26px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  font-size: 12px;
+  color: #0f172a;
+  outline: none;
+  background: #f8fafc;
+  font-family: inherit;
+}
+
+.attribute-filter-dropdown .dropdown-search input:focus {
+  border-color: #3b82f6;
+  background: white;
+}
+
+.attribute-filter-dropdown .dropdown-group {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.attribute-filter-dropdown .dropdown-group-title {
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: capitalize;
+  letter-spacing: .05em;
+  background: #f8fafc;
+  border-radius: 6px;
+  margin: 2px 0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.attribute-filter-dropdown .dropdown-group-title:hover {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.attribute-filter-dropdown .dropdown-group-title.active {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.attribute-filter-dropdown .dropdown-group li {
+  padding-left: 20px;
+  position: relative;
+}
+
+.attribute-filter-dropdown .dropdown-group li::before {
+  content: "•";
+  position: absolute;
+  left: 10px;
+  color: #cbd5e1;
+}
+
+/* Dropdown Transitions */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all .2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fade-slide-enter-from,
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
 }
 
 .card-title {
@@ -1652,9 +2053,9 @@ async function handleImportFile(e) {
 }
 
 .bar.blue { background: #2563eb; }
-.bar.purple { background: #7c3aed; }
+.bar.purple { background: #2563eb; }
 .bar.purple2 { background: #9333ea; }
-.bar.green { background: #16a34a; }
+.bar.green { background: #2563eb; }
 
 .card-tools {
   display: flex;
@@ -1703,17 +2104,17 @@ async function handleImportFile(e) {
 }
 
 .green-btn {
-  border-color: #16a34a;
+  border-color: #2563eb;
   background: #f0fdf4;
-  color: #15803d;
+  color: #1d4ed8;
 }
 
 .green-btn:hover { background: #dcfce7; }
 
 .purple-btn {
-  border-color: #7c3aed;
+  border-color: #2563eb;
   background: #faf5ff;
-  color: #6d28d9;
+  color: #1d4ed8;
 }
 
 .purple-btn:hover { background: #ede9fe; }
@@ -1772,7 +2173,7 @@ tbody td {
   font-weight: 600;
 }
 
-.status-dot.active { color: #16a34a; }
+.status-dot.active { color: #2563eb; }
 .status-dot.draft { color: #d97706; }
 
 .color-swatch-cell {
@@ -1784,7 +2185,7 @@ tbody td {
 
 .count-badge {
   background: #f0fdf4;
-  color: #15803d;
+  color: #1d4ed8;
   font-size: 11px;
   font-weight: 700;
   padding: 3px 9px;
@@ -1794,7 +2195,7 @@ tbody td {
 
 .group-tag {
   background: #ede9fe;
-  color: #6d28d9;
+  color: #1d4ed8;
   font-size: 11px;
   font-weight: 600;
   padding: 3px 9px;
@@ -1823,9 +2224,9 @@ tbody td {
 }
 
 .green-icon { background: #f0fdf4; }
-.green-icon svg { stroke: #16a34a; }
+.green-icon svg { stroke: #2563eb; }
 .purple-icon { background: #faf5ff; }
-.purple-icon svg { stroke: #7c3aed; }
+.purple-icon svg { stroke: #2563eb; }
 
 .actions { display: flex; gap: 5px; }
 
@@ -2042,7 +2443,7 @@ tbody td {
   color: #ef4444;
 }
 
-.stock-ok { color: #16a34a; font-size: 12px; font-weight: 600; }
+.stock-ok { color: #2563eb; font-size: 12px; font-weight: 600; }
 .stock-out { color: #dc2626; font-size: 12px; font-weight: 600; }
 
 .preview-card { padding: 14px; }
@@ -2114,7 +2515,7 @@ tbody td {
   padding: 3px 8px;
   border-radius: 20px;
   background: #dcfce7;
-  color: #16a34a;
+  color: #2563eb;
   white-space: nowrap;
 }
 
@@ -2162,7 +2563,7 @@ tbody td {
 }
 
 .bottom-icon.blue { background: #dbeafe; color: #2563eb; }
-.bottom-icon.purple { background: #ede9fe; color: #7c3aed; }
+.bottom-icon.purple { background: #ede9fe; color: #2563eb; }
 
 .bottom-card h4 {
   font-size: 13px;
@@ -2179,7 +2580,7 @@ tbody td {
 }
 
 .dark-bottom {
-  background: linear-gradient(135deg, #1e40af, #4f46e5);
+  background: linear-gradient(135deg, #1e40af, #2563eb);
   border-color: transparent;
 }
 
@@ -2203,10 +2604,23 @@ tbody td {
 
 .export-sm-btn:hover:not(:disabled) { background: #2563eb; color: #fff; }
 .export-sm-btn:disabled { opacity: .5; cursor: not-allowed; }
-.export-sm-btn.purple-sm { border-color: #7c3aed; color: #7c3aed; }
-.export-sm-btn.purple-sm:hover { background: #7c3aed; color: #fff; }
-.export-sm-btn.green-sm { border-color: #16a34a; color: #16a34a; }
-.export-sm-btn.green-sm:hover:not(:disabled) { background: #16a34a; color: #fff; }
+.export-sm-btn.purple-sm { border-color: #2563eb; color: #2563eb; }
+.export-sm-btn.purple-sm:hover { background: #2563eb; color: #fff; }
+.export-sm-btn.green-sm { border-color: #2563eb; color: #2563eb; }
+.export-sm-btn.green-sm:hover:not(:disabled) { background: #2563eb; color: #fff; }
+.btn-loading-wrap { display: inline-flex; align-items: center; gap: 8px; }
+.btn-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  display: inline-block;
+  animation: spin .75s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 
 .modal-overlay {
   position: fixed;
@@ -2262,10 +2676,10 @@ tbody td {
   height: 17px;
 }
 
-.icon-add { background: linear-gradient(135deg, #2563eb, #4f46e5); }
+.icon-add { background: linear-gradient(135deg, #2563eb, #2563eb); }
 .icon-edit { background: linear-gradient(135deg, #f59e0b, #f97316); }
-.icon-group { background: linear-gradient(135deg, #16a34a, #059669); }
-.icon-attr { background: linear-gradient(135deg, #7c3aed, #6d28d9); }
+.icon-group { background: linear-gradient(135deg, #2563eb, #1D4ED8); }
+.icon-attr { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
 
 .modal-title {
   font-size: 15px;
@@ -2447,7 +2861,7 @@ tbody td {
 }
 
 .purple-icon-prev { background: #ede9fe; }
-.purple-icon-prev svg { stroke: #7c3aed; }
+.purple-icon-prev svg { stroke: #2563eb; }
 
 .prev-name {
   font-size: 14px;
@@ -2490,8 +2904,8 @@ tbody td {
   transition: background .15s;
 }
 
-.tg-green { border-color: #16a34a; background: #f0fdf4; color: #15803d; }
-.tg-green .tdot { background: #16a34a; }
+.tg-green { border-color: #2563eb; background: #f0fdf4; color: #1d4ed8; }
+.tg-green .tdot { background: #2563eb; }
 .tg-yellow { border-color: #d97706; background: #fffbeb; color: #b45309; }
 .tg-yellow .tdot { background: #d97706; }
 .tg-red { border-color: #dc2626; background: #fef2f2; color: #b91c1c; }
@@ -2527,7 +2941,7 @@ tbody td {
   padding: 9px 20px;
   border-radius: 8px;
   border: none;
-  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  background: linear-gradient(135deg, #2563eb, #2563eb);
   color: white;
   font-size: 13px;
   font-weight: 600;
@@ -2599,5 +3013,11 @@ tbody td {
 @media (max-width:640px) {
   .bottom-grid { grid-template-columns: 1fr; }
   .form-row { grid-template-columns: 1fr; }
+}
+
+.selected-option {
+  font-weight: 700 !important;
+  background-color: #e0e7ff !important;
+  color: #2563eb !important;
 }
 </style>

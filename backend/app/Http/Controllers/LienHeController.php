@@ -6,25 +6,110 @@ use Illuminate\Http\Request;
 use App\Models\LienHe;
 use Illuminate\Support\Facades\Mail;
 
+/**
+ * Tiếp nhận liên hệ, yêu cầu tư vấn, lịch hẹn showroom và phản hồi khách hàng.
+ */
 class LienHeController extends Controller
 {
-    public function store(Request $request)
+    public function storeConsultation(Request $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:100',
-            'email' => 'required|email|max:100',
-            'phone' => 'nullable|string|max:20',
-            'message' => 'required|string|max:2000',
-            'category' => 'nullable|string'
+        $validated = $request->validate([
+            'sodienthoai' => ['required', 'string', 'max:20', 'regex:/^(0|\+84)[0-9\s.-]{8,14}$/'],
+        ], [
+            'sodienthoai.required' => 'Vui lòng nhập số điện thoại.',
+            'sodienthoai.regex' => 'Số điện thoại không đúng định dạng.',
         ]);
 
+        $consultation = LienHe::create([
+            'hoten' => 'Khách hàng đăng ký tư vấn',
+            'email' => 'support@nextgenlaptop.vn',
+            'sodienthoai' => $validated['sodienthoai'],
+            'noidung' => 'Khách hàng yêu cầu chuyên viên gọi lại để tư vấn.',
+            'danhmuc' => 'Đặt lịch tư vấn',
+            'trangthai' => 'new',
+            'loai_yeu_cau' => 'consultation_callback',
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Đăng ký tư vấn thành công.',
+            'data' => $consultation,
+        ], 201);
+    }
+
+    public function storeAppointment(Request $request)
+    {
+        $validated = $request->validate([
+            'hoten' => 'required|string|max:100',
+            'email' => 'required|email|max:100',
+            'sodienthoai' => ['required', 'string', 'max:20', 'regex:/^(0|\\+84)[0-9\\s.-]{8,14}$/'],
+            'showroom_id' => 'required|integer|min:1',
+            'showroom_ten' => 'required|string|max:150',
+            'showroom_diachi' => 'required|string|max:255',
+            'ngay_hen' => 'required|date|after_or_equal:today',
+            'khung_gio' => 'required|in:08:00 - 10:00,10:00 - 12:00,13:30 - 15:30,15:30 - 17:30',
+            'ghi_chu' => 'nullable|string|max:1000',
+        ], [
+            'sodienthoai.regex' => 'Số điện thoại không đúng định dạng.',
+            'ngay_hen.after_or_equal' => 'Ngày trải nghiệm không được ở trong quá khứ.',
+            'khung_gio.in' => 'Khung giờ trải nghiệm không hợp lệ.',
+        ]);
+
+        $content = implode("\n", array_filter([
+            "Showroom: {$validated['showroom_ten']}",
+            "Địa chỉ: {$validated['showroom_diachi']}",
+            "Ngày hẹn: {$validated['ngay_hen']}",
+            "Khung giờ: {$validated['khung_gio']}",
+            !empty($validated['ghi_chu']) ? "Nhu cầu: {$validated['ghi_chu']}" : null,
+        ]));
+
+        $appointment = LienHe::create([
+            'hoten' => $validated['hoten'],
+            'email' => $validated['email'],
+            'sodienthoai' => $validated['sodienthoai'],
+            'noidung' => $content,
+            'danhmuc' => 'Đặt lịch trải nghiệm showroom',
+            'trangthai' => 'new',
+            'loai_yeu_cau' => 'showroom_appointment',
+            'showroom_id' => $validated['showroom_id'],
+            'showroom_ten' => $validated['showroom_ten'],
+            'showroom_diachi' => $validated['showroom_diachi'],
+            'ngay_hen' => $validated['ngay_hen'],
+            'khung_gio' => $validated['khung_gio'],
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Đăng ký lịch trải nghiệm thành công.',
+            'data' => $appointment,
+        ], 201);
+    }
+
+    public function store(Request $request)
+    {
+        $payload = [
+            'hoten' => $request->input('hoten', $request->input('name')),
+            'email' => $request->input('email'),
+            'sodienthoai' => $request->input('sodienthoai', $request->input('phone')),
+            'noidung' => $request->input('noidung', $request->input('message')),
+            'danhmuc' => $request->input('danhmuc', $request->input('subject')),
+        ];
+
+        validator($payload, [
+            'hoten' => 'required|string|max:100',
+            'email' => 'required|email|max:100',
+            'sodienthoai' => 'nullable|string|max:20',
+            'noidung' => 'required|string|max:2000',
+            'danhmuc' => 'nullable|string'
+        ])->validate();
+
         $contact = LienHe::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'message' => $request->message,
-            'category' => $request->category ?? 'Tư vấn',
-            'status' => 'new'
+            'hoten' => $payload['hoten'],
+            'email' => $payload['email'],
+            'sodienthoai' => $payload['sodienthoai'],
+            'noidung' => $payload['noidung'],
+            'danhmuc' => $request->danhmuc ?? 'Tư vấn',
+            'trangthai' => 'new'
         ]);
 
         return response()->json([
@@ -43,15 +128,22 @@ class LienHeController extends Controller
 
     public function reply(Request $request, $id)
     {
-        $request->validate([
-            'reply' => 'required|string|max:5000'
-        ]);
+        $replyContent = $request->input('phanhoi', $request->input('reply'));
+
+        if (empty($replyContent)) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Nội dung phản hồi không được để trống.'
+            ], 422);
+        }
 
         $contact = LienHe::findOrFail($id);
+        $mailSent = false;
 
-            Mail::send([], [], function ($mail) use ($contact, $request) {
-                $mail->to($contact->email, $contact->name)
-                    ->subject('💻 NextGen Laptop | Phản hồi liên hệ #' . $contact->id)
+        try {
+            Mail::send([], [], function ($mail) use ($contact, $replyContent) {
+                $mail->to($contact->email, $contact->hoten)
+                    ->subject('💻 Predator | Phản hồi liên hệ #' . $contact->id)
                     ->html("
             <!DOCTYPE html>
             <html>
@@ -65,7 +157,7 @@ class LienHeController extends Controller
 
                 <!-- HEADER -->
                 <div style='background:linear-gradient(135deg,#6366f1,#2563eb,#06b6d4);padding:30px;text-align:center;color:white'>
-                    <h1 style='margin:0;font-size:26px'>💻 NextGen Laptop</h1>
+                    <h1 style='margin:0;font-size:26px'>💻 Predator</h1>
                     <p style='margin-top:8px;font-size:13px;opacity:0.9'>
                         Công nghệ dẫn đầu – Phục vụ tận tâm
                     </p>
@@ -75,11 +167,11 @@ class LienHeController extends Controller
                 <div style='padding:28px'>
 
                     <h2 style='margin:0 0 10px;color:#111827;font-size:18px'>
-                        Xin chào {$contact->name} 👋
+                        Xin chào {$contact->hoten} 👋
                     </h2>
 
                     <p style='color:#374151;font-size:14px;line-height:1.6'>
-                        Cảm ơn bạn đã liên hệ với <strong>NextGen Laptop</strong>. 
+                        Cảm ơn bạn đã liên hệ với <strong>Predator</strong>.
                         Đội ngũ của chúng tôi đã tiếp nhận và phản hồi như sau:
                     </p>
 
@@ -89,7 +181,7 @@ class LienHeController extends Controller
                                 border:1px solid #e0e7ff'>
 
                         <p style='margin:0;color:#111827;font-size:14px;line-height:1.6'>
-                            " . nl2br(e($request->reply)) . "
+                            " . nl2br(e($replyContent)) . "
                         </p>
                     </div>
 
@@ -105,7 +197,7 @@ class LienHeController extends Controller
                         font-size:14px;
                         font-weight:600;
                         box-shadow:0 6px 18px rgba(37,99,235,0.4)'>
-                        🚀 Truy cập NextGen Laptop
+                        🚀 Truy cập Predator
                         </a>
                     </div>
 
@@ -117,9 +209,9 @@ class LienHeController extends Controller
 
                 <!-- FOOTER -->
                 <div style='background:#0f172a;color:#94a3b8;text-align:center;padding:18px;font-size:12px'>
-                    <p style='margin:0'>© 2026 NextGen Laptop</p>
+                    <p style='margin:0'>© 2026 Predator</p>
                     <p style='margin:5px 0'>📞 Hotline: 1900 8888</p>
-                    <p style='margin:0'>📧 support@nextgen.vn</p>
+                    <p style='margin:0'>📧 support@predator.vn</p>
                 </div>
 
             </div>
@@ -128,16 +220,29 @@ class LienHeController extends Controller
             </html>
             ");
             });
+            $mailSent = true;
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("Mail send failed: " . $e->getMessage());
+            $mailSent = false;
+        }
 
         $contact->update([
-            'reply'      => $request->reply,
-            'status'     => 'replied',
-            'replied_at' => now()
+            'phanhoi'      => $replyContent,
+            'trangthai'     => 'replied',
+            'phan_hoi_luc' => now()
         ]);
 
+        if ($mailSent) {
+            return response()->json([
+                'status'  => true,
+                'message' => 'Đã gửi email phản hồi tới khách hàng thành công!'
+            ]);
+        }
+
         return response()->json([
-            'status'  => true,
-            'message' => 'Đã gửi phản hồi thành công'
+            'status'    => true,
+            'message'   => 'Đã lưu phản hồi vào hệ thống! (Lưu ý: Email chưa gửi được trực tiếp do máy chủ cPanel chưa cấu hình SMTP)',
+            'mail_sent' => false
         ]);
     }
 

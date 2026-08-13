@@ -1,38 +1,128 @@
 <script setup>
 
-import { ref, computed, onMounted, watch } from 'vue'
-import * as XLSX from 'xlsx'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
   
 import api from '../../services/api'
 import swal from '../../services/swal'
 import echo from '../../services/echo'
-import { onUnmounted } from 'vue'
+import { productImageUrl, storageUrl } from '@/services/urls'
+import BulkDeleteToolbar from './BulkDeleteToolbar.vue'
+import { useAdminBulkDelete } from '@/services/adminBulkDelete'
+
+const getOrderItemImage = (item) => {
+  const bt = item?.bien_the || item?.bienThe
+  const sp = bt?.san_pham || bt?.sanPham
+  return productImageUrl(sp, bt, 'https://placehold.co/60')
+}
+
+const getOrderItemName = (item) => {
+  const bt = item?.bien_the || item?.bienThe
+  const sp = bt?.san_pham || bt?.sanPham
+  return sp?.tenSP || 'Sản phẩm'
+}
+
+const getOrderItemVariant = (item) => {
+  const bt = item?.bien_the || item?.bienThe
+  return parseAttr(bt?.thuoc_tinh_json)
+}
 
 const activeTab = ref('Tất cả')
 const searchQuery = ref('')
 const showViewModal = ref(false)
 const viewOrder = ref(null)
 const selectedMonthYear = ref('Tất cả')
+const isOpenDateDropdown = ref(false)
+
+const closeDateDropdown = (e) => {
+    if (!e.target.closest('.date-filter-dropdown')) {
+        isOpenDateDropdown.value = false
+    }
+}
 
 // Pagination
 const currentPage = ref(1)
 const itemsPerPage = 5
 
-const tabs = ['Tất cả', 'Chờ xác nhận', 'Đã xác nhận', 'Đang giao', 'Hoàn thành', 'Đã hủy']
+const pageMode = ref('orders')
+
+const orderSteps = computed(() => {
+    const o = viewOrder.value
+    if (!o) return null
+    const statusKey = o.status
+    return [
+        { label: 'Đặt hàng', date: o.date || (o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : null) || '—', done: true },
+        { label: 'Xác nhận', date: null, done: statusKey !== 'pending' },
+        { label: 'Đang giao', date: null, done: statusKey === 'shipping' || statusKey === 'done' || statusKey.startsWith('refund') },
+        { label: 'Hoàn thành', date: null, done: statusKey === 'done' || statusKey.startsWith('refund') },
+    ]
+})
+
+const refundSteps = computed(() => {
+    const o = viewOrder.value
+    if (!o) return null
+    const statusKey = o.status
+    if (!statusKey.startsWith('refund')) return null
+    const keys = ['refund_pending', 'refund_pickup', 'refund_delivering', 'refund_received', 'refunded']
+    return [
+        { label: 'Yêu cầu hoàn trả', date: null, done: keys.indexOf(statusKey) >= 0 },
+        { label: 'Chờ lấy hàng hoàn', date: null, done: keys.indexOf(statusKey) >= 1 },
+        { label: 'Đang giao hoàn', date: null, done: keys.indexOf(statusKey) >= 2 },
+        { label: 'Đã nhận hoàn', date: null, done: keys.indexOf(statusKey) >= 3 },
+        { label: 'Đã hoàn tiền', date: null, done: keys.indexOf(statusKey) >= 4 },
+    ]
+})
+
+const tabs_mua = ['Tất cả', 'Chờ xác nhận', 'Đã xác nhận', 'Đang giao', 'Hoàn thành', 'Đã hủy']
+const tabs_hoantra = ['Tất cả', 'Yêu cầu hoàn trả', 'Chờ lấy hàng hoàn', 'Đang giao hoàn', 'Đã nhận hoàn', 'Đã hoàn tiền']
+const currentTabs = computed(() => pageMode.value === 'orders' ? tabs_mua : tabs_hoantra)
 
 const statusMap = {
     'pending':   { label: 'Chờ xác nhận', bg: '#fef9c3', color: '#ca8a04' },
     'confirmed': { label: 'Đã xác nhận', bg: '#e0f2fe', color: '#0369a1' },
     'shipping':  { label: 'Đang giao', bg: '#dbeafe', color: '#2563eb' },
-    'done':      { label: 'Hoàn thành', bg: '#dcfce7', color: '#16a34a' },
+    'done':      { label: 'Hoàn thành', bg: '#dcfce7', color: '#2563eb' },
+    'refund_pending': { label: 'Yêu cầu hoàn trả', bg: '#ffedd5', color: '#f97316' },
+    'refund_pickup': { label: 'Chờ lấy hàng hoàn', bg: '#fef3c7', color: '#d97706' },
+    'refund_delivering': { label: 'Đang giao hoàn', bg: '#dbeafe', color: '#2563eb' },
+    'refund_received': { label: 'Đã nhận hoàn', bg: '#e0f2fe', color: '#0369a1' },
+    'refunded': { label: 'Đã hoàn tiền', bg: '#ede9fe', color: '#3b82f6' },
+    'refund_rejected': { label: 'Từ chối hoàn trả', bg: '#fee2e2', color: '#dc2626' },
     'cancelled': { label: 'Đã hủy', bg: '#fee2e2', color: '#dc2626' },
 }
 
 const getStatusLabel = (s) => statusMap[s]?.label || s
-const getStatusStyle = (s) => ({ background: statusMap[s]?.bg, color: statusMap[s]?.color })
+const getStatusStyle = (s) => {
+    const m = statusMap[s] || { bg: '#f1f5f9', color: '#475569' }
+    return {
+        background: m.bg,
+        color: m.color,
+        border: `1px solid ${m.color}25`
+    }
+}
+
+const paymentStatusMap = {
+    'unpaid':  { label: 'Chưa thanh toán', bg: 'rgba(244, 63, 94, 0.06)', color: '#e11d48', border: '1px solid rgba(244, 63, 94, 0.18)' },
+    'pending': { label: 'Chờ thanh toán', bg: 'rgba(245, 158, 11, 0.06)', color: '#d97706', border: '1px solid rgba(245, 158, 11, 0.18)' },
+    'paid':    { label: 'Đã thanh toán', bg: 'rgba(37, 99, 235, 0.06)', color: '#1D4ED8', border: '1px solid rgba(37, 99, 235, 0.18)' },
+    'failed':  { label: 'Thất bại', bg: 'rgba(100, 116, 139, 0.06)', color: '#475569', border: '1px solid rgba(100, 116, 139, 0.18)' }
+}
+
+const getPaymentStatusLabel = (ps) => paymentStatusMap[ps]?.label || ps || 'Chưa thanh toán'
+const getPaymentStatusStyle = (ps) => {
+    const s = paymentStatusMap[ps] || paymentStatusMap['unpaid']
+    return { background: s.bg, color: s.color, border: s.border }
+}
+
+const getPtttStyle = (method) => {
+    const m = String(method || '').toUpperCase();
+    if (m.includes('COD')) {
+        return { background: 'rgba(245, 158, 11, 0.06)', color: '#b45309', border: '1px solid rgba(245, 158, 11, 0.18)' };
+    }
+    return { background: 'rgba(124, 58, 237, 0.06)', color: '#1d4ed8', border: '1px solid rgba(124, 58, 237, 0.18)' };
+}
 
 const statusSequence = ['pending', 'confirmed', 'shipping', 'done']
-const terminalStatuses = ['done', 'cancelled']
+const terminalStatuses = ['done', 'cancelled', 'refunded', 'refund_rejected']
 
 const getAllowedStatuses = (current) => {
     if (terminalStatuses.includes(current)) return [current]
@@ -44,9 +134,37 @@ const getAllowedStatuses = (current) => {
 }
 
 const getNextStatus = (current) => {
-    const idx = statusSequence.indexOf(current)
+    let idx = statusSequence.indexOf(current)
     if (idx !== -1 && idx < statusSequence.length - 1) return statusSequence[idx + 1]
+    
+    const returnSequence = ['refund_pickup', 'refund_delivering', 'refund_received', 'refunded']
+    idx = returnSequence.indexOf(current)
+    if (idx !== -1 && idx < returnSequence.length - 1) return returnSequence[idx + 1]
+    
     return current
+}
+
+const isCOD = (order) => {
+    return String(order?.raw?.PTTT || '').toUpperCase().includes('COD')
+}
+
+const showPayButton = (order) => {
+    if (!order || !order.raw) return false
+    if (pageMode.value !== 'orders') return false
+    if (order.raw.trang_thai_thanh_toan === 'paid') return false
+    if (isCOD(order)) {
+        return order.status === 'done'
+    }
+    return true
+}
+
+const showNextStatusButton = (order) => {
+    if (!order) return false
+    if (terminalStatuses.includes(order.status) || order.status === 'refund_pending') return false
+    if (!isCOD(order)) {
+        return order.raw?.trang_thai_thanh_toan === 'paid'
+    }
+    return true
 }
 
 const orders = ref([])
@@ -60,13 +178,13 @@ const fetchOrders = async () => {
             orders.value = res.data.orders.map(o => ({
                 id_backend: o.id_dathang,
                 id: `#VT-2026-${String(o.id_dathang).padStart(3, '0')}`,
-                name: o.user?.name || 'Ẩn danh',
+                name: o.user?.ten || 'Ẩn danh',
                 email: o.user?.email || '',
-                avatar: (o.user?.name || 'NA').split(' ').map(w => w[0]).slice(-2).join('').toUpperCase(),
+                avatar: (o.user?.ten || 'NA').split(' ').map(w => w[0]).slice(-2).join('').toUpperCase(),
                 date: new Date(o.created_at).toLocaleDateString('vi-VN'),
                 total: new Intl.NumberFormat('vi-VN').format(o.tongtien) + 'đ',
                 status: o.trangthai,
-                phone: o.user?.phone || '',
+                phone: o.user?.sodienthoai || '',
                 address: o.diachi || '',
                 raw: o,
                 note: '', // Có thể thêm cột này sau
@@ -92,6 +210,38 @@ const updateOrderStatus = async (orderId, newStatus) => {
     }
 }
 
+const updatePaymentStatus = async (orderId, newPaymentStatus) => {
+    try {
+        const res = await api.put(`/admin/orders/${orderId}/payment-status`, { trang_thai_thanh_toan: newPaymentStatus })
+        if (res.data.success) {
+            const idx = orders.value.findIndex(o => o.id_backend === orderId)
+            if (idx !== -1) {
+                orders.value[idx].raw.trang_thai_thanh_toan = newPaymentStatus
+                if (viewOrder.value && viewOrder.value.id_backend === orderId) {
+                    viewOrder.value.raw.trang_thai_thanh_toan = newPaymentStatus
+                }
+            }
+            swal.success('Thành công', 'Cập nhật trạng thái thanh toán thành công!')
+        }
+    } catch (error) {
+        swal.error('Lỗi', error.response?.data?.message || 'Không thể cập nhật trạng thái thanh toán')
+    }
+}
+
+const confirmMarkAsPaid = async (id) => {
+    const isConfirmed = await swal.confirm(
+        'Xác nhận thanh toán',
+        'Bạn có chắc chắn muốn chuyển trạng thái thanh toán sang: ĐÃ THANH TOÁN?'
+    )
+    if (isConfirmed) {
+        updatePaymentStatus(id, 'paid')
+    }
+}
+
+const confirmMarkAsPaidInModal = async (order) => {
+    await confirmMarkAsPaid(order.id_backend)
+}
+
 const confirmUpdateStatus = async (id, currentStatus) => {
     const next = getNextStatus(currentStatus)
     const label = getStatusLabel(next)
@@ -108,46 +258,95 @@ const confirmCancelOrder = async (id) => {
     }
 }
 
+const confirmApproveRefund = async (id) => {
+    const isConfirmed = await swal.confirm('Xác nhận hoàn trả', 'Bạn có chắc chắn chấp nhận yêu cầu hoàn trả này (Đơn sẽ chuyển sang Chờ lấy hàng hoàn)?')
+    if (isConfirmed) {
+        updateOrderStatus(id, 'refund_pickup')
+    }
+}
+
+const confirmRejectRefund = async (id) => {
+    const isConfirmed = await swal.confirm('Từ chối hoàn trả', 'Từ chối yêu cầu và giữ đơn hàng ở trạng thái Hoàn thành?')
+    if (isConfirmed) {
+        updateOrderStatus(id, 'refund_rejected')
+    }
+}
+
+const deleteOrder = async (id) => {
+    const confirmed = await swal.confirm('Xóa đơn hàng', 'Bạn có chắc muốn xóa đơn hàng này không?')
+    if (!confirmed) return
+
+    try {
+        await api.delete(`/admin/orders/${id}`)
+        await fetchOrders()
+        selectedIds.value = selectedIds.value.filter(selectedId => selectedId !== id)
+        swal.success('Thành công', 'Đã xóa đơn hàng.')
+    } catch (error) {
+        swal.error('Lỗi', error.response?.data?.message || 'Không thể xóa đơn hàng')
+    }
+}
+
 onMounted(() => {
     fetchOrders()
+    document.addEventListener('click', closeDateDropdown)
 
     echo.channel('admin-orders')
         .listen('.order.placed', (e) => {
-            console.log('New Order Received:', e.order)
-            
             const newOrder = {
                 id_backend: e.order.id_dathang,
                 id: `#VT-2026-${String(e.order.id_dathang).padStart(3, '0')}`,
-                name: e.order.user?.name || 'Ẩn danh',
+                name: e.order.user?.ten || 'Ẩn danh',
                 email: e.order.user?.email || '',
-                avatar: (e.order.user?.name || 'NA').split(' ').map(w => w[0]).slice(-2).join('').toUpperCase(),
+                avatar: (e.order.user?.ten || 'NA').split(' ').map(w => w[0]).slice(-2).join('').toUpperCase(),
                 date: new Date(e.order.created_at).toLocaleDateString('vi-VN'),
                 total: new Intl.NumberFormat('vi-VN').format(e.order.tongtien) + 'đ',
                 status: e.order.trangthai,
-                phone: e.order.user?.phone || '',
+                phone: e.order.user?.sodienthoai || '',
                 address: e.order.diachi || '',
                 raw: e.order,
                 note: '',
             }
 
-            // Thêm vào đầu danh sách
+            // Th�m v�o đầu danh s�ch
             orders.value.unshift(newOrder)
 
-            // Thông báo
-            swal.toast(`🔔 Có đơn hàng mới từ ${newOrder.name}!`, 'info')
+            // Th�ng b�o
+            swal.toast(`�� C� đơn h�ng mới từ ${newOrder.name}!`, 'info')
             
-            // Nếu trình duyệt hỗ trợ âm thanh, có thể thêm ting ting ở đây
+            // Nếu tr�nh duyệt hỗ trợ �m thanh, c� thể th�m ting ting ở đ�y
             try {
                 const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3')
                 audio.play()
             } catch (err) {
-                console.log('Audio play failed')
+                console.warn('Order notification audio could not be played')
+            }
+        })
+
+    echo.channel('admin-orders')
+        .listen('.order.status.updated', (e) => {
+            const idx = orders.value.findIndex(o => o.id_backend === e.id_dathang)
+            if (idx !== -1) {
+                if (e.trangthai) {
+                    orders.value[idx].status = e.trangthai
+                }
+                if (e.trang_thai_thanh_toan) {
+                    orders.value[idx].raw.trang_thai_thanh_toan = e.trang_thai_thanh_toan
+                }
+                if (viewOrder.value && viewOrder.value.id_backend === e.id_dathang) {
+                    if (e.trangthai) {
+                        viewOrder.value.status = e.trangthai
+                    }
+                    if (e.trang_thai_thanh_toan) {
+                        viewOrder.value.raw.trang_thai_thanh_toan = e.trang_thai_thanh_toan
+                    }
+                }
             }
         })
 })
 
 onUnmounted(() => {
     echo.leaveChannel('admin-orders')
+    document.removeEventListener('click', closeDateDropdown)
 })
 
 watch(searchQuery, () => {
@@ -178,9 +377,18 @@ const availableMonths = computed(() => {
 
 const filteredOrders = computed(() => {
     return orders.value.filter(o => {
-        // Find the status key that matches the active tab's label
         const activeStatusKey = Object.keys(statusMap).find(k => statusMap[k].label === activeTab.value)
-        const matchTab = activeTab.value === 'Tất cả' || o.status === activeStatusKey
+        
+        let matchTab = false;
+        if (pageMode.value === 'orders') {
+            matchTab = activeTab.value === 'Tất cả' 
+                ? !o.status.startsWith('refund') 
+                : o.status === activeStatusKey
+        } else {
+            matchTab = activeTab.value === 'Tất cả'
+                ? o.status.startsWith('refund')
+                : o.status === activeStatusKey
+        }
         
         const matchSearch = o.id.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
             o.name.toLowerCase().includes(searchQuery.value.toLowerCase())
@@ -200,7 +408,24 @@ const paginatedOrders = computed(() => {
 
 const totalPages = computed(() => Math.ceil(filteredOrders.value.length / itemsPerPage))
 
-
+const {
+    selectedIds,
+    isBulkDeleting,
+    allCurrentPageSelected,
+    toggleItemSelection,
+    toggleCurrentPageSelection,
+    clearSelection,
+    removeSelected,
+    removeAllFiltered,
+} = useAdminBulkDelete({
+    items: orders,
+    filteredItems: filteredOrders,
+    pageItems: paginatedOrders,
+    getId: item => item.id_backend,
+    endpoint: id => `/admin/orders/${id}`,
+    entityLabel: 'đơn hàng',
+    fetchItems: fetchOrders,
+})
 
 const openViewDetail = (order) => {
     viewOrder.value = order
@@ -217,6 +442,15 @@ const changeTab = (tab) => {
     currentPage.value = 1
 }
 
+const getTabCount = (tabLabel) => {
+    if (tabLabel === 'Tất cả') {
+        if (pageMode.value === 'orders') return orders.value.filter(o => !o.status.startsWith('refund')).length;
+        return orders.value.filter(o => o.status.startsWith('refund')).length;
+    }
+    const activeStatusKey = Object.keys(statusMap).find(k => statusMap[k].label === tabLabel)
+    return orders.value.filter(o => o.status === activeStatusKey).length
+}
+
 const parseAttr = (json) => {
     try {
         const attr = JSON.parse(json)
@@ -226,20 +460,21 @@ const parseAttr = (json) => {
 }
 
 const avatarColors = ['#dbeafe', '#dcfce7', '#fef9c3', '#ede9fe', '#fee2e2', '#ffedd5']
-const avatarTextColors = ['#1d4ed8', '#15803d', '#a16207', '#6d28d9', '#b91c1c', '#c2410c']
+const avatarTextColors = ['#1d4ed8', '#1d4ed8', '#a16207', '#1d4ed8', '#b91c1c', '#c2410c']
 const getAvatarStyle = (name) => {
     const idx = name.charCodeAt(0) % avatarColors.length
     return { background: avatarColors[idx], color: avatarTextColors[idx] }
 }
 
 // ── XUẤT EXCEL ──────────────────────────────────────────────
-function exportExcel() {
+async function exportExcel() {
+    const XLSX = await import('xlsx')
     const today = new Date().toLocaleDateString('vi-VN')
     const tabLabel = activeTab.value
 
-    const titleRow = [`BÁO CÁO ĐƠN HÀNG – ${tabLabel.toUpperCase()} (xuất ngày ${today})`]
+    const titleRow = [`B�O C�O ĐƠN H�NG � ${tabLabel.toUpperCase()} (xuất ng�y ${today})`]
     const blankRow = []
-    const header = ['Mã đơn hàng', 'Khách hàng', 'Email', 'Số điện thoại', 'Địa chỉ', 'Ngày đặt hàng', 'Tổng tiền', 'Trạng thái', 'Ghi chú']
+    const header = ['M� đơn h�ng', 'Kh�ch h�ng', 'Email', 'Số điện thoại', 'Địa chỉ', 'Ng�y đặt h�ng', 'Tổng tiền', 'Trạng th�i', 'Ghi ch�']
 
     const dataRows = filteredOrders.value.map(o => [
         o.id,
@@ -293,6 +528,18 @@ function exportExcel() {
             </div>
         </div>
 
+        <!-- CATEGORY TABS -->
+        <div class="category-tabs" style="margin-bottom: 20px;">
+            <button :class="['cat-tab', { active: pageMode === 'orders' }]" @click="pageMode = 'orders'; activeTab = 'Tất cả'">
+                Đơn mua hàng
+            </button>
+            <button :class="['cat-tab', { active: pageMode === 'refunds' }]" @click="pageMode = 'refunds'; activeTab = 'Tất cả'">
+                Đơn hoàn trả
+            </button>
+        </div>
+
+      
+        
         <!-- FILTER -->
         <div class="filter-wrap">
             <div class="search-row">
@@ -305,23 +552,35 @@ function exportExcel() {
 
                 <div class="tabs">
                     <button
-                        v-for="tab in tabs" :key="tab"
+                        v-for="tab in currentTabs" :key="tab"
                         class="tab" :class="{ active: activeTab === tab }"
                         @click="changeTab(tab)"
-                    >{{ tab }}</button>
+                    >{{ tab }} <span class="tab-count" v-if="tab !== 'Tất cả'">{{ getTabCount(tab) }}</span></button>
                 </div>
             </div>
 
             <div class="date-filter-wrap">
-                <div class="date-filter shadow-sm">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                        <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
-                        <line x1="3" y1="10" x2="21" y2="10"/>
-                    </svg>
-                    <select v-model="selectedMonthYear" class="month-select" @change="currentPage = 1">
-                        <option v-for="m in availableMonths" :key="m" :value="m">{{ m }}</option>
-                    </select>
+                <div class="custom-dropdown date-filter-dropdown">
+                    <div class="dropdown-trigger" @click.stop="isOpenDateDropdown = !isOpenDateDropdown">
+                        <svg class="calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+                            <line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                        <span>{{ selectedMonthYear || 'Tất cả' }}</span>
+                        <svg class="chevron" :class="{ open: isOpenDateDropdown }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
+                    <transition name="fade-slide">
+                        <ul v-if="isOpenDateDropdown" class="dropdown-menu">
+                            <li v-for="m in availableMonths" :key="m" 
+                                :class="{ active: selectedMonthYear === m }" 
+                                @click="selectedMonthYear = m; currentPage = 1; isOpenDateDropdown = false">
+                                {{ m }}
+                            </li>
+                        </ul>
+                    </transition>
                 </div>
             </div>
         </div>
@@ -335,13 +594,14 @@ function exportExcel() {
                         <th>KHÁCH HÀNG</th>
                         <th>NGÀY ĐẶT HÀNG</th>
                         <th>TỔNG TIỀN</th>
-                        <th>TRẠNG THÁI</th>
+                        <th v-if="pageMode === 'orders'">THANH TOÁN</th>
+                        <th>GIAO HÀNG</th>
                         <th>THAO TÁC</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr v-if="paginatedOrders.length === 0">
-                        <td colspan="6" class="empty">Không tìm thấy đơn hàng nào.</td>
+                        <td :colspan="pageMode === 'orders' ? 7 : 6" class="empty">Không tìm thấy đơn hàng nào.</td>
                     </tr>
                     <tr v-for="(o, i) in paginatedOrders" :key="o.id">
 
@@ -363,6 +623,15 @@ function exportExcel() {
 
                         <td><b class="total">{{ o.total }}</b></td>
 
+                        <td v-if="pageMode === 'orders'">
+                            <div class="payment-cell">
+                                <span class="pttt-badge" :style="getPtttStyle(o.raw.PTTT)">{{ o.raw.PTTT }}</span>
+                                <span class="payment-status-pill" :style="getPaymentStatusStyle(o.raw.trang_thai_thanh_toan)">
+                                    {{ getPaymentStatusLabel(o.raw.trang_thai_thanh_toan) }}
+                                </span>
+                            </div>
+                        </td>
+
                         <td>
                             <span class="status-pill" :style="getStatusStyle(o.status)">
                                 {{ getStatusLabel(o.status) }}
@@ -377,13 +646,39 @@ function exportExcel() {
                                     </svg>
                                 </button>
                                 
-                                <button v-if="!terminalStatuses.includes(o.status)" 
+                                <!-- Nút xác nhận thanh toán -->
+                                <button v-if="showPayButton(o)" 
+                                        class="act-btn" style="color: #2563eb;"
+                                        @click="confirmMarkAsPaid(o.id_backend)" 
+                                        title="Đổi thành Đã thanh toán">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                        <polyline points="22 4 12 14.01 9 11.01"/>
+                                    </svg>
+                                </button>
+
+                                <button v-if="showNextStatusButton(o)" 
                                         class="act-btn" style="color: #2563eb;"
                                         @click="confirmUpdateStatus(o.id_backend, o.status)" 
                                         title="Chuyển trạng thái tiếp theo">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                                         <path d="M5 12h14M12 5l7 7-7 7"/>
                                     </svg>
+                                </button>
+
+                                <!-- Nút xử lý hoàn trả -->
+                                <button v-if="o.status === 'refund_pending'" 
+                                        class="act-btn" style="color: #2563eb;"
+                                        @click="confirmApproveRefund(o.id_backend)" 
+                                        title="Chấp nhận hoàn trả">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                </button>
+
+                                <button v-if="o.status === 'refund_pending'" 
+                                        class="act-btn" style="color: #dc2626;"
+                                        @click="confirmRejectRefund(o.id_backend)" 
+                                        title="Từ chối hoàn trả">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                                 </button>
                             </div>
                         </td>
@@ -439,44 +734,106 @@ function exportExcel() {
                             <div class="section-title">Thông tin giao hàng</div>
                             <div class="info-grid">
                                 <div class="info-item">
-                                    <label>Khách hàng:</label>
-                                    <span>{{ viewOrder.name }}</span>
+                                    <span class="info-label">👤 Khách hàng</span>
+                                    <span class="info-value">{{ viewOrder.name }}</span>
                                 </div>
                                 <div class="info-item">
-                                    <label>Số điện thoại:</label>
-                                    <span>{{ viewOrder.phone }}</span>
+                                    <span class="info-label">📞 Số điện thoại</span>
+                                    <span class="info-value">{{ viewOrder.phone }}</span>
                                 </div>
                                 <div class="info-item" style="grid-column: span 2;">
-                                    <label>Địa chỉ:</label>
-                                    <span>{{ viewOrder.address }}</span>
+                                    <span class="info-label">📍 Địa chỉ giao hàng</span>
+                                    <span class="info-value">{{ viewOrder.address }}</span>
                                 </div>
                                 <div class="info-item">
-                                    <label>Ngày đặt:</label>
-                                    <span>{{ viewOrder.date }}</span>
+                                    <span class="info-label">📅 Ngày đặt hàng</span>
+                                    <span class="info-value">{{ viewOrder.date }}</span>
                                 </div>
                                 <div class="info-item">
-                                    <label>Thanh toán:</label>
-                                    <span>{{ viewOrder.raw.PTTT }}</span>
+                                    <span class="info-label">💳 Phương thức thanh toán</span>
+                                    <span class="info-value">{{ viewOrder.raw.PTTT }}</span>
+                                </div>
+                                <div class="info-item" style="grid-column: span 2;">
+                                    <span class="info-label">💵 Trạng thái thanh toán</span>
+                                    <span class="info-value" style="display: flex; gap: 8px; align-items: center; justify-content: space-between; width: 100%;">
+                                        <span class="status-pill" :style="getPaymentStatusStyle(viewOrder.raw.trang_thai_thanh_toan)">
+                                            {{ getPaymentStatusLabel(viewOrder.raw.trang_thai_thanh_toan) }}
+                                        </span>
+                                        <button v-if="showPayButton(viewOrder)"
+                                                class="btn-mark-paid"
+                                                @click="confirmMarkAsPaidInModal(viewOrder)">
+                                            Xác nhận Đã thanh toán
+                                        </button>
+                                    </span>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- LÝ DO HỦY ĐƠN -->
-                        <div v-if="viewOrder.status === 'cancelled'" class="detail-section">
-                            <div class="section-title" style="color: #dc2626;">Lý do hủy đơn</div>
-                            <div class="cancel-reason-box">
-                                {{ viewOrder.raw.lydo || 'Không có lý do cụ thể' }}
+                        <!-- LÝ DO HỦY ĐƠN HOẶC HOÀN TRẢ -->
+                        <div v-if="['cancelled', 'refund_pending', 'refunded'].includes(viewOrder.status)" class="detail-section">
+                            <div class="section-title" :style="viewOrder.status === 'cancelled' ? 'color: #dc2626;' : 'color: #f97316;'">Lý do {{ viewOrder.status === 'cancelled' ? 'hủy đơn' : 'hoàn trả' }}</div>
+                            <div class="cancel-reason-box" style="margin-bottom: 10px;">
+                                ⚠️ {{ viewOrder.raw.lydo || 'Không có lý do cụ thể' }}
+                            </div>
+                            <div v-if="viewOrder.raw.minh_chung_hoan_tien" class="cancel-reason-box" style="margin-top: 10px;">
+                                <strong>Bằng chứng hoàn trả:</strong>
+                                <div class="proof-preview" style="margin-top: 8px;">
+                                    <template v-if="viewOrder.raw.minh_chung_hoan_tien.match(/\.(jpeg|jpg|png|gif|webp)$/i)">
+                                        <a :href="storageUrl(viewOrder.raw.minh_chung_hoan_tien)" target="_blank" title="Nhấn để xem ảnh lớn">
+                                            <img :src="storageUrl(viewOrder.raw.minh_chung_hoan_tien)" alt="Bằng chứng" style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid #e5e7eb; cursor: zoom-in;" />
+                                        </a>
+                                    </template>
+                                    <template v-else-if="viewOrder.raw.minh_chung_hoan_tien.match(/\.(mp4|mov|avi|wmv)$/i)">
+                                        <video :src="storageUrl(viewOrder.raw.minh_chung_hoan_tien)" controls style="max-width: 100%; max-height: 250px; border-radius: 8px; border: 1px solid #e5e7eb; background: #000;"></video>
+                                    </template>
+                                    <template v-else>
+                                        <a :href="storageUrl(viewOrder.raw.minh_chung_hoan_tien)" target="_blank" style="color: #2563eb; text-decoration: underline; font-size: 13px;">Tải file bằng chứng đính kèm</a>
+                                    </template>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="detail-section">
+                        
+              <div class="timeline" v-if="orderSteps">
+                <div class="tl-item" v-for="(step, i) in orderSteps" :key="i" :class="{ done: step.done }">
+                  <div class="tl-col">
+                    <div class="tl-dot"><svg v-if="step.done" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <div class="tl-line" v-if="i < orderSteps.length - 1" :class="{ done: step.done }"></div>
+                  </div>
+                  <div class="tl-content">
+                    <p class="tl-label">{{ step.label }}</p>
+                    <p class="tl-date">{{ step.date || '—' }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="refund-timeline-wrap" v-if="refundSteps" style="margin-top: 15px;">
+                <h3 class="section-title" style="color: #f97316; font-size: 15px; margin-bottom: 12px;">Quá trình hoàn trả</h3>
+                <div class="timeline refund-timeline">
+                  <div class="tl-item" v-for="(step, i) in refundSteps" :key="'r'+i" :class="{ done: step.done }">
+                    <div class="tl-col">
+                      <div class="tl-dot refund-dot" :style="step.done ? 'background:#f97316; border-color:#f97316;' : ''"><svg v-if="step.done" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+                      <div class="tl-line refund-line" v-if="i < refundSteps.length - 1" :style="step.done ? 'background:#f97316;' : ''"></div>
+                    </div>
+                    <div class="tl-content">
+                      <p class="tl-label refund-label">{{ step.label }}</p>
+                      <p class="tl-date">{{ step.date || '—' }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+<div class="detail-section">
                             <div class="section-title">Danh sách sản phẩm</div>
                             <div class="items-list">
-                                <div v-for="item in viewOrder.raw.chi_tiets" :key="item.id_chitiet" class="order-item">
-                                    <img :src="item.bien_the?.san_pham?.hinhanh ? 'http://127.0.0.1:8000/storage/' + item.bien_the.san_pham.hinhanh : 'https://via.placeholder.com/60'" class="item-img" />
+                                <div v-for="item in (viewOrder.raw.chi_tiets || viewOrder.raw.chiTiets || [])" :key="item.id_chitiet" class="order-item">
+                                    <img :src="getOrderItemImage(item)" class="item-img" />
                                     <div class="item-info">
-                                        <p class="item-name">{{ item.bien_the?.san_pham?.tenSP || 'Sản phẩm' }}</p>
-                                        <p class="item-variant">{{ parseAttr(item.bien_the?.thuoc_tinh_json) }}</p>
+                                        <p class="item-name">
+                                            {{ getOrderItemName(item) }}
+                                            <span v-if="item.hoantien == 1" style="margin-left: 8px; font-size: 11px; font-weight: bold; color: #dc2626; background: #fee2e2; padding: 2px 6px; border-radius: 4px;">Đã chọn hoàn trả</span>
+                                        </p>
+                                        <p class="item-variant">{{ getOrderItemVariant(item) }}</p>
                                     </div>
                                     <div class="item-price-qty">
                                         <span class="iq-price">{{ new Intl.NumberFormat('vi-VN').format(item.gia) }}đ</span>
@@ -510,7 +867,7 @@ function exportExcel() {
 * { box-sizing: border-box; }
 
 .page {
-    padding: 28px 40px;
+    padding: 28px 20px;
     background: #f5f7fb;
     min-height: 100vh;
     font-family: sans-serif;
@@ -542,7 +899,7 @@ function exportExcel() {
 
 .btn-create {
     padding: 10px 20px; border-radius: 10px; border: none;
-    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    background: linear-gradient(135deg, #2563eb, #2563eb);
     color: white; font-size: 13px; font-weight: 600;
     cursor: pointer; transition: opacity 0.2s, transform 0.2s;
 }
@@ -550,8 +907,9 @@ function exportExcel() {
 
 /* FILTER */
 .filter-wrap {
-    background: white; border-radius: 14px; border: 1px solid #f1f5f9;
+    background: white; border-radius: 14px; border: 1px solid #e2e8f0;
     padding: 16px 20px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 14px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
 }
 .search-row { display: flex; align-items: center; gap: 12px; }
 .search-box {
@@ -564,31 +922,166 @@ function exportExcel() {
 .search-box input {
     width: 100%; padding: 9px 14px 9px 36px; border-radius: 8px;
     border: 1px solid #e2e8f0; font-size: 13px; color: #0f172a;
-    outline: none; transition: border-color 0.2s;
+    outline: none; transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+    background: #ffffff;
 }
-.search-box input:focus { border-color: #2563eb; }
+.search-box input:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
 
-.tabs { display: flex; gap: 6px; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
 .tab {
-    padding: 8px 14px; border-radius: 8px; border: none;
-    background: transparent; font-size: 13px; font-weight: 500;
+    padding: 8px 14px; border-radius: 8px; border: 1px solid #dbe4f0;
+    background: #ffffff; font-size: 13px; font-weight: 600;
     color: #64748b; cursor: pointer; transition: all 0.2s; white-space: nowrap;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+    display: flex; align-items: center; gap: 6px;
 }
-.tab:hover { background: #f1f5f9; color: #334155; }
-.tab.active { background: #2563eb; color: white; }
-
-.date-filter {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 6px 14px; border-radius: 10px; border: 1px solid #e2e8f0;
-    background: white; transition: all 0.2s;
+.tab:hover {
+    background: #f8fafc;
+    border-color: #93c5fd;
+    color: #1e3a8a;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
 }
-.date-filter:hover { border-color: #2563eb; box-shadow: 0 4px 12px rgba(37,99,235,0.06); }
-.date-filter svg { width: 14px; height: 14px; color: #64748b; }
+.tab:focus-visible {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
+}
+.tab.active {
+    background: #2563eb;
+    border-color: #1d4ed8;
+    color: white;
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.22);
+}
 
-.month-select {
-    border: none; background: transparent; font-size: 13px; font-weight: 600;
-    color: #334155; outline: none; cursor: pointer; font-family: inherit;
-    padding: 2px 0;
+.tab-count {
+    background: #e2e8f0;
+    color: #475569;
+    padding: 2px 6px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+}
+.tab.active .tab-count {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+/* ── Custom Premium Dropdown ── */
+.custom-dropdown {
+    position: relative;
+    display: inline-block;
+    min-width: 185px;
+    user-select: none;
+}
+
+.dropdown-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 9px 16px;
+    border-radius: 12px;
+    border: 1.5px solid #3b82f6; /* Premium brand blue outline */
+    background: white;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    cursor: pointer;
+    transition: all .2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.dropdown-trigger:hover {
+    border-color: #2563eb;
+    box-shadow: 0 4px 12px rgba(37,99,235,0.06);
+}
+
+.dropdown-trigger .calendar-icon {
+    width: 15px;
+    height: 15px;
+    color: #3b82f6;
+}
+
+.dropdown-trigger .chevron {
+    width: 14px;
+    height: 14px;
+    color: #64748b;
+    transition: transform .2s ease;
+}
+
+.dropdown-trigger .chevron.open {
+    transform: rotate(180deg);
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 6px;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+/* Custom Scrollbar for Dropdown Menu */
+.dropdown-menu::-webkit-scrollbar {
+    width: 6px;
+}
+
+.dropdown-menu::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.dropdown-menu::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+.dropdown-menu li {
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    text-align: left;
+}
+
+.dropdown-menu li:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.dropdown-menu li.active {
+    background: #475569;
+    color: white;
+    font-weight: 600;
+}
+
+/* Dropdown Transitions */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+    transition: all .2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fade-slide-enter-from,
+.fade-slide-leave-to {
+    opacity: 0;
+    transform: translateY(-8px);
 }
 
 /* TABLE */
@@ -596,15 +1089,20 @@ function exportExcel() {
 table { width: 100%; border-collapse: collapse; }
 thead tr { background: #f8fafc; }
 thead th {
-    padding: 13px 20px; font-size: 11px; font-weight: 700;
+    padding: 13px 12px; font-size: 11px; font-weight: 700;
     color: #94a3b8; text-align: left; letter-spacing: 0.06em;
     border-bottom: 1px solid #f1f5f9;
 }
 tbody tr { border-bottom: 1px solid #f8fafc; transition: background 0.15s; }
 tbody tr:last-child { border-bottom: none; }
 tbody tr:hover { background: #fafbff; }
-tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: middle; }
+tbody tr.row-selected { background: #eff6ff; }
+tbody td { padding: 14px 12px; font-size: 13px; color: #334155; vertical-align: middle; }
 .empty { text-align: center; color: #94a3b8; padding: 50px !important; }
+
+.select-col { width: 44px; text-align: center; }
+.select-col input { width: 16px; height: 16px; accent-color: #2563eb; cursor: pointer; }
+.select-col input:disabled { cursor: not-allowed; opacity: 0.45; }
 
 .order-id { color: #2563eb; font-weight: 700; font-size: 13px; }
 
@@ -622,8 +1120,10 @@ tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: 
 
 .status-pill, .status-select {
     display: inline-block; font-size: 11px; font-weight: 600;
-    padding: 5px 11px; border-radius: 20px; letter-spacing: 0.02em;
+    padding: 4px 10px; border-radius: 20px; letter-spacing: 0.02em;
     border: none; outline: none; cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
 }
 .status-select {
     appearance: none;
@@ -632,6 +1132,48 @@ tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: 
     background-repeat: no-repeat;
     background-position: right 8px center;
     background-size: 12px;
+}
+
+.pttt-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 6px;
+    text-transform: capitalize;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+.payment-cell {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+.payment-status-pill {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+.btn-mark-paid {
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: none;
+    background: #2563eb;
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.btn-mark-paid:hover {
+    background: #1d4ed8;
 }
 
 .actions { display: flex; gap: 6px; }
@@ -667,9 +1209,9 @@ tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: 
     background: white; border: 1px solid #f1f5f9;
     padding: 10px 16px; border-radius: 12px;
 }
-.revenue-chip svg { width: 20px; height: 20px; color: #16a34a; }
+.revenue-chip svg { width: 20px; height: 20px; color: #2563eb; }
 .revenue-chip span { font-size: 10px; font-weight: 600; color: #94a3b8; letter-spacing: 0.06em; display: block; }
-.revenue-chip b { font-size: 16px; font-weight: 700; color: #16a34a; }
+.revenue-chip b { font-size: 16px; font-weight: 700; color: #2563eb; }
 
 /* ===== MODAL ===== */
 .modal-overlay {
@@ -706,7 +1248,7 @@ tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: 
 
 .section-title {
     font-size: 11px; font-weight: 700; color: #94a3b8;
-    letter-spacing: 0.1em; text-transform: uppercase; padding-bottom: 4px;
+    letter-spacing: 0.1em; text-transform: capitalize; padding-bottom: 4px;
     border-bottom: 1px solid #f1f5f9;
 }
 
@@ -748,7 +1290,7 @@ tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: 
 .btn-cancel:hover { background: #f8fafc; border-color: #cbd5e1; }
 .btn-submit {
     padding: 10px 22px; border-radius: 8px; border: none;
-    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    background: linear-gradient(135deg, #2563eb, #2563eb);
     color: white; font-size: 13px; font-weight: 600;
     cursor: pointer; transition: opacity 0.2s, transform 0.2s;
 }
@@ -767,27 +1309,58 @@ tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: 
 
 /* ORDER DETAIL */
 .detail-modal { max-width: 650px; }
-.scrollable { max-height: 70vh; overflow-y: auto; padding-right: 10px; }
+.scrollable { max-height: 70vh; overflow-y: auto; padding-right: 24px; }
 .scrollable::-webkit-scrollbar { width: 6px; }
 .scrollable::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
 
 .detail-section { margin-bottom: 24px; }
 .info-grid {
-    display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;
-    background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid #f1f5f9;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+    background: #f8fafc;
+    padding: 20px;
+    border-radius: 14px;
+    border: 1px solid #e2e8f0;
 }
-.info-item { display: flex; flex-direction: column; gap: 4px; }
-.info-item label { font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; }
-.info-item span { font-size: 13px; font-weight: 600; color: #334155; }
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.info-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: capitalize;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.info-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1e293b;
+    padding: 8px 12px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #edf2f7;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+    min-height: 35px;
+    display: flex;
+    align-items: center;
+}
 
 .items-list { display: flex; flex-direction: column; gap: 12px; }
 .order-item {
-    display: flex; align-items: center; gap: 15px; padding: 12px;
-    background: white; border: 1px solid #f1f5f9; border-radius: 12px;
-    transition: transform 0.2s;
+    display: flex; align-items: center; gap: 16px; padding: 14px;
+    background: white; border: 1px solid #edf2f7; border-radius: 14px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+    transition: all 0.2s ease;
 }
-.order-item:hover { transform: translateX(4px); border-color: #cbd5e1; }
-.item-img { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #f1f5f9; }
+.order-item:hover { transform: translateY(-2px); border-color: #cbd5e1; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+.item-img { width: 64px; height: 64px; object-fit: cover; border-radius: 10px; border: 1px solid #edf2f7; background: #f8fafc; }
 .item-info { flex: 1; }
 .item-name { font-size: 14px; font-weight: 700; color: #0f172a; margin: 0 0 4px; }
 .item-variant { font-size: 12px; color: #64748b; margin: 0; }
@@ -796,22 +1369,53 @@ tbody td { padding: 18px 20px; font-size: 13px; color: #334155; vertical-align: 
 .iq-qty { font-size: 12px; color: #94a3b8; font-weight: 600; }
 
 .order-summary-box {
-    margin-top: 10px; padding: 16px; background: #f0f9ff; border-radius: 12px;
-    border: 1px solid #e0f2fe; display: flex; justify-content: flex-end;
+    margin-top: 14px; padding: 16px 20px; background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+    border-radius: 14px; border: 1px solid #bae6fd; display: flex; justify-content: flex-end;
+    align-items: center;
 }
 .sum-row { display: flex; align-items: baseline; gap: 12px; }
-.sum-row span { font-size: 13px; color: #0369a1; font-weight: 500; }
+.sum-row span { font-size: 13px; color: #0369a1; font-weight: 600; }
 .final-total { font-size: 20px; font-weight: 800; color: #0369a1; }
 
 .cancel-reason-box {
     margin-top: 8px;
-    padding: 12px 16px;
-    background: #fff1f2;
-    border: 1px solid #fecaca;
-    border-radius: 10px;
-    color: #be123c;
+    padding: 14px 18px;
+    background: #fff5f5;
+    border: 1.5px dashed #fecaca;
+    border-radius: 12px;
+    color: #e11d48;
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     line-height: 1.5;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
+</style>
+
+
+<style scoped>
+.category-tabs { display: flex; gap: 12px; margin-bottom: -4px; border-bottom: 2px solid #e2e8f0; padding-bottom: 0; }
+.cat-tab { background: transparent; border: none; padding: 12px 20px; font-size: 14px; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+.cat-tab:hover { color: #2563eb; }
+.cat-tab.active { color: #2563eb; border-bottom-color: #2563eb; }
+</style>
+
+<style scoped>
+.timeline { display: flex; align-items: flex-start; justify-content: space-between; padding: 20px 0 10px; }
+.tl-item { display: flex; flex-direction: column; align-items: center; text-align: center; flex: 1; position: relative; }
+.tl-col { display: flex; align-items: center; width: 100%; position: relative; justify-content: center; margin-bottom: 10px; }
+
+.tl-dot { width: 28px; height: 28px; border-radius: 50%; background: #fff; border: 2.5px solid #cbd5e1; z-index: 2; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px; color: white; }
+
+.tl-dot svg { width: 16px; height: 16px; }
+.tl-item.done .tl-dot { background: #2563eb; border-color: #2563eb; }
+.tl-line { position: absolute; top: 12px; left: 50%; width: 100%; height: 3px; background: #e2e8f0; z-index: 1; }
+.tl-line.done { background: #2563eb; }
+.tl-content { padding: 0 10px; }
+.tl-label { font-size: 13px; font-weight: 700; color: #1e293b; margin: 0 0 4px; }
+.tl-date { font-size: 11px; color: #94a3b8; margin: 0; }
+.refund-timeline-wrap { background: #fff7ed; padding: 16px; border-radius: 12px; border: 1px dashed #fdba74; }
+.refund-dot { border-color: #fdba74; }
+.refund-label { color: #c2410c; }
 </style>

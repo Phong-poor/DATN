@@ -4,11 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Đại diện sản phẩm, thông tin bán hàng và các biến thể liên quan.
+ */
 class SanPham extends Model
 {
-    protected $table      = 'sanpham';
+    protected $table = 'sanpham';
+
     protected $primaryKey = 'id_sanpham';
-    public $timestamps    = false;
+
+    public $timestamps = false;
 
     protected $fillable = [
         'id_danhmuc',
@@ -39,8 +44,21 @@ class SanPham extends Model
     {
         return $this->hasMany(BienThe::class, 'id_sanpham', 'id_sanpham');
     }
+
     public function hinhAnhs()
     {
         return $this->hasMany(BienTheHinhAnh::class, 'id_sanpham', 'id_sanpham');
+    }
+
+    public function reviews()
+    {
+        return $this->hasManyThrough(
+            DanhGia::class,
+            BienThe::class,
+            'id_sanpham',
+            'id_bienthe',
+            'id_sanpham',
+            'id_bienthe'
+        );
     }
 }

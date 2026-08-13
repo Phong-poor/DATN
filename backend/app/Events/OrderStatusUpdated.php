@@ -6,11 +6,11 @@ use App\Models\DatHang;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class OrderStatusUpdated implements ShouldBroadcast
+class OrderStatusUpdated implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
@@ -31,8 +31,11 @@ class OrderStatusUpdated implements ShouldBroadcast
      */
     public function broadcastOn(): array
     {
+        $userId = $this->order->id_khachhang ?? $this->order->user_id;
         return [
-            new PrivateChannel('user.' . $this->order->user_id),
+            new PrivateChannel('user.' . $userId),
+            new Channel('user-orders.' . $userId),
+            new Channel('admin-orders'),
         ];
     }
 
@@ -54,6 +57,9 @@ class OrderStatusUpdated implements ShouldBroadcast
         return [
             'id_dathang' => $this->order->id_dathang,
             'trangthai' => $this->order->trangthai,
+            'trang_thai_thanh_toan' => $this->order->trang_thai_thanh_toan,
+            'updated_at' => $this->order->updated_at?->toDateTimeString(),
+            'status_history' => $this->order->du_lieu_thanh_toan['status_history'] ?? [],
             'message' => 'Trạng thái đơn hàng #' . $this->order->id_dathang . ' đã thay đổi thành ' . $this->order->trangthai
         ];
     }

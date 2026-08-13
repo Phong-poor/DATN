@@ -4,16 +4,21 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Lưu một mặt hàng hoặc nhóm combo trong giỏ hàng của người dùng.
+ */
 class GioHang extends Model
 {
     protected $table = 'giohang';
     protected $primaryKey = 'id_giohang';
-    public $timestamps = false;
+    public $timestamps = true;
 
     protected $fillable = [
-        'user_id',
+        'id_khachhang',
         'id_bienthe',
         'soluong',
+        'id_combo',
+        'id_nhom_combo',
     ];
 
     // Quan hệ với biến thể
@@ -25,6 +30,12 @@ class GioHang extends Model
     // Quan hệ với user
     public function user()
     {
-        return $this->belongsTo(User::class, 'user_id', 'id');
+        return $this->belongsTo(User::class, 'id_khachhang', 'id');
+    }
+
+    // Quan hệ với combo
+    public function combo()
+    {
+        return $this->belongsTo(Combo::class, 'id_combo', 'id_combo');
     }
 }

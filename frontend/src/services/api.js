@@ -1,33 +1,238 @@
 import axios from 'axios'
-import { clearAuth, getToken } from './auth'
+import { clearAuth, getToken, updateUser } from './auth'
+import { apiBaseUrl } from './urls'
+import { initOfflineInterceptor, registerSyncSuccessCallback } from './offlineSync'
 
 const api = axios.create({
-  baseURL: 'http://127.0.0.1:8000/api',
+  baseURL: apiBaseUrl,
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
   },
 })
 
+initOfflineInterceptor(api)
+
+const GET_CACHE_TTL_MS = 5 * 60 * 1000
+const getCache = new Map()
+const inFlightGetRequests = new Map()
+const NO_CACHE_GET_PREFIXES = [
+  '/gio-hang',
+  '/yeu-thich',
+  '/orders',
+  '/user/vouchers',
+  '/affiliate',
+]
+
+export const clearApiGetCache = () => {
+  getCache.clear()
+  inFlightGetRequests.clear()
+}
+
+const shouldShowGlobalLoader = (config = {}) => config.showGlobalLoader === true
+const shouldCacheGet = (config = {}) => {
+  if (config.method?.toLowerCase?.() !== 'get' || config.cache === false) return false
+  const url = String(config.url || '')
+  return !NO_CACHE_GET_PREFIXES.some((prefix) => url === prefix || url.startsWith(`${prefix}/`))
+}
+
+const stableStringify = (value) => {
+  if (!value || typeof value !== 'object') return value ? String(value) : ''
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`
+  return `{${Object.keys(value).sort().map((key) => `${key}:${stableStringify(value[key])}`).join(',')}}`
+}
+
+const getCacheKey = (url, config = {}) => {
+  const params = config.params ? stableStringify(config.params) : ''
+  return `${url || ''}?${params}`
+}
+
 api.interceptors.request.use((config) => {
+  const method = config.method?.toLowerCase?.()
+  if (method && method !== 'get' && config.invalidateCache !== false) {
+    clearApiGetCache()
+  }
+
+  if (shouldShowGlobalLoader(config)) {
+    window.dispatchEvent(
+      config.immediateLoader
+        ? new CustomEvent('global-loader-show', { detail: { immediate: true, minDuration: 180 } })
+        : new Event('global-loader-show')
+    )
+  }
+
   const token = getToken()
-  if (token) {
+  const hasAuthorizationHeader = Boolean(
+    config.headers?.Authorization ||
+    config.headers?.authorization ||
+    (typeof config.headers?.get === 'function' && config.headers.get('Authorization'))
+  )
+
+  if (token && !hasAuthorizationHeader) {
     config.headers.Authorization = `Bearer ${token}`
   }
   return config
+}, (error) => {
+  if (shouldShowGlobalLoader(error.config)) {
+    window.dispatchEvent(new Event('global-loader-hide'))
+  }
+  return Promise.reject(error)
 })
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (shouldShowGlobalLoader(response.config)) {
+      window.dispatchEvent(new Event('global-loader-hide'))
+    }
+    
+    // Xóa bản nháp toàn cục khi lưu/thay đổi dữ liệu thành công
+    const method = response.config?.method?.toLowerCase?.()
+    if (method && method !== 'get') {
+      localStorage.removeItem(`global_form_draft_${window.location.pathname}`)
+    }
+    
+    return response
+  },
   (error) => {
-    if (error.response?.status === 401) {
+    if (shouldShowGlobalLoader(error.config)) {
+      window.dispatchEvent(new Event('global-loader-hide'))
+    }
+    if (error.isOfflineQueue || error.message === 'OFFLINE_QUEUED') {
+      window.__lastRequestWasOfflineQueued = true
+      return Promise.resolve({
+        status: 202,
+        data: {
+          success: true,
+          message: error.response?.data?.message || 'Bạn đang ngoại tuyến. Dữ liệu đã được lưu tạm và sẽ tự động đồng bộ khi có mạng.'
+        }
+      })
+    }
+    if (error.response?.status === 423 || error.response?.data?.code === 'ACCOUNT_LOCKED') {
+      const message = error.response?.data?.message || 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên để được hỗ trợ.'
+      localStorage.setItem('account_locked_message', message)
       clearAuth()
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login'
+      if (window.location.pathname !== '/dang-nhap') {
+        window.location.href = '/dang-nhap?account_locked=1'
+      }
+    } else if (error.response?.status === 403 && error.response?.data?.code === 'ADMIN_ACCESS_REVOKED') {
+      clearAuth()
+      if (window.location.pathname.startsWith('/admin')) {
+        window.location.href = '/dang-nhap?admin_revoked=1'
+      }
+    } else if (error.response?.status === 401) {
+      clearAuth()
+      const path = window.location.pathname
+      const isAdmin = path.startsWith('/admin')
+      const isAuthPage = ['/dang-nhap', '/login', '/dang-ky', '/register', '/quen-mat-khau', '/forgot-password', '/xac-thuc-otp', '/otp-verify', '/dat-lai-mat-khau', '/reset-password'].some(p => path.startsWith(p))
+      const isPublicPage = ['/', '/laptop', '/phu-kien', '/gaming', '/news', '/tin-tuc', '/contact', '/lien-he', '/cart', '/gio-hang', '/thank-you', '/cam-on', '/payment-failed', '/thanh-toan-that-bai', '/khuyen-mai'].includes(path) ||
+                           path.startsWith('/products/') ||
+                           path.startsWith('/san-pham/') ||
+                           path.startsWith('/news/') ||
+                           path.startsWith('/tin-tuc/')
+                           
+      if (isAdmin) {
+        if (path !== '/dang-nhap') {
+          window.location.href = '/dang-nhap'
+        }
+      } else if (!isPublicPage && !isAuthPage) {
+        window.location.href = '/'
       }
     }
     return Promise.reject(error)
   }
 )
+
+const rawGet = api.get.bind(api)
+api.get = (url, config = {}) => {
+  const requestConfig = { ...config, method: 'get' }
+  if (!shouldCacheGet(requestConfig)) return rawGet(url, config)
+
+  const key = getCacheKey(url, requestConfig)
+  const cached = getCache.get(key)
+  if (cached && Date.now() - cached.cachedAt < GET_CACHE_TTL_MS) {
+    return Promise.resolve(cached.response)
+  }
+
+  const inFlight = inFlightGetRequests.get(key)
+  if (inFlight) return inFlight
+
+  const request = rawGet(url, config)
+    .then((response) => {
+      getCache.set(key, { cachedAt: Date.now(), response })
+      return response
+    })
+    .finally(() => {
+      inFlightGetRequests.delete(key)
+    })
+
+  inFlightGetRequests.set(key, request)
+  return request
+}
+
+const SESSION_CHECK_INTERVAL_MS = 10000
+let sessionCheckTimer = null
+
+const authPages = ['/dang-nhap', '/login', '/login-success', '/dang-nhap-thanh-cong']
+const protectedPages = [
+  '/admin',
+  '/profile',
+  '/trang-ca-nhan',
+  '/checkout',
+  '/thanh-toan',
+  '/orderspage',
+  '/don-hang',
+  '/wishlistpage',
+  '/danh-sach-yeu-thich',
+  '/yeu-thich',
+]
+
+const isAuthPage = () => {
+  if (typeof window === 'undefined') return true
+  return authPages.some((path) => window.location.pathname.startsWith(path))
+}
+
+const isProtectedPage = () => {
+  if (typeof window === 'undefined') return false
+  const currentPath = window.location.pathname
+  return protectedPages.some((path) => currentPath === path || currentPath.startsWith(path + '/'))
+}
+
+export const startSessionGuard = () => {
+  if (typeof window === 'undefined' || sessionCheckTimer) return
+
+  sessionCheckTimer = window.setInterval(() => {
+    if (!getToken() || isAuthPage()) return
+
+    rawGet('/auth/session', {
+      cache: false,
+      invalidateCache: false,
+      showGlobalLoader: false,
+    }).then((response) => {
+      const user = response.data?.user
+      if (!user) return
+
+      updateUser(user)
+
+      const role = String(user.vaitro || user.role || '').toLowerCase()
+      if (window.location.pathname.startsWith('/admin') && (!role || role === 'user')) {
+        clearAuth()
+        window.location.href = '/dang-nhap?admin_revoked=1'
+      }
+    }).catch(() => {
+      // 401/403/423 are handled by the response interceptor, so no extra UI is needed here.
+    })
+  }, SESSION_CHECK_INTERVAL_MS)
+}
+
+export const stopSessionGuard = () => {
+  if (typeof window === 'undefined' || !sessionCheckTimer) return
+  window.clearInterval(sessionCheckTimer)
+  sessionCheckTimer = null
+}
+
+startSessionGuard()
+
+registerSyncSuccessCallback(clearApiGetCache)
 
 export default api

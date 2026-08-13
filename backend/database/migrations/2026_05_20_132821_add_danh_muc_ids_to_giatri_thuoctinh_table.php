@@ -11,8 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasColumn('giatri_thuoctinh', 'danh_muc_ids')) {
+            return;
+        }
+
         Schema::table('giatri_thuoctinh', function (Blueprint $table) {
-            $table->json('danh_muc_ids')->nullable()->after('gia_cong_them');
+            $table->json('danh_muc_ids')->nullable()->after('giatri');
         });
     }
 
@@ -21,6 +25,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (! Schema::hasColumn('giatri_thuoctinh', 'danh_muc_ids')) {
+            return;
+        }
+
         Schema::table('giatri_thuoctinh', function (Blueprint $table) {
             $table->dropColumn('danh_muc_ids');
         });

@@ -1,0 +1,181 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\AffiliateCommission;
+use App\Models\AffiliateProfile;
+use App\Models\AffiliateReferral;
+use App\Models\AffiliateWithdrawRequest;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+
+class AffiliateController extends Controller
+{
+    public function me(Request $request)
+    {
+        try {
+            $user = $request->user();
+            if (!$user) {
+                return response()->json(['active' => false, 'profile' => null, 'stats' => ['total_referrals' => 0, 'pending_commission' => 0, 'approved_commission' => 0, 'paid_commission' => 0]]);
+            }
+
+            $profile = AffiliateProfile::with('user')
+                ->where('id_khachhang', $user->id)
+                ->first();
+
+            if (!$profile) {
+                return response()->json([
+                    'active' => false,
+                    'profile' => null,
+                    'stats' => [
+                        'total_referrals' => 0,
+                        'pending_commission' => 0,
+                        'approved_commission' => 0,
+                        'paid_commission' => 0,
+                    ],
+                ]);
+            }
+
+            $pending = AffiliateCommission::where('id_affiliate_khachhang', $user->id)->where('trangthai', 'pending')->sum('so_tien');
+            $approved = AffiliateCommission::where('id_affiliate_khachhang', $user->id)->where('trangthai', 'approved')->sum('so_tien');
+            $paid = AffiliateCommission::where('id_affiliate_khachhang', $user->id)->where('trangthai', 'paid')->sum('so_tien');
+
+            return response()->json([
+                'active' => $profile->trangthai === 'active',
+                'profile' => $profile,
+                'ref_link' => rtrim(config('app.frontend_url'), '/').'/register?ref='.$profile->ma_affiliate,
+                'stats' => [
+                    'total_referrals' => AffiliateReferral::where('id_affiliate_khachhang', $user->id)->count(),
+                    'pending_commission' => (float) $pending,
+                    'approved_commission' => (float) $approved,
+                    'paid_commission' => (float) $paid,
+                    'available_balance' => (float) max(0, $approved - AffiliateWithdrawRequest::where('id_affiliate_khachhang', $user->id)->whereIn('trangthai', ['pending', 'approved', 'paid'])->sum('so_tien')),
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['active' => false, 'profile' => null, 'stats' => ['total_referrals' => 0, 'pending_commission' => 0, 'approved_commission' => 0, 'paid_commission' => 0]]);
+        }
+    }
+
+    public function activate(Request $request)
+    {
+        try {
+            $request->validate([
+                'commission_rate' => 'nullable|numeric|min:0|max:100',
+            ]);
+
+            $user = $request->user();
+            $profile = AffiliateProfile::firstOrNew(['id_khachhang' => $user->id]);
+
+            if (!$profile->exists) {
+                $profile->ma_affiliate = $this->generateAffiliateCode();
+            }
+
+            $profile->ty_le_hoa_hong = $request->commission_rate ?? $profile->ty_le_hoa_hong ?? 5;
+            $profile->trangthai = 'active';
+            $profile->save();
+
+            return response()->json([
+                'message' => 'Kích hoạt affiliate thành công.',
+                'profile' => $profile,
+                'ref_link' => rtrim(config('app.frontend_url'), '/').'/register?ref='.$profile->ma_affiliate,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => 'Không thể kích hoạt affiliate.'], 500);
+        }
+    }
+
+    public function referrals(Request $request)
+    {
+        try {
+            $user = $request->user();
+            $rows = AffiliateReferral::with('referredUser')
+                ->where('id_affiliate_khachhang', $user->id)
+                ->latest()
+                ->get();
+
+            return response()->json($rows);
+        } catch (\Throwable $e) {
+            return response()->json([]);
+        }
+    }
+
+    public function commissions(Request $request)
+    {
+        try {
+            $user = $request->user();
+            $rows = AffiliateCommission::with(['referredUser', 'order'])
+                ->where('id_affiliate_khachhang', $user->id)
+                ->latest()
+                ->get();
+
+            return response()->json($rows);
+        } catch (\Throwable $e) {
+            return response()->json([]);
+        }
+    }
+
+    public function withdraws(Request $request)
+    {
+        try {
+            $user = $request->user();
+            $rows = AffiliateWithdrawRequest::where('id_affiliate_khachhang', $user->id)
+                ->latest()
+                ->get();
+
+            return response()->json($rows);
+        } catch (\Throwable $e) {
+            return response()->json([]);
+        }
+    }
+
+    public function requestWithdraw(Request $request)
+    {
+        try {
+            $request->validate([
+                'amount' => 'required|numeric|min:10000',
+                'bank_name' => 'required|string|max:120',
+                'bank_account_name' => 'required|string|max:120',
+                'bank_account_number' => 'required|string|max:50',
+            ]);
+
+            $user = $request->user();
+            $approved = (float) AffiliateCommission::where('id_affiliate_khachhang', $user->id)->where('trangthai', 'approved')->sum('so_tien');
+            $locked = (float) AffiliateWithdrawRequest::where('id_affiliate_khachhang', $user->id)->whereIn('trangthai', ['pending', 'approved', 'paid'])->sum('so_tien');
+            $available = max(0, $approved - $locked);
+            $amount = (float) $request->amount;
+
+            if ($amount > $available) {
+                return response()->json([
+                    'message' => 'Số dư khả dụng không đủ để rút.',
+                    'available_balance' => $available,
+                ], 422);
+            }
+
+            $row = AffiliateWithdrawRequest::create([
+                'id_affiliate_khachhang' => $user->id,
+                'so_tien' => $amount,
+                'ten_ngan_hang' => $request->bank_name,
+                'ten_chu_tai_khoan' => $request->bank_account_name,
+                'so_tai_khoan' => $request->bank_account_number,
+                'trangthai' => 'pending',
+            ]);
+
+            return response()->json([
+                'message' => 'Đã gửi yêu cầu rút tiền.',
+                'withdraw' => $row,
+            ], 201);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => 'Lỗi xử lý yêu cầu rút tiền.'], 500);
+        }
+    }
+
+    private function generateAffiliateCode(): string
+    {
+        do {
+            $code = strtoupper(Str::random(8));
+        } while (AffiliateProfile::where('ma_affiliate', $code)->exists());
+
+        return $code;
+    }
+}
