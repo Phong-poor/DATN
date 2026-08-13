@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed, reactive } from 'vue'
+import { ref, onMounted, onUnmounted, computed, reactive, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   Apple,
@@ -42,17 +42,44 @@ const isHeaderHidden = ref(false)
 const isScrolled = ref(false)
 let lastScrollY = 0
 
+const updateHeaderOffset = () => {
+  if (typeof document === 'undefined') return
+  if (isHeaderHidden.value) {
+    document.documentElement.style.setProperty('--header-offset', '0px')
+    document.documentElement.classList.add('header-hidden')
+  } else {
+    const w = window.innerWidth
+    const offset = w <= 600 ? '64px' : (w <= 1120 ? '72px' : '128px')
+    document.documentElement.style.setProperty('--header-offset', offset)
+    document.documentElement.classList.remove('header-hidden')
+  }
+}
+
+watch(() => route.path, () => {
+  isHeaderHidden.value = false
+  isScrolled.value = false
+  lastScrollY = 0
+  updateHeaderOffset()
+})
+
+watch(isHeaderHidden, () => {
+  updateHeaderOffset()
+}, { immediate: true })
+
 const handleScroll = () => {
   const currentScrollY = window.scrollY || window.pageYOffset || 0
   isScrolled.value = currentScrollY > 20
 
-  if (currentScrollY <= 100) {
+  // Luôn giữ Header hiển thị khi ở trong khoảng 250px từ đầu trang
+  if (currentScrollY <= 250) {
     isHeaderHidden.value = false
     lastScrollY = currentScrollY
+    updateHeaderOffset()
     return
   }
 
-  if (currentScrollY > lastScrollY && currentScrollY > 100) {
+  // Cuộn xuống quá 250px mới ẩn
+  if (currentScrollY > lastScrollY && currentScrollY > 250) {
     if (!isHeaderHidden.value) {
       isHeaderHidden.value = true
       activeMegaMenu.value = null
@@ -61,10 +88,12 @@ const handleScroll = () => {
       showSearchSuggestions.value = false
     }
   } else if (currentScrollY < lastScrollY) {
+    // Cuộn ngược lên -> Hiện Header lại lập tức
     isHeaderHidden.value = false
   }
 
   lastScrollY = currentScrollY
+  updateHeaderOffset()
 }
 
 // ===================== ANNOUNCEMENT BAR =====================
@@ -863,6 +892,8 @@ onMounted(() => {
   window.addEventListener('wishlist-updated', handleWishlistUpdated)
   window.addEventListener('user-updated', fetchUser)
   window.addEventListener('scroll', handleScroll, { passive: true })
+  window.addEventListener('resize', updateHeaderOffset)
+  updateHeaderOffset()
   scheduleHeaderDataHydration()
 
   // Announcement bar rotation
@@ -897,6 +928,7 @@ onUnmounted(() => {
   window.removeEventListener('wishlist-updated', handleWishlistUpdated)
   window.removeEventListener('user-updated', fetchUser)
   window.removeEventListener('scroll', handleScroll)
+  window.removeEventListener('resize', updateHeaderOffset)
   document.removeEventListener('click', handleOutside)
   if (headerDataIdleId !== null && 'cancelIdleCallback' in window) {
     window.cancelIdleCallback(headerDataIdleId)

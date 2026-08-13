@@ -28,8 +28,8 @@ class GioHangController extends Controller
 
         $comboItemPrices = []; // id_giohang => gia_da_giam
 
-        // Lấy danh sách ID biến thể thực tế trong giỏ hàng để kiểm tra điều kiện ưu đãi
-        $cartVariantIds = $items->pluck('id_bienthe')->toArray();
+        // Lấy danh sách ID biến thể thực tế của sản phẩm mua lẻ trong giỏ hàng (không gồm sản phẩm trong combo) để kiểm tra điều kiện ưu đãi
+        $cartVariantIds = $items->filter(fn($item) => is_null($item->id_combo))->pluck('id_bienthe')->toArray();
         $cartVariants = \App\Models\BienThe::whereIn('id_bienthe', $cartVariantIds)->get()->keyBy('id_bienthe');
 
         $freeComboOffers = DB::table('bienthe_combo_offers')
