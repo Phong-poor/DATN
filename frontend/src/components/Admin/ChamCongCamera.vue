@@ -57,6 +57,7 @@ const verificationOnly = true
 const roles = ref([])
 const creatingEmployee = ref(false)
 const employeeFormError = ref('')
+const showEmployeePassword = ref(false)
 const employeeForm = ref({
   ten: '',
   email: '',
@@ -1460,12 +1461,18 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <div v-if="isEnrollmentMode && !editingEmployee" class="existing-profile-notice">
+        <div v-if="isEnrollmentMode && !editingEmployee && enrollmentTarget" class="existing-profile-notice">
           <div>
             <strong>Đang đăng ký khuôn mặt cho: {{ enrollmentTarget.ten }}</strong>
             <small>Thông tin bên dưới được lấy từ hồ sơ thật. Bạn có thể cập nhật lịch làm việc và khuôn mặt.</small>
           </div>
           <button type="button" @click="openEditEmployee(enrollmentTarget)">Sửa hồ sơ</button>
+        </div>
+        <div v-else-if="isEnrollmentMode && !editingEmployee" class="existing-profile-notice enrollment-target-loading" role="status">
+          <div>
+            <strong>Đang tải hồ sơ nhân viên...</strong>
+            <small>Vui lòng chờ trong giây lát trước khi đăng ký khuôn mặt.</small>
+          </div>
         </div>
 
         <form id="employee-unified-form" class="employee-setup-form" @submit.prevent="handleUnifiedEmployeeSubmit">
@@ -1503,10 +1510,31 @@ onUnmounted(() => {
             <small v-if="employeeTouched.vaitro && employeeErrors.vaitro">{{ employeeErrors.vaitro }}</small>
           </label>
           <label :class="{ invalid: employeeTouched.matkhau && employeeErrors.matkhau }">
-            <span>{{ editingEmployee ? 'Mật khẩu mới (không bắt buộc)' : 'Mật khẩu ban đầu *' }}</span>
-            <input v-model="employeeForm.matkhau" type="password"
-              :placeholder="editingEmployee ? 'Để trống nếu không đổi mật khẩu' : 'Ít nhất 8 ký tự, gồm chữ và số'" autocomplete="new-password"
-              @input="employeeTouched.matkhau && validateEmployeeField('matkhau')" @blur="validateEmployeeField('matkhau')" />
+            <span>{{ editingEmployee ? 'Mật khẩu mới (không bắt buộc)' : (isEnrollmentMode ? 'Mật khẩu tài khoản' : 'Mật khẩu ban đầu *') }}</span>
+            <div class="password-input-wrap">
+              <input v-if="isEnrollmentMode && !editingEmployee" class="stored-password-indicator"
+                type="text" value="••••••••••••" readonly
+                aria-label="Tài khoản đã có mật khẩu được mã hóa" />
+              <input v-else v-model="employeeForm.matkhau" :type="showEmployeePassword ? 'text' : 'password'"
+                :placeholder="editingEmployee ? 'Để trống nếu không đổi mật khẩu' : 'Ít nhất 8 ký tự, gồm chữ và số'"
+                autocomplete="new-password"
+                @input="employeeTouched.matkhau && validateEmployeeField('matkhau')" @blur="validateEmployeeField('matkhau')" />
+              <button v-if="!isEnrollmentMode || editingEmployee" type="button" class="password-visibility-button"
+                :aria-label="showEmployeePassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'"
+                :title="showEmployeePassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'"
+                @click="showEmployeePassword = !showEmployeePassword">
+                <svg v-if="showEmployeePassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="m3 3 18 18" />
+                  <path d="M10.6 10.7a2 2 0 0 0 2.7 2.7" />
+                  <path d="M9.9 4.2A10.8 10.8 0 0 1 12 4c5 0 9 4.6 10 8a12.7 12.7 0 0 1-2.1 3.8" />
+                  <path d="M6.6 6.6A13.6 13.6 0 0 0 2 12c1 3.4 5 8 10 8a10.7 10.7 0 0 0 5.4-1.5" />
+                </svg>
+                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </button>
+            </div>
             <small v-if="employeeTouched.matkhau && employeeErrors.matkhau">{{ employeeErrors.matkhau }}</small>
           </label>
           <label v-if="editingEmployee">
@@ -2118,6 +2146,34 @@ onUnmounted(() => {
   font-size: 12px;
   transition: border-color .18s, box-shadow .18s;
 }
+.password-input-wrap { position: relative; width: 100%; }
+.password-input-wrap > input { padding-right: 43px; }
+.password-input-wrap > .stored-password-indicator {
+  padding-right: 11px;
+  color: #94a3b8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 16px;
+  letter-spacing: .16em;
+}
+.password-visibility-button {
+  position: absolute;
+  top: 50%;
+  right: 7px;
+  display: grid;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+.password-visibility-button:hover { background: #eaf1fb; color: #2563eb; }
+.password-visibility-button:focus-visible { outline: 2px solid #60a5fa; outline-offset: 1px; }
+.password-visibility-button svg { width: 17px; height: 17px; }
 .employee-setup-form input:focus,
 .employee-setup-form select:focus {
   border-color: #60a5fa;

@@ -1546,7 +1546,6 @@ html[data-admin-theme='dark'] .logo-upload-wrap .logo-placeholder-text {
 .admin-layout.theme-dark .employee-card,
 .admin-layout.theme-dark .chamcong-stat-card,
 .admin-layout.theme-dark .schedule-guide,
-.admin-layout.theme-dark .schedule-guide > div,
 .admin-layout.theme-dark .summary-grid > article,
 .admin-layout.theme-dark .payroll-summary > article {
   border-color: #383e46 !important;
@@ -1558,6 +1557,33 @@ html[data-admin-theme='dark'] .logo-upload-wrap .logo-placeholder-text {
 .admin-layout.theme-dark .schedule-guide {
   border-color: #315587 !important;
   background: #172438 !important;
+}
+
+.admin-layout.theme-dark .schedule-guide-title {
+  background: transparent !important;
+  border: 0 !important;
+  color: #e8edf4 !important;
+}
+
+.admin-layout.theme-dark .schedule-guide-title strong {
+  color: #f8fafc !important;
+}
+
+.admin-layout.theme-dark .schedule-guide-title p {
+  color: #aeb8c6 !important;
+}
+
+.admin-layout.theme-dark .schedule-slots > div {
+  border-color: #3f4b5b !important;
+  background: #1d2229 !important;
+}
+
+.admin-layout.theme-dark .schedule-slots span {
+  color: #9ca8b7 !important;
+}
+
+.admin-layout.theme-dark .schedule-slots strong {
+  color: #e6efff !important;
 }
 
 .admin-layout.theme-dark .total-weight-badge,
