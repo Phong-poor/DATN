@@ -255,7 +255,7 @@ const submit = () => {
   display: flex;
   align-items: center;
   background: #f8fafc;
-  border: 1px solid rgba(148, 163, 184, 0.28);
+  border: none !important;
   border-radius: 20px;
   padding: 6px 12px;
   gap: 8px;

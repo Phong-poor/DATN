@@ -1813,15 +1813,17 @@ onUnmounted(() => {
   min-width: 0;
   height: 100%;
   padding: 0;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: #0f172a;
+  border: 0 !important;
+  outline: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: inherit;
   font-size: 12.5px;
   font-weight: 500;
 }
 .employee-search input::placeholder { color: #94a3b8; font-weight: 400; }
 .employee-search input::-webkit-search-cancel-button { display: none; }
+
 .employee-search-clear {
   flex: 0 0 auto;
   width: 26px;

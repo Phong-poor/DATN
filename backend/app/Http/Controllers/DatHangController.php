@@ -537,18 +537,6 @@ class DatHangController extends Controller
             ], 429);
         }
 
-        if ($request->PTTT === 'COD') {
-            $hasActiveCodOrder = DatHang::where('id_khachhang', $userId)
-                ->where('PTTT', 'COD')
-                ->where('trangthai', 'pending')
-                ->exists();
-            if ($hasActiveCodOrder) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Bạn đã có một đơn COD đang chờ xử lý. Vui lòng hoàn tất hoặc hủy đơn đó trước khi đặt thêm.',
-                ], 409);
-            }
-        }
 
         if ($request->filled('id_diachi')) {
             $diaChi = DiaChi::where('id_user', $userId)
