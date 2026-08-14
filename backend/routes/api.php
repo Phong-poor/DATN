@@ -304,6 +304,7 @@ Route::middleware(['auth:sanctum', 'admin'])
     ->group(function () {
         // ===== DASHBOARD =====
         Route::get('/dashboard', [DashboardController::class, 'index']);
+        Route::get('/dashboard/daily-revenue', [DashboardController::class, 'dailyRevenue']);
 
         Route::get('/users', [UserController::class, 'index']);
         Route::get('/users/{id}', [UserController::class, 'show']);

@@ -10,6 +10,7 @@
       adminTheme === 'dark' && 'dark',
       sidebarCollapsed && 'sidebar-collapsed',
       adminIntroActive && 'intro-active',
+      adminHeaderHidden && 'admin-header-hidden',
     ]"
     :style="adminVars"
   >
@@ -98,8 +99,8 @@
       </div>
     </aside>
 
-    <main ref="adminMainRef" class="main">
-      <section class="admin-topbar">
+    <main ref="adminMainRef" class="main" @scroll.passive="handleAdminScroll">
+      <section class="admin-topbar" :class="{ 'header-hidden': adminHeaderHidden }">
         <div class="admin-topbar-title">
           <h2>{{ pageTitle }}</h2>
           <p>Quản lý nội dung và điều hành hệ thống</p>
@@ -269,12 +270,29 @@ const route = useRoute()
 const refreshCounter = ref(0)
 const routeKey = computed(() => route.fullPath + '-' + refreshCounter.value)
 const adminMainRef = ref(null)
+const adminHeaderHidden = ref(false)
+let lastAdminScrollTop = 0
+
+function handleAdminScroll(event) {
+  const currentScrollTop = Math.max(0, event.currentTarget?.scrollTop || 0)
+
+  if (currentScrollTop <= 12) {
+    adminHeaderHidden.value = false
+  } else if (Math.abs(currentScrollTop - lastAdminScrollTop) >= 6) {
+    // Nội dung đi lên: ẩn header. Nội dung kéo xuống: hiện header.
+    adminHeaderHidden.value = currentScrollTop > lastAdminScrollTop
+  }
+
+  lastAdminScrollTop = currentScrollTop
+}
 
 watch(
   () => route.path,
   async () => {
     await nextTick()
     adminMainRef.value?.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+    adminHeaderHidden.value = false
+    lastAdminScrollTop = 0
   }
 )
 
@@ -1312,6 +1330,21 @@ a { text-decoration: none; }
     border-bottom: 1px solid rgba(125, 211, 252, 0.14); 
     border-radius: 0;
     box-shadow: 0 12px 30px rgba(8, 43, 80, 0.18);
+    transform: translateY(0);
+    transition: transform 0.28s cubic-bezier(.4, 0, .2, 1), opacity 0.2s ease, box-shadow 0.28s ease, visibility 0s;
+    will-change: transform;
+}
+.admin-topbar.header-hidden {
+    transform: translateY(calc(-100% - 12px));
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    border-color: transparent;
+    box-shadow: none;
+    transition: transform 0.28s cubic-bezier(.4, 0, .2, 1), opacity 0.18s ease, box-shadow 0.28s ease, visibility 0s linear 0.28s;
+}
+@media (prefers-reduced-motion: reduce) {
+    .admin-topbar { transition: none; }
 }
 .attendance-topbar-center {
     position: absolute;

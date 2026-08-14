@@ -1,0 +1,376 @@
+============================================================
+DỮ LIỆU DEMO ĐĂNG KÝ VÀ ĐĂNG NHẬP KHÁCH HÀNG MỚI
+============================================================
+
+FORM ĐĂNG KÝ CẦN:
+- Họ và tên
+- Email
+- Mật khẩu
+- Xác nhận mật khẩu
+- Mã giới thiệu: để trống nếu không có mã hợp lệ
+- Đánh dấu đồng ý Điều khoản và Chính sách bảo mật
+
+LƯU Ý:
+- Form hiện tự tạo số điện thoại nếu giao diện không hiển thị ô số điện thoại.
+- Mỗi email chỉ đăng ký được một lần.
+- Sau khi đăng ký tài khoản nào, dùng email và mật khẩu của chính tài khoản đó để demo đăng nhập.
+
+
+============================================================
+20 TÀI KHOẢN ĐĂNG KÝ THÀNH CÔNG
+============================================================
+
+------------------------------------------------------------
+TÀI KHOẢN 01
+Họ và tên: Nguyễn Hoàng Phúc
+Email: hoangphuc.demo01@gmail.com
+Mật khẩu: Laptop@2026
+Xác nhận mật khẩu: Laptop@2026
+Mã giới thiệu: Để trống
+Đồng ý điều khoản: Có
+
+ĐĂNG NHẬP SAU KHI ĐĂNG KÝ:
+Email: hoangphuc.demo01@gmail.com
+Mật khẩu: Laptop@2026
+
+------------------------------------------------------------
+TÀI KHOẢN 02
+Họ và tên: Trần Ngọc Ánh
+Email: ngocanh.demo02@gmail.com
+Mật khẩu: NextGen@2026
+Xác nhận mật khẩu: NextGen@2026
+Mã giới thiệu: Để trống
+Đồng ý điều khoản: Có
+
+ĐĂNG NHẬP SAU KHI ĐĂNG KÝ:
+Email: ngocanh.demo02@gmail.com
+Mật khẩu: NextGen@2026
+
+------------------------------------------------------------
+TÀI KHOẢN 03
+Họ và tên: Lê Minh Khang
+Email: minhkhang.demo03@gmail.com
+Mật khẩu: KhachHang@123
+Xác nhận mật khẩu: KhachHang@123
+Mã giới thiệu: Để trống
+Đồng ý điều khoản: Có
+
+ĐĂNG NHẬP SAU KHI ĐĂNG KÝ:
+Email: minhkhang.demo03@gmail.com
+Mật khẩu: KhachHang@123
+
+------------------------------------------------------------
+TÀI KHOẢN 04
+Họ và tên: Phạm Thảo Nguyên
+Email: thaonguyen.demo04@gmail.com
+Mật khẩu: MuaSam@2026
+Xác nhận mật khẩu: MuaSam@2026
+Mã giới thiệu: Để trống
+Đồng ý điều khoản: Có
+
+ĐĂNG NHẬP SAU KHI ĐĂNG KÝ:
+Email: thaonguyen.demo04@gmail.com
+Mật khẩu: MuaSam@2026
+
+------------------------------------------------------------
+TÀI KHOẢN 05
+Họ và tên: Võ Thành Đạt
+Email: thanhdat.demo05@gmail.com
+Mật khẩu: ThanhDat@456
+Xác nhận mật khẩu: ThanhDat@456
+Mã giới thiệu: Để trống
+Đồng ý điều khoản: Có
+
+ĐĂNG NHẬP SAU KHI ĐĂNG KÝ:
+Email: thanhdat.demo05@gmail.com
+Mật khẩu: ThanhDat@456
+
+------------------------------------------------------------
+TÀI KHOẢN 06
+Họ và tên: Bùi Phương Linh
+Email: phuonglinh.demo06@gmail.com
+Mật khẩu: PhuongLinh@789
+Xác nhận mật khẩu: PhuongLinh@789
+Mã giới thiệu: Để trống
+Đồng ý điều khoản: Có
+
+ĐĂNG NHẬP SAU KHI ĐĂNG KÝ:
+Email: phuonglinh.demo06@gmail.com
+Mật khẩu: PhuongLinh@789
+
+------------------------------------------------------------
+TÀI KHOẢN 07
+Họ và tên: Đặng Quốc Huy
+Email: quochuy.demo07@gmail.com
+Mật khẩu: QuocHuy@2026
+Xác nhận mật khẩu: QuocHuy@2026
+Mã giới thiệu: Để trống
+Đồng ý điều khoản: Có
+
+ĐĂNG NHẬP SAU KHI ĐĂNG KÝ:
+Email: quochuy.demo07@gmail.com
+Mật khẩu: QuocHuy@2026
+
+------------------------------------------------------------
+TÀI KHOẢN 08
+Họ và tên: Hồ Khánh Vy
+Email: khanhvy.demo08@gmail.com
+Mật khẩu: KhanhVy@1234
+Xác nhận mật khẩu: KhanhVy@1234
+Mã giới thiệu: Để trống
+Đồng ý điều khoản: Có
+
+ĐĂNG NHẬP SAU KHI ĐĂNG KÝ:
+Email: khanhvy.demo08@gmail.com
+Mật khẩu: KhanhVy@1234
+
+------------------------------------------------------------
+TÀI KHOẢN 09
+Họ và tên: Nguyễn Gia Bảo
+Email: giabao.demo09@gmail.com
+Mật khẩu: GiaBao@5678
+Xác nhận mật khẩu: GiaBao@5678
+Mã giới thiệu: Để trống
+Đồng ý điều khoản: Có
+
+ĐĂNG NHẬP SAU KHI ĐĂNG KÝ:
+Email: giabao.demo09@gmail.com
+Mật khẩu: GiaBao@5678
+
+------------------------------------------------------------
+TÀI KHOẢN 10
+Họ và tên: Trương Mỹ Hạnh
+Email: myhanh.demo10@gmail.com
+Mật khẩu: MyHanh@2026
+Xác nhận mật khẩu: MyHanh@2026
+Mã giới thiệu: Để trống
+Đồng ý điều khoản: Có
+
+ĐĂNG NHẬP SAU KHI ĐĂNG KÝ:
+Email: myhanh.demo10@gmail.com
+Mật khẩu: MyHanh@2026
+
+------------------------------------------------------------
+TÀI KHOẢN 11
+Họ và tên: Đỗ Anh Quân
+Email: anhquan.demo11@gmail.com
+Mật khẩu: AnhQuan@2468
+Xác nhận mật khẩu: AnhQuan@2468
+Mã giới thiệu: Để trống
+Đồng ý điều khoản: Có
+
+ĐĂNG NHẬP SAU KHI ĐĂNG KÝ:
+Email: anhquan.demo11@gmail.com
+Mật khẩu: AnhQuan@2468
+
+------------------------------------------------------------
+TÀI KHOẢN 12
+Họ và tên: Phan Nhật Hạ
+Email: nhatha.demo12@gmail.com
+Mật khẩu: NhatHa@1357
+Xác nhận mật khẩu: NhatHa@1357
+Mã giới thiệu: Để trống
+Đồng ý điều khoản: Có
+
+ĐĂNG NHẬP SAU KHI ĐĂNG KÝ:
+Email: nhatha.demo12@gmail.com
+Mật khẩu: NhatHa@1357
+
+------------------------------------------------------------
+TÀI KHOẢN 13
+Họ và tên: Cao Đức Anh
+Email: ducanh.demo13@gmail.com
+Mật khẩu: DucAnh@2026
+Xác nhận mật khẩu: DucAnh@2026
+Mã giới thiệu: Để trống
+Đồng ý điều khoản: Có
+
+ĐĂNG NHẬP SAU KHI ĐĂNG KÝ:
+Email: ducanh.demo13@gmail.com
+Mật khẩu: DucAnh@2026
+
+------------------------------------------------------------
+TÀI KHOẢN 14
+Họ và tên: Lâm Bảo Ngọc
+Email: baongoc.demo14@gmail.com
+Mật khẩu: BaoNgoc@8642
+Xác nhận mật khẩu: BaoNgoc@8642
+Mã giới thiệu: Để trống
+Đồng ý điều khoản: Có
+
+ĐĂNG NHẬP SAU KHI ĐĂNG KÝ:
+Email: baongoc.demo14@gmail.com
+Mật khẩu: BaoNgoc@8642
+
+------------------------------------------------------------
+TÀI KHOẢN 15
+Họ và tên: Mai Trung Kiên
+Email: trungkien.demo15@gmail.com
+Mật khẩu: TrungKien@369
+Xác nhận mật khẩu: TrungKien@369
+Mã giới thiệu: Để trống
+Đồng ý điều khoản: Có
+
+ĐĂNG NHẬP SAU KHI ĐĂNG KÝ:
+Email: trungkien.demo15@gmail.com
+Mật khẩu: TrungKien@369
+
+------------------------------------------------------------
+TÀI KHOẢN 16
+Họ và tên: Tạ Minh Thư
+Email: minhthu.demo16@gmail.com
+Mật khẩu: MinhThu@2026
+Xác nhận mật khẩu: MinhThu@2026
+Mã giới thiệu: Để trống
+Đồng ý điều khoản: Có
+
+ĐĂNG NHẬP SAU KHI ĐĂNG KÝ:
+Email: minhthu.demo16@gmail.com
+Mật khẩu: MinhThu@2026
+
+------------------------------------------------------------
+TÀI KHOẢN 17
+Họ và tên: Vũ Tuấn Anh
+Email: tuananh.demo17@gmail.com
+Mật khẩu: TuanAnh@9753
+Xác nhận mật khẩu: TuanAnh@9753
+Mã giới thiệu: Để trống
+Đồng ý điều khoản: Có
+
+ĐĂNG NHẬP SAU KHI ĐĂNG KÝ:
+Email: tuananh.demo17@gmail.com
+Mật khẩu: TuanAnh@9753
+
+------------------------------------------------------------
+TÀI KHOẢN 18
+Họ và tên: Nguyễn Thanh Tâm
+Email: thanhtam.demo18@gmail.com
+Mật khẩu: ThanhTam@2026
+Xác nhận mật khẩu: ThanhTam@2026
+Mã giới thiệu: Để trống
+Đồng ý điều khoản: Có
+
+ĐĂNG NHẬP SAU KHI ĐĂNG KÝ:
+Email: thanhtam.demo18@gmail.com
+Mật khẩu: ThanhTam@2026
+
+------------------------------------------------------------
+TÀI KHOẢN 19
+Họ và tên: Trần Hải Yến
+Email: haiyen.demo19@gmail.com
+Mật khẩu: HaiYen@4815
+Xác nhận mật khẩu: HaiYen@4815
+Mã giới thiệu: Để trống
+Đồng ý điều khoản: Có
+
+ĐĂNG NHẬP SAU KHI ĐĂNG KÝ:
+Email: haiyen.demo19@gmail.com
+Mật khẩu: HaiYen@4815
+
+------------------------------------------------------------
+TÀI KHOẢN 20
+Họ và tên: Lê Quang Vinh
+Email: quangvinh.demo20@gmail.com
+Mật khẩu: QuangVinh@2026
+Xác nhận mật khẩu: QuangVinh@2026
+Mã giới thiệu: Để trống
+Đồng ý điều khoản: Có
+
+ĐĂNG NHẬP SAU KHI ĐĂNG KÝ:
+Email: quangvinh.demo20@gmail.com
+Mật khẩu: QuangVinh@2026
+
+
+============================================================
+DỮ LIỆU DEMO VALIDATION — CỐ Ý NHẬP SAI
+============================================================
+
+TRƯỜNG HỢP 01 — Bỏ trống họ tên
+Họ và tên: Để trống
+Email: validation01@gmail.com
+Mật khẩu: TestUser@123
+Xác nhận: TestUser@123
+Kết quả mong đợi: Báo yêu cầu nhập họ và tên.
+
+TRƯỜNG HỢP 02 — Email sai định dạng
+Họ và tên: Nguyễn Văn Test
+Email: nguyenvantest
+Mật khẩu: TestUser@123
+Xác nhận: TestUser@123
+Kết quả mong đợi: Báo email không đúng định dạng.
+
+TRƯỜNG HỢP 03 — Mật khẩu quá ngắn
+Họ và tên: Nguyễn Văn Test
+Email: validation03@gmail.com
+Mật khẩu: Ab@12
+Xác nhận: Ab@12
+Kết quả mong đợi: Báo mật khẩu chưa đủ độ dài.
+
+TRƯỜNG HỢP 04 — Mật khẩu không có chữ hoa
+Họ và tên: Nguyễn Văn Test
+Email: validation04@gmail.com
+Mật khẩu: password@123
+Xác nhận: password@123
+Kết quả mong đợi: Báo mật khẩu phải có chữ hoa.
+
+TRƯỜNG HỢP 05 — Mật khẩu không có ký tự đặc biệt
+Họ và tên: Nguyễn Văn Test
+Email: validation05@gmail.com
+Mật khẩu: Password123
+Xác nhận: Password123
+Kết quả mong đợi: Báo mật khẩu phải có ký tự đặc biệt.
+
+TRƯỜNG HỢP 06 — Xác nhận mật khẩu không khớp
+Họ và tên: Nguyễn Văn Test
+Email: validation06@gmail.com
+Mật khẩu: TestUser@123
+Xác nhận: TestUser@456
+Kết quả mong đợi: Báo xác nhận mật khẩu không khớp.
+
+TRƯỜNG HỢP 07 — Chưa đồng ý điều khoản
+Họ và tên: Nguyễn Văn Test
+Email: validation07@gmail.com
+Mật khẩu: TestUser@123
+Xác nhận: TestUser@123
+Đồng ý điều khoản: Không
+Kết quả mong đợi: Hệ thống không cho đăng ký.
+
+TRƯỜNG HỢP 08 — Email đã tồn tại
+Cách làm: Đăng ký thành công TÀI KHOẢN 01, sau đó nhập lại toàn bộ dữ liệu của TÀI KHOẢN 01.
+Kết quả mong đợi: Báo email đã được sử dụng.
+
+TRƯỜNG HỢP 09 — Đăng nhập sai mật khẩu
+Email: hoangphuc.demo01@gmail.com
+Mật khẩu sai: SaiMatKhau@123
+Kết quả mong đợi: Đăng nhập thất bại và hiển thị thông báo phù hợp.
+
+TRƯỜNG HỢP 10 — Đăng nhập bằng tài khoản chưa tồn tại
+Email: khongtontai.demo@gmail.com
+Mật khẩu: TestUser@123
+Kết quả mong đợi: Đăng nhập thất bại, không để lộ thông tin nhạy cảm.
+
+
+============================================================
+DANH SÁCH ĐĂNG NHẬP RÚT GỌN
+============================================================
+
+01 | hoangphuc.demo01@gmail.com  | Laptop@2026
+02 | ngocanh.demo02@gmail.com    | NextGen@2026
+03 | minhkhang.demo03@gmail.com  | KhachHang@123
+04 | thaonguyen.demo04@gmail.com | MuaSam@2026
+05 | thanhdat.demo05@gmail.com   | ThanhDat@456
+06 | phuonglinh.demo06@gmail.com | PhuongLinh@789
+07 | quochuy.demo07@gmail.com    | QuocHuy@2026
+08 | khanhvy.demo08@gmail.com    | KhanhVy@1234
+09 | giabao.demo09@gmail.com     | GiaBao@5678
+10 | myhanh.demo10@gmail.com     | MyHanh@2026
+11 | anhquan.demo11@gmail.com    | AnhQuan@2468
+12 | nhatha.demo12@gmail.com     | NhatHa@1357
+13 | ducanh.demo13@gmail.com     | DucAnh@2026
+14 | baongoc.demo14@gmail.com    | BaoNgoc@8642
+15 | trungkien.demo15@gmail.com  | TrungKien@369
+16 | minhthu.demo16@gmail.com    | MinhThu@2026
+17 | tuananh.demo17@gmail.com    | TuanAnh@9753
+18 | thanhtam.demo18@gmail.com   | ThanhTam@2026
+19 | haiyen.demo19@gmail.com     | HaiYen@4815
+20 | quangvinh.demo20@gmail.com  | QuangVinh@2026

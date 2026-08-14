@@ -4,6 +4,9 @@ import { useRouter } from 'vue-router'
 import {
     AlertTriangle,
     BarChart3,
+    CalendarDays,
+    ChevronLeft,
+    ChevronRight,
     ClipboardList,
     DollarSign,
     Download,
@@ -13,6 +16,7 @@ import {
     TrendingUp,
     UserPlus,
     Users,
+    X,
 } from 'lucide-vue-next'
 import api from '@/services/api'
 import echo from '@/services/echo'
@@ -20,13 +24,20 @@ import { getUser } from '@/services/auth'
 
 // State
 const period = ref('all')          // all | week | month | year
+const ageMetric = ref('orders')    // orders | revenue
+const showAgeChartModal = ref(false)
+const ageViewMode = ref('orders')  // orders | revenue | chart
+const showDailyRevenue = ref(false)
+const dailyRevenueLoading = ref(false)
+const dailyRevenue = ref({ month: '', label: '', days: [], total_orders: 0, total_revenue_formatted: '0đ' })
+const revenueMonth = ref(new Date().toISOString().slice(0, 7))
 const router = useRouter()
 const currentUser = getUser() || {}
 const isSuperAdmin = String(currentUser.vaitro || '').toLowerCase() === 'admin'
 const pendingLeaveCount = ref(0)
 const newestPendingLeave = ref(null)
 let pendingLeaveTimer = null
-const DASHBOARD_CACHE_PREFIX = 'nextgen_admin_dashboard_v4_'
+const DASHBOARD_CACHE_PREFIX = 'nextgen_admin_dashboard_v6_'
 const DASHBOARD_CACHE_TTL_MS = 5 * 60 * 1000
 
 const statusLabels = [
@@ -45,6 +56,7 @@ const statusLabels = [
 const createDashboardShell = (selectedPeriod = 'all') => ({
     period: selectedPeriod,
     doanh_thu: '0đ',
+    doanh_thu_hom_nay: '0đ',
     khach_hang: 0,
     bien_the: 0,
     trang_thai: statusLabels.map(([status, label]) => ({ status, label, count: 0, pct: 0 })),
@@ -78,6 +90,18 @@ const createDashboardShell = (selectedPeriod = 'all') => ({
         online: 0,
         recent: 0,
         visited_today: 0,
+    },
+    phan_tich_do_tuoi: {
+        groups: [],
+        top_group: null,
+        known_customers: 0,
+        total_orders: 0,
+    },
+    phan_tich_bom_hang: {
+        items: [],
+        flagged_accounts: 0,
+        cancelled_orders: 0,
+        definition: '',
     },
 })
 
@@ -285,6 +309,28 @@ const stats = computed(() => {
     ]
 })
 
+async function loadDailyRevenue(month = revenueMonth.value) {
+    dailyRevenueLoading.value = true
+    try {
+        const response = await api.get('/admin/dashboard/daily-revenue', { params: { month } })
+        dailyRevenue.value = response.data?.data || dailyRevenue.value
+        revenueMonth.value = dailyRevenue.value.month || month
+    } finally {
+        dailyRevenueLoading.value = false
+    }
+}
+
+async function openDailyRevenue() {
+    showDailyRevenue.value = true
+    await loadDailyRevenue()
+}
+
+function changeRevenueMonth(offset) {
+    const [year, month] = revenueMonth.value.split('-').map(Number)
+    const target = new Date(year, month - 1 + offset, 1)
+    loadDailyRevenue(`${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}`)
+}
+
 const statusCount = (status) => Number(data.value?.trang_thai?.find((item) => item.status === status)?.count || 0)
 
 const normalOrderTotal = computed(() =>
@@ -306,6 +352,27 @@ const topCategories = computed(() => data.value?.danh_muc_ban_chay || [])
 const staffActivity = computed(() => data.value?.nhan_su_hoat_dong || createDashboardShell(period.value).nhan_su_hoat_dong)
 const activeStaffList = computed(() => staffActivity.value.items || [])
 const customerActivity = computed(() => data.value?.khach_hang_hoat_dong || createDashboardShell(period.value).khach_hang_hoat_dong)
+const ageAnalysis = computed(() => data.value?.phan_tich_do_tuoi || createDashboardShell(period.value).phan_tich_do_tuoi)
+const ageGroups = computed(() => ageAnalysis.value.groups || [])
+const displayAgeGroups = computed(() => ageGroups.value.map((group) => ({
+    ...group,
+    displayPct: ageMetric.value === 'revenue' ? Number(group.revenue_pct || 0) : Number(group.pct || 0),
+})))
+const leadingAgeGroup = computed(() => [...displayAgeGroups.value].sort((a, b) => b.displayPct - a.displayPct)[0] || null)
+const ageChartColors = ['#60a5fa', '#2563eb', '#10b981', '#f59e0b', '#8b5cf6']
+const ageDonutSegments = computed(() => {
+    let offset = 0
+    return displayAgeGroups.value.map((group, index) => {
+        const pct = Math.max(0, Number(group.displayPct || 0))
+        const segment = { ...group, color: ageChartColors[index % ageChartColors.length], offset }
+        offset += pct
+        return segment
+    })
+})
+const bombRiskAnalysis = computed(() => data.value?.phan_tich_bom_hang || createDashboardShell(period.value).phan_tich_bom_hang)
+const bombRiskAccounts = computed(() => bombRiskAnalysis.value.items || [])
+
+const riskLabel = (risk) => ({ high: 'Cao', medium: 'Cần chú ý', low: 'Theo dõi' }[risk] || 'Theo dõi')
 
 const staffStatusClass = (status) => {
     return {
@@ -1212,6 +1279,9 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                             {{ p[1] }}
                         </button>
                     </div>
+                    <button type="button" class="daily-revenue-trigger" @click="openDailyRevenue">
+                        <CalendarDays aria-hidden="true" /> Lịch sử doanh thu
+                    </button>
                 </div>
                 <div class="topbar-right">
                     <button class="export-btn admin-report-export" type="button" @click="exportDashboardExcel">
@@ -1253,6 +1323,40 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                     </router-link>
                 </div>
             </section>
+
+            <Teleport to="body">
+                <transition name="revenue-modal-fade">
+                    <div v-if="showDailyRevenue" class="revenue-history-overlay" @click.self="showDailyRevenue = false">
+                        <section class="revenue-history-modal" role="dialog" aria-modal="true" aria-labelledby="daily-revenue-title">
+                            <header class="revenue-history-head">
+                                <div>
+                                    <span class="section-kicker">LỊCH SỬ DOANH THU</span>
+                                    <h2 id="daily-revenue-title">Doanh thu từng ngày</h2>
+                                    <p>Chỉ tính các đơn đã hoàn tất theo ngày cập nhật trạng thái.</p>
+                                </div>
+                                <button type="button" class="revenue-close" aria-label="Đóng" @click="showDailyRevenue = false"><X /></button>
+                            </header>
+                            <div class="revenue-month-nav">
+                                <button type="button" aria-label="Tháng trước" @click="changeRevenueMonth(-1)"><ChevronLeft /></button>
+                                <strong>{{ dailyRevenue.label || 'Đang tải...' }}</strong>
+                                <button type="button" aria-label="Tháng sau" @click="changeRevenueMonth(1)"><ChevronRight /></button>
+                            </div>
+                            <div class="revenue-month-summary">
+                                <div><span>Tổng doanh thu</span><b>{{ dailyRevenue.total_revenue_formatted }}</b></div>
+                                <div><span>Đơn hoàn tất</span><b>{{ dailyRevenue.total_orders }} đơn</b></div>
+                            </div>
+                            <div v-if="dailyRevenueLoading" class="revenue-loading">Đang tải lịch sử doanh thu...</div>
+                            <div v-else class="daily-revenue-list">
+                                <div v-for="item in dailyRevenue.days" :key="item.date" class="daily-revenue-row" :class="{ empty: !item.orders }">
+                                    <time :datetime="item.date"><b>Ngày {{ item.day }}</b><span>{{ item.date }}</span></time>
+                                    <span>{{ item.orders }} đơn hoàn tất</span>
+                                    <strong>{{ item.revenue_formatted }}</strong>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                </transition>
+            </Teleport>
 
             <section class="dashboard-cluster performance-cluster">
                 <div class="cluster-head">
@@ -1303,6 +1407,8 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                     </div>
                 </div>
             </section>
+
+            <div id="customer-intelligence-slot" class="customer-intelligence-slot"></div>
 
             <div class="workbench-card">
                 <div class="workbench-head">
@@ -1787,6 +1893,171 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 
             </div>
 
+            <Teleport defer to="#customer-intelligence-slot">
+            <section class="customer-intelligence">
+                <div class="card customer-insight-card age-insight-card">
+                    <div class="section-header">
+                        <div>
+                            <span class="section-kicker">CHÂN DUNG KHÁCH MUA</span>
+                            <span class="section-title">Độ tuổi mua hàng nhiều nhất</span>
+                        </div>
+                        <div class="age-card-actions">
+                            <span v-if="leadingAgeGroup?.displayPct" class="insight-highlight">
+                                {{ leadingAgeGroup.label }} · {{ leadingAgeGroup.displayPct }}%
+                            </span>
+                        </div>
+                    </div>
+                    <div class="age-analysis-tools">
+                        <p class="insight-description">Chỉ tính đơn hoàn tất trong {{ periodLabel.toLowerCase() }}.</p>
+                        <div class="age-tool-actions">
+                            <div class="metric-switch age-view-switch" aria-label="Chỉ số và chế độ xem phân tích độ tuổi">
+                                <button type="button" :class="{ active: ageViewMode === 'orders' }" @click.stop="ageMetric = 'orders'; ageViewMode = 'orders'">Theo số đơn</button>
+                                <button type="button" :class="{ active: ageViewMode === 'revenue' }" @click.stop="ageMetric = 'revenue'; ageViewMode = 'revenue'">Theo doanh thu</button>
+                                <button type="button" class="chart-tab-btn" :class="{ active: ageViewMode === 'chart' }" @click.stop="ageViewMode = 'chart'">
+                                    <BarChart3 aria-hidden="true" /> Xem biểu đồ
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-if="ageGroups.length && ageViewMode !== 'chart'" class="age-inline-layout">
+                        <div class="age-mini-donut-wrap" aria-hidden="true">
+                            <svg viewBox="0 0 120 120">
+                                <circle cx="60" cy="60" r="42" fill="none" stroke="#e8edf5" stroke-width="18" />
+                                <circle v-for="segment in ageDonutSegments" :key="segment.key" cx="60" cy="60" r="42" fill="none"
+                                    :stroke="segment.color" stroke-width="18" pathLength="100"
+                                    :stroke-dasharray="`${segment.displayPct} ${100 - segment.displayPct}`"
+                                    :stroke-dashoffset="-segment.offset" transform="rotate(-90 60 60)" />
+                            </svg>
+                            <div><b>{{ leadingAgeGroup?.displayPct || 0 }}%</b><span>{{ leadingAgeGroup?.label || '—' }}</span></div>
+                        </div>
+                        <div class="age-chart">
+                            <div v-for="group in displayAgeGroups" :key="group.key" class="age-row" :class="{ leading: leadingAgeGroup?.key === group.key }">
+                                <div class="age-meta">
+                                    <b>{{ group.label }}</b>
+                                    <span v-if="ageMetric === 'orders'">{{ group.orders }} đơn · {{ group.customers }} khách</span>
+                                    <span v-else>{{ group.revenue_formatted }} · {{ group.customers }} khách</span>
+                                </div>
+                                <div class="age-track"><span :style="{ width: `${group.displayPct}%` }"></span></div>
+                                <strong>{{ group.displayPct }}%</strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else-if="ageGroups.length" class="age-inline-chart-view">
+                        <div class="age-mini-donut-wrap chart-mode" aria-hidden="true">
+                            <svg viewBox="0 0 120 120">
+                                <circle cx="60" cy="60" r="42" fill="none" stroke="#e8edf5" stroke-width="18" />
+                                <circle v-for="segment in ageDonutSegments" :key="segment.key" cx="60" cy="60" r="42" fill="none"
+                                    :stroke="segment.color" stroke-width="18" pathLength="100"
+                                    :stroke-dasharray="`${segment.displayPct} ${100 - segment.displayPct}`"
+                                    :stroke-dashoffset="-segment.offset" transform="rotate(-90 60 60)" />
+                            </svg>
+                            <div><b>{{ leadingAgeGroup?.displayPct || 0 }}%</b><span>{{ leadingAgeGroup?.label || '—' }}</span></div>
+                        </div>
+                        <div class="age-inline-legend">
+                            <div v-for="segment in ageDonutSegments" :key="segment.key">
+                                <i :style="{ background: segment.color }"></i>
+                                <span>{{ segment.label }}</span>
+                                <b>{{ segment.displayPct }}%</b>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else class="empty-row">Chưa có đơn hoàn tất từ khách đã khai báo ngày sinh.</div>
+                </div>
+
+                <div class="card customer-insight-card bomb-risk-card">
+                    <div class="section-header">
+                        <div>
+                            <span class="section-kicker danger">CẢNH BÁO KHÁCH HÀNG</span>
+                            <span class="section-title">Tài khoản có nguy cơ bom hàng</span>
+                        </div>
+                        <router-link to="/admin/quan-ly-nguoi-dung" class="see-all">Mở tài khoản</router-link>
+                    </div>
+                    <p class="insight-description">{{ bombRiskAnalysis.definition || 'Chỉ tính sự cố đã có bằng chứng giao nhận.' }}</p>
+                    <div class="risk-list">
+                        <router-link v-for="customer in bombRiskAccounts" :key="customer.id" to="/admin/quan-ly-nguoi-dung" class="risk-row">
+                            <div class="risk-customer">
+                                <span class="risk-avatar">{{ customer.name?.charAt(0)?.toUpperCase() || '?' }}</span>
+                                <div><b>{{ customer.name }}</b><span>{{ customer.phone || customer.email || `ID #${customer.id}` }}</span></div>
+                            </div>
+                            <div class="risk-metrics">
+                                <b>{{ customer.confirmed_bombs }} bom xác nhận / {{ customer.delivery_orders }} đơn giao</b>
+                                <span>Điểm rủi ro {{ customer.risk_score }}/100</span>
+                            </div>
+                            <span class="risk-badge" :class="[customer.risk, { locked: customer.policy_locked }]">
+                                {{ customer.policy_locked ? 'Đã khóa' : riskLabel(customer.risk) }}
+                            </span>
+                        </router-link>
+                        <div v-if="!bombRiskAccounts.length" class="empty-row">Chưa ghi nhận tài khoản có bằng chứng bom hàng.</div>
+                    </div>
+                </div>
+            </section>
+            </Teleport>
+
+            <Teleport to="body">
+                <transition name="age-chart-fade">
+                    <div v-if="showAgeChartModal && false" class="age-chart-overlay" @click.self="showAgeChartModal = false">
+                        <section class="age-chart-modal" role="dialog" aria-modal="true" aria-labelledby="age-chart-title">
+                            <header class="age-chart-modal-head">
+                                <div>
+                                    <span class="section-kicker">PHÂN TÍCH KHÁCH HÀNG</span>
+                                    <h2 id="age-chart-title">Cơ cấu độ tuổi mua hàng</h2>
+                                    <p>{{ periodLabel }} · Chỉ tính đơn đã hoàn tất</p>
+                                </div>
+                                <button type="button" class="age-chart-close" aria-label="Đóng biểu đồ" @click="showAgeChartModal = false">×</button>
+                            </header>
+
+                            <div class="age-chart-modal-tools">
+                                <div class="metric-switch large">
+                                    <button type="button" :class="{ active: ageMetric === 'orders' }" @click="ageMetric = 'orders'">Theo số đơn</button>
+                                    <button type="button" :class="{ active: ageMetric === 'revenue' }" @click="ageMetric = 'revenue'">Theo doanh thu</button>
+                                </div>
+                            </div>
+
+                            <div class="age-donut-layout">
+                                <div class="age-donut-wrap">
+                                    <svg class="age-donut-svg" viewBox="0 0 220 220" aria-label="Biểu đồ tròn cơ cấu độ tuổi">
+                                        <circle cx="110" cy="110" r="78" fill="none" stroke="#e8edf5" stroke-width="34" />
+                                        <circle
+                                            v-for="segment in ageDonutSegments"
+                                            :key="segment.key"
+                                            cx="110" cy="110" r="78" fill="none"
+                                            :stroke="segment.color" stroke-width="34"
+                                            pathLength="100"
+                                            :stroke-dasharray="`${segment.displayPct} ${100 - segment.displayPct}`"
+                                            :stroke-dashoffset="-segment.offset"
+                                            transform="rotate(-90 110 110)"
+                                        />
+                                    </svg>
+                                    <div class="age-donut-center">
+                                        <b>{{ leadingAgeGroup?.label || 'Chưa có' }}</b>
+                                        <strong>{{ leadingAgeGroup?.displayPct || 0 }}%</strong>
+                                        <span>Nhóm dẫn đầu</span>
+                                    </div>
+                                </div>
+
+                                <div class="age-donut-legend">
+                                    <div v-for="segment in ageDonutSegments" :key="segment.key" class="age-legend-row">
+                                        <span class="age-legend-color" :style="{ background: segment.color }"></span>
+                                        <div>
+                                            <b>{{ segment.label }}</b>
+                                            <span v-if="ageMetric === 'orders'">{{ segment.orders }} đơn · {{ segment.customers }} khách</span>
+                                            <span v-else>{{ segment.revenue_formatted }} · {{ segment.customers }} khách</span>
+                                        </div>
+                                        <strong>{{ segment.displayPct }}%</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <footer class="age-chart-summary">
+                                <div><span>Khách có ngày sinh</span><b>{{ ageAnalysis.known_customers || 0 }}</b></div>
+                                <div><span>Đơn hoàn tất</span><b>{{ ageAnalysis.total_orders || 0 }}</b></div>
+                                <div><span>Nhóm nổi bật</span><b>{{ leadingAgeGroup?.label || '—' }}</b></div>
+                            </footer>
+                        </section>
+                    </div>
+                </transition>
+            </Teleport>
+
             <div class="insight-charts-row">
                 <div class="card insight-chart-card">
                     <div class="section-header compact">
@@ -2198,11 +2469,67 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 
 /* PERIOD BAR */
 .dashboard-controls {
+    position: sticky;
+    top: 0;
+    z-index: 9;
+    visibility: visible !important;
+    opacity: 1 !important;
+    transform: none !important;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    padding: 0 0 16px;
+    width: calc(100% + 48px);
+    margin: 0 -24px;
+    padding: 10px 24px 12px;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.92);
+    background: rgba(244, 247, 251, 0.94);
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
+    backdrop-filter: blur(12px);
+    transition: top 0.28s cubic-bezier(.4, 0, .2, 1);
+    will-change: top;
+    isolation: isolate;
+}
+
+.dashboard-controls::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: calc(100% + 18px);
+    background: #f4f7fb;
+    pointer-events: none;
+}
+
+.dashboard-controls::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    right: 0;
+    bottom: -10px;
+    left: 0;
+    height: 12px;
+    background: #f4f7fb;
+    pointer-events: none;
+}
+
+:global(.admin-layout:not(.admin-header-hidden)) .dashboard-controls {
+    top: 77px;
+}
+
+:global(.admin-layout.theme-dark) .dashboard-controls {
+    border-bottom-color: rgba(71, 85, 105, 0.65);
+    background: rgba(15, 23, 42, 0.94);
+}
+
+:global(.admin-layout.theme-dark) .dashboard-controls::before {
+    background: #0f172a;
+}
+
+:global(.admin-layout.theme-dark) .dashboard-controls::after {
+    background: #0f172a;
 }
 
 .period-bar {
@@ -3441,6 +3768,149 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
     padding: 0 0 20px;
 }
 
+.daily-revenue-trigger { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 7px 11px; border: 1px solid #bfdbfe; border-radius: 10px; background: #fff; color: #2563eb; font-size: 10px; font-weight: 800; cursor: pointer; }
+.daily-revenue-trigger:hover { border-color: #2563eb; background: #eff6ff; }
+.daily-revenue-trigger svg { width: 14px; height: 14px; }
+
+.customer-intelligence {
+    display: grid;
+    grid-template-columns: minmax(0, .92fr) minmax(0, 1.08fr);
+    align-items: stretch;
+    gap: 16px;
+    margin: 0;
+    padding: 0 0 20px;
+}
+.customer-intelligence-slot {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0;
+    grid-column: 1 / -1 !important;
+    clear: both;
+}
+.customer-intelligence-slot > .customer-intelligence {
+    width: 100% !important;
+    min-width: 0;
+    box-sizing: border-box;
+}
+.customer-insight-card { height: 100%; min-height: 360px; padding: 20px; border-radius: 18px; box-sizing: border-box; }
+.customer-insight-card .section-header > div { display: grid; gap: 4px; }
+.section-kicker { color: #2563eb; font-size: 10px; font-weight: 900; letter-spacing: .08em; }
+.section-kicker.danger { color: #dc2626; }
+.insight-highlight { padding: 7px 10px; border-radius: 999px; background: #dbeafe; color: #1d4ed8; font-size: 11px; font-weight: 900; }
+.age-card-actions { display: flex; align-items: center; gap: 8px; }
+.insight-description { margin: -2px 0 16px; color: #64748b; font-size: 11px; line-height: 1.5; }
+.age-analysis-tools { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: -2px 0 16px; }
+.age-analysis-tools .insight-description { margin: 0; }
+.age-tool-actions { display: flex; align-items: center; gap: 7px; }
+.metric-switch { display: flex; gap: 3px; padding: 3px; border-radius: 9px; background: #eef2f7; }
+.metric-switch button { padding: 5px 8px; border: 0; border-radius: 7px; background: transparent; color: #64748b; font-size: 9px; font-weight: 800; cursor: pointer; }
+.metric-switch button.active { background: #fff; color: #2563eb; box-shadow: 0 1px 4px rgba(15,23,42,.1); }
+.metric-switch .chart-tab-btn { display: inline-flex; align-items: center; gap: 5px; color: #2563eb; }
+.metric-switch .chart-tab-btn:hover { background: #fff; box-shadow: 0 1px 4px rgba(15,23,42,.1); }
+.metric-switch .chart-tab-btn svg { width: 12px; height: 12px; }
+.age-view-switch { white-space: nowrap; }
+.age-inline-layout { display: grid; grid-template-columns: 126px minmax(0, 1fr); align-items: center; gap: 16px; height: 230px; min-height: 230px; box-sizing: border-box; }
+.age-mini-donut-wrap { position: relative; width: 126px; height: 126px; }
+.age-mini-donut-wrap svg { width: 100%; height: 100%; filter: drop-shadow(0 5px 10px rgba(37,99,235,.09)); }
+.age-mini-donut-wrap svg circle { transition: stroke-dasharray .3s ease, stroke-dashoffset .3s ease; }
+.age-mini-donut-wrap > div { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+.age-mini-donut-wrap b { color: #2563eb; font-size: 19px; line-height: 1; }
+.age-mini-donut-wrap span { margin-top: 4px; color: #64748b; font-size: 9px; font-weight: 800; }
+.age-inline-chart-view { display: grid; grid-template-columns: 190px minmax(0, 1fr); align-items: center; gap: 22px; height: 230px; min-height: 230px; padding: 4px 18px 8px; box-sizing: border-box; }
+.age-mini-donut-wrap.chart-mode { width: 180px; height: 180px; }
+.age-mini-donut-wrap.chart-mode b { font-size: 24px; }
+.age-inline-legend { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.age-inline-legend > div { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; align-items: center; gap: 7px; padding: 9px 10px; border: 1px solid #e8edf5; border-radius: 10px; background: #f8fafc; }
+.age-inline-legend i { width: 9px; height: 9px; border-radius: 50%; }
+.age-inline-legend span { color: #475569; font-size: 10px; font-weight: 700; }
+.age-inline-legend b { color: #0f172a; font-size: 10px; }
+.age-chart { display: grid; gap: 8px; }
+.age-row { display: grid; grid-template-columns: 124px minmax(60px, 1fr) 40px; align-items: center; gap: 7px; min-height: 36px; }
+.age-meta b, .age-meta span { display: block; }
+.age-meta b { color: #334155; font-size: 12px; }
+.age-meta span { margin-top: 2px; overflow: hidden; color: #94a3b8; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.age-track { height: 9px; overflow: hidden; border-radius: 999px; background: #e2e8f0; }
+.age-track span { display: block; min-width: 2px; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #60a5fa, #2563eb); }
+.age-row.leading .age-track span { background: linear-gradient(90deg, #34d399, #059669); }
+.age-row > strong { color: #475569; font-size: 11px; text-align: right; }
+.risk-list { display: grid; gap: 8px; }
+.risk-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid #eef2f7; border-radius: 12px; background: #f8fafc; color: inherit; text-decoration: none; }
+.risk-row:hover { border-color: #fecaca; background: #fff; }
+.risk-customer { display: flex; align-items: center; min-width: 0; gap: 9px; }
+.risk-avatar { display: grid; width: 34px; height: 34px; flex: 0 0 34px; place-items: center; border-radius: 50%; background: #e0e7ff; color: #2563eb; font-size: 12px; font-weight: 900; }
+.risk-customer b, .risk-customer span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.risk-customer b { color: #0f172a; font-size: 12px; }
+.risk-customer span { margin-top: 2px; color: #94a3b8; font-size: 10px; }
+.risk-metrics { text-align: right; }
+.risk-metrics b, .risk-metrics span { display: block; }
+.risk-metrics b { color: #334155; font-size: 11px; }
+.risk-metrics span { margin-top: 2px; color: #dc2626; font-size: 11px; font-weight: 900; }
+.risk-badge { min-width: 62px; padding: 5px 8px; border-radius: 999px; font-size: 9px; font-weight: 900; text-align: center; }
+.risk-badge.high { background: #fee2e2; color: #b91c1c; }
+.risk-badge.medium { background: #fef3c7; color: #b45309; }
+.risk-badge.low { background: #e2e8f0; color: #475569; }
+.risk-badge.locked { background: #7f1d1d; color: #fff; }
+
+.revenue-history-overlay { position: fixed; z-index: 12000; inset: 0; display: grid; place-items: center; padding: 24px; background: rgba(15,23,42,.58); backdrop-filter: blur(5px); }
+.revenue-history-modal { display: flex; width: min(760px, 100%); max-height: calc(100vh - 48px); overflow: hidden; flex-direction: column; border: 1px solid #dbe3ef; border-radius: 22px; background: #fff; box-shadow: 0 28px 80px rgba(15,23,42,.3); }
+.revenue-history-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 22px 24px 16px; border-bottom: 1px solid #edf1f7; }
+.revenue-history-head h2 { margin: 5px 0 3px; color: #0f172a; font-size: 22px; }
+.revenue-history-head p { margin: 0; color: #64748b; font-size: 11px; }
+.revenue-close, .revenue-month-nav button { display: grid; place-items: center; border: 1px solid #dbe3ef; background: #f8fafc; color: #475569; cursor: pointer; }
+.revenue-close { width: 36px; height: 36px; border-radius: 10px; }
+.revenue-close svg, .revenue-month-nav svg { width: 17px; height: 17px; }
+.revenue-month-nav { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 14px 24px 10px; }
+.revenue-month-nav button { width: 32px; height: 32px; border-radius: 9px; }
+.revenue-month-nav strong { min-width: 130px; color: #0f172a; text-align: center; }
+.revenue-month-summary { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 0 24px 12px; }
+.revenue-month-summary div { padding: 11px 13px; border: 1px solid #dbeafe; border-radius: 12px; background: #eff6ff; }
+.revenue-month-summary span, .revenue-month-summary b { display: block; }
+.revenue-month-summary span { color: #64748b; font-size: 10px; }
+.revenue-month-summary b { margin-top: 3px; color: #1d4ed8; font-size: 15px; }
+.daily-revenue-list { display: grid; min-height: 0; overflow-y: auto; flex: 1 1 auto; align-content: start; gap: 7px; padding: 0 24px 30px; scroll-padding-bottom: 30px; }
+.daily-revenue-row { display: grid; grid-template-columns: 130px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid #e5eaf2; border-radius: 11px; background: #f8fafc; }
+.daily-revenue-row time b, .daily-revenue-row time span { display: block; }
+.daily-revenue-row time b { color: #0f172a; font-size: 11px; }
+.daily-revenue-row time span, .daily-revenue-row > span { margin-top: 2px; color: #64748b; font-size: 10px; }
+.daily-revenue-row > strong { color: #059669; font-size: 12px; }
+.daily-revenue-row.empty { opacity: .6; }
+.daily-revenue-row.empty > strong { color: #94a3b8; }
+.revenue-loading { min-height: 260px; padding: 80px 24px; color: #64748b; text-align: center; }
+.revenue-modal-fade-enter-active, .revenue-modal-fade-leave-active { transition: opacity .18s ease; }
+.revenue-modal-fade-enter-from, .revenue-modal-fade-leave-to { opacity: 0; }
+
+.age-chart-overlay { position: fixed; z-index: 12000; inset: 0; display: grid; place-items: center; padding: 24px; background: rgba(15,23,42,.58); backdrop-filter: blur(6px); }
+.age-chart-modal { width: min(820px, 100%); max-height: calc(100vh - 48px); overflow-y: auto; border: 1px solid #dbe3ef; border-radius: 22px; background: #fff; box-shadow: 0 28px 80px rgba(15,23,42,.28); }
+.age-chart-modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 22px 24px 16px; border-bottom: 1px solid #edf1f7; }
+.age-chart-modal-head h2 { margin: 5px 0 3px; color: #0f172a; font-size: 22px; }
+.age-chart-modal-head p { margin: 0; color: #64748b; font-size: 11px; }
+.age-chart-close { display: grid; width: 36px; height: 36px; place-items: center; border: 1px solid #e2e8f0; border-radius: 10px; background: #f8fafc; color: #475569; font-size: 24px; line-height: 1; cursor: pointer; }
+.age-chart-close:hover { border-color: #fecaca; background: #fef2f2; color: #dc2626; }
+.age-chart-modal-tools { display: flex; justify-content: flex-end; padding: 14px 24px 0; }
+.metric-switch.large button { padding: 7px 12px; font-size: 10px; }
+.age-donut-layout { display: grid; grid-template-columns: 330px minmax(0, 1fr); align-items: center; gap: 30px; padding: 14px 32px 24px; }
+.age-donut-wrap { position: relative; width: 300px; height: 300px; margin: auto; }
+.age-donut-svg { width: 100%; height: 100%; filter: drop-shadow(0 10px 18px rgba(37,99,235,.10)); }
+.age-donut-svg circle { transition: stroke-dasharray .3s ease, stroke-dashoffset .3s ease; }
+.age-donut-center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; pointer-events: none; }
+.age-donut-center b { color: #334155; font-size: 13px; }
+.age-donut-center strong { margin: 3px 0; color: #2563eb; font-size: 30px; line-height: 1; }
+.age-donut-center span { color: #94a3b8; font-size: 10px; }
+.age-donut-legend { display: grid; gap: 9px; }
+.age-legend-row { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 11px 12px; border: 1px solid #edf1f7; border-radius: 12px; background: #f8fafc; }
+.age-legend-color { width: 10px; height: 10px; border-radius: 50%; }
+.age-legend-row b, .age-legend-row span { display: block; }
+.age-legend-row b { color: #1e293b; font-size: 12px; }
+.age-legend-row span { margin-top: 2px; color: #94a3b8; font-size: 10px; }
+.age-legend-row > strong { color: #334155; font-size: 12px; }
+.age-chart-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; overflow: hidden; border-top: 1px solid #e2e8f0; border-radius: 0 0 22px 22px; background: #e2e8f0; }
+.age-chart-summary div { padding: 14px 18px; background: #f8fafc; }
+.age-chart-summary span, .age-chart-summary b { display: block; }
+.age-chart-summary span { color: #64748b; font-size: 10px; }
+.age-chart-summary b { margin-top: 3px; color: #0f172a; font-size: 15px; }
+.age-chart-fade-enter-active, .age-chart-fade-leave-active { transition: opacity .2s ease; }
+.age-chart-fade-enter-from, .age-chart-fade-leave-to { opacity: 0; }
+
 .insight-charts-row {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -3921,6 +4391,11 @@ tbody td {
 }
 
 /* RESPONSIVE */
+@media (max-width: 1250px) {
+    .customer-intelligence { grid-template-columns: 1fr; }
+    .customer-insight-card { min-height: 340px; }
+}
+
 @media (max-width: 1100px) {
     .stats-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
@@ -3980,7 +4455,10 @@ tbody td {
     .dashboard-controls {
         align-items: stretch;
         flex-direction: column;
-        padding: 0 0 16px;
+        width: calc(100% + 32px);
+        margin-right: -16px;
+        margin-left: -16px;
+        padding: 10px 16px 12px;
     }
 
     .dashboard-controls .topbar-right {
@@ -4009,6 +4487,21 @@ tbody td {
         margin-right: 0;
         padding: 16px;
     }
+
+    .customer-intelligence { grid-template-columns: 1fr; }
+    .age-row { grid-template-columns: 104px minmax(70px, 1fr) 40px; }
+    .age-analysis-tools { align-items: flex-start; flex-direction: column; }
+    .age-tool-actions { width: 100%; justify-content: space-between; }
+    .age-inline-layout { grid-template-columns: 1fr; }
+    .age-inline-chart-view { grid-template-columns: 1fr; padding-right: 0; padding-left: 0; }
+    .age-inline-legend { grid-template-columns: 1fr; }
+    .age-mini-donut-wrap { width: 150px; height: 150px; margin: 0 auto 4px; }
+    .risk-row { grid-template-columns: minmax(0, 1fr) auto; }
+    .risk-badge { display: none; }
+    .age-card-actions { align-items: flex-end; flex-direction: column-reverse; }
+    .age-donut-layout { grid-template-columns: 1fr; padding: 12px 18px 20px; }
+    .age-donut-wrap { width: 240px; height: 240px; }
+    .age-chart-summary { grid-template-columns: 1fr; }
 
     .cluster-head {
         flex-direction: column;

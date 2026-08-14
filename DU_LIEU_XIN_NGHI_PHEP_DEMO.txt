@@ -1,0 +1,119 @@
+============================================================
+DỮ LIỆU COPY/DÁN VÀO FORM XIN NGHỈ PHÉP
+============================================================
+
+Lưu ý:
+- Với “Xin đi trễ”, “Xin về sớm” và “Làm việc từ xa”, chọn một ngày duy nhất.
+- Minh chứng là tùy chọn; có thể bỏ trống khi demo.
+- Không gửi nhiều đơn có ngày trùng nhau trên cùng một tài khoản.
+
+------------------------------------------------------------
+ĐƠN 01 — NGHỈ PHÉP NĂM
+Loại nghỉ: Nghỉ phép năm
+Thời lượng: Cả ngày
+Từ ngày: 17/08/2026
+Đến ngày: 18/08/2026
+Lý do: Tôi xin nghỉ phép năm hai ngày để giải quyết công việc gia đình đã được lên kế hoạch từ trước.
+Người nhận bàn giao: Trần Quốc Bảo
+Ghi chú bàn giao: Bàn giao danh sách công việc đang xử lý, các đơn cần theo dõi và tài liệu liên quan. Tôi vẫn giữ liên lạc qua điện thoại nếu có việc khẩn cấp.
+Minh chứng: Để trống
+
+------------------------------------------------------------
+ĐƠN 02 — NGHỈ ỐM
+Loại nghỉ: Nghỉ ốm
+Thời lượng: Cả ngày
+Từ ngày: 20/08/2026
+Đến ngày: 20/08/2026
+Lý do: Tôi bị sốt và được bác sĩ yêu cầu nghỉ ngơi một ngày để theo dõi sức khỏe, tránh ảnh hưởng đến đồng nghiệp.
+Người nhận bàn giao: Nguyễn Minh Anh
+Ghi chú bàn giao: Nhờ anh Minh Anh hỗ trợ theo dõi các công việc ưu tiên trong ngày. Tôi sẽ cập nhật tình trạng sức khỏe vào cuối ngày.
+Minh chứng: Có thể chọn ảnh giấy khám bệnh hoặc để trống
+
+------------------------------------------------------------
+ĐƠN 03 — VIỆC CÁ NHÂN
+Loại nghỉ: Việc cá nhân
+Thời lượng: Buổi sáng
+Từ ngày: 24/08/2026
+Đến ngày: 24/08/2026
+Lý do: Tôi có lịch làm thủ tục hành chính cá nhân vào buổi sáng và sẽ trở lại làm việc vào đầu giờ chiều.
+Người nhận bàn giao: Phạm Thu Trang
+Ghi chú bàn giao: Các yêu cầu phát sinh trong buổi sáng nhờ chị Trang tiếp nhận giúp. Tôi sẽ xử lý tiếp ngay khi quay lại công ty.
+Minh chứng: Để trống
+
+------------------------------------------------------------
+ĐƠN 04 — XIN ĐI TRỄ
+Loại nghỉ: Xin đi trễ
+Thời lượng: Theo giờ
+Từ ngày: 25/08/2026
+Đến ngày: 25/08/2026
+Lý do: Tôi có lịch khám bệnh lúc 7 giờ 30 và dự kiến đến công ty vào khoảng 9 giờ 30 cùng ngày.
+Người nhận bàn giao: Đỗ Thành Công
+Ghi chú bàn giao: Nhờ anh Công hỗ trợ cuộc họp đầu ngày và ghi lại các nội dung cần xử lý. Tôi sẽ cập nhật ngay khi đến công ty.
+Minh chứng: Có thể chọn ảnh lịch hẹn khám hoặc để trống
+
+------------------------------------------------------------
+ĐƠN 05 — XIN VỀ SỚM
+Loại nghỉ: Xin về sớm
+Thời lượng: Theo giờ
+Từ ngày: 26/08/2026
+Đến ngày: 26/08/2026
+Lý do: Tôi xin phép về lúc 15 giờ 30 để đón người thân tại sân bay và đã hoàn thành các công việc quan trọng trong ngày.
+Người nhận bàn giao: Hồ Diễm My
+Ghi chú bàn giao: Nhờ chị My theo dõi hộp thư hỗ trợ từ 15 giờ 30 đến hết ca. Các trường hợp tồn đọng đã được ghi rõ trong bảng công việc chung.
+Minh chứng: Để trống
+
+------------------------------------------------------------
+ĐƠN 06 — LÀM VIỆC TỪ XA
+Loại nghỉ: Làm việc từ xa
+Thời lượng: Cả ngày
+Từ ngày: 28/08/2026
+Đến ngày: 28/08/2026
+Lý do: Tôi cần làm việc tại nhà để chờ kỹ thuật viên sửa chữa hệ thống điện nhưng vẫn đảm bảo tham gia đầy đủ các cuộc họp trực tuyến.
+Người nhận bàn giao: Võ Gia Huy
+Ghi chú bàn giao: Tôi làm việc trực tuyến theo giờ hành chính, phản hồi qua Zalo và email. Không có công việc nào cần bàn giao trực tiếp.
+Minh chứng: Để trống
+
+------------------------------------------------------------
+ĐƠN 07 — NGHỈ KHÔNG LƯƠNG
+Loại nghỉ: Nghỉ không lương
+Thời lượng: Cả ngày
+Từ ngày: 01/09/2026
+Đến ngày: 03/09/2026
+Lý do: Tôi xin nghỉ không lương ba ngày để về quê giải quyết công việc gia đình quan trọng và không thể sắp xếp ngoài giờ làm việc.
+Người nhận bàn giao: Lê Nhật Minh
+Ghi chú bàn giao: Toàn bộ hồ sơ đang xử lý đã được cập nhật trạng thái. Nhờ anh Minh tiếp nhận các yêu cầu mới và liên hệ tôi nếu có trường hợp đặc biệt.
+Minh chứng: Để trống
+
+------------------------------------------------------------
+ĐƠN 08 — HIẾU/HỶ
+Loại nghỉ: Hiếu / hỷ
+Thời lượng: Cả ngày
+Từ ngày: 07/09/2026
+Đến ngày: 08/09/2026
+Lý do: Tôi xin nghỉ hai ngày để tham dự lễ cưới của anh ruột tại quê và sẽ trở lại làm việc đúng lịch đã đăng ký.
+Người nhận bàn giao: Bùi Khánh Linh
+Ghi chú bàn giao: Các bài viết trong tuần đã được lên lịch. Chị Linh hỗ trợ kiểm tra phản hồi và xử lý nếu cần chỉnh sửa gấp.
+Minh chứng: Có thể chọn ảnh thiệp mời hoặc để trống
+
+------------------------------------------------------------
+ĐƠN 09 — NGHỈ PHÉP NĂM BUỔI CHIỀU
+Loại nghỉ: Nghỉ phép năm
+Thời lượng: Buổi chiều
+Từ ngày: 10/09/2026
+Đến ngày: 10/09/2026
+Lý do: Tôi xin nghỉ phép buổi chiều để đưa người thân đi tái khám theo lịch của bệnh viện.
+Người nhận bàn giao: Vũ Quỳnh Như
+Ghi chú bàn giao: Tôi sẽ hoàn thành báo cáo trong buổi sáng. Nhờ chị Như tiếp nhận các yêu cầu phát sinh sau 13 giờ 30.
+Minh chứng: Để trống
+
+------------------------------------------------------------
+ĐƠN 10 — LÝ DO KHÁC
+Loại nghỉ: Lý do khác
+Thời lượng: Buổi sáng
+Từ ngày: 14/09/2026
+Đến ngày: 14/09/2026
+Lý do: Khu vực nơi tôi sinh sống tạm thời ngừng cung cấp điện và hạn chế di chuyển để bảo trì hệ thống, tôi xin nghỉ buổi sáng.
+Người nhận bàn giao: Cao Anh Tuấn
+Ghi chú bàn giao: Nhờ anh Tuấn theo dõi các yêu cầu trong buổi sáng. Tôi dự kiến có mặt tại công ty từ 13 giờ.
+Minh chứng: Có thể chọn ảnh thông báo bảo trì hoặc để trống
+

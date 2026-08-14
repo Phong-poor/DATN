@@ -40,7 +40,8 @@ const currentUser = ref(getUser() || {})
 const route = useRoute()
 const router = useRouter()
 const enrollmentTarget = ref(null)
-const isEnrollmentMode = computed(() => Boolean(enrollmentTarget.value))
+const requestedEnrollmentId = computed(() => Number(route.query.enroll) || null)
+const isEnrollmentMode = computed(() => Boolean(requestedEnrollmentId.value))
 const displayEmployee = computed(() => enrollmentTarget.value || userStatus.value.employee || {
   name: currentUser.value?.ten || currentUser.value?.name,
   email: currentUser.value?.email,
@@ -62,8 +63,227 @@ const employeeForm = ref({
   sodienthoai: '',
   vaitro: '',
   matkhau: '',
-  trangthai: 'active'
+  trangthai: 'active',
+  so_cccd: '',
+  ngaysinh: '',
+  gioitinh: '',
+  ngay_cap_cccd: '',
+  noi_cap_cccd: ''
 })
+const identityFiles = ref({ anh_cccd_mat_truoc: null, anh_cccd_mat_sau: null })
+const identityPreviews = ref({ anh_cccd_mat_truoc: '', anh_cccd_mat_sau: '' })
+const identityError = ref('')
+const identityVerified = ref(false)
+const identityVerifying = ref(false)
+const identityProgress = ref(0)
+const identityVerificationMessage = ref('')
+const identitySideStatus = ref({
+  anh_cccd_mat_truoc: { state: 'idle', message: '' },
+  anh_cccd_mat_sau: { state: 'idle', message: '' }
+})
+const identityFileHashes = ref({ anh_cccd_mat_truoc: '', anh_cccd_mat_sau: '' })
+
+function emptyEmployeeForm() {
+  return { ten: '', email: '', sodienthoai: '', vaitro: roles.value[0]?.ma_vaitro || '', matkhau: '', trangthai: 'active', so_cccd: '', ngaysinh: '', gioitinh: '', ngay_cap_cccd: '', noi_cap_cccd: '' }
+}
+
+function resetIdentityFiles() {
+  Object.values(identityPreviews.value).forEach(url => url && URL.revokeObjectURL(url))
+  identityFiles.value = { anh_cccd_mat_truoc: null, anh_cccd_mat_sau: null }
+  identityPreviews.value = { anh_cccd_mat_truoc: '', anh_cccd_mat_sau: '' }
+  identityError.value = ''
+  identityVerified.value = false
+  identityVerificationMessage.value = ''
+  identitySideStatus.value = {
+    anh_cccd_mat_truoc: { state: 'idle', message: '' },
+    anh_cccd_mat_sau: { state: 'idle', message: '' }
+  }
+  identityFileHashes.value = { anh_cccd_mat_truoc: '', anh_cccd_mat_sau: '' }
+}
+
+async function fileHash(file) {
+  const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer())
+  return Array.from(new Uint8Array(digest)).map(value => value.toString(16).padStart(2, '0')).join('')
+}
+
+async function inspectIdentitySide(field, file) {
+  const expectedSide = field === 'anh_cccd_mat_truoc' ? 'front' : 'back'
+  identitySideStatus.value[field] = { state: 'checking', message: 'Đang kiểm tra đúng mặt CCCD...' }
+  let worker
+  try {
+    const hash = await fileHash(file)
+    const otherField = field === 'anh_cccd_mat_truoc' ? 'anh_cccd_mat_sau' : 'anh_cccd_mat_truoc'
+    identityFileHashes.value[field] = hash
+    if (identityFileHashes.value[otherField] && identityFileHashes.value[otherField] === hash) {
+      throw new Error('Hai ảnh đang giống nhau. Vui lòng chọn đúng hai mặt khác nhau của CCCD.')
+    }
+
+    const { createWorker } = await import('tesseract.js')
+    worker = await createWorker('vie+eng', 1, { langPath: `${import.meta.env.BASE_URL}tessdata` })
+    const result = await worker.recognize(file)
+    const text = normalizeOcrText(result.data.text)
+    const frontScore = scoreIdentitySide(text, 'front')
+    const backScore = scoreIdentitySide(text, 'back')
+    const isFront = frontScore >= 2 && frontScore > backScore
+    const isBack = backScore >= 1 && backScore >= frontScore
+
+    if (expectedSide === 'front' && !isFront) {
+      throw new Error(isBack ? 'Đây là mặt sau CCCD. Vui lòng chuyển sang ô Mặt sau.' : 'Không nhận diện được mặt trước CCCD. Hãy chọn ảnh rõ hơn.')
+    }
+    if (expectedSide === 'back' && !isBack) {
+      throw new Error(isFront ? 'Đây là mặt trước CCCD. Vui lòng chuyển sang ô Mặt trước.' : 'Không nhận diện được mặt sau CCCD. Hãy chọn ảnh rõ mã MRZ.')
+    }
+    identitySideStatus.value[field] = { state: 'valid', message: expectedSide === 'front' ? 'Đúng mặt trước CCCD' : 'Đúng mặt sau CCCD' }
+  } catch (error) {
+    identitySideStatus.value[field] = { state: 'invalid', message: error.message }
+    identityError.value = error.message
+  } finally {
+    if (worker) await worker.terminate()
+  }
+}
+
+async function selectIdentityImage(field, event) {
+  const file = event.target.files?.[0]
+  if (!file) return
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+    identityError.value = 'Ảnh CCCD phải là JPG, PNG hoặc WEBP và không vượt quá 5 MB.'
+    event.target.value = ''
+    return
+  }
+  if (identityPreviews.value[field]) URL.revokeObjectURL(identityPreviews.value[field])
+  identityFiles.value[field] = file
+  identityPreviews.value[field] = URL.createObjectURL(file)
+  identityError.value = ''
+  identityVerified.value = false
+  identityVerificationMessage.value = 'Ảnh đã thay đổi, vui lòng xác thực lại CCCD.'
+  await inspectIdentitySide(field, file)
+}
+
+function normalizeOcrText(value = '') {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9<\/\-:.\n ]/g, ' ')
+}
+
+function imageSize(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file)
+    const img = new Image()
+    img.onload = () => { URL.revokeObjectURL(url); resolve({ width: img.naturalWidth, height: img.naturalHeight }) }
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Không thể đọc kích thước ảnh.')) }
+    img.src = url
+  })
+}
+
+function scoreIdentitySide(text, side) {
+  const frontSignals = [/CAN CUOC/, /CITIZEN IDENTITY/, /SO.*NO/, /HO VA TEN/, /FULL NAME/, /DATE OF BIRTH/, /QUOC TICH/, /NATIONALITY/]
+  const backSignals = [/IDVNM/, /DAC DIEM/, /IDENTIFICATION/, /NGAY CAP/, /DATE OF ISSUE/, /FINGER/, /MRZ/, /CUC TRUONG/]
+  const signals = side === 'front' ? frontSignals : backSignals
+  return signals.reduce((total, pattern) => total + (pattern.test(text) ? 1 : 0), 0)
+}
+
+function parseDate(value) {
+  const match = String(value || '').match(/(\d{2})[\/\-.](\d{2})[\/\-.](\d{4})/)
+  return match ? `${match[3]}-${match[2]}-${match[1]}` : ''
+}
+
+function extractIdentityFields(frontRaw, backRaw) {
+  const front = normalizeOcrText(frontRaw)
+  const back = normalizeOcrText(backRaw)
+  const frontLines = front.split('\n').map(line => line.trim().replace(/\s{2,}/g, ' ')).filter(Boolean)
+  const rawFrontLines = String(frontRaw || '').split('\n').map(line => line.trim().replace(/\s{2,}/g, ' ')).filter(Boolean)
+  const allDatesFront = [...front.matchAll(/\b\d{2}[\/\-.]\d{2}[\/\-.]\d{4}\b/g)].map(match => match[0])
+  const allDatesBack = [...back.matchAll(/\b\d{2}[\/\-.]\d{2}[\/\-.]\d{4}\b/g)].map(match => match[0])
+  const id = front.match(/\b\d{12}\b/)?.[0] || back.match(/IDVNM[^\d]*(\d{12})/)?.[1] || ''
+  const nameLineIndex = frontLines.findIndex(line => /FULL NAME|HO VA TEN/.test(line))
+  let name = ''
+  if (nameLineIndex >= 0) {
+    const rawLabelLine = rawFrontLines.find(line => /FULL NAME|HO VA TEN/.test(normalizeOcrText(line))) || ''
+    name = rawLabelLine.includes(':') ? rawLabelLine.split(':').pop().trim() : ''
+    if (!name || /FULL\s*NAME|HỌ\s*VÀ\s*TÊN|HO\s*VA\s*TEN/iu.test(name)) {
+      const rawIndex = rawFrontLines.indexOf(rawLabelLine)
+      name = rawFrontLines[rawIndex + 1] || ''
+    }
+  }
+  name = name
+    .replace(/(?:DATE OF BIRTH|NGÀY SINH|SEX|GIỚI TÍNH).*$/iu, '')
+    .replace(/[^\p{L} ]/gu, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+  if (name.length < 4 || /^(FULL NAME|HO VA TEN|DATE OF BIRTH|CITIZEN IDENTITY)$/.test(name)) name = ''
+  const gender = /(?:SEX|GIOI TINH)[\s\/:.-]*(FEMALE|MALE|NAM|NU)/.exec(front)?.[1] || ''
+  return {
+    so_cccd: id,
+    ten: name ? name.toLocaleLowerCase('vi').replace(/(^|\s)\p{L}/gu, letter => letter.toLocaleUpperCase('vi')) : '',
+    ngaysinh: parseDate(allDatesFront[0]),
+    gioitinh: /FEMALE|\bNU\b/.test(gender) ? 'Nữ' : (/MALE|\bNAM\b/.test(gender) ? 'Nam' : ''),
+    ngay_cap_cccd: parseDate(allDatesBack[0]),
+    noi_cap_cccd: 'Cục Cảnh sát quản lý hành chính về trật tự xã hội'
+  }
+}
+
+async function verifyIdentityImages() {
+  const frontFile = identityFiles.value.anh_cccd_mat_truoc
+  const backFile = identityFiles.value.anh_cccd_mat_sau
+  identityError.value = ''
+  identityVerificationMessage.value = ''
+  if (!frontFile || !backFile) {
+    identityError.value = 'Vui lòng tải đủ mặt trước và mặt sau trước khi xác thực.'
+    return
+  }
+
+  identityVerifying.value = true
+  identityProgress.value = 0
+  let worker
+  try {
+    const [frontSize, backSize] = await Promise.all([imageSize(frontFile), imageSize(backFile)])
+    if (frontSize.width <= frontSize.height || backSize.width <= backSize.height) {
+      throw new Error('CCCD phải được chụp nằm ngang, thấy trọn bốn góc và không bị xoay.')
+    }
+    const { createWorker } = await import('tesseract.js')
+    worker = await createWorker('vie+eng', 1, {
+      langPath: `${import.meta.env.BASE_URL}tessdata`,
+      logger: message => {
+        if (message.status === 'recognizing text') identityProgress.value = Math.round(message.progress * 50)
+      }
+    })
+    const frontResult = await worker.recognize(frontFile)
+    identityProgress.value = 50
+    const backResult = await worker.recognize(backFile)
+    identityProgress.value = 100
+    const frontText = normalizeOcrText(frontResult.data.text)
+    const backText = normalizeOcrText(backResult.data.text)
+    const frontScore = scoreIdentitySide(frontText, 'front')
+    const backScore = scoreIdentitySide(backText, 'back')
+    const reversedFrontScore = scoreIdentitySide(frontText, 'back')
+    const reversedBackScore = scoreIdentitySide(backText, 'front')
+
+    if (reversedFrontScore > frontScore && reversedBackScore > backScore) throw new Error('Bạn đang tải ngược hai mặt CCCD. Hãy đổi ảnh mặt trước và mặt sau.')
+    if (frontScore < 2) throw new Error('Ảnh mặt trước không hợp lệ hoặc chữ quá mờ. Hãy chụp rõ số CCCD và thông tin cá nhân.')
+    if (backScore < 1) throw new Error('Ảnh mặt sau không hợp lệ hoặc chữ quá mờ. Hãy chụp rõ mã MRZ và ngày cấp.')
+
+    const extracted = extractIdentityFields(frontResult.data.text, backResult.data.text)
+    if (!/^\d{12}$/.test(extracted.so_cccd)) throw new Error('Không đọc được đủ 12 số CCCD. Hãy chụp gần hơn, tránh lóa sáng.')
+    Object.entries(extracted).forEach(([key, value]) => { if (value) employeeForm.value[key] = value })
+    identityVerified.value = true
+    identityVerificationMessage.value = 'Đã xác thực đúng mặt trước, mặt sau và tự động điền thông tin. Vui lòng kiểm tra lại trước khi lưu.'
+  } catch (error) {
+    identityVerified.value = false
+    identityError.value = error.message || 'Không thể đọc CCCD. Vui lòng thử lại với ảnh rõ hơn.'
+  } finally {
+    if (worker) await worker.terminate()
+    identityVerifying.value = false
+  }
+}
+
+function buildEmployeePayload(includePasswordConfirmation = false) {
+  const data = new FormData()
+  Object.entries(employeeForm.value).forEach(([key, value]) => {
+    if (key === 'matkhau' && !value) return
+    data.append(key, value ?? '')
+  })
+  if (includePasswordConfirmation) data.append('matkhau_confirmation', employeeForm.value.matkhau)
+  Object.entries(identityFiles.value).forEach(([key, file]) => file && data.append(key, file))
+  return data
+}
 const defaultWorkAssignment = () => ({
   loai_ca: 'full_day',
   ngay_bat_dau: new Date().toISOString().slice(0, 10),
@@ -97,6 +317,15 @@ const filteredEmployees = computed(() => {
 const hasEmployeeDraft = computed(() =>
   ['ten', 'email', 'sodienthoai', 'matkhau'].some(field => String(employeeForm.value[field] || '').trim())
 )
+const setupSteps = computed(() => [
+  {
+    number: 1,
+    label: 'Tài khoản & vai trò',
+    done: Boolean(employeeForm.value.ten && employeeForm.value.email && employeeForm.value.vaitro && (editingEmployee.value || employeeForm.value.matkhau))
+  },
+  { number: 2, label: 'Xác thực CCCD', done: identityVerified.value },
+  { number: 3, label: 'Lịch & khuôn mặt', done: Boolean(workAssignment.value.ngay_bat_dau && workAssignment.value.thu_lam_viec.length && faceDetected.value) }
+])
 
 const videoDevices = ref([])
 const selectedDeviceId = ref('')
@@ -202,7 +431,7 @@ async function initFaceApi() {
   await startCamera()
 
   window.setTimeout(async () => {
-    if (await ensurePresenceModel()) startFaceMonitoring()
+    if (await ensureFaceModels()) startFaceMonitoring()
   }, 500)
 }
 
@@ -224,6 +453,24 @@ async function fetchEnrollmentTarget() {
       avatar: target.anhdaidien,
       role_name: target.ten_vaitro
     }
+    resetIdentityFiles()
+    employeeForm.value = {
+      ten: target.ten || '',
+      email: target.email || '',
+      sodienthoai: target.sodienthoai || '',
+      vaitro: target.ma_vaitro || target.vaitro || '',
+      matkhau: '',
+      trangthai: target.trangthai || 'active',
+      so_cccd: target.so_cccd || '',
+      ngaysinh: target.ngaysinh ? String(target.ngaysinh).slice(0, 10) : '',
+      gioitinh: target.gioitinh || '',
+      ngay_cap_cccd: target.ngay_cap_cccd ? String(target.ngay_cap_cccd).slice(0, 10) : '',
+      noi_cap_cccd: target.noi_cap_cccd || ''
+    }
+    identityVerified.value = Boolean(target.co_anh_cccd_mat_truoc && target.co_anh_cccd_mat_sau)
+    identityVerificationMessage.value = identityVerified.value
+      ? 'Hồ sơ CCCD đã được lưu đầy đủ cho nhân viên này.'
+      : 'Nhân viên chưa có đủ hồ sơ CCCD. Hãy chọn Sửa hồ sơ để bổ sung.'
 
     // Hồ sơ có sẵn phải tải cả lịch đã gán; trước đây màn hình chỉ hiện lịch mặc định
     // nên quản trị viên tưởng đã lưu, trong khi backend chưa có bản ghi lịch làm việc.
@@ -303,8 +550,16 @@ function validateEmployeeForm() {
     ? ['ten', 'email', 'sodienthoai', 'vaitro']
     : ['ten', 'email', 'sodienthoai', 'vaitro', 'matkhau']
   fields.forEach(validateEmployeeField)
+  const number = String(employeeForm.value.so_cccd || '').trim()
+  identityError.value = !/^\d{12}$/.test(number)
+    ? 'Số CCCD phải gồm đúng 12 chữ số.'
+    : (!editingEmployee.value && (!identityFiles.value.anh_cccd_mat_truoc || !identityFiles.value.anh_cccd_mat_sau))
+      ? 'Vui lòng tải đủ ảnh mặt trước và mặt sau CCCD.'
+      : (!editingEmployee.value && !identityVerified.value)
+        ? 'Vui lòng bấm “Xác thực & đọc CCCD” trước khi tạo nhân viên.'
+        : ''
   const scheduleValid = validateWorkAssignment()
-  return scheduleValid && fields.every(field => !employeeErrors.value[field])
+  return scheduleValid && !identityError.value && fields.every(field => !employeeErrors.value[field])
 }
 
 function validateWorkAssignmentField(field) {
@@ -380,11 +635,7 @@ async function createEmployeeAndEnroll() {
       return
     }
 
-    const payload = {
-      ...employeeForm.value,
-      trangthai: 'active',
-      matkhau_confirmation: employeeForm.value.matkhau
-    }
+    const payload = buildEmployeePayload(true)
     const response = await api.post('/admin/users', payload)
     const created = response.data.user
     createdEmployeeId = created.id
@@ -405,7 +656,8 @@ async function createEmployeeAndEnroll() {
       face_registered: true
     }
     await router.replace({ name: 'admin-chamcong-camera', query: { enroll: created.id } })
-    employeeForm.value = { ten: '', email: '', sodienthoai: '', vaitro: roles.value[0]?.ma_vaitro || '', matkhau: '', trangthai: 'active' }
+    employeeForm.value = emptyEmployeeForm()
+    resetIdentityFiles()
     workAssignment.value = defaultWorkAssignment()
     workAssignmentErrors.value = {}
     workAssignmentTouched.value = {}
@@ -434,7 +686,11 @@ async function handleUnifiedEmployeeSubmit() {
     await saveEmployee()
     return
   }
-  if (isEnrollmentMode.value && !hasEmployeeDraft.value) {
+  if (isEnrollmentMode.value) {
+    if (!enrollmentTarget.value) {
+      await swal.error('Chưa tải được nhân viên', 'Không thể đăng ký khuôn mặt khi hồ sơ nhân viên chưa tải thành công. Vui lòng tải lại trang.')
+      return
+    }
     await registerCurrentFace()
     await fetchEmployees()
     return
@@ -451,7 +707,14 @@ async function openEditEmployee(employee) {
     vaitro: employee.ma_vaitro || employee.vaitro || '',
     trangthai: employee.trangthai || 'active',
     matkhau: ''
+    , so_cccd: employee.so_cccd || ''
+    , ngaysinh: employee.ngaysinh ? String(employee.ngaysinh).slice(0, 10) : ''
+    , gioitinh: employee.gioitinh || ''
+    , ngay_cap_cccd: employee.ngay_cap_cccd ? String(employee.ngay_cap_cccd).slice(0, 10) : ''
+    , noi_cap_cccd: employee.noi_cap_cccd || ''
   }
+  resetIdentityFiles()
+  identityVerified.value = Boolean(employee.co_anh_cccd_mat_truoc && employee.co_anh_cccd_mat_sau)
   employeeErrors.value = {}
   employeeTouched.value = {}
   employeeFormError.value = ''
@@ -478,9 +741,9 @@ async function saveEmployee() {
   if (!editingEmployee.value || !validateEmployeeForm()) return
   savingEmployee.value = true
   try {
-    const payload = { ...employeeForm.value }
-    if (!payload.matkhau) delete payload.matkhau
-    await api.put(`/admin/users/${editingEmployee.value.id}`, payload)
+    const payload = buildEmployeePayload(false)
+    payload.append('_method', 'PUT')
+    await api.post(`/admin/users/${editingEmployee.value.id}`, payload)
     await api.put(`/admin/cham-cong/nhan-vien/${editingEmployee.value.id}/lich-lam`, {
       ...workAssignment.value,
       ngay_ket_thuc: workAssignment.value.ngay_ket_thuc || null
@@ -491,7 +754,8 @@ async function saveEmployee() {
       if (updated) enrollmentTarget.value = { ...updated, name: updated.ten, avatar: updated.anhdaidien, role_name: updated.ten_vaitro }
     }
     editingEmployee.value = null
-    employeeForm.value = { ten: '', email: '', sodienthoai: '', vaitro: roles.value[0]?.ma_vaitro || '', matkhau: '', trangthai: 'active' }
+    employeeForm.value = emptyEmployeeForm()
+    resetIdentityFiles()
     workAssignment.value = defaultWorkAssignment()
     employeeErrors.value = {}
     employeeTouched.value = {}
@@ -506,7 +770,8 @@ async function saveEmployee() {
 
 function cancelEditEmployee() {
   editingEmployee.value = null
-  employeeForm.value = { ten: '', email: '', sodienthoai: '', vaitro: roles.value[0]?.ma_vaitro || '', matkhau: '', trangthai: 'active' }
+  employeeForm.value = emptyEmployeeForm()
+  resetIdentityFiles()
   workAssignment.value = defaultWorkAssignment()
   workAssignmentErrors.value = {}
   workAssignmentTouched.value = {}
@@ -645,14 +910,24 @@ async function detectFacePresence() {
   scanState.value = 'scanning'
   detectionMessage.value = 'Đang kiểm tra khuôn mặt...'
   try {
-    const detections = await faceapi.detectAllFaces(
+    const detectionTask = faceapi.detectAllFaces(
       videoRef.value,
       new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.35 })
     )
+    const detections = modelsReady.value
+      ? await detectionTask.withFaceLandmarks(true)
+      : await detectionTask
     faceDetected.value = detections.length === 1
     if (detections.length === 1) {
-      scanState.value = 'detected'
-      detectionMessage.value = 'Đã phát hiện khuôn mặt — sẵn sàng đăng ký'
+      if (modelsReady.value) {
+        const visibility = checkFaceVisibility(detections[0])
+        faceDetected.value = visibility.valid
+        scanState.value = visibility.valid ? 'detected' : 'occluded'
+        detectionMessage.value = visibility.message
+      } else {
+        scanState.value = 'scanning'
+        detectionMessage.value = 'Đã thấy khuôn mặt — đang kiểm tra che phủ và độ rõ'
+      }
     } else if (detections.length > 1) {
       scanState.value = 'multiple'
       detectionMessage.value = 'Có nhiều khuôn mặt — chỉ để một người trước camera'
@@ -679,6 +954,80 @@ async function pauseFaceMonitoring() {
   for (let index = 0; index < 20 && isDetectingFace; index++) {
     await new Promise(resolve => window.setTimeout(resolve, 50))
   }
+}
+
+function checkFaceVisibility(result) {
+  const box = result?.detection?.box
+  const landmarks = result?.landmarks
+  const video = videoRef.value
+  if (!box || !landmarks || !video?.videoWidth || !video?.videoHeight) {
+    return { valid: false, message: 'Không đọc được đầy đủ mắt, mũi và miệng — hãy để lộ rõ toàn bộ khuôn mặt' }
+  }
+  if (Number(result.detection.score || 0) < 0.55) {
+    return { valid: false, message: 'Khuôn mặt chưa đủ rõ — hãy tháo khẩu trang, bỏ vật che mặt và nhìn thẳng camera' }
+  }
+
+  const faceRatio = box.width / video.videoWidth
+  if (faceRatio < 0.2) return { valid: false, message: 'Khuôn mặt đang quá xa — hãy tiến gần camera hơn' }
+  if (faceRatio > 0.78) return { valid: false, message: 'Khuôn mặt đang quá gần — hãy lùi lại một chút' }
+
+  const leftEye = landmarks.getLeftEye()
+  const rightEye = landmarks.getRightEye()
+  const nose = landmarks.getNose()
+  const mouth = landmarks.getMouth()
+  if (leftEye.length < 2 || rightEye.length < 2 || nose.length < 4 || mouth.length < 4) {
+    return { valid: false, message: 'Mắt, mũi hoặc miệng đang bị che — vui lòng để lộ rõ khuôn mặt' }
+  }
+
+  const averagePoint = points => ({
+    x: points.reduce((sum, point) => sum + point.x, 0) / points.length,
+    y: points.reduce((sum, point) => sum + point.y, 0) / points.length
+  })
+  const leftEyeCenter = averagePoint(leftEye)
+  const rightEyeCenter = averagePoint(rightEye)
+  const noseCenter = averagePoint(nose)
+  const mouthCenter = averagePoint(mouth)
+  const eyeMidX = (leftEyeCenter.x + rightEyeCenter.x) / 2
+  const eyeDistance = Math.abs(rightEyeCenter.x - leftEyeCenter.x)
+  if (!eyeDistance || Math.abs(noseCenter.x - eyeMidX) / eyeDistance > 0.32) {
+    return { valid: false, message: 'Hãy nhìn thẳng vào camera, không quay nghiêng khuôn mặt' }
+  }
+  if (mouthCenter.y <= noseCenter.y || mouthCenter.y - noseCenter.y < box.height * 0.08) {
+    return { valid: false, message: 'Vùng mũi hoặc miệng đang bị che — vui lòng tháo khẩu trang' }
+  }
+
+  const canvas = document.createElement('canvas')
+  canvas.width = video.videoWidth
+  canvas.height = video.videoHeight
+  const context = canvas.getContext('2d', { willReadFrequently: true })
+  context.drawImage(video, 0, 0, canvas.width, canvas.height)
+  const sampleX = Math.max(0, Math.round(box.x + box.width * 0.23))
+  const sampleY = Math.max(0, Math.round(noseCenter.y - box.height * 0.02))
+  const sampleWidth = Math.min(canvas.width - sampleX, Math.max(1, Math.round(box.width * 0.54)))
+  const sampleHeight = Math.min(canvas.height - sampleY, Math.max(1, Math.round(box.height * 0.34)))
+  const pixels = context.getImageData(sampleX, sampleY, sampleWidth, sampleHeight).data
+  let skinPixels = 0
+  let visiblePixels = 0
+  let brightnessTotal = 0
+  for (let index = 0; index < pixels.length; index += 16) {
+    const red = pixels[index]
+    const green = pixels[index + 1]
+    const blue = pixels[index + 2]
+    const max = Math.max(red, green, blue)
+    const min = Math.min(red, green, blue)
+    const cb = 128 - 0.169 * red - 0.331 * green + 0.5 * blue
+    const cr = 128 + 0.5 * red - 0.419 * green - 0.081 * blue
+    brightnessTotal += 0.299 * red + 0.587 * green + 0.114 * blue
+    visiblePixels++
+    if (red > 35 && max - min > 10 && cb >= 70 && cb <= 140 && cr >= 115 && cr <= 185) skinPixels++
+  }
+  const brightness = visiblePixels ? brightnessTotal / visiblePixels : 0
+  const skinRatio = visiblePixels ? skinPixels / visiblePixels : 0
+  if (brightness < 38) return { valid: false, message: 'Khuôn mặt đang quá tối — hãy tăng ánh sáng phía trước' }
+  if (skinRatio < 0.12) {
+    return { valid: false, message: 'Phát hiện vùng mũi/miệng bị che. Hãy tháo khẩu trang và mọi vật che mặt' }
+  }
+  return { valid: true, message: 'Khuôn mặt rõ, không bị che và đủ điều kiện xác thực' }
 }
 
 async function detectFaceDescriptor() {
@@ -730,8 +1079,16 @@ async function detectFaceDescriptor() {
       return null
     }
 
+    const visibility = checkFaceVisibility(detections[0])
+    if (!visibility.valid) {
+      scanState.value = 'occluded'
+      faceDetected.value = false
+      detectionMessage.value = visibility.message
+      return null
+    }
+
     scanState.value = 'detected'
-    detectionMessage.value = 'Đã phát hiện 1 khuôn mặt hợp lệ'
+    detectionMessage.value = visibility.message
     return Array.from(detections[0].descriptor)
   } catch (error) {
     scanState.value = 'error'
@@ -970,7 +1327,7 @@ onUnmounted(() => {
             <video ref="videoRef" autoplay muted playsinline class="webcam-video"></video>
             <div class="face-detection-status" :class="{
               valid: scanState === 'detected',
-              invalid: ['no-face', 'multiple', 'error'].includes(scanState),
+              invalid: ['no-face', 'multiple', 'occluded', 'error'].includes(scanState),
               scanning: scanState === 'scanning'
             }">
               <span class="detection-dot"></span>
@@ -1096,7 +1453,28 @@ onUnmounted(() => {
             : 'Sau khi tạo, hồ sơ sẽ được chuyển ngay sang bước đăng ký khuôn mặt bên trái.' }}</p>
         </div>
 
+        <div class="setup-stepper" aria-label="Tiến trình thiết lập nhân viên">
+          <div v-for="step in setupSteps" :key="step.number" class="setup-step" :class="{ done: step.done }">
+            <span>{{ step.done ? '✓' : step.number }}</span>
+            <small>{{ step.label }}</small>
+          </div>
+        </div>
+
+        <div v-if="isEnrollmentMode && !editingEmployee" class="existing-profile-notice">
+          <div>
+            <strong>Đang đăng ký khuôn mặt cho: {{ enrollmentTarget.ten }}</strong>
+            <small>Thông tin bên dưới được lấy từ hồ sơ thật. Bạn có thể cập nhật lịch làm việc và khuôn mặt.</small>
+          </div>
+          <button type="button" @click="openEditEmployee(enrollmentTarget)">Sửa hồ sơ</button>
+        </div>
+
         <form id="employee-unified-form" class="employee-setup-form" @submit.prevent="handleUnifiedEmployeeSubmit">
+          <section class="profile-card" :class="{ 'section-readonly': isEnrollmentMode && !editingEmployee }" :inert="isEnrollmentMode && !editingEmployee">
+            <div class="form-section-heading">
+              <span>01</span>
+              <div><strong>Tài khoản và quyền làm việc</strong><small>Thông tin dùng để đăng nhập và phân quyền nhân viên.</small></div>
+            </div>
+            <div class="profile-fields-grid">
           <label :class="{ invalid: employeeTouched.ten && employeeErrors.ten }">
             <span>Họ và tên nhân viên *</span>
             <input v-model.trim="employeeForm.ten" placeholder="Ví dụ: Nguyễn Văn An" autocomplete="off"
@@ -1138,11 +1516,81 @@ onUnmounted(() => {
               <option value="locked">Khóa tài khoản</option>
             </select>
           </label>
+            </div>
+          </section>
+
+          <section class="identity-card" :class="{ 'section-readonly': isEnrollmentMode && !editingEmployee }" :inert="isEnrollmentMode && !editingEmployee">
+            <div class="identity-heading">
+              <div>
+                <div class="form-section-heading compact">
+                  <span>02</span>
+                  <div><strong>Thông tin căn cước công dân</strong><small>Dùng để xác minh hồ sơ nhân sự; ảnh được lưu trong vùng riêng tư của hệ thống.</small></div>
+                </div>
+              </div>
+              <span class="identity-status">{{ editingEmployee?.co_anh_cccd_mat_truoc && editingEmployee?.co_anh_cccd_mat_sau ? 'Đã có hồ sơ' : 'Cần bổ sung' }}</span>
+            </div>
+
+            <div class="identity-info-grid">
+              <label>
+                <span>Số CCCD *</span>
+                <input v-model.trim="employeeForm.so_cccd" inputmode="numeric" maxlength="12" placeholder="Nhập 12 chữ số" />
+              </label>
+              <label>
+                <span>Ngày sinh</span>
+                <input v-model="employeeForm.ngaysinh" type="date" />
+              </label>
+              <label>
+                <span>Giới tính</span>
+                <select v-model="employeeForm.gioitinh">
+                  <option value="">Chọn giới tính</option>
+                  <option value="Nam">Nam</option>
+                  <option value="Nữ">Nữ</option>
+                  <option value="Khác">Khác</option>
+                </select>
+              </label>
+              <label>
+                <span>Ngày cấp</span>
+                <input v-model="employeeForm.ngay_cap_cccd" type="date" />
+              </label>
+              <label class="identity-place-field">
+                <span>Nơi cấp</span>
+                <input v-model.trim="employeeForm.noi_cap_cccd" placeholder="Ví dụ: Cục Cảnh sát QLHC về TTXH" />
+              </label>
+            </div>
+
+            <div class="identity-upload-grid">
+              <label v-for="side in [{ key: 'anh_cccd_mat_truoc', label: 'Mặt trước CCCD' }, { key: 'anh_cccd_mat_sau', label: 'Mặt sau CCCD' }]" :key="side.key" class="identity-upload" :class="identitySideStatus[side.key].state">
+                <input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" @change="selectIdentityImage(side.key, $event)" />
+                <img v-if="identityPreviews[side.key]" :src="identityPreviews[side.key]" :alt="side.label" />
+                <span v-else class="identity-upload-placeholder">
+                  <b>＋ {{ side.label }}</b>
+                  <small>{{ editingEmployee?.[side.key === 'anh_cccd_mat_truoc' ? 'co_anh_cccd_mat_truoc' : 'co_anh_cccd_mat_sau'] ? 'Đã lưu · bấm để thay ảnh' : 'Chụp hoặc chọn ảnh' }}</small>
+                </span>
+                <span v-if="identitySideStatus[side.key].state !== 'idle'" class="identity-side-result">
+                  {{ identitySideStatus[side.key].state === 'checking' ? '◌' : (identitySideStatus[side.key].state === 'valid' ? '✓' : '!') }}
+                  {{ identitySideStatus[side.key].message }}
+                </span>
+              </label>
+            </div>
+            <div class="identity-verify-row">
+              <div class="identity-verification-state" :class="{ verified: identityVerified, failed: identityError }">
+                <strong>{{ identityVerified ? 'CCCD đã được xác thực' : 'Chưa xác thực nội dung CCCD' }}</strong>
+                <small v-if="identityVerificationMessage">{{ identityVerificationMessage }}</small>
+                <small v-else>Hệ thống sẽ kiểm tra đúng hai mặt và tự điền thông tin vào biểu mẫu.</small>
+              </div>
+              <button type="button" class="identity-verify-button" :disabled="identityVerifying || !identityFiles.anh_cccd_mat_truoc || !identityFiles.anh_cccd_mat_sau || identitySideStatus.anh_cccd_mat_truoc.state !== 'valid' || identitySideStatus.anh_cccd_mat_sau.state !== 'valid'" @click="verifyIdentityImages">
+                {{ identityVerifying ? `Đang đọc ảnh ${identityProgress}%` : (identityVerified ? 'Xác thực lại' : 'Xác thực & đọc CCCD') }}
+              </button>
+            </div>
+            <p v-if="identityError" class="identity-error">{{ identityError }}</p>
+          </section>
 
           <div class="work-assignment-block">
             <div class="assignment-heading">
-              <strong>Đăng ký lịch làm việc</strong>
-              <small>Áp dụng cho việc chấm công và tính công của nhân viên</small>
+              <div class="form-section-heading compact">
+                <span>03</span>
+                <div><strong>Lịch làm việc và chấm công</strong><small>Áp dụng cho việc chấm công và tính công của nhân viên.</small></div>
+              </div>
             </div>
             <label>
               <span>Ca làm việc *</span>
@@ -1199,11 +1647,11 @@ onUnmounted(() => {
 
       <div class="unified-submit-area">
         <div>
-          <strong>{{ editingEmployee ? 'Cập nhật thông tin nhân viên' : (isEnrollmentMode && !hasEmployeeDraft ? 'Cập nhật sinh trắc học nhân viên' : 'Hoàn tất thiết lập nhân viên') }}</strong>
+          <strong>{{ editingEmployee ? 'Cập nhật thông tin nhân viên' : (isEnrollmentMode ? 'Cập nhật sinh trắc học nhân viên' : 'Hoàn tất thiết lập nhân viên') }}</strong>
           <span>
             {{ editingEmployee
               ? `Các thay đổi của ${editingEmployee.ten} sẽ được lưu trực tiếp vào hồ sơ.`
-              : isEnrollmentMode && !hasEmployeeDraft
+              : isEnrollmentMode
               ? `Lịch làm việc và khuôn mặt sẽ được cập nhật cho ${displayEmployee.name}.`
               : 'Hệ thống sẽ kiểm tra dữ liệu, tạo hồ sơ, gán vai trò và lưu khuôn mặt trong một lần.' }}
           </span>
@@ -1213,7 +1661,7 @@ onUnmounted(() => {
           type="submit"
           form="employee-unified-form"
           class="create-employee-button"
-          :disabled="creatingEmployee || savingEmployee || isRegisteringFace || (!editingEmployee && !isCameraActive)"
+          :disabled="creatingEmployee || savingEmployee || isRegisteringFace || (isEnrollmentMode && !enrollmentTarget) || (!editingEmployee && !isCameraActive)"
         >
           {{ savingEmployee
             ? 'Đang lưu thay đổi...'
@@ -1221,7 +1669,7 @@ onUnmounted(() => {
             ? 'Đang xác thực và lưu dữ liệu...'
             : editingEmployee
               ? 'Lưu thay đổi'
-              : (isEnrollmentMode && !hasEmployeeDraft ? 'Lưu lịch & cập nhật khuôn mặt' : 'Tạo nhân viên & đăng ký khuôn mặt') }}
+              : (isEnrollmentMode ? 'Lưu lịch & cập nhật khuôn mặt' : 'Tạo nhân viên & đăng ký khuôn mặt') }}
         </button>
       </div>
 
@@ -1585,7 +2033,7 @@ onUnmounted(() => {
 }
 
 .dashboard-grid.verification-grid {
-  grid-template-columns: minmax(0, 1.04fr) minmax(400px, .96fr);
+  grid-template-columns: minmax(360px, .78fr) minmax(560px, 1.22fr);
   justify-content: center;
   max-width: 1180px;
   gap: 0;
@@ -1596,7 +2044,9 @@ onUnmounted(() => {
   box-shadow: 0 10px 30px rgba(15, 23, 42, .07);
 }
 .verification-grid > .chamcong-card {
-  align-self: stretch;
+  align-self: start;
+  position: sticky;
+  top: 82px;
   padding: 0 16px 0 0;
   border: 0;
   border-right: 1px solid #e2e8f0;
@@ -1605,11 +2055,11 @@ onUnmounted(() => {
 }
 
 .verification-grid > .camera-card .camera-wrapper {
-  margin-top: auto;
+  margin-top: 14px;
 }
 
 .verification-grid > .camera-card .camera-actions {
-  margin-bottom: auto;
+  margin-bottom: 0;
 }
 
 .employee-setup-card {
@@ -1624,6 +2074,20 @@ onUnmounted(() => {
 .setup-heading > span { color: #2563eb; font-size: 10px; font-weight: 800; letter-spacing: .09em; }
 .setup-heading h3 { margin: 4px 0 3px; color: #0f172a; font-size: 17px; }
 .setup-heading p { margin: 0; color: #64748b; font-size: 11px; line-height: 1.5; }
+.setup-stepper { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 11px; padding: 6px; border-radius: 12px; background: #f1f5f9; }
+.setup-step { display: flex; align-items: center; min-width: 0; gap: 6px; padding: 7px 8px; border-radius: 9px; color: #64748b; }
+.setup-step > span { flex: 0 0 auto; width: 21px; height: 21px; display: grid; place-items: center; border-radius: 50%; background: #e2e8f0; color: #475569; font-size: 9px; font-weight: 850; }
+.setup-step small { overflow: hidden; color: inherit; font-size: 9px; font-weight: 750; white-space: nowrap; text-overflow: ellipsis; }
+.setup-step.done { background: #ecfdf5; color: #047857; }
+.setup-step.done > span { background: #10b981; color: #fff; }
+.existing-profile-notice { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; padding: 10px 12px; border: 1px solid #bbf7d0; border-radius: 11px; background: #f0fdf4; }
+.existing-profile-notice strong, .existing-profile-notice small { display: block; }
+.existing-profile-notice strong { color: #047857; font-size: 10.5px; }
+.existing-profile-notice small { margin-top: 2px; color: #64748b; font-size: 9.5px; line-height: 1.35; }
+.existing-profile-notice button { flex: 0 0 auto; min-height: 31px; padding: 6px 10px; border: 1px solid #86efac; border-radius: 8px; background: #fff; color: #047857; font-size: 9.5px; font-weight: 800; cursor: pointer; }
+.section-readonly { position: relative; background: #f8fafc; }
+.profile-card.section-readonly::after { content: 'Dữ liệu từ hồ sơ nhân viên'; position: absolute; right: 12px; top: 12px; padding: 4px 7px; border-radius: 999px; background: #e2e8f0; color: #475569; font-size: 8px; font-weight: 800; }
+.section-readonly input, .section-readonly select, .section-readonly .identity-upload { background-color: #f8fafc; color: #334155; cursor: default; }
 .employee-setup-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1631,6 +2095,14 @@ onUnmounted(() => {
   gap: 9px 10px;
   margin-top: 11px;
 }
+.profile-card { grid-column: 1 / -1; display: grid; gap: 12px; padding: 14px; border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; }
+.profile-fields-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 9px 10px; }
+.form-section-heading { display: flex; align-items: flex-start; gap: 9px; }
+.form-section-heading > span { flex: 0 0 auto; width: 27px; height: 27px; display: grid; place-items: center; border-radius: 8px; background: #dbeafe; color: #1d4ed8; font-size: 9px; font-weight: 900; }
+.form-section-heading strong, .form-section-heading small { display: block; }
+.form-section-heading strong { color: #0f172a; font-size: 12px; }
+.form-section-heading small { margin-top: 2px; color: #64748b; font-size: 9.5px; line-height: 1.35; }
+.form-section-heading.compact > span { width: 25px; height: 25px; }
 .employee-setup-form label { display: grid; gap: 5px; }
 .employee-setup-form label > span { color: #475569; font-size: 10.5px; font-weight: 700; }
 .employee-setup-form input,
@@ -1675,6 +2147,55 @@ onUnmounted(() => {
   color: #b91c1c;
   font-size: 10.5px;
 }
+.identity-card {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #c7d9f7;
+  border-radius: 14px;
+  background: #f8fbff;
+}
+.identity-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.identity-heading strong, .identity-heading small { display: block; }
+.identity-heading strong { color: #1e3a8a; font-size: 13px; }
+.identity-heading small { margin-top: 3px; color: #64748b; font-size: 10px; line-height: 1.4; }
+.identity-status { flex: 0 0 auto; padding: 5px 8px; border-radius: 999px; background: #dbeafe; color: #1d4ed8; font-size: 9px; font-weight: 800; }
+.identity-info-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px 10px; }
+.identity-place-field { grid-column: 1 / -1; }
+.identity-upload-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.identity-upload { position: relative; min-height: 104px; overflow: hidden; border: 1px dashed #93b4e8; border-radius: 11px; background: #fff; cursor: pointer; }
+.identity-upload > input { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.identity-upload > img { width: 100%; height: 120px; object-fit: cover; }
+.identity-upload.checking { border-color: #f59e0b; }
+.identity-upload.valid { border-style: solid; border-color: #10b981; box-shadow: 0 0 0 2px rgba(16, 185, 129, .1); }
+.identity-upload.invalid { border-style: solid; border-color: #ef4444; box-shadow: 0 0 0 2px rgba(239, 68, 68, .1); }
+.identity-side-result { position: absolute; z-index: 3; left: 7px; right: 7px; bottom: 7px; display: flex; align-items: center; gap: 5px; padding: 6px 8px; border-radius: 7px; background: rgba(15, 23, 42, .88); color: #fff !important; font-size: 8.5px !important; font-weight: 750 !important; line-height: 1.25; backdrop-filter: blur(6px); }
+.identity-upload.valid .identity-side-result { background: rgba(4, 120, 87, .92); }
+.identity-upload.invalid .identity-side-result { background: rgba(185, 28, 28, .94); }
+.identity-upload-placeholder { min-height: 104px; display: grid; place-content: center; gap: 5px; padding: 12px; text-align: center; color: #2563eb !important; }
+.identity-upload-placeholder b { font-size: 11px; }
+.identity-upload-placeholder small { color: #64748b !important; font-size: 9.5px; }
+.identity-error { margin: 0; color: #dc2626; font-size: 10px; font-weight: 650; }
+.identity-verify-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 2px; }
+.identity-verification-state { min-width: 0; }
+.identity-verification-state strong, .identity-verification-state small { display: block; }
+.identity-verification-state strong { color: #92400e; font-size: 10.5px; }
+.identity-verification-state small { margin-top: 2px; color: #64748b; font-size: 9.5px; line-height: 1.35; }
+.identity-verification-state.verified strong { color: #047857; }
+.identity-verification-state.failed strong { color: #b91c1c; }
+.identity-verify-button { flex: 0 0 auto; min-width: 166px; min-height: 38px; padding: 8px 13px; border: 0; border-radius: 9px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; font-size: 10.5px; font-weight: 800; cursor: pointer; box-shadow: 0 5px 13px rgba(37, 99, 235, .18); }
+.identity-verify-button:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
+@media (max-width: 640px) {
+  .identity-info-grid, .identity-upload-grid { grid-template-columns: 1fr; }
+  .profile-fields-grid { grid-template-columns: 1fr; }
+  .identity-place-field { grid-column: auto; }
+  .identity-verify-row { align-items: stretch; flex-direction: column; }
+  .identity-verify-button { width: 100%; }
+  .setup-stepper { grid-template-columns: 1fr; }
+  .existing-profile-notice { align-items: stretch; flex-direction: column; }
+  .existing-profile-notice button { width: 100%; }
+}
 .create-employee-button {
   min-height: 42px;
   border: 0;
@@ -1694,8 +2215,15 @@ onUnmounted(() => {
   justify-content: space-between;
   gap: 18px;
   margin-top: 12px;
-  padding: 11px 0 0;
-  border-top: 1px solid #e2e8f0;
+  position: sticky;
+  bottom: 0;
+  z-index: 12;
+  padding: 11px 12px;
+  border: 1px solid #dbe3ef;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .96);
+  box-shadow: 0 -8px 24px rgba(15, 23, 42, .08);
+  backdrop-filter: blur(12px);
 }
 .unified-submit-area > div { min-width: 0; }
 .unified-submit-area strong,
@@ -1922,6 +2450,7 @@ onUnmounted(() => {
   }
   .dashboard-grid.verification-grid { grid-template-columns: 1fr; }
   .verification-grid > .chamcong-card {
+    position: static;
     padding: 0 0 16px;
     border-right: 0;
     border-bottom: 1px solid #e2e8f0;

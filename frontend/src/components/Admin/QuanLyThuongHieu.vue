@@ -416,6 +416,7 @@ td { padding: 16px 20px; vertical-align: middle; }
 .edit-btn:hover { background: #eff6ff; border-color: #93c5fd; }
 .edit-btn:hover svg { stroke: #2563eb; }
 .empty-row { text-align: center; color: #94a3b8; font-size: 13px; padding: 30px; }
+@media (max-width: 820px) { .page { padding: 16px; } .hero-actions, .hero-actions .search-box { width: 100%; } .btn-primary { flex: 1; justify-content: center; } .table-card { overflow-x: auto; } table { min-width: 680px; } }
 
 /* MODAL CSS */
 .overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; }

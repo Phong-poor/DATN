@@ -18,6 +18,8 @@ class DatabaseSeeder extends Seeder
         $this->call([
             ShopeeProductSeeder::class,
             EventCampaignSeeder::class,
+            SubmissionDemoAccountSeeder::class,
+            DashboardChartDemoSeeder::class,
         ]);
     }
 }

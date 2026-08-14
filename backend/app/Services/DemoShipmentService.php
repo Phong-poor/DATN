@@ -51,7 +51,7 @@ class DemoShipmentService
 
                         $created++;
                         $updated++;
-                        $this->safeBroadcastOrderStatus($order->fresh(['user', 'chi_tiets.bienThe.sanPham'])));
+                        $this->safeBroadcastOrderStatus($order->fresh(['user', 'chi_tiets.bienThe.sanPham']));
                     }
 
                     if (in_array($currentOrderStatus, ['confirmed', 'shipping', 'done', 'completed'], true)) {
@@ -66,7 +66,7 @@ class DemoShipmentService
                         ]);
 
                         $created++;
-                        $this->safeBroadcastOrderStatus($order->fresh(['user', 'chi_tiets.bienThe.sanPham'])));
+                        $this->safeBroadcastOrderStatus($order->fresh(['user', 'chi_tiets.bienThe.sanPham']));
                     }
 
                     return;
@@ -97,7 +97,7 @@ class DemoShipmentService
                         ]);
 
                         $updated++;
-                        $this->safeBroadcastOrderStatus($order->fresh(['user', 'chi_tiets.bienThe.sanPham'])));
+                        $this->safeBroadcastOrderStatus($order->fresh(['user', 'chi_tiets.bienThe.sanPham']));
                     }
 
                     return;
@@ -133,7 +133,7 @@ class DemoShipmentService
                 ]);
 
                 $updated++;
-                $this->safeBroadcastOrderStatus($order->fresh(['user', 'chi_tiets.bienThe.sanPham'])));
+                $this->safeBroadcastOrderStatus($order->fresh(['user', 'chi_tiets.bienThe.sanPham']));
             });
 
         return compact('checked', 'updated', 'created');

@@ -1010,6 +1010,13 @@ async function handleImportFile(e) {
     </div>
 
     <!-- ══ TOP TABLES: GROUP + ATTR ══ -->
+    <div class="workflow-hint" aria-label="Quy trình thiết lập biến thể">
+      <span class="workflow-step"><b>1</b> Tạo nhóm thuộc tính</span>
+      <span class="workflow-arrow">→</span>
+      <span class="workflow-step"><b>2</b> Thêm loại thuộc tính</span>
+      <span class="workflow-arrow">→</span>
+      <span class="workflow-step"><b>3</b> Khai báo giá trị hoặc màu</span>
+    </div>
     <div class="top-tables">
       <!-- NHÓM THUỘC TÍNH -->
       <div class="card top-card">
@@ -1776,6 +1783,13 @@ async function handleImportFile(e) {
   font-family: 'Be Vietnam Pro', sans-serif;
   padding-bottom: 40px;
 }
+
+/* Trang đã nằm trong bố cục Admin, không lặp lại thanh điều hướng và breadcrumb. */
+.topbar, .breadcrumb { display: none; }
+.workflow-hint { display: flex; align-items: center; gap: 10px; margin: 0 32px 16px; padding: 12px 16px; overflow-x: auto; border: 1px solid #dbeafe; border-radius: 14px; background: #eff6ff; color: #334155; font-size: 12px; white-space: nowrap; }
+.workflow-step { display: inline-flex; align-items: center; gap: 7px; }
+.workflow-step b { display: inline-grid; width: 24px; height: 24px; place-items: center; border-radius: 50%; background: #2563eb; color: #fff; }
+.workflow-arrow { color: #93c5fd; font-size: 18px; }
 
 .topbar {
   display: flex;

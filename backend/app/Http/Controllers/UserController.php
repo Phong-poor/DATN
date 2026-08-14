@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 
 /**
@@ -100,16 +101,33 @@ class UserController extends Controller
                 }
             ],
             'trangthai' => 'nullable|in:active,locked',
+            'so_cccd' => 'nullable|digits:12|unique:khachhang,so_cccd',
+            'ngaysinh' => 'nullable|date|before:today',
+            'gioitinh' => 'nullable|in:Nam,Nữ,Khác',
+            'ngay_cap_cccd' => 'nullable|date|before_or_equal:today',
+            'noi_cap_cccd' => 'nullable|string|max:255',
+            'anh_cccd_mat_truoc' => 'nullable|required_with:so_cccd|image|mimes:jpeg,jpg,png,webp|max:5120',
+            'anh_cccd_mat_sau' => 'nullable|required_with:so_cccd|image|mimes:jpeg,jpg,png,webp|max:5120',
         ]);
 
-        $user = User::create([
-            'ten' => $validated['ten'],
-            'email' => $validated['email'],
-            'matkhau' => $validated['matkhau'],
-            'sodienthoai' => $validated['sodienthoai'] ?? null,
-            'vaitro' => $validated['vaitro'] ?? 'user',
-            'trangthai' => $validated['trangthai'] ?? 'active',
-        ]);
+        $user = DB::transaction(function () use ($request, $validated) {
+            $user = User::create([
+                'ten' => $validated['ten'],
+                'email' => $validated['email'],
+                'matkhau' => $validated['matkhau'],
+                'sodienthoai' => $validated['sodienthoai'] ?? null,
+                'vaitro' => $validated['vaitro'] ?? 'user',
+                'trangthai' => $validated['trangthai'] ?? 'active',
+                'so_cccd' => $validated['so_cccd'] ?? null,
+                'ngaysinh' => $validated['ngaysinh'] ?? null,
+                'gioitinh' => $validated['gioitinh'] ?? null,
+                'ngay_cap_cccd' => $validated['ngay_cap_cccd'] ?? null,
+                'noi_cap_cccd' => $validated['noi_cap_cccd'] ?? null,
+            ]);
+
+            $this->storeIdentityImages($request, $user);
+            return $user;
+        });
 
         return response()->json([
             'message' => 'Tạo người dùng thành công',
@@ -138,6 +156,13 @@ class UserController extends Controller
             ],
             'trangthai' => 'nullable|in:active,locked',
             'matkhau' => 'nullable|string|min:8',
+            'so_cccd' => ['nullable', 'digits:12', Rule::unique('khachhang', 'so_cccd')->ignore($id)],
+            'ngaysinh' => 'nullable|date|before:today',
+            'gioitinh' => 'nullable|in:Nam,Nữ,Khác',
+            'ngay_cap_cccd' => 'nullable|date|before_or_equal:today',
+            'noi_cap_cccd' => 'nullable|string|max:255',
+            'anh_cccd_mat_truoc' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:5120',
+            'anh_cccd_mat_sau' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:5120',
         ]);
 
         if (isset($validated['ten']))
@@ -172,8 +197,12 @@ class UserController extends Controller
         if (!empty($validated['matkhau'])) {
             $user->matkhau = $validated['matkhau'];
         }
+        foreach (['so_cccd', 'ngaysinh', 'gioitinh', 'ngay_cap_cccd', 'noi_cap_cccd'] as $field) {
+            if (array_key_exists($field, $validated)) $user->{$field} = $validated[$field] ?: null;
+        }
 
         $user->save();
+        $this->storeIdentityImages($request, $user);
 
         if ($oldRole !== $user->vaitro || $oldStatus !== $user->trangthai) {
             $user->tokens()->delete();
@@ -280,9 +309,22 @@ class UserController extends Controller
     public function destroy($id)
     {
         $user = User::findOrFail($id);
+        Storage::disk('local')->deleteDirectory("employee-identities/{$user->id}");
         $user->delete();
 
         return response()->json(['message' => 'Xóa người dùng thành công']);
+    }
+
+    private function storeIdentityImages(Request $request, User $user): void
+    {
+        foreach (['anh_cccd_mat_truoc', 'anh_cccd_mat_sau'] as $field) {
+            if (! $request->hasFile($field)) continue;
+
+            if ($user->{$field}) Storage::disk('local')->delete($user->{$field});
+            $path = $request->file($field)->store("employee-identities/{$user->id}", 'local');
+            $user->{$field} = $path;
+        }
+        if ($user->isDirty(['anh_cccd_mat_truoc', 'anh_cccd_mat_sau'])) $user->save();
     }
 
     /**

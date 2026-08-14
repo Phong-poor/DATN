@@ -33,7 +33,17 @@ class NewsController extends Controller
             }
 
             if ($public) {
-                $query->where('trangthai', 'published');
+                $query->where('trangthai', 'published')
+                    ->where(fn ($q) => $q->whereNull('dang_luc')->orWhere('dang_luc', '<=', now()));
+            }
+
+            if ($request->filled('q')) {
+                $keyword = trim((string) $request->input('q'));
+                $query->where(function ($q) use ($keyword) {
+                    $q->where('tieude', 'like', "%{$keyword}%")
+                        ->orWhere('tomtat', 'like', "%{$keyword}%")
+                        ->orWhere('noidung', 'like', "%{$keyword}%");
+                });
             }
 
             $sort = $request->get('sort', 'latest');
@@ -413,18 +423,52 @@ class NewsController extends Controller
         }
     }
 
-    public function track($id)
+    public function track(Request $request, $id)
     {
-        try {
-            News::where('id', $id)->increment('luotxem');
-            return response()->json(['success' => true]);
-        } catch (\Throwable $e) {
-            return response()->json(['success' => false]);
-        }
+        $data = $request->validate([
+            'event' => ['required', Rule::in(['view', 'share', 'like'])],
+        ]);
+        $news = News::findOrFail($id);
+
+        DB::transaction(function () use ($request, $news, $data) {
+            if ($data['event'] === 'view') {
+                $news->increment('luotxem');
+            } elseif ($data['event'] === 'share') {
+                $news->increment('share_count');
+            }
+
+            DB::table('news_events')->insert([
+                'news_id' => $news->id,
+                'event' => $data['event'],
+                'session_hash' => hash('sha256', $request->hasSession()
+                    ? (string) $request->session()->getId()
+                    : (string) $request->ip().'|'.(string) $request->userAgent()),
+                'referrer' => $request->headers->get('referer'),
+                'metadata' => json_encode([], JSON_THROW_ON_ERROR),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        });
+
+        return response()->json(['success' => true], 201);
     }
 
     public function subscribe(Request $request)
     {
+        $data = $request->validate(['email' => ['required', 'email', 'max:255']]);
+
+        DB::table('news_subscribers')->updateOrInsert(
+            ['email' => strtolower($data['email'])],
+            [
+                'active' => true,
+                'token' => hash('sha256', strtolower($data['email'])),
+                'subscribed_at' => now(),
+                'unsubscribed_at' => null,
+                'updated_at' => now(),
+                'created_at' => now(),
+            ]
+        );
+
         return response()->json(['success' => true, 'message' => 'Đăng ký nhận tin thành công.']);
     }
 
