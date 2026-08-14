@@ -2889,12 +2889,19 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 .ops-card:first-child .ops-copy span,
 .ops-card:first-child .ops-copy b,
 .ops-card:first-child .ops-copy small {
-    color: #fff;
+    color: #ffffff !important;
+    opacity: 1 !important;
 }
 
-.ops-card:first-child .ops-copy span,
+.ops-card:first-child .ops-copy span {
+    font-size: 13px;
+    font-weight: 700;
+}
+
 .ops-card:first-child .ops-copy small {
-    opacity: 0.86;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.95) !important;
 }
 
 .ops-card:first-child .ops-copy b {
@@ -3993,7 +4000,7 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
     align-items: center;
     justify-content: center;
     background: #fef3c7;
-    color: #b45309;
+    color: #b45309 !important;
     font-size: 15px;
     font-weight: 900;
     flex-shrink: 0;
@@ -4001,7 +4008,23 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 
 .stock-item strong.danger {
     background: #fee2e2;
-    color: #dc2626;
+    color: #dc2626 !important;
+}
+
+.admin-layout.theme-dark .stock-item strong,
+.admin-layout.dark .stock-item strong,
+html[data-admin-theme='dark'] .stock-item strong {
+    background: rgba(245, 158, 11, 0.2) !important;
+    color: #fde047 !important;
+    border: 1px solid rgba(245, 158, 11, 0.4) !important;
+}
+
+.admin-layout.theme-dark .stock-item strong.danger,
+.admin-layout.dark .stock-item strong.danger,
+html[data-admin-theme='dark'] .stock-item strong.danger {
+    background: rgba(239, 68, 68, 0.2) !important;
+    color: #fca5a5 !important;
+    border: 1px solid rgba(239, 68, 68, 0.4) !important;
 }
 
 .mini-section {

@@ -32,8 +32,8 @@ const handleImgError = (event, fallbackUrl) => handleImageFallback(event, fallba
 const defaultSlides = [
     {
         eyebrow: 'PREMIUM LAPTOP STORE 2026',
-        title: 'Sức Mạnh Hội Tụ',
-        highlight: 'Sự Tinh Tế Chuyên Sâu',
+        title: 'Sức mạnh hội tụ',
+        highlight: 'Sự tinh tế chuyên sâu',
         desc: 'Laptop cao cấp chế tác riêng cho nhà sáng tạo, game thủ chuyên nghiệp và kỹ sư công nghệ. Trải nghiệm hiệu năng vượt giới hạn vật lý với màn hình OLED đỉnh cao.',
         img: '/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png',
         deviceImg: '/hero_3d_laptop.png',
@@ -42,8 +42,8 @@ const defaultSlides = [
     },
     {
         eyebrow: 'NEW GENERATION CHIPS',
-        title: 'Hiệu Năng Vượt Trội',
-        highlight: 'Kiến Trúc AI Thế Hệ Mới',
+        title: 'Hiệu năng vượt trội',
+        highlight: 'Kiến trúc AI thế hệ mới',
         desc: 'Sở hữu ngay các cỗ máy tối tân trang bị NPU tăng tốc AI cục bộ đến 45 TOPs. Đáp ứng hoàn hảo mọi tác vụ deep learning và dựng hình 3D real-time.',
         img: '/Gemini_Generated_Image_7xfvdr7xfvdr7xfv.png',
         deviceImg: '/hero_macbook_setup.png',
@@ -52,7 +52,7 @@ const defaultSlides = [
     },
     {
         eyebrow: 'NEBULA DISPLAY TECHNOLOGY',
-        title: 'Trải Nghiệm Đắm Chìm',
+        title: 'Trải nghiệm đắm chìm',
         highlight: 'Nebula OLED 240Hz',
         desc: 'Độ sâu màu 10-bit đích thực, độ tương phản tuyệt đối 1.000.000:1 cùng tần số quét 240Hz siêu mượt. Sắc sảo trong từng chuyển động game AAA.',
         img: '/Gemini_Generated_Image_j1cibhj1cibhj1ci.png',
@@ -62,8 +62,8 @@ const defaultSlides = [
     },
     {
         eyebrow: 'NEXTGEN SHOWROOM',
-        title: 'Trải Nghiệm Đắm Chìm',
-        highlight: 'Không Gian Cao Cấp',
+        title: 'Trải nghiệm đắm chìm',
+        highlight: 'Không gian cao cấp',
         desc: 'Khám phá không gian laptop hiện đại với các dòng máy cao cấp được trưng bày thực tế cho game, sáng tạo và công việc chuyên nghiệp.',
         img: '/Gemini_Generated_Image_dp15ytdp15ytdp15.png',
         deviceImg: '/showroom_experience.png',
@@ -430,11 +430,25 @@ const mapNewsPost = (post = {}) => ({
     publishedAt: post.publishedAt || post.dang_luc || post.created_at || '',
 })
 
+const formatTitleCaseToSentence = (str) => {
+    if (!str) return ''
+    const s = String(str).trim()
+    const map = {
+        'Sức Mạnh Hội Tụ': 'Sức mạnh hội tụ',
+        'Sự Tinh Tế Chuyên Sâu': 'Sự tinh tế chuyên sâu',
+        'Hiệu Năng Vượt Trội': 'Hiệu năng vượt trội',
+        'Kiến Trúc AI Thế Hệ Mới': 'Kiến trúc AI thế hệ mới',
+        'Trải Nghiệm Đắm Chìm': 'Trải nghiệm đắm chìm',
+        'Không Gian Cao Cấp': 'Không gian cao cấp',
+    }
+    return map[s] || s
+}
+
 const mapBannerToSlide = (banner = {}) => ({
     id: banner.id,
     eyebrow: banner.chudenho || 'PREMIUM LAPTOP STORE 2026',
-    title: banner.tieude || 'Sức Mạnh Hội Tụ',
-    highlight: banner.noibat || banner.phude || 'Sự Tinh Tế Chuyên Sâu',
+    title: formatTitleCaseToSentence(banner.tieude || 'Sức mạnh hội tụ'),
+    highlight: formatTitleCaseToSentence(banner.noibat || banner.phude || 'Sự tinh tế chuyên sâu'),
     desc: banner.mota || banner.phude || '',
     img: normalizeImageUrl(banner.hinhanh, '/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png'),
     mobileImg: normalizeImageUrl(banner.hinhanh_mobile || banner.hinhanh, '/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png'),
@@ -451,8 +465,8 @@ const mapBannerToSlide = (banner = {}) => ({
 const mapApiBannerToSlide = (banner = {}) => ({
     id: banner.id,
     eyebrow: banner.eyebrow || banner.chudenho || 'PREMIUM LAPTOP STORE 2026',
-    title: banner.title || banner.tieude || 'Sức Mạnh Hội Tụ',
-    highlight: banner.highlight || banner.phude || banner.noibat || 'Sự Tinh Tế Chuyên Sâu',
+    title: formatTitleCaseToSentence(banner.title || banner.tieude || 'Sức mạnh hội tụ'),
+    highlight: formatTitleCaseToSentence(banner.highlight || banner.phude || banner.noibat || 'Sự tinh tế chuyên sâu'),
     desc: banner.description || banner.mota || banner.phude || '',
     img: normalizeImageUrl(banner.image || banner.hinhanh, '/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png'),
     mobileImg: normalizeImageUrl(banner.mobile_image || banner.hinhanh_mobile || banner.image || banner.hinhanh, '/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png'),
@@ -1060,7 +1074,7 @@ onUnmounted(() => {
                     <div class="label-wrapper flex-row-align">
                         <div>
                             <span class="ambient-label flash-badge">⚡ GIỚI HẠN THỜI GIAN</span>
-                            <h2>Flash Sale Đang Diễn Ra</h2>
+                            <h2>Flash Sale đang diễn ra</h2>
                             <p>Sở hữu ngay các siêu phẩm công nghệ với mức giá tốt nhất trong ngày.</p>
                         </div>
                         <div class="countdown-clock">
@@ -1130,7 +1144,7 @@ onUnmounted(() => {
                 <div class="section-header scroll-reveal reveal-fade-up">
                     <div class="label-wrapper">
                         <span class="ambient-label">AFFILIATE VIDEO</span>
-                        <h2>Video Review Từ Cộng Tác Viên</h2>
+                        <h2>Video review từ cộng tác viên</h2>
                         <p>Khám phá trải nghiệm thực tế, mẹo chọn máy và góc nhìn sử dụng từ cộng đồng NextGen.</p>
                     </div>
                 </div>
@@ -1210,7 +1224,7 @@ onUnmounted(() => {
                             <h3>{{ c.ten_danhmuc }}</h3>
                             <p>{{ c.mota || 'Khám phá ngay cỗ máy lý tưởng phù hợp với phong cách của bạn.' }}</p>
                             <span class="interactive-anchor">
-                                Xem Bộ Sưu Tập
+                                Xem bộ sưu tập
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
                             </span>
                         </div>
@@ -1224,7 +1238,7 @@ onUnmounted(() => {
                 <div class="section-header center scroll-reveal reveal-fade-up">
                     <div class="label-wrapper center">
                         <span class="ambient-label">SẢN PHẨM NỔI BẬT</span>
-                        <h2>Siêu Phẩm Bán Chạy Nhất</h2>
+                        <h2>Siêu phẩm bán chạy nhất</h2>
                         <p>Tuyển chọn những cỗ máy dẫn đầu phân khúc với chất liệu bền bỉ và hiệu suất tối tân.</p>
                     </div>
                 </div>
@@ -1232,13 +1246,13 @@ onUnmounted(() => {
                 <!-- Product Filters Tabs -->
                 <div class="premium-tabs-strip scroll-reveal reveal-fade-up">
                     <button class="tab-pill" :class="{ active: activeCategoryTab === 'all' }" @click="changeProductTab('all')">
-                        Tất Cả
+                        Tất cả
                     </button>
                     <button class="tab-pill" :class="{ active: activeCategoryTab === 'gaming' }" @click="changeProductTab('gaming')">
                         Gaming Series
                     </button>
                     <button class="tab-pill" :class="{ active: activeCategoryTab === 'office' }" @click="changeProductTab('office')">
-                        Văn Phòng & UltraBook
+                        Văn phòng & UltraBook
                     </button>
                     <button class="tab-pill" :class="{ active: activeCategoryTab === 'macbook' }" @click="changeProductTab('macbook')">
                         MacBook & Apple
@@ -1322,7 +1336,7 @@ onUnmounted(() => {
 
                 <div class="global-action-row">
                     <router-link to="/san-pham" class="btn btn-premium-glass">
-                        Xem Tất Cả Sản Phẩm →
+                        Xem tất cả sản phẩm →
                     </router-link>
                 </div>
             </div>
@@ -1334,7 +1348,7 @@ onUnmounted(() => {
                 <div class="section-header center scroll-reveal reveal-fade-up">
                     <div class="label-wrapper center">
                         <span class="ambient-label">HỆ SINH THÁI CAO CẤP</span>
-                        <h2>Kiến Tạo Góc Setup Trong Mơ</h2>
+                        <h2>Kiến tạo góc setup trong mơ</h2>
                         <p>Hoàn thiện không gian chiến game và làm việc chuyên sâu với các thiết bị ngoại vi đồng bộ cao cấp.</p>
                     </div>
                 </div>
@@ -1344,7 +1358,7 @@ onUnmounted(() => {
                         <div class="block-tint"></div>
                         <div class="bento-text">
                             <span class="bento-category-tag">TRUNG TÂM SETUP</span>
-                            <h3>Không Gian Tối Giản</h3>
+                            <h3>Không gian tối giản</h3>
                             <p>Tối đa diện tích, đồng bộ cổng kết nối và tối ưu không gian đa nhiệm đỉnh cao.</p>
                             <router-link to="/san-pham?cat=phu-kien" class="bento-cta-link">Khám phá ngay ➔</router-link>
                         </div>
@@ -1354,7 +1368,7 @@ onUnmounted(() => {
                         <div class="block-tint"></div>
                         <div class="bento-text">
                             <span class="bento-category-tag">ÂM THANH</span>
-                            <h3>Tai Nghe Chuẩn Studio</h3>
+                            <h3>Tai nghe chuẩn studio</h3>
                             <p>Âm thanh vòm cinematic 7.1 tích hợp mic khử ồn AI thông minh.</p>
                             <router-link to="/san-pham?cat=phu-kien" class="bento-cta-link">Xem mẫu ➔</router-link>
                         </div>
@@ -1364,7 +1378,7 @@ onUnmounted(() => {
                         <div class="block-tint"></div>
                         <div class="bento-text">
                             <span class="bento-category-tag">BÀN PHÍM CƠ</span>
-                            <h3>Bàn Phím Custom NX</h3>
+                            <h3>Bàn phím custom NX</h3>
                             <p>Xúc giác cực nhạy, phản hồi tức thì với LED RGB tùy biến 16.8 triệu màu.</p>
                             <router-link to="/san-pham?cat=phu-kien" class="bento-cta-link">Sở hữu ngay ➔</router-link>
                         </div>
@@ -1374,7 +1388,7 @@ onUnmounted(() => {
                         <div class="block-tint"></div>
                         <div class="bento-text">
                             <span class="bento-category-tag">MÀN HÌNH</span>
-                            <h3>Màn Hình Cực Đỉnh OLED</h3>
+                            <h3>Màn hình cực đỉnh OLED</h3>
                             <p>Tần số quét 240Hz phản hồi siêu tốc, màu sắc chuẩn điện ảnh HDR chuyên nghiệp.</p>
                             <router-link to="/san-pham?cat=phu-kien" class="bento-cta-link">Xem màn hình ➔</router-link>
                         </div>
@@ -1389,7 +1403,7 @@ onUnmounted(() => {
                 <div class="section-header center scroll-reveal reveal-fade-up">
                     <div class="label-wrapper center">
                         <span class="ambient-label">TIÊU CHUẨN DỊCH VỤ</span>
-                        <h2>Giá Trị Xứng Tầm Thương Hiệu</h2>
+                        <h2>Giá trị xứng tầm thương hiệu</h2>
                     </div>
                 </div>
 
@@ -1398,7 +1412,7 @@ onUnmounted(() => {
                         <div class="value-icon-shield">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
                         </div>
-                        <h3>100% Chính Hãng</h3>
+                        <h3>100% chính hãng</h3>
                         <p>Cam kết toàn bộ máy mới nguyên seal, đầy đủ chứng từ xuất xứ, hóa đơn VAT rõ ràng.</p>
                     </div>
 
@@ -1406,7 +1420,7 @@ onUnmounted(() => {
                         <div class="value-icon-shield">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12H4s1 0-1-1a9 9 0 018-8v8H5zm6 0h5s-1 0 1-1a9 9 0 00-8-8v8h7z"/></svg>
                         </div>
-                        <h3>Bảo Hành 24 Tháng</h3>
+                        <h3>Bảo hành 24 tháng</h3>
                         <p>An tâm tuyệt đối với chính sách bảo hành chính hãng lâu dài và quy trình sửa chữa siêu tốc.</p>
                     </div>
 
@@ -1414,7 +1428,7 @@ onUnmounted(() => {
                         <div class="value-icon-shield">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                         </div>
-                        <h3>Giao Hàng Siêu Tốc 2H</h3>
+                        <h3>Giao hàng siêu tốc 2H</h3>
                         <p>Hỗ trợ giao hỏa tốc an toàn trong khu vực nội thành, được quyền kiểm tra máy tại chỗ trước khi nhận.</p>
                     </div>
 
@@ -1422,7 +1436,7 @@ onUnmounted(() => {
                         <div class="value-icon-shield">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
                         </div>
-                        <h3>Tư Vấn Kỹ Thuật Chuyên Sâu</h3>
+                        <h3>Tư vấn kỹ thuật chuyên sâu</h3>
                         <p>Đội ngũ kỹ sư am hiểu phần cứng luôn sẵn sàng tối ưu hóa cỗ máy phù hợp với compile stack của bạn.</p>
                     </div>
                 </div>
@@ -1435,7 +1449,7 @@ onUnmounted(() => {
                 <div class="section-header scroll-reveal reveal-fade-up">
                     <div class="label-wrapper">
                         <span class="ambient-label">KIẾN THỨC CÔNG NGHỆ</span>
-                        <h2>Tin Tức & Góc Công Nghệ</h2>
+                        <h2>Tin tức & góc công nghệ</h2>
                         <p>Phân tích chuyên sâu về kiến trúc phần cứng, đánh giá hiệu năng đồ họa và định cấu hình máy trạm tối ưu.</p>
                     </div>
                     <RouterLink to="/tin-tuc" class="magazine-explore-btn">Xem tất cả bài viết ➔</RouterLink>
@@ -1481,7 +1495,7 @@ onUnmounted(() => {
                 <div class="section-header center scroll-reveal reveal-fade-up">
                     <div class="label-wrapper center">
                         <span class="ambient-label">Ý KIẾN KHÁCH HÀNG</span>
-                        <h2>Đồng Hành Cùng Mọi Luồng Công Việc</h2>
+                        <h2>Đồng hành cùng mọi luồng công việc</h2>
                     </div>
                 </div>
 
@@ -1513,13 +1527,13 @@ onUnmounted(() => {
                     <div class="newsletter-layout">
                         <div class="newsletter-headline">
                             <span class="ambient-label light">KẾT NỐI HỆ THỐNG</span>
-                            <h2>Dẫn Đầu Xu Hướng Công Nghệ</h2>
+                            <h2>Dẫn đầu xu hướng công nghệ</h2>
                             <p>Nhận ngay bản tin phân tích phần cứng mới nhất, thông tin ưu đãi private độc quyền và mã giảm giá VIP sớm nhất.</p>
                         </div>
                         <div class="newsletter-interactive-form">
                             <div class="input-glow-group">
                                 <input type="email" placeholder="Nhập địa chỉ email của bạn" aria-label="Địa chỉ email đăng ký" />
-                                <button class="btn btn-premium-glow">Đăng Ký</button>
+                                <button class="btn btn-premium-glow">Đăng ký</button>
                             </div>
                         </div>
                     </div>

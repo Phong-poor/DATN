@@ -27,7 +27,10 @@ import {
   Heart,
   BadgeAlert,
   Gift,
+  ChevronLeft,
   ChevronRight,
+  ChevronUp,
+  Grid,
   Laptop,
   Apple as AppleIcon,
   Briefcase,
@@ -537,6 +540,45 @@ const allVouchers = computed(() => {
     return true // chưa sở hữu -> hiện
   })
 })
+
+// ===================== VOUCHER SLIDE & VIEW ALL PAGINATION =====================
+const isViewAllVouchers = ref(false)
+const currentVoucherSlide = ref(0)
+const voucherItemsPerPage = 4
+
+const totalVoucherSlides = computed(() => {
+  if (!allVouchers.value || allVouchers.value.length === 0) return 1
+  return Math.ceil(allVouchers.value.length / voucherItemsPerPage)
+})
+
+const currentSlideVouchers = computed(() => {
+  if (isViewAllVouchers.value) return allVouchers.value
+  const start = currentVoucherSlide.value * voucherItemsPerPage
+  return allVouchers.value.slice(start, start + voucherItemsPerPage)
+})
+
+const nextVoucherSlide = () => {
+  if (currentVoucherSlide.value < totalVoucherSlides.value - 1) {
+    currentVoucherSlide.value++
+  } else {
+    currentVoucherSlide.value = 0
+  }
+}
+
+const prevVoucherSlide = () => {
+  if (currentVoucherSlide.value > 0) {
+    currentVoucherSlide.value--
+  } else {
+    currentVoucherSlide.value = totalVoucherSlides.value - 1
+  }
+}
+
+const toggleViewAllVouchers = () => {
+  isViewAllVouchers.value = !isViewAllVouchers.value
+  if (!isViewAllVouchers.value) {
+    currentVoucherSlide.value = 0
+  }
+}
 
 const filteredProducts = computed(() => {
   if (activeCategoryTab.value === 'all') return products.value
@@ -1124,86 +1166,127 @@ const initScrollReveal = () => {
     <!-- 5. VOUCHER CENTER -->
     <section id="voucher-center" class="section voucher-center-section">
       <div class="grid-container">
-        <div class="section-header scroll-reveal reveal-fade-up">
-          <span class="ambient-label">
-            <Tag class="pill-icon" />
-            Voucher Center
-          </span>
-          <h2>TRUNG TÂM MÃ GIẢM GIÁ</h2>
-          <p class="section-sub" style="color: #f1f5f9 !important; -webkit-text-fill-color: #f1f5f9 !important; opacity: 1 !important;">Nhấn <strong style="color: #ffffff !important; -webkit-text-fill-color: #ffffff !important;">Nhận Voucher</strong> để lưu mã vào tài khoản và áp dụng ở bước thanh toán để nhận thêm ưu đãi cực kỳ hấp dẫn.</p>
+        <div class="voucher-header-flex scroll-reveal reveal-fade-up">
+          <div class="section-header-left">
+            <span class="ambient-label">
+              <Tag class="pill-icon" />
+              Voucher Center
+            </span>
+            <h2>TRUNG TÂM MÃ GIẢM GIÁ</h2>
+            <p class="section-sub" style="color: #f1f5f9 !important; -webkit-text-fill-color: #f1f5f9 !important; opacity: 1 !important;">Nhấn <strong style="color: #ffffff !important; -webkit-text-fill-color: #ffffff !important;">Nhận Voucher</strong> để lưu mã vào tài khoản và áp dụng ở bước thanh toán để nhận thêm ưu đãi cực kỳ hấp dẫn.</p>
+          </div>
+
+          <div class="voucher-toolbar-actions">
+            <!-- Nút Slide Controls: chỉ hiện khi ở chế độ Slide & có hơn 1 slide -->
+            <div v-if="!isViewAllVouchers && totalVoucherSlides > 1" class="voucher-slide-nav">
+              <button 
+                type="button" 
+                class="slide-nav-btn" 
+                @click="prevVoucherSlide"
+                title="Slide trước"
+              >
+                <ChevronLeft />
+              </button>
+
+              <span class="slide-indicator">
+                <strong>{{ currentVoucherSlide + 1 }}</strong> / {{ totalVoucherSlides }}
+              </span>
+
+              <button 
+                type="button" 
+                class="slide-nav-btn" 
+                @click="nextVoucherSlide"
+                title="Slide sau"
+              >
+                <ChevronRight />
+              </button>
+            </div>
+
+            <!-- Nút Xem Tất Cả -->
+            <button 
+              type="button" 
+              class="btn-view-all-vouchers"
+              @click="toggleViewAllVouchers"
+            >
+              <span>{{ isViewAllVouchers ? 'Thu gọn (Xem slide)' : 'Xem tất cả' }}</span>
+              <component :is="isViewAllVouchers ? ChevronUp : Grid" class="view-all-icon" />
+            </button>
+          </div>
         </div>
 
         <div v-if="allVouchers.length === 0" style="text-align:center; padding: 40px 0; color: #94a3b8; font-size: 15px;">
           Hiện không có voucher nào phù hợp.
         </div>
 
-        <div class="vouchers-glass-grid scroll-reveal reveal-stagger">
-          <article v-for="v in allVouchers" :key="v.id" class="voucher-glass-card" :class="voucherTone(v)">
-            <div class="voucher-glow-accent"></div>
-            <div class="voucher-ticket-side" aria-hidden="true">
-              <span class="voucher-badge">{{ voucherCategoryLabel(v) }}</span>
-              <div class="voucher-ticket-icon">
-                <TicketPercent />
-              </div>
-              <span class="voucher-side-value">{{ voucherValueLabel(v) }}</span>
-            </div>
-
-            <div class="voucher-ticket-content">
-              <div class="voucher-code-row">
-                <span class="voucher-code-caption">Mã voucher</span>
-                <button
-                  type="button"
-                  class="voucher-copy-button"
-                  :class="{ copied: copiedVoucherCode === v.code }"
-                  :title="copiedVoucherCode === v.code ? 'Đã sao chép' : 'Sao chép mã'"
-                  @click.stop="copyVoucherCode(v)"
-                >
-                  <Check v-if="copiedVoucherCode === v.code" />
-                  <Copy v-else />
-                </button>
-              </div>
-
-              <h3 class="voucher-code">{{ v.code }}</h3>
-              <p class="voucher-name">{{ v.ten || v.name }}</p>
-
-              <div class="voucher-meta-grid">
-                <div class="voucher-meta-item">
-                  <Tag />
-                  <span>Giá trị ưu đãi<strong>{{ voucherValueLabel(v) }}</strong></span>
+        <transition name="voucher-fade-slide" mode="out-in">
+          <div :key="isViewAllVouchers ? 'grid' : currentVoucherSlide" class="vouchers-glass-grid scroll-reveal active">
+            <article v-for="v in currentSlideVouchers" :key="v.id" class="voucher-glass-card" :class="voucherTone(v)">
+              <div class="voucher-glow-accent"></div>
+              <div class="voucher-ticket-side" aria-hidden="true">
+                <span class="voucher-badge">{{ voucherCategoryLabel(v) }}</span>
+                <div class="voucher-ticket-icon">
+                  <TicketPercent />
                 </div>
-                <div class="voucher-meta-separator"></div>
-                <div class="voucher-meta-item">
-                  <Clock />
-                  <span>Hạn sử dụng<strong>{{ voucherEndDate(v) ? formatDate(voucherEndDate(v)) : 'Không giới hạn' }}</strong></span>
+                <span class="voucher-side-value">{{ voucherValueLabel(v) }}</span>
+              </div>
+
+              <div class="voucher-ticket-content">
+                <div class="voucher-code-row">
+                  <span class="voucher-code-caption">Mã voucher</span>
+                  <button
+                    type="button"
+                    class="voucher-copy-button"
+                    :class="{ copied: copiedVoucherCode === v.code }"
+                    :title="copiedVoucherCode === v.code ? 'Đã sao chép' : 'Sao chép mã'"
+                    @click.stop="copyVoucherCode(v)"
+                  >
+                    <Check v-if="copiedVoucherCode === v.code" />
+                    <Copy v-else />
+                  </button>
+                </div>
+
+                <h3 class="voucher-code">{{ v.code }}</h3>
+                <p class="voucher-name">{{ v.ten || v.name }}</p>
+
+                <div class="voucher-meta-grid">
+                  <div class="voucher-meta-item">
+                    <Tag />
+                    <span>Giá trị ưu đãi<strong>{{ voucherValueLabel(v) }}</strong></span>
+                  </div>
+                  <div class="voucher-meta-separator"></div>
+                  <div class="voucher-meta-item">
+                    <Clock />
+                    <span>Hạn sử dụng<strong>{{ voucherEndDate(v) ? formatDate(voucherEndDate(v)) : 'Không giới hạn' }}</strong></span>
+                  </div>
+                </div>
+
+                <p class="voucher-description">{{ v.mota || v.desc || 'Áp dụng theo điều kiện của chương trình.' }}</p>
+
+                <div class="voucher-footer">
+                  <button
+                    @click="claimVoucher(v)"
+                    class="btn-copy-code"
+                    :class="{ 'copied': claimedVoucherId === v.id, 'loading': claimingId === v.id }"
+                    :disabled="claimingId === v.id"
+                  >
+                    <template v-if="claimedVoucherId === v.id">
+                      <Check class="copy-icon" />
+                      Đã nhận voucher
+                    </template>
+                    <template v-else-if="claimingId === v.id">
+                      <span class="voucher-button-spinner"></span>
+                      Đang xử lý...
+                    </template>
+                    <template v-else>
+                      <Gift class="copy-icon" />
+                      Nhận Voucher
+                    </template>
+                  </button>
                 </div>
               </div>
-
-              <p class="voucher-description">{{ v.mota || v.desc || 'Áp dụng theo điều kiện của chương trình.' }}</p>
-
-              <div class="voucher-footer">
-                <button
-                  @click="claimVoucher(v)"
-                  class="btn-copy-code"
-                  :class="{ 'copied': claimedVoucherId === v.id, 'loading': claimingId === v.id }"
-                  :disabled="claimingId === v.id"
-                >
-                  <template v-if="claimedVoucherId === v.id">
-                    <Check class="copy-icon" />
-                    Đã nhận voucher
-                  </template>
-                  <template v-else-if="claimingId === v.id">
-                    <span class="voucher-button-spinner"></span>
-                    Đang xử lý...
-                  </template>
-                  <template v-else>
-                    <Gift class="copy-icon" />
-                    Nhận Voucher
-                  </template>
-                </button>
-              </div>
-            </div>
-          </article>
-        </div>
+            </article>
+          </div>
+        </transition>
       </div>
     </section>
 
@@ -2218,6 +2301,114 @@ const initScrollReveal = () => {
    ============================================================ */
 .voucher-center-section {
   background: var(--bg-dark);
+}
+
+.voucher-header-flex {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+.voucher-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.voucher-slide-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  padding: 4px 10px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+.slide-nav-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.slide-nav-btn:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+  transform: scale(1.08);
+}
+
+.slide-nav-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.slide-indicator {
+  font-size: 13px;
+  color: #94a3b8;
+  padding: 0 6px;
+  user-select: none;
+}
+
+.slide-indicator strong {
+  color: #60a5fa;
+}
+
+.btn-view-all-vouchers {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.25) 0%, rgba(59, 130, 246, 0.15) 100%);
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  color: #f8fafc;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.15);
+}
+
+.btn-view-all-vouchers:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
+  transform: translateY(-2px);
+}
+
+.view-all-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.voucher-fade-slide-enter-active,
+.voucher-fade-slide-leave-active {
+  transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.voucher-fade-slide-enter-from {
+  opacity: 0;
+  transform: translateY(16px) scale(0.98);
+}
+
+.voucher-fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-16px) scale(0.98);
 }
 
 .vouchers-glass-grid {
