@@ -617,9 +617,15 @@ const scrollToCatalog = () => {
   setTimeout(() => {
     const el = document.getElementById('catalog')
     if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      const headerOffset = 100
+      const elementPosition = el.getBoundingClientRect().top + window.pageYOffset
+      const offsetPosition = Math.max(0, elementPosition - headerOffset)
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      })
     }
-  }, 250)
+  }, 200)
 }
 
 watch(() => route.fullPath, () => {
@@ -890,6 +896,22 @@ onMounted(() => {
               <span class="skeleton-line skeleton-text"></span>
               <span class="skeleton-line skeleton-price"></span>
             </article>
+          </div>
+          <div v-else-if="filteredProducts.length === 0" class="catalog-empty-state">
+            <div class="empty-icon-wrapper">
+              <Search class="empty-icon-svg" />
+            </div>
+            <h3 class="empty-title">Không tìm thấy sản phẩm phù hợp</h3>
+            <p class="empty-desc" v-if="searchQuery">
+              Không có sản phẩm nào khớp với từ khóa <strong class="search-highlight">"{{ searchQuery }}"</strong>.
+            </p>
+            <p class="empty-desc" v-else>
+              Rất tiếc, không tìm thấy sản phẩm nào khớp với các bộ lọc bạn đã chọn.
+            </p>
+            <button type="button" class="btn-reset-filters" @click="clearFilters">
+              <SlidersHorizontal :size="16" />
+              Xóa bộ lọc &amp; Tìm lại
+            </button>
           </div>
           <div v-else class="product-grid">
             <article
@@ -4129,5 +4151,123 @@ onMounted(() => {
 
 .laptop-page {
   padding-bottom: 40px;
+}
+
+/* ============================================================
+   Catalog Empty State (When no search / filter results found)
+   ============================================================ */
+.catalog-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 24px;
+  margin: 16px 0 32px 0;
+  background: #ffffff;
+  border: 1px dashed #cbd5e1;
+  border-radius: 20px;
+  text-align: center;
+  box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.03);
+  animation: fadeIn 0.3s ease-out;
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+.empty-icon-wrapper {
+  width: 68px;
+  height: 68px;
+  background: #eff6ff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2563eb;
+  margin-bottom: 18px;
+  box-shadow: 0 0 0 8px rgba(239, 246, 255, 0.6);
+}
+
+.empty-icon-svg {
+  width: 30px;
+  height: 30px;
+}
+
+.catalog-empty-state .empty-title {
+  font-size: 18px !important;
+  font-weight: 750 !important;
+  color: #0f172a;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.01em;
+}
+
+.catalog-empty-state .empty-desc {
+  font-size: 14px !important;
+  color: #64748b;
+  margin: 0 0 22px 0;
+  max-width: 440px;
+  line-height: 1.6;
+}
+
+.search-highlight {
+  color: #2563eb;
+  font-weight: 700;
+}
+
+.btn-reset-filters {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 22px;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.22);
+}
+
+.btn-reset-filters:hover {
+  background: #1d4ed8;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.32);
+}
+
+.btn-reset-filters:active {
+  transform: translateY(0);
+}
+
+:global(.theme-dark) .catalog-empty-state,
+:global(.dark) .catalog-empty-state,
+:global(html[data-theme='dark']) .catalog-empty-state {
+  background: rgba(24, 24, 27, 0.8);
+  border-color: rgba(63, 63, 70, 0.6);
+}
+
+:global(.theme-dark) .empty-icon-wrapper,
+:global(.dark) .empty-icon-wrapper,
+:global(html[data-theme='dark']) .empty-icon-wrapper {
+  background: rgba(30, 58, 138, 0.3);
+  color: #60a5fa;
+  box-shadow: 0 0 0 8px rgba(30, 58, 138, 0.15);
+}
+
+:global(.theme-dark) .catalog-empty-state .empty-title,
+:global(.dark) .catalog-empty-state .empty-title,
+:global(html[data-theme='dark']) .catalog-empty-state .empty-title {
+  color: #f4f4f5;
+}
+
+:global(.theme-dark) .catalog-empty-state .empty-desc,
+:global(.dark) .catalog-empty-state .empty-desc,
+:global(html[data-theme='dark']) .catalog-empty-state .empty-desc {
+  color: #a1a1aa;
+}
+
+:global(.theme-dark) .search-highlight,
+:global(.dark) .search-highlight,
+:global(html[data-theme='dark']) .search-highlight {
+  color: #60a5fa;
 }
 </style>

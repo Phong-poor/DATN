@@ -434,16 +434,16 @@
    switch; the storefront and other application areas are untouched.
    ============================================================ */
 .admin-layout.theme-dark {
-  --admin-bg: #181a1b;
-  --admin-surface: #111315;
-  --admin-surface-soft: #1d2024;
-  --admin-border: #3b3f44;
-  --admin-border-strong: #52575e;
-  --admin-text: #f1f5f9;
-  --admin-text-soft: #d5dbe3;
-  --admin-muted: #9ca8b8;
-  --admin-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
-  --admin-shadow-raised: 0 16px 38px rgba(0, 0, 0, 0.30);
+  --admin-bg: #0f172a;
+  --admin-surface: #1e293b;
+  --admin-surface-soft: #1e293b;
+  --admin-border: #334155;
+  --admin-border-strong: #475569;
+  --admin-text: #f8fafc;
+  --admin-text-soft: #cbd5e1;
+  --admin-muted: #94a3b8;
+  --admin-shadow: 0 10px 28px rgba(0, 0, 0, 0.40);
+  --admin-shadow-raised: 0 16px 38px rgba(0, 0, 0, 0.55);
   color-scheme: dark;
   /* Khung layout có thể nhận focus vì chứa vùng cuộn. Trình duyệt vẽ
      focus ring màu cam quanh toàn bộ viewport ở chế độ tối. */
@@ -505,9 +505,6 @@
   box-shadow: var(--admin-shadow) !important;
 }
 
-.admin-layout.theme-dark .period-bar,
-.admin-layout.theme-dark .period-tabs,
-.admin-layout.theme-dark .dashboard-controls,
 .admin-layout.theme-dark .filter-row,
 .admin-layout.theme-dark .filters-bar,
 .admin-layout.theme-dark .toolbar,
@@ -549,7 +546,7 @@
 }
 
 .admin-layout.theme-dark th {
-  background: #202328 !important;
+  background: #1e293b !important;
 }
 
 .admin-layout.theme-dark tbody tr,
@@ -565,7 +562,7 @@
 .admin-layout.theme-dark tbody tr:hover td,
 .admin-layout.theme-dark .employee-table tbody tr:hover,
 .admin-layout.theme-dark .staff-row:hover {
-  background: #20252c !important;
+  background: #334155 !important;
 }
 
 .admin-layout.theme-dark .topbar-dropdown,
@@ -694,13 +691,23 @@
 
 .admin-layout.theme-dark .analysis-head > span,
 .admin-layout.theme-dark .analysis-card > p,
-.admin-layout.theme-dark .ops-copy > span,
-.admin-layout.theme-dark .ops-copy > small,
+.admin-layout.theme-dark .ops-card:not(:first-child) .ops-copy > span,
+.admin-layout.theme-dark .ops-card:not(:first-child) .ops-copy > small,
 .admin-layout.theme-dark .task-item small,
 .admin-layout.theme-dark .flow-grid span,
 .admin-layout.theme-dark .customer-live-strip span,
 .admin-layout.theme-dark .period-bar-label {
   color: #9ba7b7 !important;
+}
+
+.admin-layout.theme-dark .ops-card:first-child .ops-copy > span,
+.admin-layout.theme-dark .ops-card:first-child .ops-copy > small,
+.admin-layout.dark .ops-card:first-child .ops-copy > span,
+.admin-layout.dark .ops-card:first-child .ops-copy > small,
+html[data-admin-theme='dark'] .ops-card:first-child .ops-copy > span,
+html[data-admin-theme='dark'] .ops-card:first-child .ops-copy > small {
+  color: #ffffff !important;
+  opacity: 1 !important;
 }
 
 .admin-layout.theme-dark .ops-copy > b,
@@ -1804,3 +1811,467 @@ html[data-admin-theme='dark'] .calendar-day-detail {
   background: #1d2024 !important;
   color: #f1f5f9 !important;
 }
+
+/* Global Pagination Dark Mode Overrides */
+html[data-admin-theme='dark'] .page-indicator,
+.admin-layout.theme-dark .page-indicator,
+.admin-layout.dark .page-indicator {
+  background: transparent !important;
+  border-color: transparent !important;
+  color: #cbd5e1 !important;
+}
+
+html[data-admin-theme='dark'] .page-text,
+.admin-layout.theme-dark .page-text,
+.admin-layout.dark .page-text {
+  color: #94a3b8 !important;
+}
+
+html[data-admin-theme='dark'] .current-page-num,
+.admin-layout.theme-dark .current-page-num,
+.admin-layout.dark .current-page-num {
+  color: #60a5fa !important;
+  background: rgba(37, 99, 235, 0.25) !important;
+  border: 1px solid rgba(96, 165, 250, 0.35) !important;
+  padding: 2px 8px !important;
+  border-radius: 6px !important;
+  font-weight: 800 !important;
+}
+
+html[data-admin-theme='dark'] .page-slash,
+.admin-layout.theme-dark .page-slash,
+.admin-layout.dark .page-slash {
+  color: #64748b !important;
+}
+
+html[data-admin-theme='dark'] .total-page-num,
+.admin-layout.theme-dark .total-page-num,
+.admin-layout.dark .total-page-num {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+/* Global Admin Name & Capsule Dark Mode Overrides */
+html[data-admin-theme='dark'] .admin-name,
+.admin-layout.theme-dark .admin-name,
+.admin-layout.dark .admin-name,
+html[data-admin-theme='dark'] .log-user-name,
+.admin-layout.theme-dark .log-user-name,
+.admin-layout.dark .log-user-name {
+  color: #f8fafc !important;
+  font-weight: 700 !important;
+}
+
+html[data-admin-theme='dark'] .admin-email,
+.admin-layout.theme-dark .admin-email,
+.admin-layout.dark .admin-email,
+html[data-admin-theme='dark'] .log-user-email,
+.admin-layout.theme-dark .log-user-email,
+.admin-layout.dark .log-user-email {
+  color: #94a3b8 !important;
+}
+
+html[data-admin-theme='dark'] .admin-profile-capsule,
+.admin-layout.theme-dark .admin-profile-capsule,
+.admin-layout.dark .admin-profile-capsule {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+}
+
+html[data-admin-theme='dark'] .admin-profile-capsule.online,
+.admin-layout.theme-dark .admin-profile-capsule.online,
+.admin-layout.dark .admin-profile-capsule.online {
+  background: rgba(30, 41, 59, 0.8) !important;
+  border-color: rgba(59, 130, 246, 0.4) !important;
+}
+
+/* Period Bar Transparent Background Overrides */
+.period-bar,
+.dashboard-controls,
+html[data-admin-theme='dark'] .period-bar,
+.admin-layout.theme-dark .period-bar,
+.admin-layout.dark .period-bar,
+html[data-admin-theme='dark'] .dashboard-controls,
+.admin-layout.theme-dark .dashboard-controls,
+.admin-layout.dark .dashboard-controls {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+html[data-admin-theme='dark'] .period-bar-label,
+.admin-layout.theme-dark .period-bar-label,
+.admin-layout.dark .period-bar-label {
+  color: #cbd5e1 !important;
+}
+
+html[data-admin-theme='dark'] .period-tabs,
+.admin-layout.theme-dark .period-tabs,
+.admin-layout.dark .period-tabs {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+html[data-admin-theme='dark'] .period-tab,
+.admin-layout.theme-dark .period-tab,
+.admin-layout.dark .period-tab {
+  color: #94a3b8 !important;
+  background: transparent !important;
+}
+
+html[data-admin-theme='dark'] .period-tab.active,
+.admin-layout.theme-dark .period-tab.active,
+.admin-layout.dark .period-tab.active {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3) !important;
+}
+
+/* ============================================================
+   GLOBAL INPUT & SEARCH INPUT DARK MODE OVERRIDES
+   ============================================================ */
+
+/* 1. Reset inner input tags inside search wrappers to avoid inner dark box artifact */
+.admin-layout .employee-search input,
+.admin-layout .search-box input,
+.admin-layout .search-bar input,
+.admin-layout .search-wrapper input,
+.admin-layout .search-input-wrap input,
+.admin-layout [role="search"] input {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  color: inherit !important;
+}
+
+/* 2. Global Input & Select Dark Mode Styling */
+html[data-admin-theme='dark'] input:not([type="checkbox"]):not([type="radio"]),
+html[data-admin-theme='dark'] select,
+html[data-admin-theme='dark'] textarea,
+html[data-admin-theme='dark'] .input-field,
+html[data-admin-theme='dark'] .select-field,
+html[data-admin-theme='dark'] .form-control,
+.admin-layout.theme-dark input:not([type="checkbox"]):not([type="radio"]),
+.admin-layout.theme-dark select,
+.admin-layout.theme-dark textarea,
+.admin-layout.theme-dark .input-field,
+.admin-layout.theme-dark .select-field,
+.admin-layout.theme-dark .form-control,
+.admin-layout.dark input:not([type="checkbox"]):not([type="radio"]),
+.admin-layout.dark select,
+.admin-layout.dark textarea,
+.admin-layout.dark .input-field,
+.admin-layout.dark .select-field,
+.admin-layout.dark .form-control {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+html[data-admin-theme='dark'] input::placeholder,
+html[data-admin-theme='dark'] textarea::placeholder,
+.admin-layout.theme-dark input::placeholder,
+.admin-layout.theme-dark textarea::placeholder,
+.admin-layout.dark input::placeholder,
+.admin-layout.dark textarea::placeholder {
+  color: #94a3b8 !important;
+  opacity: 0.85;
+}
+
+html[data-admin-theme='dark'] input:focus,
+html[data-admin-theme='dark'] select:focus,
+html[data-admin-theme='dark'] textarea:focus,
+.admin-layout.theme-dark input:focus,
+.admin-layout.theme-dark select:focus,
+.admin-layout.theme-dark textarea:focus,
+.admin-layout.dark input:focus,
+.admin-layout.dark select:focus,
+.admin-layout.dark textarea:focus {
+  background: #0f172a !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
+  color: #ffffff !important;
+}
+
+/* 3. Search Bar Wrapper Dark Mode Override */
+html[data-admin-theme='dark'] .employee-search,
+html[data-admin-theme='dark'] .search-box,
+html[data-admin-theme='dark'] .search-bar,
+html[data-admin-theme='dark'] .search-wrapper,
+html[data-admin-theme='dark'] [role="search"],
+.admin-layout.theme-dark .employee-search,
+.admin-layout.theme-dark .search-box,
+.admin-layout.theme-dark .search-bar,
+.admin-layout.theme-dark .search-wrapper,
+.admin-layout.theme-dark [role="search"],
+.admin-layout.dark .employee-search,
+.admin-layout.dark .search-box,
+.admin-layout.dark .search-bar,
+.admin-layout.dark .search-wrapper,
+.admin-layout.dark [role="search"] {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+}
+
+html[data-admin-theme='dark'] .employee-search-icon,
+.admin-layout.theme-dark .employee-search-icon,
+.admin-layout.dark .employee-search-icon {
+  color: #94a3b8 !important;
+}
+
+html[data-admin-theme='dark'] .employee-search-clear,
+.admin-layout.theme-dark .employee-search-clear,
+.admin-layout.dark .employee-search-clear {
+  background: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+/* 4. Webkit Autocomplete Dark Mode Background Patch */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: inherit !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* 5. Complete Admin Support Chat Dark Mode Overrides */
+html[data-admin-theme='dark'] .chat-layout-card,
+.admin-layout.theme-dark .chat-layout-card,
+.admin-layout.dark .chat-layout-card {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+html[data-admin-theme='dark'] .chat-sidebar-pane,
+.admin-layout.theme-dark .chat-sidebar-pane,
+.admin-layout.dark .chat-sidebar-pane {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+}
+
+html[data-admin-theme='dark'] .pane-header,
+.admin-layout.theme-dark .pane-header,
+.admin-layout.dark .pane-header {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+}
+
+html[data-admin-theme='dark'] .pane-header h2,
+.admin-layout.theme-dark .pane-header h2,
+.admin-layout.dark .pane-header h2 {
+  color: #f8fafc !important;
+}
+
+html[data-admin-theme='dark'] .search-input-wrap,
+.admin-layout.theme-dark .search-input-wrap,
+.admin-layout.dark .search-input-wrap {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+html[data-admin-theme='dark'] .search-input-wrap input,
+.admin-layout.theme-dark .search-input-wrap input,
+.admin-layout.dark .search-input-wrap input {
+  color: #f8fafc !important;
+}
+
+html[data-admin-theme='dark'] .search-input-wrap input::placeholder,
+.admin-layout.theme-dark .search-input-wrap input::placeholder,
+.admin-layout.dark .search-input-wrap input::placeholder {
+  color: #94a3b8 !important;
+}
+
+html[data-admin-theme='dark'] .conv-item,
+.admin-layout.theme-dark .conv-item,
+.admin-layout.dark .conv-item {
+  border-color: #1e293b !important;
+  background: transparent !important;
+}
+
+html[data-admin-theme='dark'] .conv-item:hover,
+.admin-layout.theme-dark .conv-item:hover,
+.admin-layout.dark .conv-item:hover {
+  background: #1e293b !important;
+}
+
+html[data-admin-theme='dark'] .conv-item.active,
+.admin-layout.theme-dark .conv-item.active,
+.admin-layout.dark .conv-item.active {
+  background: rgba(37, 99, 235, 0.3) !important;
+  border-left: 3px solid #3b82f6 !important;
+}
+
+html[data-admin-theme='dark'] .conv-name-row .user-name,
+.admin-layout.theme-dark .conv-name-row .user-name,
+.admin-layout.dark .conv-name-row .user-name {
+  color: #f8fafc !important;
+  font-weight: 700 !important;
+}
+
+html[data-admin-theme='dark'] .conv-name-row .time-badge,
+.admin-layout.theme-dark .conv-name-row .time-badge,
+.admin-layout.dark .conv-name-row .time-badge {
+  color: #94a3b8 !important;
+}
+
+html[data-admin-theme='dark'] .last-msg-text,
+.admin-layout.theme-dark .last-msg-text,
+.admin-layout.dark .last-msg-text {
+  color: #94a3b8 !important;
+}
+
+html[data-admin-theme='dark'] .last-msg-text.unread,
+.admin-layout.theme-dark .last-msg-text.unread,
+.admin-layout.dark .last-msg-text.unread {
+  color: #60a5fa !important;
+  font-weight: 700 !important;
+}
+
+html[data-admin-theme='dark'] .chat-main-pane,
+.admin-layout.theme-dark .chat-main-pane,
+.admin-layout.dark .chat-main-pane {
+  background: #0f172a !important;
+}
+
+html[data-admin-theme='dark'] .chat-pane-header,
+.admin-layout.theme-dark .chat-pane-header,
+.admin-layout.dark .chat-pane-header {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+html[data-admin-theme='dark'] .active-user-info h3,
+.admin-layout.theme-dark .active-user-info h3,
+.admin-layout.dark .active-user-info h3 {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+html[data-admin-theme='dark'] .status-desc,
+.admin-layout.theme-dark .status-desc,
+.admin-layout.dark .status-desc {
+  color: #94a3b8 !important;
+}
+
+html[data-admin-theme='dark'] .header-btn,
+.admin-layout.theme-dark .header-btn,
+.admin-layout.dark .header-btn {
+  color: #cbd5e1 !important;
+}
+
+html[data-admin-theme='dark'] .header-btn:hover,
+.admin-layout.theme-dark .header-btn:hover,
+.admin-layout.dark .header-btn:hover {
+  background: #334155 !important;
+  color: #ffffff !important;
+}
+
+html[data-admin-theme='dark'] .header-btn.active,
+.admin-layout.theme-dark .header-btn.active,
+.admin-layout.dark .header-btn.active {
+  background: rgba(37, 99, 235, 0.3) !important;
+  color: #60a5fa !important;
+}
+
+html[data-admin-theme='dark'] .chat-search-bar,
+.admin-layout.theme-dark .chat-search-bar,
+.admin-layout.dark .chat-search-bar,
+.theme-dark .chat-search-bar,
+.dark .chat-search-bar,
+html[data-admin-theme='dark'] .chat-composer-footer,
+.admin-layout.theme-dark .chat-composer-footer,
+.admin-layout.dark .chat-composer-footer,
+.theme-dark .chat-composer-footer,
+.dark .chat-composer-footer {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+html[data-admin-theme='dark'] .search-input-wrap,
+.admin-layout.theme-dark .search-input-wrap,
+.admin-layout.dark .search-input-wrap,
+html[data-admin-theme='dark'] .search-input-inner,
+.admin-layout.theme-dark .search-input-inner,
+.admin-layout.dark .search-input-inner,
+html[data-admin-theme='dark'] .composer-input-wrap,
+.admin-layout.theme-dark .composer-input-wrap,
+.admin-layout.dark .composer-input-wrap {
+  background: #0f172a !important;
+  border: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+html[data-admin-theme='dark'] .search-input-inner input,
+.admin-layout.theme-dark .search-input-inner input,
+.admin-layout.dark .search-input-inner input,
+html[data-admin-theme='dark'] .search-input-wrap input,
+.admin-layout.theme-dark .search-input-wrap input,
+.admin-layout.dark .search-input-wrap input {
+  color: #f8fafc !important;
+  border: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+html[data-admin-theme='dark'] .composer-input-wrap input,
+.admin-layout.theme-dark .composer-input-wrap input,
+.admin-layout.dark .composer-input-wrap input {
+  color: #ffffff !important;
+}
+
+html[data-admin-theme='dark'] .composer-input-wrap input::placeholder,
+.admin-layout.theme-dark .composer-input-wrap input::placeholder,
+.admin-layout.dark .composer-input-wrap input::placeholder {
+  color: #94a3b8 !important;
+}
+
+html[data-admin-theme='dark'] .composer-icon-btn,
+.admin-layout.theme-dark .composer-icon-btn,
+.admin-layout.dark .composer-icon-btn {
+  color: #60a5fa !important;
+}
+
+html[data-admin-theme='dark'] .composer-icon-btn:hover,
+.admin-layout.theme-dark .composer-icon-btn:hover,
+.admin-layout.dark .composer-icon-btn:hover {
+  background: #334155 !important;
+}
+
+html[data-admin-theme='dark'] .emoji-picker-popover,
+.admin-layout.theme-dark .emoji-picker-popover,
+.admin-layout.dark .emoji-picker-popover {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #ffffff !important;
+}
+
+html[data-admin-theme='dark'] .emoji-item:hover,
+.admin-layout.theme-dark .emoji-item:hover,
+.admin-layout.dark .emoji-item:hover {
+  background: #334155 !important;
+}
+
+html[data-admin-theme='dark'] .empty-chat-pane,
+.admin-layout.theme-dark .empty-chat-pane,
+.admin-layout.dark .empty-chat-pane {
+  background: #0f172a !important;
+}
+
+html[data-admin-theme='dark'] .empty-pane-content h2,
+.admin-layout.theme-dark .empty-pane-content h2,
+.admin-layout.dark .empty-pane-content h2 {
+  color: #ffffff !important;
+}
+
+html[data-admin-theme='dark'] .empty-pane-content p,
+.admin-layout.theme-dark .empty-pane-content p,
+.admin-layout.dark .empty-pane-content p {
+  color: #94a3b8 !important;
+}
+

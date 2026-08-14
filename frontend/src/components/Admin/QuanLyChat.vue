@@ -753,7 +753,7 @@ onUnmounted(() => {
 .search-input-wrap input {
   width: 100%;
   padding: 8px 12px 8px 36px;
-  border: 1px solid #cbd5e1;
+  border: none !important;
   border-radius: 20px;
   font-size: 13px;
   outline: none;
@@ -762,7 +762,7 @@ onUnmounted(() => {
 }
 
 .search-input-wrap input:focus {
-  border-color: #3b82f6;
+  border-color: transparent !important;
   background: #ffffff;
 }
 
@@ -1148,5 +1148,48 @@ onUnmounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+:global(html[data-admin-theme='dark']) .chat-pane-header,
+:global(.admin-layout.theme-dark) .chat-pane-header,
+:global(.admin-layout.dark) .chat-pane-header,
+:global(.theme-dark) .chat-pane-header,
+:global(.dark) .chat-pane-header {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+:global(html[data-admin-theme='dark']) .active-user-info h3,
+:global(.admin-layout.theme-dark) .active-user-info h3,
+:global(.admin-layout.dark) .active-user-info h3,
+:global(.theme-dark) .active-user-info h3,
+:global(.dark) .active-user-info h3 {
+  color: #ffffff !important;
+}
+
+:global(html[data-admin-theme='dark']) .chat-composer-footer,
+:global(.admin-layout.theme-dark) .chat-composer-footer,
+:global(.admin-layout.dark) .chat-composer-footer,
+:global(.theme-dark) .chat-composer-footer,
+:global(.dark) .chat-composer-footer {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+:global(html[data-admin-theme='dark']) .conv-item.active,
+:global(.admin-layout.theme-dark) .conv-item.active,
+:global(.admin-layout.dark) .conv-item.active,
+:global(.theme-dark) .conv-item.active,
+:global(.dark) .conv-item.active {
+  background: rgba(37, 99, 235, 0.3) !important;
+  border-left: 3px solid #3b82f6 !important;
+}
+
+:global(html[data-admin-theme='dark']) .conv-name-row .user-name,
+:global(.admin-layout.theme-dark) .conv-name-row .user-name,
+:global(.admin-layout.dark) .conv-name-row .user-name,
+:global(.theme-dark) .conv-name-row .user-name,
+:global(.dark) .conv-name-row .user-name {
+  color: #f8fafc !important;
 }
 </style>
