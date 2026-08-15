@@ -449,6 +449,8 @@ td { padding: 16px 20px; vertical-align: middle; }
 .action-delete:hover { background: #fef2f2; border-color: #fca5a5; }
 .action-delete:hover svg { stroke: #ef4444; }
 .empty-row { text-align: center; color: #94a3b8; font-size: 13px; padding: 30px; }
+@media (max-width: 820px) { .page { padding: 16px; } .hero-actions, .hero-actions .search-box { width: 100%; } .btn-primary { flex: 1; justify-content: center; } .table-card { overflow-x: auto; } table { min-width: 680px; } }
+@media (max-width: 520px) { .category-tabs { overflow-x: auto; } .cat-tab { white-space: nowrap; } }
 
 /* MODAL CSS */
 .overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(4px); z-index: 1050; display: flex; align-items: center; justify-content: center; padding: 20px; }

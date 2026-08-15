@@ -8,3 +8,12 @@ env-share-leader-*/
 env-share-leader-*.zip
 backend/environment.zip
 node-v*-win-x64.zip
+_submission_stage/
+_submission_verify/
+BAN_GIAO_DO_AN/
+DATN_NextGen_Submission.zip
+DATN_NextGen_Submission.zip.sha256
+
+# Tài liệu và dữ liệu demo chỉ dùng cục bộ, không đưa lên repository.
+DU_LIEU_*_DEMO.txt
+backend/database/*_demo.sql

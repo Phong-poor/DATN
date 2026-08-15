@@ -13,6 +13,7 @@ use App\Models\DatHangChiTiet;
 use App\Models\DiaChi;
 use App\Models\GioHang;
 use App\Models\Promotion;
+use App\Models\User;
 use App\Models\UserVoucher;
 use App\Models\XuHistory;
 use App\Services\DemoShipmentService;
@@ -30,6 +31,41 @@ use Illuminate\Support\Facades\Schema;
  */
 class DatHangController extends Controller
 {
+    /** Lock every customer account sharing the same phone after repeated confirmed order bombing. */
+    private function enforceBombRiskPolicy(?User $customer): bool
+    {
+        if (! $customer || $customer->vaitro !== 'user') return false;
+
+        $phone = preg_replace('/\D+/', '', (string) $customer->sodienthoai);
+        $accountIds = User::query()->where('vaitro', 'user')->get(['id', 'sodienthoai'])
+            ->filter(fn ($user) => $phone !== '' && preg_replace('/\D+/', '', (string) $user->sodienthoai) === $phone)
+            ->pluck('id');
+        if ($accountIds->isEmpty()) $accountIds = collect([$customer->id]);
+
+        $orders = DatHang::whereIn('id_khachhang', $accountIds)->get(['id_dathang', 'du_lieu_thanh_toan']);
+        $deliveryOrders = 0;
+        $confirmedBombs = 0;
+        foreach ($orders as $order) {
+            $shipment = ($order->du_lieu_thanh_toan ?? [])['shipping_demo'] ?? [];
+            if (empty($shipment['tracking_code'])) continue;
+            $deliveryOrders++;
+            $reason = mb_strtolower((string) ($shipment['return_reason'] ?? $shipment['last_failure_reason'] ?? ''), 'UTF-8');
+            $refused = str_contains($reason, 'từ chối');
+            $failedThreeTimes = (int) ($shipment['delivery_attempts'] ?? 0) >= 3 && ! empty($shipment['returned_at']);
+            if ($refused || $failedThreeTimes) $confirmedBombs++;
+        }
+
+        $rate = $deliveryOrders > 0 ? ($confirmedBombs / $deliveryOrders) * 100 : 0;
+        if ($confirmedBombs < 3 || $rate < 50) return false;
+
+        User::whereIn('id', $accountIds)->where('vaitro', 'user')->update(['trangthai' => 'locked']);
+        Log::warning('Automatically locked accounts for repeated confirmed order bombing.', [
+            'account_ids' => $accountIds->values()->all(), 'phone' => $phone,
+            'confirmed_bombs' => $confirmedBombs, 'delivery_orders' => $deliveryOrders,
+        ]);
+        return true;
+    }
+
     private function safeBroadcastOrderStatus(DatHang $order): void
     {
         try {
@@ -389,10 +425,18 @@ class DatHangController extends Controller
         try {
             DB::beginTransaction();
 
+            $cancelPaymentData = $this->paymentDataWithStatusTime($order, 'cancelled');
+            $cancelPaymentData['cancellation'] = [
+                'source' => 'customer',
+                'stage' => $order->trangthai,
+                'reason' => $request->lydo ?? 'Người dùng hủy đơn',
+                'cancelled_at' => now()->toDateTimeString(),
+            ];
+
             $order->update([
                 'trangthai' => 'cancelled',
                 'lydo' => $request->lydo ?? 'Người dùng hủy đơn',
-                'du_lieu_thanh_toan' => $this->paymentDataWithStatusTime($order, 'cancelled'),
+                'du_lieu_thanh_toan' => $cancelPaymentData,
             ]);
 
             foreach ($order->chi_tiets as $chiTiet) {
@@ -1636,6 +1680,15 @@ class DatHangController extends Controller
                 'trangthai' => $newStatus,
                 'du_lieu_thanh_toan' => $this->paymentDataWithStatusTime($order, $newStatus),
             ];
+            if ($newStatus === 'cancelled') {
+                $updateData['du_lieu_thanh_toan']['cancellation'] = [
+                    'source' => 'admin',
+                    'stage' => $oldStatus,
+                    'reason' => $request->lydo ?? 'Quản trị viên hủy đơn',
+                    'cancelled_at' => now()->toDateTimeString(),
+                    'cancelled_by' => Auth::id(),
+                ];
+            }
             if ($newStatus === 'cancelled' && $request->has('lydo')) {
                 $updateData['lydo'] = $request->lydo;
             }
@@ -1737,6 +1790,9 @@ class DatHangController extends Controller
             $order = $this->saveShipment($order, $shipment, 'confirmed');
 
             DB::commit();
+            foreach (['all', 'week', 'month', 'year'] as $dashboardPeriod) {
+                Cache::forget("dashboard_data_v9_{$dashboardPeriod}");
+            }
             $this->safeBroadcastOrderStatus($order);
 
             return response()->json([
@@ -1876,7 +1932,15 @@ class DatHangController extends Controller
 
             $order = $this->saveShipment($order, $shipment, 'shipping', $extraUpdates);
 
+            $accountLocked = $this->enforceBombRiskPolicy($order->user);
+            if ($accountLocked) {
+                $message .= ' Tài khoản đã bị khóa do vi phạm chính sách bom hàng nhiều lần.';
+            }
+
             DB::commit();
+            foreach (['all', 'week', 'month', 'year'] as $dashboardPeriod) {
+                Cache::forget("dashboard_data_v9_{$dashboardPeriod}");
+            }
             $this->safeBroadcastOrderStatus($order);
 
             return response()->json([

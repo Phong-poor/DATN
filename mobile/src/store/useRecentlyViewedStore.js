@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+const { create } = require('zustand');
+const { persist, createJSONStorage } = require('zustand/middleware');
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const useRecentlyViewedStore = create(

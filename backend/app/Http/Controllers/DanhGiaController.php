@@ -269,7 +269,7 @@ class DanhGiaController extends Controller
 
         $profanityWords = [
             'dm', 'dmm', 'dcm', 'dkm', 'clgt', 'vcl', 'vl', 'cc', 'buoi',
-            'dit', 'deo', 'loz', 'cuc', 'cut', 'ngu', 'oc cho', 'occho',
+            'dit', 'deo', 'loz', 'cut', 'ngu', 'oc cho', 'occho',
             'mat day', 'ham', 'khon nan', 'cho chet', 'me may', 'cha may',
             'lon', 'nhu lon', 'nhu l', 'nhu c', 'nhu cut', 'nhu cac', 'cl', 'kac',
             'shop nhu', 'shopnhu', 'cai lon', 'mat lon', 'con lon', 'nhu rác', 'nhu rac'
@@ -324,7 +324,7 @@ class DanhGiaController extends Controller
         }
 
         // Chỉ khi SẠCH TỪ XẤU và ĐÁNH GIÁ TỐT mới duyệt và sinh phản hồi cảm ơn
-        $isPositive = ($rating >= 4 || $positiveHits > 0);
+        $isPositive = $rating >= 4;
 
         if ($isPositive) {
             $reply = null;
@@ -333,7 +333,11 @@ class DanhGiaController extends Controller
                 $aiActive = filter_var(Storage::get('admin/ai_status.json'), FILTER_VALIDATE_BOOLEAN);
             }
 
-            if ($aiActive && $hasText) {
+            if (! $aiActive) {
+                return ['trangthai' => 'pending', 'reply' => null];
+            }
+
+            if ($hasText) {
                 $thankReplies = [
                     'Cảm ơn bạn rất nhiều vì đánh giá tích cực! Chúc bạn có những trải nghiệm tuyệt vời cùng sản phẩm.',
                     'Cảm ơn Quý khách đã tin tưởng và ủng hộ sản phẩm. Sự hài lòng của bạn là động lực để chúng tôi tiếp tục cải thiện dịch vụ.',
@@ -381,6 +385,7 @@ class DanhGiaController extends Controller
     private function normalizeModerationText(string $text): string
     {
         $text = mb_strtolower($text, 'UTF-8');
+        $text = \Illuminate\Support\Str::ascii($text);
         $text = strtr($text, [
             'à' => 'a', 'á' => 'a', 'ạ' => 'a', 'ả' => 'a', 'ã' => 'a', 'â' => 'a', 'ầ' => 'a', 'ấ' => 'a', 'ậ' => 'a', 'ẩ' => 'a', 'ẫ' => 'a', 'ă' => 'a', 'ằ' => 'a', 'ắ' => 'a', 'ặ' => 'a', 'ẳ' => 'a', 'ẵ' => 'a',
             'è' => 'e', 'é' => 'e', 'ẹ' => 'e', 'ẻ' => 'e', 'ẽ' => 'e', 'ê' => 'e', 'ề' => 'e', 'ế' => 'e', 'ệ' => 'e', 'ể' => 'e', 'ễ' => 'e',

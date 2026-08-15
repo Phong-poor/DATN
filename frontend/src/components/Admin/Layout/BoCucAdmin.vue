@@ -1,15 +1,19 @@
 <template>
-  <div :class="[
-    'admin-layout',
-    `density-${appearance.density}`,
-    `width-${appearance.content_width}`,
-    `sidebar-${appearance.sidebar_style}`,
-    `anim-${appearance.animation_level}`,
-    `theme-${adminTheme}`,
-    adminTheme === 'dark' && 'dark',
-    sidebarCollapsed && 'sidebar-collapsed',
-    adminIntroActive && 'intro-active',
-  ]" :style="adminVars">
+  <div
+    :class="[
+      'admin-layout',
+      `density-${appearance.density}`,
+      `width-${appearance.content_width}`,
+      `sidebar-${appearance.sidebar_style}`,
+      `anim-${appearance.animation_level}`,
+      `theme-${adminTheme}`,
+      adminTheme === 'dark' && 'dark',
+      sidebarCollapsed && 'sidebar-collapsed',
+      adminIntroActive && 'intro-active',
+      adminHeaderHidden && 'admin-header-hidden',
+    ]"
+    :style="adminVars"
+  >
     <aside class="sidebar">
       <button type="button" class="sidebar-collapse-btn"
         :aria-label="sidebarCollapsed ? 'Mở rộng thanh quản trị' : 'Thu gọn thanh quản trị'"
@@ -79,8 +83,8 @@
       </div>
     </aside>
 
-    <main ref="adminMainRef" class="main">
-      <section class="admin-topbar">
+    <main ref="adminMainRef" class="main" @scroll.passive="handleAdminScroll">
+      <section class="admin-topbar" :class="{ 'header-hidden': adminHeaderHidden }">
         <div class="admin-topbar-title">
           <h2>{{ pageTitle }}</h2>
           <p>Quản lý nội dung và điều hành hệ thống</p>
@@ -244,12 +248,29 @@ const route = useRoute()
 const refreshCounter = ref(0)
 const routeKey = computed(() => route.fullPath + '-' + refreshCounter.value)
 const adminMainRef = ref(null)
+const adminHeaderHidden = ref(false)
+let lastAdminScrollTop = 0
+
+function handleAdminScroll(event) {
+  const currentScrollTop = Math.max(0, event.currentTarget?.scrollTop || 0)
+
+  if (currentScrollTop <= 12) {
+    adminHeaderHidden.value = false
+  } else if (Math.abs(currentScrollTop - lastAdminScrollTop) >= 6) {
+    // Nội dung đi lên: ẩn header. Nội dung kéo xuống: hiện header.
+    adminHeaderHidden.value = currentScrollTop > lastAdminScrollTop
+  }
+
+  lastAdminScrollTop = currentScrollTop
+}
 
 watch(
   () => route.path,
   async () => {
     await nextTick()
     adminMainRef.value?.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+    adminHeaderHidden.value = false
+    lastAdminScrollTop = 0
   }
 )
 
@@ -1406,22 +1427,36 @@ a {
 .admin-page-shell :deep(.filter-row) {
   border-color: var(--admin-panel-border);
 }
-
-.admin-topbar {
-  position: sticky;
-  top: 0;
-  z-index: 8;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 14px;
-  margin: 0 -24px;
-  padding: 10px 24px;
-  width: calc(100% + 48px);
-  background: #0b0d12;
-  border-bottom: 1px solid rgba(125, 211, 252, 0.14);
-  border-radius: 0;
-  box-shadow: 0 12px 30px rgba(8, 43, 80, 0.18);
+.admin-topbar { 
+    position: sticky; 
+    top: 0; 
+    z-index: 8; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    gap: 14px; 
+    margin: 0 -24px;
+    padding: 10px 24px;
+    width: calc(100% + 48px);
+    background: #0b0d12; 
+    border-bottom: 1px solid rgba(125, 211, 252, 0.14); 
+    border-radius: 0;
+    box-shadow: 0 12px 30px rgba(8, 43, 80, 0.18);
+    transform: translateY(0);
+    transition: transform 0.28s cubic-bezier(.4, 0, .2, 1), opacity 0.2s ease, box-shadow 0.28s ease, visibility 0s;
+    will-change: transform;
+}
+.admin-topbar.header-hidden {
+    transform: translateY(calc(-100% - 12px));
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    border-color: transparent;
+    box-shadow: none;
+    transition: transform 0.28s cubic-bezier(.4, 0, .2, 1), opacity 0.18s ease, box-shadow 0.28s ease, visibility 0s linear 0.28s;
+}
+@media (prefers-reduced-motion: reduce) {
+    .admin-topbar { transition: none; }
 }
 
 .attendance-topbar-center {
@@ -2563,6 +2598,208 @@ a {
   background: #282e37 !important;
   color: #8fb6ff !important;
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22) !important;
+}
+
+/* Keep the dashboard toolbar and its light-only controls consistent in dark mode. */
+.admin-layout.theme-dark .main :deep(.dashboard-controls),
+.admin-layout.theme-dark .main :deep(.dashboard-controls::before),
+.admin-layout.theme-dark .main :deep(.dashboard-controls::after) {
+  background: #171a1f !important;
+}
+
+.admin-layout.theme-dark .main :deep(.dashboard-controls) {
+  border-bottom-color: #3c434d !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28) !important;
+}
+
+.admin-layout.theme-dark .main :deep(.period-bar-label) {
+  color: #aeb8c6 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.period-tabs) {
+  background: #252a31 !important;
+  border: 1px solid #3c434d !important;
+}
+
+.admin-layout.theme-dark .main :deep(.period-tab) {
+  color: #aeb8c6 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.period-tab:hover:not(.active)) {
+  background: #30363f !important;
+  color: #f1f5f9 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.period-tab.active) {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3) !important;
+}
+
+.admin-layout.theme-dark .main :deep(.daily-revenue-trigger) {
+  border-color: #3f69a8 !important;
+  background: #1b2736 !important;
+  color: #8fb6ff !important;
+}
+
+.admin-layout.theme-dark .main :deep(.daily-revenue-trigger:hover) {
+  border-color: #60a5fa !important;
+  background: #233754 !important;
+  color: #bfdbfe !important;
+}
+
+/* Customer age analytics: remove light controls and legend tiles in dark mode. */
+.admin-layout.theme-dark .main :deep(.insight-highlight) {
+  border: 1px solid #355d96 !important;
+  background: #1b2d49 !important;
+  color: #93c5fd !important;
+}
+
+.admin-layout.theme-dark .main :deep(.metric-switch) {
+  border: 1px solid #3c4654 !important;
+  background: #20252c !important;
+}
+
+.admin-layout.theme-dark .main :deep(.metric-switch button) {
+  color: #aeb8c6 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.metric-switch button:hover) {
+  background: #2b323c !important;
+  color: #e5eaf1 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.metric-switch button.active),
+.admin-layout.theme-dark .main :deep(.metric-switch .chart-tab-btn.active) {
+  background: #1f4f99 !important;
+  color: #dbeafe !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.24) !important;
+}
+
+.admin-layout.theme-dark .main :deep(.age-inline-legend > div),
+.admin-layout.theme-dark .main :deep(.age-legend-row) {
+  border-color: #3b4552 !important;
+  background: #181c22 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.age-inline-legend span),
+.admin-layout.theme-dark .main :deep(.age-legend-row b) {
+  color: #d7dee8 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.age-inline-legend b),
+.admin-layout.theme-dark .main :deep(.age-legend-row > strong) {
+  color: #f8fafc !important;
+}
+
+.admin-layout.theme-dark .main :deep(.age-legend-row span) {
+  color: #9ca8b7 !important;
+}
+
+/* Dark surfaces that are authored as light-only inside individual admin pages. */
+.admin-layout.theme-dark .main :deep(.workflow-hint) {
+  border-color: #36547d !important;
+  background: #172842 !important;
+  color: #dbe7f7 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.workflow-arrow) {
+  color: #60a5fa !important;
+}
+
+.admin-layout.theme-dark .main :deep(.promotion-empty-warning) {
+  border-color: #8b6216 !important;
+  background: #2a210f !important;
+  color: #fde68a !important;
+}
+
+.admin-layout.theme-dark .main :deep(.promotion-empty-warning .inline-link) {
+  color: #93c5fd !important;
+}
+
+.admin-layout.theme-dark .main :deep(.setup-stepper) {
+  background: #20252c !important;
+  border: 1px solid #3c434d !important;
+}
+
+.admin-layout.theme-dark .main :deep(.setup-step) {
+  color: #aeb8c6 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.setup-step > span) {
+  background: #343b45 !important;
+  color: #dce3ec !important;
+}
+
+.admin-layout.theme-dark .main :deep(.setup-step.done) {
+  background: #153527 !important;
+  color: #86efac !important;
+}
+
+.admin-layout.theme-dark .main :deep(.existing-profile-notice) {
+  border-color: #315f4b !important;
+  background: #153527 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.existing-profile-notice strong) {
+  color: #bbf7d0 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.existing-profile-notice small) {
+  color: #b9c8c0 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.existing-profile-notice button) {
+  border-color: #3d8063 !important;
+  background: #1c4534 !important;
+  color: #bbf7d0 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.profile-card),
+.admin-layout.theme-dark .main :deep(.identity-card) {
+  border-color: #3c4b60 !important;
+  background: #181b20 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.identity-card) {
+  background: #17202c !important;
+}
+
+.admin-layout.theme-dark .main :deep(.identity-upload) {
+  border-color: #4d6f9f !important;
+  background: #20252c !important;
+}
+
+.admin-layout.theme-dark .main :deep(.identity-upload:hover) {
+  border-color: #60a5fa !important;
+  background: #242c36 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.identity-upload-placeholder small) {
+  color: #aeb8c6 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.password-visibility-button) {
+  color: #aeb8c6 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.password-visibility-button:hover) {
+  background: #303946 !important;
+  color: #93c5fd !important;
+}
+
+.admin-layout.theme-dark .main :deep(.unified-submit-area) {
+  border-top-color: #454c56 !important;
+  background: rgba(24, 27, 32, 0.96) !important;
+  box-shadow: 0 -10px 26px rgba(0, 0, 0, 0.28) !important;
+}
+
+.admin-layout.theme-dark .main :deep(.unified-submit-area strong) {
+  color: #f1f5f9 !important;
+}
+
+.admin-layout.theme-dark .main :deep(.unified-submit-area span) {
+  color: #aeb8c6 !important;
 }
 
 .admin-layout.theme-dark .main :deep(td > span:not(.status-badge):not(.badge):not(.role-badge):not(.discount-tag):not([class*='badge']):not([class*='pill']):not([class*='tag']):not([class*='chip']):not([class*='status'])),
