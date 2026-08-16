@@ -18,6 +18,6 @@ class LichLamNhanVien extends Model
 
     public function user()
     {
-        return $this->belongsTo(User::class, 'id_nhanvien');
+        return $this->belongsTo(Admin::class, 'id_nhanvien');
     }
 }

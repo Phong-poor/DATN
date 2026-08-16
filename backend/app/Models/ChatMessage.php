@@ -43,6 +43,6 @@ class ChatMessage extends Model
 
     public function sender()
     {
-        return $this->belongsTo(User::class, 'id_nguoigui');
+        return $this->morphTo('sender', 'nguoigui_type', 'id_nguoigui');
     }
 }

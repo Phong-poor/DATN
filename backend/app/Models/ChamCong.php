@@ -38,11 +38,11 @@ class ChamCong extends Model
 
     public function user()
     {
-        return $this->belongsTo(User::class, 'id_nhanvien');
+        return $this->belongsTo(Admin::class, 'id_nhanvien');
     }
 
     public function nguoiDieuChinh()
     {
-        return $this->belongsTo(User::class, 'dieu_chinh_boi');
+        return $this->belongsTo(Admin::class, 'dieu_chinh_boi');
     }
 }

@@ -7,6 +7,7 @@ use App\Models\ChamCong;
 use App\Models\LichLamNhanVien;
 use App\Models\DonXinNghi;
 use App\Models\User;
+use App\Models\Admin;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -331,8 +332,7 @@ class ChamCongController extends Controller
         $bestDistance = PHP_FLOAT_MAX;
         $secondBestDistance = PHP_FLOAT_MAX;
 
-        $employees = User::where('vaitro', '!=', 'user')
-            ->where('face_registered', true)
+        $employees = Admin::where('face_registered', true)
             ->whereNotNull('face_descriptor')
             ->where('trangthai', '!=', 'locked')
             ->get();
@@ -421,7 +421,7 @@ class ChamCongController extends Controller
         $nam = $now->year;
 
         // Truy vấn danh sách tất cả nhân viên và tính tổng công/giờ trong tháng
-        $leaderboard = User::where('vaitro', '!=', 'user')
+        $leaderboard = Admin::query()
             ->select('id', 'ten', 'anhdaidien', 'vaitro')
             ->withSum(['chamCongs as total_cong' => function ($query) use ($thang, $nam) {
                 $query->whereYear('ngay_cham_cong', $nam)
@@ -615,14 +615,13 @@ class ChamCongController extends Controller
     {
         abort_unless($request->user()?->vaitro !== 'user', 403, 'Chỉ nhân viên quản trị được xem danh sách nhân viên.');
 
-        $employees = User::where('vaitro', '!=', 'user')
-            ->with('lichLamNhanVien')
+        $employees = Admin::with('lichLamNhanVien')
             ->with(['chamCongs' => function ($query) {
                 $query->latest('ngay_cham_cong')->latest('created_at')->limit(1);
             }])
             ->orderBy('ten')
             ->get()
-            ->map(function (User $employee) {
+            ->map(function (Admin $employee) {
                 $latest = $employee->chamCongs->first();
 
                 return [
@@ -672,7 +671,7 @@ class ChamCongController extends Controller
             'face_descriptor.*' => 'numeric',
         ]);
 
-        $employee = User::where('vaitro', '!=', 'user')->findOrFail($id);
+        $employee = Admin::findOrFail($id);
         if ($employee->trangthai === 'locked') {
             return response()->json([
                 'success' => false,
@@ -706,7 +705,7 @@ class ChamCongController extends Controller
 
     public function adminXoaKhuonMat(Request $request, $id)
     {
-        $employee = User::where('vaitro', '!=', 'user')->findOrFail($id);
+        $employee = Admin::findOrFail($id);
         $employee->face_descriptor = null;
         $employee->face_registered = false;
         $employee->save();
@@ -761,7 +760,7 @@ class ChamCongController extends Controller
 
     public function adminGetLichLam(Request $request, $id)
     {
-        User::where('vaitro', '!=', 'user')->findOrFail($id);
+        Admin::findOrFail($id);
         $schedule = LichLamNhanVien::where('id_nhanvien', $id)->first();
 
         return response()->json(['success' => true, 'data' => $schedule]);
@@ -769,7 +768,7 @@ class ChamCongController extends Controller
 
     public function adminUpdateLichLam(Request $request, $id)
     {
-        User::where('vaitro', '!=', 'user')->findOrFail($id);
+        Admin::findOrFail($id);
         $validated = $request->validate([
             'loai_ca' => ['required', 'in:full_day,morning,afternoon'],
             'ngay_bat_dau' => ['required', 'date'],
@@ -1027,9 +1026,8 @@ class ChamCongController extends Controller
 
     private function registeredFaceOwners(int $exceptUserId)
     {
-        return User::query()
+        return Admin::query()
             ->where('id', '!=', $exceptUserId)
-            ->where('vaitro', '!=', 'user')
             ->where('face_registered', true)
             ->whereNotNull('face_descriptor')
             ->where('trangthai', '!=', 'locked')

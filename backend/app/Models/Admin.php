@@ -2,21 +2,17 @@
 
 namespace App\Models;
 
-use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
 
-/**
- * Đại diện tài khoản khách hàng hoặc nhân viên và các quan hệ thuộc tài khoản.
- */
-class User extends Authenticatable
+class Admin extends Authenticatable
 {
     use HasFactory, Notifiable, TwoFactorAuthenticatable, HasApiTokens;
 
-    protected $table = 'khachhang';
+    protected $table = 'admins';
 
     protected $appends = ['online', 'name', 'role', 'avatar', 'last_active_at', 'cac_quyen', 'ten_vaitro_hienthi', 'phone', 'gender', 'date_of_birth'];
 
@@ -25,24 +21,23 @@ class User extends Authenticatable
         'name',
         'email',
         'sodienthoai',
-        'so_cccd',
-        'ngay_cap_cccd',
-        'noi_cap_cccd',
-        'anh_cccd_mat_truoc',
-        'anh_cccd_mat_sau',
         'ngaysinh',
         'gioitinh',
         'anhdaidien',
         'matkhau',
         'vaitro',
-        'id_google',
         'trangthai',
         'hoat_dong_cuoi_luc',
         'last_active_at',
-        'xu',
-        'luot_quay',
         'face_descriptor',
         'face_registered',
+        'id_google',
+        'id_facebook',
+        'so_cccd',
+        'ngay_cap_cccd',
+        'noi_cap_cccd',
+        'anh_cccd_mat_truoc',
+        'anh_cccd_mat_sau',
     ];
 
     protected $hidden = [
@@ -62,45 +57,19 @@ class User extends Authenticatable
         ];
     }
 
-    /**
-     * Get the vouchers for the user.
-     */
-    public function vouchers()
+    public function chamCongs()
     {
-        return $this->hasMany(UserVoucher::class, 'id_user');
+        return $this->hasMany(ChamCong::class, 'id_nhanvien');
     }
 
-    /**
-     * Lịch sử giao dịch xu
-     */
-    public function xuHistories()
+    public function lichLamNhanVien()
     {
-        return $this->hasMany(XuHistory::class, 'id_khachhang');
+        return $this->hasOne(LichLamNhanVien::class, 'id_nhanvien');
     }
 
-    public function diaChis()
+    public function donXinNghis()
     {
-        return $this->hasMany(DiaChi::class, 'id_user');
-    }
-
-    public function affiliateProfile()
-    {
-        return $this->hasOne(AffiliateProfile::class, 'id_khachhang');
-    }
-
-    public function affiliateReferrals()
-    {
-        return $this->hasMany(AffiliateReferral::class, 'id_affiliate_khachhang');
-    }
-
-    public function referredByAffiliate()
-    {
-        return $this->hasOne(AffiliateReferral::class, 'id_khachhang_duoc_gioithieu');
-    }
-
-    public function affiliateWithdrawRequests()
-    {
-        return $this->hasMany(AffiliateWithdrawRequest::class, 'id_affiliate_khachhang');
+        return $this->hasMany(DonXinNghi::class, 'id_nhanvien');
     }
 
     public function getOnlineAttribute(): bool
@@ -119,7 +88,6 @@ class User extends Authenticatable
             return [];
         }
 
-        // Super Admin tối cao có toàn bộ quyền
         if ($roleCode === 'admin') {
             return [
                 'san_pham_xem', 'san_pham_sua', 'nhap_xuat_kho', 
@@ -134,14 +102,12 @@ class User extends Authenticatable
             ];
         }
 
-        // Lấy quyền đã cài đặt thực tế của Chức vụ trong bảng vai_tro
         $role = VaiTro::where('ma_vaitro', $this->vaitro)->first();
         if ($role) {
             $perms = is_array($role->quyen) ? $role->quyen : (json_decode($role->quyen, true) ?: []);
             return $perms;
         }
 
-        // Mặc định cho các mã vai trò chuẩn
         $defaults = [
             'inventory' => ['san_pham_xem', 'san_pham_sua', 'nhap_xuat_kho', 'danh_muc_xem', 'thuong_hieu_xem', 'bien_the_xem'],
             'thu_kho' => ['san_pham_xem', 'san_pham_sua', 'nhap_xuat_kho', 'danh_muc_xem', 'thuong_hieu_xem', 'bien_the_xem'],
@@ -278,5 +244,4 @@ class User extends Authenticatable
     {
         $this->attributes['hoat_dong_cuoi_luc'] = $value;
     }
-
 }

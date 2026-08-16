@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Models\Admin;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Fortify\Contracts\TwoFactorAuthenticationProvider;
@@ -90,11 +91,11 @@ class AdminTwoFactorAuthenticationTest extends TestCase
         $this->getJson('/api/admin/account/two-factor')->assertForbidden();
     }
 
-    private function adminWithTwoFactor(): User
+    private function adminWithTwoFactor(): Admin
     {
         $provider = app(TwoFactorAuthenticationProvider::class);
 
-        $admin = User::query()->create([
+        $admin = Admin::query()->create([
             'ten' => 'Admin 2FA',
             'email' => 'admin-2fa@example.com',
             'matkhau' => Hash::make('Admin@123'),
