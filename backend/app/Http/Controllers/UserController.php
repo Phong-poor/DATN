@@ -69,17 +69,38 @@ class UserController extends Controller
 
     public function index()
     {
-        $users = User::select('id', 'ten', 'email', 'sodienthoai', 'vaitro', 'trangthai', 'created_at', 'anhdaidien')
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $customers = User::select('id', 'ten', 'email', 'sodienthoai', 'vaitro', 'trangthai', 'created_at', 'anhdaidien')
+            ->get()
+            ->map(function ($u) {
+                $u->id = 'u-' . $u->id;
+                return $u;
+            });
 
-        return response()->json($users);
+        $admins = \App\Models\Admin::select('id', 'ten', 'email', 'sodienthoai', 'vaitro', 'trangthai', 'created_at', 'anhdaidien')
+            ->get()
+            ->map(function ($a) {
+                $a->id = 'a-' . $a->id;
+                return $a;
+            });
+
+        $merged = $customers->concat($admins)->sortByDesc('created_at')->values();
+
+        return response()->json($merged);
     }
 
     public function show($id)
     {
-        $user = User::select('id', 'ten', 'email', 'sodienthoai', 'vaitro', 'trangthai', 'created_at', 'anhdaidien')
-            ->findOrFail($id);
+        if (str_starts_with($id, 'a-')) {
+            $realId = substr($id, 2);
+            $user = \App\Models\Admin::select('id', 'ten', 'email', 'sodienthoai', 'vaitro', 'trangthai', 'created_at', 'anhdaidien')
+                ->findOrFail($realId);
+            $user->id = 'a-' . $user->id;
+        } else {
+            $realId = str_starts_with($id, 'u-') ? substr($id, 2) : $id;
+            $user = User::select('id', 'ten', 'email', 'sodienthoai', 'vaitro', 'trangthai', 'created_at', 'anhdaidien')
+                ->findOrFail($realId);
+            $user->id = 'u-' . $user->id;
+        }
 
         return response()->json($user);
     }
@@ -88,7 +109,7 @@ class UserController extends Controller
     {
         $validated = $request->validate([
             'ten' => 'required|string|max:255',
-            'email' => 'required|email|unique:khachhang,email',
+            'email' => 'required|email|unique:khachhang,email|unique:admins,email',
             'matkhau' => 'required|string|min:8|confirmed',
             'sodienthoai' => 'nullable|string|max:20',
             'vaitro' => [
@@ -110,45 +131,93 @@ class UserController extends Controller
             'anh_cccd_mat_sau' => 'nullable|required_with:so_cccd|image|mimes:jpeg,jpg,png,webp|max:5120',
         ]);
 
-        $user = DB::transaction(function () use ($request, $validated) {
-            $user = User::create([
-                'ten' => $validated['ten'],
-                'email' => $validated['email'],
-                'matkhau' => $validated['matkhau'],
-                'sodienthoai' => $validated['sodienthoai'] ?? null,
-                'vaitro' => $validated['vaitro'] ?? 'user',
-                'trangthai' => $validated['trangthai'] ?? 'active',
-                'so_cccd' => $validated['so_cccd'] ?? null,
-                'ngaysinh' => $validated['ngaysinh'] ?? null,
-                'gioitinh' => $validated['gioitinh'] ?? null,
-                'ngay_cap_cccd' => $validated['ngay_cap_cccd'] ?? null,
-                'noi_cap_cccd' => $validated['noi_cap_cccd'] ?? null,
-            ]);
+        $vaitro = $validated['vaitro'] ?? 'user';
+        $prefixedId = '';
 
-            $this->storeIdentityImages($request, $user);
-            return $user;
+        $user = DB::transaction(function () use ($request, $validated, $vaitro, &$prefixedId) {
+            if ($vaitro === 'user') {
+                $u = User::create([
+                    'ten' => $validated['ten'],
+                    'email' => $validated['email'],
+                    'matkhau' => $validated['matkhau'],
+                    'sodienthoai' => $validated['sodienthoai'] ?? null,
+                    'vaitro' => 'user',
+                    'trangthai' => $validated['trangthai'] ?? 'active',
+                    'so_cccd' => $validated['so_cccd'] ?? null,
+                    'ngaysinh' => $validated['ngaysinh'] ?? null,
+                    'gioitinh' => $validated['gioitinh'] ?? null,
+                    'ngay_cap_cccd' => $validated['ngay_cap_cccd'] ?? null,
+                    'noi_cap_cccd' => $validated['noi_cap_cccd'] ?? null,
+                ]);
+                $this->storeIdentityImages($request, $u);
+                $prefixedId = 'u-' . $u->id;
+                return $u;
+            } else {
+                $a = \App\Models\Admin::create([
+                    'ten' => $validated['ten'],
+                    'email' => $validated['email'],
+                    'matkhau' => $validated['matkhau'],
+                    'sodienthoai' => $validated['sodienthoai'] ?? null,
+                    'vaitro' => $vaitro,
+                    'trangthai' => $validated['trangthai'] ?? 'active',
+                    'so_cccd' => $validated['so_cccd'] ?? null,
+                    'ngaysinh' => $validated['ngaysinh'] ?? null,
+                    'gioitinh' => $validated['gioitinh'] ?? null,
+                    'ngay_cap_cccd' => $validated['ngay_cap_cccd'] ?? null,
+                    'noi_cap_cccd' => $validated['noi_cap_cccd'] ?? null,
+                ]);
+                $this->storeIdentityImages($request, $a);
+                $prefixedId = 'a-' . $a->id;
+                return $a;
+            }
         });
+
+        $res = $user->only(['ten', 'email', 'sodienthoai', 'vaitro', 'trangthai', 'created_at', 'anhdaidien']);
+        $res['id'] = $prefixedId;
 
         return response()->json([
             'message' => 'Tạo người dùng thành công',
-            'user' => $user->only(['id', 'ten', 'email', 'sodienthoai', 'vaitro', 'trangthai', 'created_at', 'anhdaidien']),
+            'user' => $res,
         ], 201);
     }
 
     public function update(Request $request, $id)
     {
-        $user = User::findOrFail($id);
+        if (str_starts_with($id, 'a-')) {
+            $realId = substr($id, 2);
+            $user = \App\Models\Admin::findOrFail($realId);
+            $isTableAdmins = true;
+        } else {
+            $realId = str_starts_with($id, 'u-') ? substr($id, 2) : $id;
+            $user = User::findOrFail($realId);
+            $isTableAdmins = false;
+        }
+
         $oldRole = $user->vaitro;
         $oldStatus = $user->trangthai;
 
         $validated = $request->validate([
             'ten' => 'sometimes|required|string|max:255',
-            'email' => ['sometimes', 'required', 'email', Rule::unique('khachhang', 'email')->ignore($id)],
+            'email' => [
+                'sometimes', 'required', 'email',
+                $isTableAdmins
+                    ? Rule::unique('admins', 'email')->ignore($realId)
+                    : Rule::unique('khachhang', 'email')->ignore($realId),
+                $isTableAdmins
+                    ? Rule::unique('khachhang', 'email')
+                    : Rule::unique('admins', 'email')
+            ],
             'sodienthoai' => 'nullable|string|max:20',
             'vaitro' => [
                 'nullable',
                 'string',
-                function ($attribute, $value, $fail) {
+                function ($attribute, $value, $fail) use ($user) {
+                    if ($user->vaitro === 'user' && $value !== 'user') {
+                        $fail('Không thể thay đổi vai trò của tài khoản Khách hàng');
+                    }
+                    if ($user->vaitro !== 'user' && $value === 'user') {
+                        $fail('Nhân viên không thể chuyển đổi thành khách hàng');
+                    }
                     if ($value !== 'user' && !\App\Models\VaiTro::where('ma_vaitro', $value)->exists()) {
                         $fail('Vai trò không hợp lệ.');
                     }
@@ -156,7 +225,15 @@ class UserController extends Controller
             ],
             'trangthai' => 'nullable|in:active,locked',
             'matkhau' => 'nullable|string|min:8',
-            'so_cccd' => ['nullable', 'digits:12', Rule::unique('khachhang', 'so_cccd')->ignore($id)],
+            'so_cccd' => [
+                'nullable', 'digits:12',
+                $isTableAdmins
+                    ? Rule::unique('admins', 'so_cccd')->ignore($realId)
+                    : Rule::unique('khachhang', 'so_cccd')->ignore($realId),
+                $isTableAdmins
+                    ? Rule::unique('khachhang', 'so_cccd')
+                    : Rule::unique('admins', 'so_cccd')
+            ],
             'ngaysinh' => 'nullable|date|before:today',
             'gioitinh' => 'nullable|in:Nam,Nữ,Khác',
             'ngay_cap_cccd' => 'nullable|date|before_or_equal:today',
@@ -178,18 +255,6 @@ class UserController extends Controller
                     'message' => 'Không thể thay đổi vai trò của tài khoản Giám đốc sáng lập'
                 ], 422);
             }
-            // Nhân viên không được đổi sang khách hàng
-            if ($user->vaitro !== 'user' && $validated['vaitro'] === 'user') {
-                return response()->json([
-                    'message' => 'Nhân viên không thể chuyển đổi thành khách hàng'
-                ], 422);
-            }
-            // Khách hàng không được thay đổi vai trò
-            if ($user->vaitro === 'user' && $validated['vaitro'] !== 'user') {
-                return response()->json([
-                    'message' => 'Không thể thay đổi vai trò của tài khoản Khách hàng'
-                ], 422);
-            }
             $user->vaitro = $validated['vaitro'];
         }
         if (isset($validated['trangthai']))
@@ -208,9 +273,12 @@ class UserController extends Controller
             $user->tokens()->delete();
         }
 
+        $res = $user->only(['ten', 'email', 'sodienthoai', 'vaitro', 'trangthai', 'created_at', 'anhdaidien']);
+        $res['id'] = $isTableAdmins ? 'a-' . $user->id : 'u-' . $user->id;
+
         return response()->json([
             'message' => 'Cập nhật thành công',
-            'user' => $user->only(['id', 'ten', 'email', 'sodienthoai', 'vaitro', 'trangthai', 'created_at', 'anhdaidien']),
+            'user' => $res,
         ]);
     }
 
@@ -231,7 +299,7 @@ class UserController extends Controller
 
         $validated = $request->validate([
             'ten' => 'required|string|max:255',
-            'email' => 'required|email|unique:khachhang,email,' . $user->id,
+            'email' => 'required|email|unique:' . ($user instanceof \App\Models\Admin ? 'admins' : 'khachhang') . ',email,' . $user->id,
             'sodienthoai' => 'nullable|string|max:20',
             'ngaysinh' => 'nullable|date',
             'gioitinh' => 'nullable|in:male,female,Nam,Nữ,Nu',
@@ -308,14 +376,21 @@ class UserController extends Controller
 
     public function destroy($id)
     {
-        $user = User::findOrFail($id);
+        if (str_starts_with($id, 'a-')) {
+            $realId = substr($id, 2);
+            $user = \App\Models\Admin::findOrFail($realId);
+        } else {
+            $realId = str_starts_with($id, 'u-') ? substr($id, 2) : $id;
+            $user = User::findOrFail($realId);
+        }
+
         Storage::disk('local')->deleteDirectory("employee-identities/{$user->id}");
         $user->delete();
 
         return response()->json(['message' => 'Xóa người dùng thành công']);
     }
 
-    private function storeIdentityImages(Request $request, User $user): void
+    private function storeIdentityImages(Request $request, $user): void
     {
         foreach (['anh_cccd_mat_truoc', 'anh_cccd_mat_sau'] as $field) {
             if (! $request->hasFile($field)) continue;

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Admin;
 use App\Models\AdminActivityLog;
 use App\Models\DatHang;
 use App\Models\DonXinNghi;
@@ -78,7 +79,7 @@ class AdminAccountController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:khachhang,email,'.$user->id,
+            'email' => 'required|email|unique:admins,email,'.$user->id,
             'phone' => 'nullable|string|max:20',
             'gender' => 'nullable|in:Nam,Nữ,Khác',
             'date_of_birth' => 'nullable|date',
@@ -313,8 +314,7 @@ class AdminAccountController extends Controller
         $onlineWindowSeconds = 300;
         $onlineSince = now()->subSeconds($onlineWindowSeconds);
 
-        $admins = User::where('vaitro', '!=', 'user')
-            ->orderBy('hoat_dong_cuoi_luc', 'desc')
+        $admins = Admin::orderBy('hoat_dong_cuoi_luc', 'desc')
             ->get()
             ->map(function ($admin) use ($onlineSince) {
                 // Xác định trạng thái online dựa trên thời gian hoạt động cuối (5 phút)

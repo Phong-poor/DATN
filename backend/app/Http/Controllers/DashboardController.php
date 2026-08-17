@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 
 use App\Models\DatHang;
 use App\Models\User;
+use App\Models\Admin;
 use App\Models\BienThe;
 use App\Models\DatHangChiTiet;
 use Carbon\CarbonPeriod;
@@ -440,8 +441,7 @@ class DashboardController extends Controller
             // ================= TRẠNG THÁI NHÂN SỰ =================
             $onlineSince = $now->copy()->subMinutes(5);
             $idleSince = $now->copy()->subMinutes(15);
-            $staffRows = User::where('vaitro', '!=', 'user')
-                ->orderByDesc('hoat_dong_cuoi_luc')
+            $staffRows = Admin::orderByDesc('hoat_dong_cuoi_luc')
                 ->limit(8)
                 ->get()
                 ->map(function ($staff) use ($onlineSince, $idleSince) {

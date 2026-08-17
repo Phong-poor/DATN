@@ -6,6 +6,7 @@ use App\Mail\RegisterSuccessMail;
 use App\Models\AffiliateProfile;
 use App\Models\AffiliateReferral;
 use App\Models\User;
+use App\Models\Admin;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -25,7 +26,7 @@ class AuthController extends Controller
 {
     private const TWO_FACTOR_CHALLENGE_TTL = 300;
 
-    private function issueSingleSessionToken(User $user, string $tokenName = 'session_token'): string
+    private function issueSingleSessionToken($user, string $tokenName = 'session_token'): string
     {
         $user->tokens()->delete();
 
@@ -43,12 +44,12 @@ class AuthController extends Controller
         return $url;
     }
 
-    private function requiresTwoFactor(User $user): bool
+    private function requiresTwoFactor($user): bool
     {
         return $user->vaitro !== 'user' && $user->hasEnabledTwoFactorAuthentication();
     }
 
-    private function createTwoFactorChallenge(User $user, bool $remember = false): string
+    private function createTwoFactorChallenge($user, bool $remember = false): string
     {
         $plainToken = Str::random(64);
         Cache::put('admin-2fa-challenge:'.hash('sha256', $plainToken), [
@@ -82,7 +83,7 @@ class AuthController extends Controller
         $challenge['attempts'] = $attempts;
         Cache::put($cacheKey, $challenge, now()->addSeconds(self::TWO_FACTOR_CHALLENGE_TTL));
 
-        $user = User::find($challenge['user_id'] ?? null);
+        $user = Admin::find($challenge['user_id'] ?? null);
         if (! $user || $user->trangthai === 'locked' || ! $this->requiresTwoFactor($user)) {
             Cache::forget($cacheKey);
 
@@ -268,7 +269,10 @@ class AuthController extends Controller
             'matkhau.required' => 'Vui lòng nhập mật khẩu.',
         ]);
 
-        $user = User::where('email', $validated['email'])->first();
+        $user = Admin::where('email', $validated['email'])->first();
+        if (! $user) {
+            $user = User::where('email', $validated['email'])->first();
+        }
 
         if (! $user || ! Hash::check($validated['matkhau'], $user->matkhau)) {
             return response()->json([
@@ -397,9 +401,15 @@ class AuthController extends Controller
         $googleId = $googleUser->getId();
         $googleEmail = $googleUser->getEmail();
 
-        $user = User::where('id_google', $googleId)->first();
+        $user = Admin::where('id_google', $googleId)->first();
         if (! $user && $googleEmail) {
-            $user = User::where('email', $googleEmail)->first();
+            $user = Admin::where('email', $googleEmail)->first();
+        }
+        if (! $user) {
+            $user = User::where('id_google', $googleId)->first();
+            if (! $user && $googleEmail) {
+                $user = User::where('email', $googleEmail)->first();
+            }
         }
 
         DB::beginTransaction();

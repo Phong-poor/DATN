@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Models\Admin;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -33,16 +34,28 @@ class AdminPresenceTest extends TestCase
 
     public function test_active_admins_marks_recent_heartbeats_as_online(): void
     {
-        $viewer = User::factory()->create([
-            'role' => 'admin',
+        $viewer = Admin::create([
+            'ten' => 'Admin Viewer',
+            'name' => 'Admin Viewer',
+            'email' => 'viewer@test.com',
+            'matkhau' => bcrypt('password'),
+            'vaitro' => 'admin',
             'last_active_at' => now()->subSeconds(5),
         ]);
-        $onlineAdmin = User::factory()->create([
-            'role' => 'admin',
+        $onlineAdmin = Admin::create([
+            'ten' => 'Online Admin',
+            'name' => 'Online Admin',
+            'email' => 'online@test.com',
+            'matkhau' => bcrypt('password'),
+            'vaitro' => 'admin',
             'last_active_at' => now()->subSeconds(30),
         ]);
-        $offlineAdmin = User::factory()->create([
-            'role' => 'admin',
+        $offlineAdmin = Admin::create([
+            'ten' => 'Offline Admin',
+            'name' => 'Offline Admin',
+            'email' => 'offline@test.com',
+            'matkhau' => bcrypt('password'),
+            'vaitro' => 'admin',
             'last_active_at' => now()->subSeconds(360),
         ]);
         $token = $viewer->createToken('session_token')->plainTextToken;
