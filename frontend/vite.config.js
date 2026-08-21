@@ -43,7 +43,9 @@ export default defineConfig(({ mode, command }) => {
       const targetDirectory = resolve(root, 'dist', 'tessdata')
       mkdirSync(targetDirectory, { recursive: true })
       ocrLanguageSources.forEach(({ language, source }) => {
-        copyFileSync(source, resolve(targetDirectory, `${language}.traineddata.gz`))
+        if (existsSync(source)) {
+          copyFileSync(source, resolve(targetDirectory, `${language}.traineddata.gz`))
+        }
       })
     },
   }

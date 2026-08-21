@@ -1347,9 +1347,10 @@ class DatHangController extends Controller
         }
 
         // 1. Kiểm tra trạng thái upload tệp từ PHP server (bắt lỗi UPLOAD_ERR_*)
-        if ($request->hasFile('proof')) {
-            $proofFile = $request->file('proof');
-            if (!$proofFile->isValid()) {
+        $checkFiles = $request->hasFile('proofs') ? $request->file('proofs') : ($request->hasFile('proof') ? [$request->file('proof')] : []);
+        if (!is_array($checkFiles)) $checkFiles = [$checkFiles];
+        foreach ($checkFiles as $proofFile) {
+            if ($proofFile && !$proofFile->isValid()) {
                 $errCode = $proofFile->getError();
                 $errMsg = $proofFile->getErrorMessage();
                 $maxUpload = ini_get('upload_max_filesize');
@@ -1357,42 +1358,48 @@ class DatHangController extends Controller
 
                 $detailMsg = "Lỗi tải tệp (Mã {$errCode}: {$errMsg}). Cấu hình PHP hiện tại: upload_max_filesize={$maxUpload}, post_max_size={$maxPost}.";
                 if ($errCode === UPLOAD_ERR_INI_SIZE || $errCode === UPLOAD_ERR_FORM_SIZE) {
-                    $detailMsg = "Tệp bị PHP chặn do vượt quá upload_max_filesize ({$maxUpload}) hoặc post_max_size ({$maxPost}) của Hosting. Vui lòng đặt cả 2 thông số này bằng 64M hoặc 2G trong cPanel.";
+                    $detailMsg = "Tệp bị chặn do vượt quá upload_max_filesize ({$maxUpload}) hoặc post_max_size ({$maxPost}).";
                 } elseif ($errCode === UPLOAD_ERR_CANT_WRITE || $errCode === UPLOAD_ERR_NO_TMP_DIR) {
-                    $detailMsg = "Lỗi phân quyền hoặc dung lượng thư mục tạm (upload_tmp_dir) trên Hosting. Mã lỗi: {$errCode}.";
+                    $detailMsg = "Lỗi phân quyền hoặc dung lượng thư mục tạm (upload_tmp_dir). Mã lỗi: {$errCode}.";
                 }
 
                 return response()->json([
                     'success' => false,
                     'message' => $detailMsg,
-                    'errors' => ['proof' => [$detailMsg]]
+                    'errors' => ['proofs' => [$detailMsg]]
                 ], 422);
             }
         }
 
         // 2. Kiểm tra dữ liệu hợp lệ
-        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
-            'lydo' => 'required|string',
-            'proof' => [
-                'required',
-                'file',
-                'max:51200',
-                function ($attribute, $value, $fail) {
-                    if ($value && $value->isValid()) {
-                        $ext = strtolower($value->getClientOriginalExtension());
-                        $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mov', 'avi', 'wmv', 'webm', 'mkv', 'flv', '3gp', 'quicktime'];
-                        if (!in_array($ext, $allowed)) {
-                            $fail('Định dạng tệp không được hỗ trợ. Vui lòng chọn tệp ảnh hoặc video (MP4, MOV, AVI, JPG, PNG).');
-                        }
+        $fileValidationRules = [
+            'file',
+            'max:51200',
+            function ($attribute, $value, $fail) {
+                if ($value && $value->isValid()) {
+                    $ext = strtolower($value->getClientOriginalExtension());
+                    $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mov', 'avi', 'wmv', 'webm', 'mkv', 'flv', '3gp', 'quicktime'];
+                    if (!in_array($ext, $allowed)) {
+                        $fail('Định dạng tệp không được hỗ trợ. Vui lòng chọn tệp ảnh hoặc video (MP4, MOV, AVI, JPG, PNG).');
                     }
                 }
-            ],
+            }
+        ];
+
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+            'lydo' => 'required|string',
+            'proof' => array_merge(['required_without:proofs'], $fileValidationRules),
+            'proofs' => 'required_without:proof|array|min:1',
+            'proofs.*' => $fileValidationRules,
             'item_ids' => 'required|array|min:1',
             'item_ids.*' => 'integer|distinct',
         ], [
+            'proof.required_without' => 'Vui lòng đính kèm tệp ảnh hoặc video bằng chứng.',
+            'proofs.required_without' => 'Vui lòng đính kèm tệp ảnh hoặc video bằng chứng.',
             'proof.uploaded' => 'Tệp bằng chứng tải lên thất bại do giới hạn upload_max_filesize của PHP Hosting.',
             'proof.max' => 'Tệp bằng chứng không được vượt quá 50MB.',
-            'proof.required' => 'Vui lòng đính kèm tệp ảnh hoặc video bằng chứng.',
+            'proofs.*.max' => 'Tệp bằng chứng không được vượt quá 50MB.',
+            'proofs.*.uploaded' => 'Tệp bằng chứng tải lên thất bại.',
             'lydo.required' => 'Vui lòng nhập lý do hoàn trả.',
             'item_ids.required' => 'Vui lòng chọn ít nhất 1 sản phẩm cần hoàn trả.',
         ]);
