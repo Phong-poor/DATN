@@ -17,3 +17,4 @@ DATN_NextGen_Submission.zip.sha256
 # Tài liệu và dữ liệu demo chỉ dùng cục bộ, không đưa lên repository.
 DU_LIEU_*_DEMO.txt
 backend/database/*_demo.sql
+node_modules/
