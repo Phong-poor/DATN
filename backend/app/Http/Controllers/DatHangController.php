@@ -1640,8 +1640,6 @@ class DatHangController extends Controller
 
     public function allOrders()
     {
-        $this->syncDueDemoShipments();
-
         $orders = DatHang::with(['user', 'nhanVien', 'chi_tiets.bienThe.sanPham'])
             ->where(function ($query) {
                 $query->whereNotIn('PTTT', ['vnpay', 'momo'])
