@@ -106,7 +106,7 @@ const updateUserData = (apiUser) => {
   }
 
   if (apiUser.email) {
-    pwForm.value.email = apiUser.email
+    user.value.email = apiUser.email
   }
 }
 
@@ -483,6 +483,65 @@ const refundProof = ref(null)
 const refundProofUrl = ref(null)
 const refundSelectedItems = ref([])
 
+// Multi-file: ảnh + video
+const refundImages = ref([])   // [{ file, url }]
+const refundVideo = ref(null)  // { file, url } | null
+const isDraggingOver = ref(false)
+
+const ALLOWED_IMAGE_TYPES = ['image/jpeg','image/jpg','image/png','image/gif','image/webp','image/svg+xml','image/bmp','image/heic','image/heif']
+const ALLOWED_VIDEO_TYPES = ['video/mp4','video/quicktime','video/avi','video/x-msvideo','video/webm','video/x-matroska','video/x-flv','video/3gpp','video/x-m4v','video/wmv']
+const isAllowedImageType = (f) => ALLOWED_IMAGE_TYPES.includes(f.type) || /\.(jpeg|jpg|png|gif|webp|svg|bmp|heic|heif)$/i.test(f.name)
+const isAllowedVideoType = (f) => ALLOWED_VIDEO_TYPES.includes(f.type) || /\.(mp4|mov|avi|wmv|webm|mkv|flv|3gp|m4v)$/i.test(f.name)
+
+const processProofFiles = (files) => {
+  const invalid = [], imgs = [], vids = []
+  files.forEach(f => {
+    if (isAllowedImageType(f)) imgs.push(f)
+    else if (isAllowedVideoType(f)) vids.push(f)
+    else invalid.push(f.name)
+  })
+  if (invalid.length > 0)
+    showToast(`File không hợp lệ (bỏ qua): ${invalid.join(', ')}. Chỉ chấp nhận ảnh/video.`)
+  imgs.forEach(f => refundImages.value.push({ file: f, url: URL.createObjectURL(f) }))
+  if (vids.length > 0) {
+    if (vids.length > 1) showToast('Chỉ được gửi 1 video. Chỉ video đầu được giữ lại.')
+    if (refundVideo.value?.url) URL.revokeObjectURL(refundVideo.value.url)
+    refundVideo.value = { file: vids[0], url: URL.createObjectURL(vids[0]) }
+  }
+}
+
+const handleProofDragOver = (e) => { e.preventDefault(); isDraggingOver.value = true }
+const handleProofDragLeave = () => { isDraggingOver.value = false }
+const handleProofDrop = (e) => {
+  e.preventDefault(); isDraggingOver.value = false
+  const files = Array.from(e.dataTransfer.files || [])
+  if (files.length > 0) processProofFiles(files)
+}
+const handleProofFileInput = (e) => {
+  const files = Array.from(e.target.files || [])
+  if (files.length > 0) processProofFiles(files)
+  e.target.value = ''
+}
+const handleVideoFileInput = (e) => {
+  const files = Array.from(e.target.files || [])
+  const vids = files.filter(f => isAllowedVideoType(f))
+  const invalid = files.filter(f => !isAllowedVideoType(f))
+  if (invalid.length > 0) showToast('Chỉ chấp nhận file video (MP4, MOV, WEBM...).')
+  if (vids.length > 0) {
+    if (refundVideo.value?.url) URL.revokeObjectURL(refundVideo.value.url)
+    refundVideo.value = { file: vids[0], url: URL.createObjectURL(vids[0]) }
+  }
+  e.target.value = ''
+}
+const removeRefundImage = (idx) => {
+  const img = refundImages.value.splice(idx, 1)[0]
+  if (img?.url) URL.revokeObjectURL(img.url)
+}
+const removeRefundVideo = () => {
+  if (refundVideo.value?.url) URL.revokeObjectURL(refundVideo.value.url)
+  refundVideo.value = null
+}
+
 const handleProofUpload = (e) => {
   const file = e.target.files[0]
   if (!file) return
@@ -502,6 +561,11 @@ const openRefundModal = (order) => {
   if (refundProofUrl.value) URL.revokeObjectURL(refundProofUrl.value)
   refundProofUrl.value = null
   refundSelectedItems.value = []
+  refundImages.value.forEach(img => { if (img?.url) URL.revokeObjectURL(img.url) })
+  refundImages.value = []
+  if (refundVideo.value?.url) URL.revokeObjectURL(refundVideo.value.url)
+  refundVideo.value = null
+  isDraggingOver.value = false
   showRefundModal.value = true
 }
 
@@ -514,8 +578,8 @@ const confirmRefund = async () => {
     showToast('Vui lòng nhập lý do hoàn trả.')
     return
   }
-  if (!refundProof.value) {
-    showToast('Vui lòng tải lên ảnh/video bằng chứng.')
+  if (!refundVideo.value) {
+    showToast('Video bằng chứng là bắt buộc. Vui lòng tải lên ít nhất 1 video.')
     return
   }
 
@@ -523,7 +587,8 @@ const confirmRefund = async () => {
   try {
     const formData = new FormData()
     formData.append('lydo', refundReason.value)
-    formData.append('proof', refundProof.value)
+    refundImages.value.forEach(img => formData.append('proofs[]', img.file))
+    formData.append('proofs[]', refundVideo.value.file)
     refundSelectedItems.value.forEach(id => {
       formData.append('item_ids[]', id)
     })
@@ -533,22 +598,25 @@ const confirmRefund = async () => {
     })
 
     if (res.data.success) {
-      showToast('Đã gửi yêu cầu hoàn trả!')
+      swal.success('Thành công', 'Đã gửi yêu cầu hoàn trả!')
       showRefundModal.value = false
       await fetchOrders()
       if (selectedOrder.value && selectedOrder.value.id_dathang === orderToRefund.value.id_dathang) {
         selectedOrder.value = null
       }
+    } else {
+      swal.error('Lỗi', res.data.message || 'Có lỗi xảy ra khi yêu cầu hoàn trả.')
     }
   } catch (err) {
-    showToast(err.response?.data?.message || 'Có lỗi xảy ra khi yêu cầu hoàn trả.')
+    const errorMsg = err.response?.data?.message || err.response?.data?.errors?.lydo?.[0] || err.message || 'Có lỗi xảy ra khi yêu cầu hoàn trả.'
+    swal.error('Lỗi', errorMsg)
   } finally {
     isSubmitting.value = false
   }
 }
 
 const closeRefundModal = async () => {
-  if (refundReason.value.trim() || refundProof.value || refundSelectedItems.value.length > 0) {
+  if (refundReason.value.trim() || refundImages.value.length > 0 || refundVideo.value || refundSelectedItems.value.length > 0) {
     const confirmed = await swal.confirm(
       'Xác nhận đóng',
       'Bạn đang điền thông tin yêu cầu hoàn trả. Nếu đóng, các thông tin này sẽ bị mất. Bạn vẫn muốn tiếp tục chứ?',
@@ -564,6 +632,11 @@ const closeRefundModal = async () => {
     URL.revokeObjectURL(refundProofUrl.value)
     refundProofUrl.value = null
   }
+  refundImages.value.forEach(img => { if (img?.url) URL.revokeObjectURL(img.url) })
+  refundImages.value = []
+  if (refundVideo.value?.url) URL.revokeObjectURL(refundVideo.value.url)
+  refundVideo.value = null
+  isDraggingOver.value = false
   refundSelectedItems.value = []
 }
 
@@ -1013,7 +1086,7 @@ const changeTab = async (tabKey) => {
   if (activeTab.value === 'profile') {
     await cancelEdit(true)
   } else if (activeTab.value === 'password') {
-    pwForm.value = { current: '', email: user.value.email || '', newPass: '', confirm: '' }
+    pwForm.value = { current: '', email: '', newPass: '', confirm: '' }
     pwErrors.value = {}
     passwordTabOtpPending.value = false
   }
@@ -1047,8 +1120,8 @@ const resendProfileOtp = async () => {
   sendingProfileOtp.value = true
   try {
     if (passwordTabOtpPending.value) {
-      await api.post('/user/change-password/request-otp', {
-        email: pwForm.value.email || user.value.email,
+      await api.post('/user/change-password/verify-current', {
+        current_password: pwForm.value.current,
       })
     } else {
       await api.post('/user/change-password/request-otp', {
@@ -1151,7 +1224,7 @@ const verifyProfileOtp = async () => {
       })
       showProfileOtpModal.value = false
       passwordTabOtpPending.value = false
-      pwForm.value = { current: '', email: user.value.email || '', newPass: '', confirm: '' }
+      pwForm.value = { current: '', email: '', newPass: '', confirm: '' }
       pwErrors.value = {}
       await swal.success('Thành công', 'Đổi mật khẩu thành công!')
     } else {
@@ -2040,8 +2113,8 @@ const pwRequirements = computed(() => [
 const savePw = async () => {
   pwErrors.value = {}
 
-  if (!pwForm.value.email) {
-    pwErrors.value.email = 'Vui lòng nhập email xác minh'
+  if (!pwForm.value.current) {
+    pwErrors.value.current = 'Vui lòng nhập mật khẩu hiện tại'
   }
 
   if (!pwForm.value.newPass) {
@@ -2058,8 +2131,8 @@ const savePw = async () => {
 
   savingPw.value = true
   try {
-    await api.post('/user/change-password/request-otp', {
-      email: pwForm.value.email,
+    await api.post('/user/change-password/verify-current', {
+      current_password: pwForm.value.current,
     })
 
     passwordTabOtpPending.value = true
@@ -2067,20 +2140,20 @@ const savePw = async () => {
     profileOtpCode.value = ['', '', '', '', '', '']
     profilePwErrors.value = {}
     startProfileOtpTimer()
-    showToast('Mã OTP đã được gửi đến email của bạn!')
+    showToast('Mật khẩu xác nhận đúng. Mã OTP đã được gửi đến email của bạn!')
   } catch (error) {
     const data = error.response?.data || {}
 
     if (error.response?.status === 422) {
-      if (data.errors?.email?.[0]) {
-        pwErrors.value.email = data.errors.email[0]
+      if (data.errors?.current_password?.[0]) {
+        pwErrors.value.current = data.errors.current_password[0]
       } else if (data.message) {
-        pwErrors.value.email = data.message
+        pwErrors.value.current = data.message
       }
       return
     }
 
-    showToast(data.message || 'Có lỗi xảy ra khi gửi mã OTP!')
+    showToast(data.message || 'Có lỗi xảy ra khi xác minh mật khẩu!')
   } finally {
     savingPw.value = false
   }
@@ -2586,7 +2659,7 @@ const promoStatusMap = {
               <div class="mb-3">
                 <label class="form-label" style="font-size: 13px; font-weight: 600;">Chọn sản phẩm hoàn trả</label>
                 <div class="refund-items-list">
-                  <div v-for="item in (orderToRefund?.items || [])" :key="item.id_bienthe" class="refund-product-card"
+                  <div v-for="item in getRefundModalItems(orderToRefund)" :key="item.id_bienthe" class="refund-product-card"
                     :class="{ selected: refundSelectedItems.includes(item.id_bienthe) }">
                     <label :for="'refund_item_' + item.id_bienthe" class="refund-product-label">
                       <img :src="item.img" class="refund-product-img" :alt="item.name">
@@ -2609,20 +2682,78 @@ const promoStatusMap = {
               <textarea v-model="refundReason" class="cancel-textarea mb-3" placeholder="Nhập lý do hoàn trả tại đây..."
                 rows="3"></textarea>
 
+              <!-- Upload ảnh / video bằng chứng -->
               <div class="mb-3">
-                <label class="form-label"
-                  style="font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px;">Hình ảnh / Video bằng
-                  chứng</label>
-                <input type="file" @change="handleProofUpload" class="form-control" accept="image/*,video/*" />
-                <small class="text-muted d-block mt-1" style="font-size: 11px;">Hỗ trợ ảnh hoặc video (tối đa
-                  20MB)</small>
+                <label style="font-size: 13px; font-weight: 600; color: #1e293b; display:block; margin-bottom:8px;">Hình ảnh / Video bằng chứng</label>
 
-                <div v-if="refundProofUrl" class="mt-3" style="text-align: center;">
-                  <img v-if="refundProof && refundProof.type.startsWith('image/')" :src="refundProofUrl"
-                    alt="Bằng chứng"
-                    style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
-                  <video v-else-if="refundProof && refundProof.type.startsWith('video/')" :src="refundProofUrl" controls
-                    style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></video>
+                <!-- Drag & Drop Zone -->
+                <div
+                  class="refund-dropzone"
+                  :class="{ 'drag-over': isDraggingOver }"
+                  @dragover="handleProofDragOver"
+                  @dragleave="handleProofDragLeave"
+                  @drop="handleProofDrop"
+                >
+                  <div class="dropzone-icon">
+                    <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                      <polyline points="17 8 12 3 7 8"/>
+                      <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                  </div>
+                  <p class="dropzone-text">Kéo thả ảnh &amp; video vào đây</p>
+                  <p class="dropzone-hint">Hoặc chọn thủ công bên dưới</p>
+                  <div class="dropzone-btns">
+                    <label class="dropzone-btn btn-images">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                      Chọn ảnh
+                      <input type="file" multiple accept="image/*" @change="handleProofFileInput" style="display:none;" />
+                    </label>
+                    <label class="dropzone-btn btn-video">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+                      {{ refundVideo ? 'Thay video' : 'Chọn video' }}
+                      <input type="file" accept="video/*" @change="handleVideoFileInput" style="display:none;" />
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Hints -->
+                <div style="display:flex; gap:14px; margin-top:8px; flex-wrap:wrap;">
+                  <small style="font-size:11px; color:#64748b;">📸 Ảnh: JPG, PNG, GIF, WEBP... (nhiều ảnh)</small>
+                  <small style="font-size:11px; color:#ef4444; font-weight:600;">🎥 Video: MP4, MOV, WEBM... (bắt buộc, tối đa 1 video, dung lượng < 20MB)</small>
+                </div>
+
+                <!-- Preview: Images -->
+                <div v-if="refundImages.length > 0" style="margin-top:12px;">
+                  <div style="font-size:12px; font-weight:600; color:#374151; margin-bottom:8px;">📸 Ảnh đính kèm ({{ refundImages.length }})</div>
+                  <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                    <div v-for="(img, idx) in refundImages" :key="idx"
+                      style="position:relative; width:78px; height:78px; border-radius:8px; overflow:hidden; border:2px solid #e2e8f0; flex-shrink:0;">
+                      <img :src="img.url" style="width:100%; height:100%; object-fit:cover;" />
+                      <button @click.prevent="removeRefundImage(idx)" no-guard
+                        style="position:absolute; top:2px; right:2px; width:20px; height:20px; border-radius:50%; background:rgba(239,68,68,0.9); color:#fff; border:none; cursor:pointer; font-size:13px; line-height:1; display:flex; align-items:center; justify-content:center; padding:0;">×</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Preview: Video (bắt buộc) -->
+                <div style="margin-top:14px;">
+                  <div style="font-size:12px; font-weight:700; margin-bottom:6px;"
+                    :style="refundVideo ? 'color:#374151;' : 'color:#ef4444;'">
+                    🎥 Video bằng chứng <span style="font-size:11px; font-weight:400;">(bắt buộc)</span>
+                    <span v-if="!refundVideo" style="font-size:11px; color:#ef4444;"> — Chưa có video</span>
+                  </div>
+                  <div v-if="refundVideo" style="position:relative; display:inline-block; max-width:100%;">
+                    <video :src="refundVideo.url" controls
+                      style="max-width:100%; max-height:180px; border-radius:8px; border:2px solid #3b82f6; display:block;"></video>
+                    <button @click.prevent="removeRefundVideo" no-guard
+                      style="position:absolute; top:6px; right:6px; padding:3px 9px; background:rgba(239,68,68,0.9); color:#fff; border:none; border-radius:5px; cursor:pointer; font-size:11px; font-weight:700;">✕ Xóa</button>
+                    <div style="font-size:11px; color:#6b7280; margin-top:4px; word-break:break-all;">{{ refundVideo.file.name }}</div>
+                  </div>
+                  <div v-else
+                    style="padding:13px 16px; background:#fef2f2; border:1.5px dashed #fca5a5; border-radius:8px; text-align:center; font-size:12px; color:#ef4444;">
+                    ⚠️ Vui lòng tải lên 1 video bằng chứng để tiếp tục
+                  </div>
                 </div>
               </div>
 
@@ -3335,8 +3466,8 @@ const promoStatusMap = {
           <div class="pw-layout">
             <div class="card">
               <form @submit.prevent="savePw" class="form">
-                <div class="form-group" :class="{ error: pwErrors.email }">
-                  <label>Email xác minh</label>
+                <div class="form-group" :class="{ error: pwErrors.current }">
+                  <label>Mật khẩu hiện tại</label>
                   <div class="input-wrap">
                     <svg class="input-icon" viewBox="0 0 24 24" fill="none">
                       <path d="M4 6h16v12H4z" />
@@ -3344,8 +3475,8 @@ const promoStatusMap = {
                     </svg>
                     <input type="email" v-model="pwForm.email" placeholder="Name@example.com" />
                   </div>
-                  <span class="err-msg" v-if="pwErrors.email">{{ pwErrors.email }}</span>
-                  <p class="pw-hint">Nhập email tài khoản để nhận mã OTP xác minh trước khi đổi mật khẩu.</p>
+                  <span class="err-msg" v-if="pwErrors.current">{{ pwErrors.current }}</span>
+                  <p class="pw-hint">Hệ thống sẽ kiểm tra mật khẩu hiện tại trước khi gửi mã OTP xác minh.</p>
                 </div>
                 <div class="form-group" :class="{ error: pwErrors.newPass }">
                   <label>Mật khẩu mới</label>
@@ -7415,4 +7546,158 @@ const promoStatusMap = {
   border: none !important;
   box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25) !important;
 }
+
+/* ===== REFUND PRODUCT CARD ===== */
+.refund-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px;
+  background: #f8fafc;
+}
+.refund-product-card {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.refund-product-card.selected {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+.refund-product-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  margin: 0;
+}
+.refund-product-img {
+  width: 50px;
+  height: 50px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 1px solid #e2e8f0;
+}
+.refund-product-info {
+  flex: 1;
+}
+.refund-product-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+.refund-product-qty {
+  font-size: 11px;
+  color: #64748b;
+}
+.refund-product-side {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.refund-product-price {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ef4444;
+}
+.refund-check-pill {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: #e2e8f0;
+  color: #64748b;
+}
+.refund-product-card.selected .refund-check-pill {
+  background: #3b82f6;
+  color: #fff;
+}
+.refund-product-checkbox {
+  display: none;
+}
+/* ===== END REFUND PRODUCT CARD ===== */
+
+/* ===== REFUND DROPZONE ===== */
+.refund-dropzone {
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 20px 16px;
+  text-align: center;
+  background: #f8fafc;
+  transition: border-color 0.2s, background 0.2s;
+  cursor: default;
+  user-select: none;
+}
+.refund-dropzone.drag-over {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+.dropzone-icon {
+  color: #94a3b8;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: center;
+}
+.refund-dropzone.drag-over .dropzone-icon {
+  color: #3b82f6;
+}
+.dropzone-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 2px;
+}
+.dropzone-hint {
+  font-size: 11px;
+  color: #94a3b8;
+  margin: 0 0 12px;
+}
+.dropzone-btns {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.dropzone-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: none;
+  white-space: nowrap;
+}
+.dropzone-btn.btn-images {
+  background: #e0f2fe;
+  color: #0284c7;
+  border: 1px solid #bae6fd;
+}
+.dropzone-btn.btn-images:hover {
+  background: #bae6fd;
+}
+.dropzone-btn.btn-video {
+  background: #fef3c7;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+.dropzone-btn.btn-video:hover {
+  background: #fde68a;
+}
+/* ===== END REFUND DROPZONE ===== */
 </style>
+
