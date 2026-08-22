@@ -1316,9 +1316,9 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                             <div class="stat-icon-wrap" :style="{ background: s.iconBg }">
                                 <component :is="s.icon" aria-hidden="true" />
                             </div>
-                            <p class="stat-label" :style="{ color: s.labelColor }">{{ s.label }}</p>
+                            <p class="stat-label" style="color: #fff !important">{{ s.label }}</p>
                         </div>
-                        <b class="stat-value">{{ s.value }}</b>
+                        <b class="stat-value" style="color: #fff !important">{{ s.value }}</b>
                         <span class="stat-card-action">{{ s.hint }}</span>
                     </router-link>
                 </div>
