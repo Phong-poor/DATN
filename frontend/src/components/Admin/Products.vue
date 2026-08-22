@@ -5334,8 +5334,8 @@ tbody td {
 }
 
 .parent-tab-btn {
-  background: transparent;
-  border: none;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   padding: 10px 22px;
   font-size: 14px;
   font-weight: 600;
@@ -5351,14 +5351,15 @@ tbody td {
 
 .parent-tab-btn:hover {
   color: #0f172a;
-  background: rgba(241, 245, 249, 0.8);
+  background: #f1f5f9;
+  border-color: #cbd5e1;
 }
 
 .parent-tab-btn.active {
   color: #2563eb;
   background: #ffffff;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
-  border: 1px solid rgba(37, 99, 235, 0.1);
+  border: 1.5px solid #2563eb;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.14);
 }
 
 /* Custom Tree Select Component (Static View) */
