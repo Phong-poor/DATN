@@ -1,10 +1,65 @@
-/* Eliminate outer window scrollbars in admin layout */
+/* Eliminate outer window scrollbars and extra layout frames in admin layout */
+html.admin-active-root,
+body.admin-active-root,
+html.admin-active-root body,
+body.admin-active-root #app,
 html:has(.admin-layout),
 body:has(.admin-layout),
-.admin-layout {
-  height: 100% !important;
+#app:has(.admin-layout) {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  outline: none !important;
+  outline-width: 0 !important;
+  box-shadow: none !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
   max-height: 100vh !important;
   overflow: hidden !important;
+  background: #0b0d12 !important;
+}
+
+html.admin-active-root:focus,
+html.admin-active-root:focus-visible,
+html.admin-active-root:focus-within,
+body.admin-active-root:focus,
+body.admin-active-root:focus-visible,
+body.admin-active-root:focus-within,
+#app:focus,
+#app:focus-visible,
+#app:focus-within,
+.admin-layout:focus,
+.admin-layout:focus-visible,
+.admin-layout:focus-within,
+.admin-layout .main:focus,
+.admin-layout .main:focus-visible,
+.admin-layout .main:focus-within {
+  outline: none !important;
+  outline-width: 0 !important;
+  box-shadow: none !important;
+}
+
+.admin-layout {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  z-index: 100 !important;
+  display: flex !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  outline: none !important;
+  outline-width: 0 !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+  --admin-bg: #f6f8fb;
 }
 
 .admin-layout {
@@ -475,6 +530,44 @@ body:has(.admin-layout),
 .admin-layout select,
 .admin-layout textarea {
   transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease;
+}
+
+/* Override scrollbar mặc định cyan của hệ thống khi color-scheme: dark được kế thừa */
+.admin-layout .main {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.4) transparent;
+}
+
+.admin-layout .main::-webkit-scrollbar {
+  width: 100%;
+}
+
+.admin-layout .main::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.admin-layout .main::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.35);
+  border-radius: 10px;
+}
+
+.admin-layout .main::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.6);
+}
+
+.admin-layout.theme-dark .main,
+.admin-layout.dark .main {
+  scrollbar-color: rgba(71, 85, 105, 0.5) transparent;
+}
+
+.admin-layout.theme-dark .main::-webkit-scrollbar-thumb,
+.admin-layout.dark .main::-webkit-scrollbar-thumb {
+  background: rgba(71, 85, 105, 0.45);
+}
+
+.admin-layout.theme-dark .main::-webkit-scrollbar-thumb:hover,
+.admin-layout.dark .main::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.65);
 }
 
 .admin-layout.theme-dark,
@@ -1637,8 +1730,9 @@ html[data-admin-theme='dark'] .logo-upload-wrap .logo-placeholder-text {
 }
 
 .admin-layout.theme-dark .tab-nav-list {
-  border-color: #383e46 !important;
-  background: #20242a !important;
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
 }
 
 .admin-layout.theme-dark .empty-icon-wrap {
@@ -2782,12 +2876,12 @@ body.theme-dark .iq-qty {
   color: #94a3b8 !important;
 }
 
-html[data-admin-theme='dark'] .order-summary-box,
+/* html[data-admin-theme='dark'] .order-summary-box,
 .admin-layout.theme-dark .order-summary-box,
 body.theme-dark .order-summary-box {
   background: linear-gradient(135deg, rgba(14, 116, 144, 0.25), rgba(3, 105, 161, 0.25)) !important;
   border: 1px solid rgba(56, 189, 248, 0.35) !important;
-}
+} */
 
 html[data-admin-theme='dark'] .sum-row span,
 .admin-layout.theme-dark .sum-row span,
@@ -2799,4 +2893,273 @@ html[data-admin-theme='dark'] .final-total,
 .admin-layout.theme-dark .final-total,
 body.theme-dark .final-total {
   color: #38bdf8 !important;
+}
+
+/* Tab navigation wrappers - remove outer container background & border */
+html[data-admin-theme='dark'] .tab-nav-list,
+.admin-layout.theme-dark .tab-nav-list,
+body.theme-dark .tab-nav-list,
+html[data-admin-theme='dark'] .parent-tabs,
+.admin-layout.theme-dark .parent-tabs,
+body.theme-dark .parent-tabs,
+html[data-admin-theme='dark'] .combo-tabs,
+.admin-layout.theme-dark .combo-tabs,
+body.theme-dark .combo-tabs {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+
+html[data-admin-theme='dark'] .tab-nav-btn:not(.active),
+.admin-layout.theme-dark .tab-nav-btn:not(.active),
+body.theme-dark .tab-nav-btn:not(.active) {
+  background: #181d24 !important;
+  border: 1px solid #3b424b !important;
+  color: #cbd5e1 !important;
+}
+
+html[data-admin-theme='dark'] .tab-nav-btn:not(.active):hover,
+.admin-layout.theme-dark .tab-nav-btn:not(.active):hover,
+body.theme-dark .tab-nav-btn:not(.active):hover {
+  background: #202632 !important;
+  border-color: #60a5fa !important;
+  color: #60a5fa !important;
+}
+
+/* Light Mode Tab Enhancements - Clear Outer Borders */
+html:not([data-admin-theme='dark']) .parent-tab-btn,
+.admin-layout.theme-light .parent-tab-btn,
+body.theme-light .parent-tab-btn {
+  border: 1px solid #cbd5e1 !important;
+  background: #ffffff !important;
+  color: #475569 !important;
+}
+
+html:not([data-admin-theme='dark']) .parent-tab-btn:hover,
+.admin-layout.theme-light .parent-tab-btn:hover,
+body.theme-light .parent-tab-btn:hover {
+  background: #f8fafc !important;
+  border-color: #94a3b8 !important;
+  color: #0f172a !important;
+}
+
+html:not([data-admin-theme='dark']) .parent-tab-btn.active,
+.admin-layout.theme-light .parent-tab-btn.active,
+body.theme-light .parent-tab-btn.active {
+  background: #ffffff !important;
+  border: 1.5px solid #2563eb !important;
+  color: #2563eb !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.14) !important;
+}
+
+/* Table Card Wrappers Dark Mode Overrides */
+html[data-admin-theme='dark'] .offers-table-wrap,
+.admin-layout.theme-dark .offers-table-wrap,
+body.theme-dark .offers-table-wrap,
+html[data-admin-theme='dark'] .combo-list-panel,
+.admin-layout.theme-dark .combo-list-panel,
+body.theme-dark .combo-list-panel,
+html[data-admin-theme='dark'] .table-wrap,
+.admin-layout.theme-dark .table-wrap,
+body.theme-dark .table-wrap {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
+}
+
+html[data-admin-theme='dark'] .offers-table th,
+.admin-layout.theme-dark .offers-table th,
+body.theme-dark .offers-table th,
+html[data-admin-theme='dark'] .combo-admin-table th,
+.admin-layout.theme-dark .combo-admin-table th,
+body.theme-dark .combo-admin-table th {
+  background: #11161f !important;
+  border-bottom: 1px solid #28303d !important;
+  color: #94a3b8 !important;
+}
+
+html[data-admin-theme='dark'] .offers-table td,
+.admin-layout.theme-dark .offers-table td,
+body.theme-dark .offers-table td,
+html[data-admin-theme='dark'] .combo-admin-table td,
+.admin-layout.theme-dark .combo-admin-table td,
+body.theme-dark .combo-admin-table td {
+  border-bottom: 1px solid #28303d !important;
+}
+
+/* Campaign Detail Modal Dark Mode Overrides */
+html[data-admin-theme='dark'] .detail-section,
+.admin-layout.theme-dark .detail-section,
+body.theme-dark .detail-section {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  color: #f8fafc !important;
+}
+
+html[data-admin-theme='dark'] .detail-section-title,
+.admin-layout.theme-dark .detail-section-title,
+body.theme-dark .detail-section-title {
+  color: #94a3b8 !important;
+  border-bottom-color: #28303d !important;
+}
+
+html[data-admin-theme='dark'] .detail-info-row,
+.admin-layout.theme-dark .detail-info-row,
+body.theme-dark .detail-info-row {
+  border-bottom-color: #28303d !important;
+}
+
+html[data-admin-theme='dark'] .detail-info-label,
+.admin-layout.theme-dark .detail-info-label,
+body.theme-dark .detail-info-label {
+  color: #94a3b8 !important;
+}
+
+html[data-admin-theme='dark'] .detail-info-value,
+.admin-layout.theme-dark .detail-info-value,
+body.theme-dark .detail-info-value {
+  color: #f8fafc !important;
+}
+
+html[data-admin-theme='dark'] .vip-banner-box,
+.admin-layout.theme-dark .vip-banner-box,
+body.theme-dark .vip-banner-box {
+  background: rgba(244, 63, 94, 0.15) !important;
+  border-left-color: #f43f5e !important;
+  color: #fda4af !important;
+}
+
+.detail-modal-card .vip-banner-box {
+  width: 100% !important;
+  max-width: 100% !important;
+  border-radius: 10px !important;
+  padding: 12px 16px !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+}
+
+.detail-modal-card .vip-banner-title {
+  display: block !important;
+  font-size: 12.5px !important;
+  font-weight: 700 !important;
+  color: inherit !important;
+}
+
+.detail-modal-card .vip-banner-sub {
+  display: block !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  word-break: break-word !important;
+  color: inherit !important;
+}
+
+/* Variant Cards & Offer Type Cards Dark Mode */
+html[data-admin-theme='dark'] .variant-offer-card,
+.admin-layout.theme-dark .variant-offer-card,
+body.theme-dark .variant-offer-card,
+html[data-admin-theme='dark'] .offer-type-card-item,
+.admin-layout.theme-dark .offer-type-card-item,
+body.theme-dark .offer-type-card-item {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+}
+
+html[data-admin-theme='dark'] .variant-offer-card:hover:not(.disabled),
+.admin-layout.theme-dark .variant-offer-card:hover:not(.disabled),
+body.theme-dark .variant-offer-card:hover:not(.disabled),
+html[data-admin-theme='dark'] .offer-type-card-item:hover,
+.admin-layout.theme-dark .offer-type-card-item:hover,
+body.theme-dark .offer-type-card-item:hover {
+  background: #202632 !important;
+  border-color: #60a5fa !important;
+}
+
+html[data-admin-theme='dark'] .variant-offer-card.selected,
+.admin-layout.theme-dark .variant-offer-card.selected,
+body.theme-dark .variant-offer-card.selected,
+html[data-admin-theme='dark'] .offer-type-card-item.active,
+.admin-layout.theme-dark .offer-type-card-item.active,
+body.theme-dark .offer-type-card-item.active {
+  background: rgba(37, 99, 235, 0.18) !important;
+  border-color: #60a5fa !important;
+}
+
+html[data-admin-theme='dark'] .variant-config-title,
+.admin-layout.theme-dark .variant-config-title,
+body.theme-dark .variant-config-title,
+html[data-admin-theme='dark'] .offer-type-heading,
+.admin-layout.theme-dark .offer-type-heading,
+body.theme-dark .offer-type-heading {
+  color: #f8fafc !important;
+}
+
+html[data-admin-theme='dark'] .variant-config-price,
+.admin-layout.theme-dark .variant-config-price,
+body.theme-dark .variant-config-price {
+  color: #60a5fa !important;
+}
+
+html[data-admin-theme='dark'] .offer-type-subtext,
+.admin-layout.theme-dark .offer-type-subtext,
+body.theme-dark .offer-type-subtext {
+  color: #94a3b8 !important;
+}
+
+/* Step 1 Laptop Cards & Showcase Dark Mode */
+html[data-admin-theme='dark'] .laptop-select-card,
+.admin-layout.theme-dark .laptop-select-card,
+body.theme-dark .laptop-select-card {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+}
+
+html[data-admin-theme='dark'] .laptop-select-card:hover,
+.admin-layout.theme-dark .laptop-select-card:hover,
+body.theme-dark .laptop-select-card:hover {
+  background: #202632 !important;
+  border-color: #60a5fa !important;
+}
+
+html[data-admin-theme='dark'] .laptop-item-name,
+.admin-layout.theme-dark .laptop-item-name,
+body.theme-dark .laptop-item-name {
+  color: #f8fafc !important;
+}
+
+html[data-admin-theme='dark'] .selected-laptop-showcase,
+.admin-layout.theme-dark .selected-laptop-showcase,
+body.theme-dark .selected-laptop-showcase {
+  background: rgba(37, 99, 235, 0.15) !important;
+  border-color: rgba(96, 165, 250, 0.35) !important;
+}
+
+html[data-admin-theme='dark'] .showcase-title,
+.admin-layout.theme-dark .showcase-title,
+body.theme-dark .showcase-title {
+  color: #f8fafc !important;
+}
+
+html[data-admin-theme='dark'] .showcase-badge,
+.admin-layout.theme-dark .showcase-badge,
+body.theme-dark .showcase-badge {
+  color: #60a5fa !important;
+}
+
+html[data-admin-theme='dark'] .showcase-change-btn,
+.admin-layout.theme-dark .showcase-change-btn,
+body.theme-dark .showcase-change-btn {
+  background: #181d24 !important;
+  border-color: #3b424b !important;
+  color: #cbd5e1 !important;
+}
+
+html[data-admin-theme='dark'] .showcase-change-btn:hover,
+.admin-layout.theme-dark .showcase-change-btn:hover,
+body.theme-dark .showcase-change-btn:hover {
+  background: #ef4444 !important;
+  border-color: #ef4444 !important;
+  color: white !important;
 }
