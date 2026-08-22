@@ -18,7 +18,44 @@ const twoFactor = ref({ enabled: false, pending: false, recovery_codes_count: 0,
 const twoFactorSetup = ref(null)
 const twoFactorCode = ref('')
 const recoveryCodes = ref([])
+const recoveryCodesVisible = ref(false)
 const twoFactorBusy = ref(false)
+const twoFactorDialog = ref({ mode: '', value: '', error: '' })
+
+const twoFactorDialogContent = computed(() => ({
+  enable: {
+    title: 'Bảo vệ tài khoản bằng 2FA',
+    description: 'Xác nhận mật khẩu Admin trước khi tạo mã QR Authenticator.',
+    label: 'Mật khẩu hiện tại',
+    placeholder: 'Nhập mật khẩu Admin',
+    type: 'password',
+    submit: 'Tiếp tục thiết lập',
+  },
+  recovery: {
+    title: 'Tạo mã khôi phục mới',
+    description: 'Bộ mã cũ sẽ hết hiệu lực ngay sau khi tạo bộ mã mới.',
+    label: 'Mã Authenticator',
+    placeholder: 'Nhập mã gồm 6 số',
+    type: 'text',
+    submit: 'Tạo mã mới',
+  },
+  'view-recovery': {
+    title: 'Xem mã dự phòng',
+    description: 'Nhập mã Authenticator 6 số để mở bộ mã dự phòng hiện tại.',
+    label: 'Mã Authenticator',
+    placeholder: 'Nhập mã gồm 6 số',
+    type: 'text',
+    submit: 'Hiện 8 mã dự phòng',
+  },
+  disable: {
+    title: 'Tắt xác thực hai lớp',
+    description: 'Thao tác này làm giảm mức bảo vệ tài khoản. Hãy nhập mã Authenticator hoặc mã khôi phục để xác nhận.',
+    label: 'Mã xác thực',
+    placeholder: 'Mã Authenticator hoặc mã khôi phục',
+    type: 'text',
+    submit: 'Xác nhận tắt 2FA',
+  },
+}[twoFactorDialog.value.mode] || null))
 
 const defaultSettings = () => ({
   general: {
@@ -219,24 +256,35 @@ async function fetchTwoFactorStatus() {
   try {
     const { data } = await api.get('/admin/account/two-factor')
     twoFactor.value = data
+    twoFactorSetup.value = data.pending && data.qr_svg
+      ? { qr_svg: data.qr_svg, manual_key: data.manual_key }
+      : null
     form.value.security.require_2fa_for_admin = Boolean(data.enabled)
   } catch (_) {}
 }
 
 async function startTwoFactorSetup() {
   if (twoFactorBusy.value) return
-  const password = twoFactor.value.password_required
-    ? window.prompt('Nhập mật khẩu Admin hiện tại để thiết lập 2FA:')
-    : ''
-  if (twoFactor.value.password_required && !password) return
+  if (twoFactor.value.password_required) {
+    twoFactorDialog.value = { mode: 'enable', value: '', error: '' }
+    return
+  }
+  await enableTwoFactor('')
+}
+
+async function enableTwoFactor(password) {
   twoFactorBusy.value = true
   try {
     const { data } = await api.post('/admin/account/two-factor/enable', { password })
     twoFactorSetup.value = data
     twoFactorCode.value = ''
     recoveryCodes.value = []
+    twoFactor.value = { ...twoFactor.value, enabled: false, pending: true }
+    twoFactorDialog.value = { mode: '', value: '', error: '' }
   } catch (error) {
-    swal.error('Không thể thiết lập 2FA', error.response?.data?.errors?.password?.[0] || error.response?.data?.message || 'Vui lòng thử lại.')
+    const message = error.response?.data?.errors?.password?.[0] || error.response?.data?.message || 'Vui lòng thử lại.'
+    if (twoFactorDialog.value.mode === 'enable') twoFactorDialog.value.error = message
+    else swal.error('Không thể thiết lập 2FA', message)
   } finally {
     twoFactorBusy.value = false
   }
@@ -248,6 +296,7 @@ async function confirmTwoFactorSetup() {
   try {
     const { data } = await api.post('/admin/account/two-factor/confirm', { code: twoFactorCode.value })
     recoveryCodes.value = data.recovery_codes || []
+    recoveryCodesVisible.value = true
     twoFactorSetup.value = null
     await fetchTwoFactorStatus()
     swal.success('Đã bật 2FA', 'Tài khoản Admin hiện được bảo vệ bằng Authenticator.')
@@ -259,35 +308,117 @@ async function confirmTwoFactorSetup() {
 }
 
 async function disableTwoFactor() {
-  const code = window.prompt('Nhập mã Authenticator hoặc một mã khôi phục để tắt 2FA:')
-  if (!code) return
+  twoFactorDialog.value = { mode: 'disable', value: '', error: '' }
+}
+
+async function cancelPendingTwoFactor() {
+  if (twoFactorBusy.value) return
+  const confirmed = await swal.confirm(
+    'Hủy thiết lập 2FA?',
+    'Mã QR và khóa thiết lập hiện tại sẽ bị vô hiệu hóa.',
+    'Hủy thiết lập',
+    'Quay lại',
+  )
+  if (!confirmed) return
+  twoFactorBusy.value = true
+  try {
+    await api.delete('/admin/account/two-factor/pending')
+    twoFactorSetup.value = null
+    twoFactorCode.value = ''
+    recoveryCodes.value = []
+    await fetchTwoFactorStatus()
+    swal.success('Đã hủy thiết lập', 'Bạn có thể thiết lập lại 2FA bất kỳ lúc nào.')
+  } catch (error) {
+    swal.error('Không thể hủy thiết lập', error.response?.data?.message || 'Vui lòng thử lại.')
+  } finally {
+    twoFactorBusy.value = false
+  }
+}
+
+async function performDisableTwoFactor(code) {
   twoFactorBusy.value = true
   try {
     await api.delete('/admin/account/two-factor', { data: { code } })
     recoveryCodes.value = []
+    twoFactorDialog.value = { mode: '', value: '', error: '' }
     await fetchTwoFactorStatus()
     swal.success('Đã tắt 2FA', 'Xác thực hai lớp đã được tắt cho tài khoản này.')
   } catch (error) {
-    swal.error('Không thể tắt 2FA', error.response?.data?.errors?.code?.[0] || error.response?.data?.message || 'Mã xác thực không đúng.')
+    twoFactorDialog.value.error = error.response?.data?.errors?.code?.[0] || error.response?.data?.message || 'Mã xác thực không đúng.'
   } finally {
     twoFactorBusy.value = false
   }
 }
 
 async function regenerateRecoveryCodes() {
-  const code = window.prompt('Nhập mã Authenticator hiện tại để tạo bộ mã khôi phục mới:')
-  if (!code || twoFactorBusy.value) return
+  if (twoFactorBusy.value) return
+  twoFactorDialog.value = { mode: 'recovery', value: '', error: '' }
+}
+
+function viewRecoveryCodes() {
+  if (twoFactorBusy.value) return
+  twoFactorDialog.value = { mode: 'view-recovery', value: '', error: '' }
+}
+
+async function performViewRecoveryCodes(code) {
+  twoFactorBusy.value = true
+  try {
+    const { data } = await api.post('/admin/account/two-factor/recovery-codes/show', { code })
+    recoveryCodes.value = data.recovery_codes || []
+    recoveryCodesVisible.value = true
+    twoFactorDialog.value = { mode: '', value: '', error: '' }
+  } catch (error) {
+    twoFactorDialog.value.error = error.response?.data?.errors?.code?.[0] || error.response?.data?.message || 'Mã xác thực không đúng.'
+  } finally {
+    twoFactorBusy.value = false
+  }
+}
+
+async function performRegenerateRecoveryCodes(code) {
   twoFactorBusy.value = true
   try {
     const { data } = await api.post('/admin/account/two-factor/recovery-codes', { code })
     recoveryCodes.value = data.recovery_codes || []
+    recoveryCodesVisible.value = true
+    twoFactorDialog.value = { mode: '', value: '', error: '' }
     await fetchTwoFactorStatus()
     swal.success('Đã tạo mã mới', 'Bộ mã khôi phục cũ đã hết hiệu lực. Hãy lưu bộ mã mới ở nơi an toàn.')
   } catch (error) {
-    swal.error('Không thể tạo mã', error.response?.data?.errors?.code?.[0] || error.response?.data?.message || 'Mã xác thực không đúng.')
+    twoFactorDialog.value.error = error.response?.data?.errors?.code?.[0] || error.response?.data?.message || 'Mã xác thực không đúng.'
   } finally {
     twoFactorBusy.value = false
   }
+}
+
+async function submitTwoFactorDialog() {
+  const value = twoFactorDialog.value.value.trim()
+  if (!value || twoFactorBusy.value) return
+  twoFactorDialog.value.error = ''
+  if (twoFactorDialog.value.mode === 'enable') await enableTwoFactor(value)
+  if (twoFactorDialog.value.mode === 'recovery') await performRegenerateRecoveryCodes(value)
+  if (twoFactorDialog.value.mode === 'view-recovery') await performViewRecoveryCodes(value)
+  if (twoFactorDialog.value.mode === 'disable') await performDisableTwoFactor(value)
+}
+
+async function copyRecoveryCodes() {
+  if (!recoveryCodes.value.length) return
+  try {
+    await navigator.clipboard.writeText(recoveryCodes.value.join('\n'))
+    swal.success('Đã sao chép', 'Hãy lưu các mã dự phòng ở nơi an toàn.')
+  } catch (_) {
+    swal.error('Không thể sao chép', 'Trình duyệt không cho phép truy cập clipboard.')
+  }
+}
+
+function downloadRecoveryCodes() {
+  if (!recoveryCodes.value.length) return
+  const content = ['MÃ KHÔI PHỤC 2FA - NEXTGEN ADMIN', 'Mỗi mã chỉ sử dụng được một lần.', '', ...recoveryCodes.value].join('\n')
+  const url = URL.createObjectURL(new Blob([content], { type: 'text/plain;charset=utf-8' }))
+  const link = document.createElement('a')
+  link.href = url
+  link.download = 'nextgen-2fa-recovery-codes.txt'
+  link.click()
+  URL.revokeObjectURL(url)
 }
 
 onMounted(async () => {
@@ -459,8 +590,12 @@ onMounted(async () => {
           <div class="row">
             <div class="meta"><b>Yêu cầu 2FA cho admin</b><p>Bật yêu cầu xác thực hai lớp cho tài khoản quản trị.</p></div>
             <div class="two-factor-actions">
-              <span class="two-factor-status" :class="{ enabled: twoFactor.enabled }">{{ twoFactor.enabled ? 'Đang bảo vệ' : 'Chưa bật' }}</span>
-              <button v-if="!twoFactor.enabled" class="two-factor-btn" type="button" :disabled="twoFactorBusy" @click="startTwoFactorSetup">Thiết lập</button>
+              <button v-if="twoFactor.enabled" class="recovery-count" type="button" :disabled="twoFactorBusy" @click="viewRecoveryCodes">{{ twoFactor.recovery_codes_count || 0 }} mã dự phòng</button>
+              <span class="two-factor-status" :class="{ enabled: twoFactor.enabled, pending: twoFactor.pending }">
+                {{ twoFactor.enabled ? 'Đang bảo vệ' : (twoFactor.pending ? 'Chờ xác nhận' : 'Chưa thiết lập') }}
+              </span>
+              <button v-if="!twoFactor.enabled && !twoFactor.pending" class="two-factor-btn" type="button" :disabled="twoFactorBusy" @click="startTwoFactorSetup">Thiết lập</button>
+              <button v-else-if="twoFactor.pending" class="two-factor-btn danger" type="button" :disabled="twoFactorBusy" @click="cancelPendingTwoFactor">Hủy thiết lập</button>
               <template v-else>
                 <button class="two-factor-btn secondary" type="button" :disabled="twoFactorBusy" @click="regenerateRecoveryCodes">Mã khôi phục mới</button>
                 <button class="two-factor-btn danger" type="button" :disabled="twoFactorBusy" @click="disableTwoFactor">Tắt 2FA</button>
@@ -475,18 +610,29 @@ onMounted(async () => {
         <div v-if="twoFactorSetup" class="two-factor-setup">
           <div class="qr-code" v-html="twoFactorSetup.qr_svg"></div>
           <div>
+            <div class="two-factor-pending-warning">2FA chưa có hiệu lực — hãy nhập mã 6 số để hoàn tất</div>
             <b>Quét QR bằng Google hoặc Microsoft Authenticator</b>
             <p>Nếu không quét được, nhập khóa: <code>{{ twoFactorSetup.manual_key }}</code></p>
             <div class="confirm-code">
-              <input v-model="twoFactorCode" inputmode="numeric" maxlength="6" placeholder="Mã 6 số" @input="twoFactorCode = twoFactorCode.replace(/\D/g, '').slice(0, 6)" />
+              <input v-model="twoFactorCode" inputmode="numeric" maxlength="6" autocomplete="one-time-code" aria-label="Mã xác thực gồm 6 số" placeholder="Mã 6 số" @input="twoFactorCode = twoFactorCode.replace(/\D/g, '').slice(0, 6)" />
               <button type="button" :disabled="twoFactorBusy || twoFactorCode.length !== 6" @click="confirmTwoFactorSetup">Xác nhận bật</button>
             </div>
+            <small class="two-factor-code-hint" :class="{ ready: twoFactorCode.length === 6 }">
+              {{ twoFactorCode.length === 6 ? 'Đã nhập đủ 6 số — có thể xác nhận' : `Cần nhập thêm ${6 - twoFactorCode.length} số` }}
+            </small>
           </div>
         </div>
         <div v-if="recoveryCodes.length" class="recovery-card">
-          <b>Mã khôi phục — lưu ở nơi an toàn</b>
-          <p>Mỗi mã chỉ dùng được một lần. Không gửi các mã này cho bất kỳ ai.</p>
-          <div class="recovery-grid"><code v-for="item in recoveryCodes" :key="item">{{ item }}</code></div>
+          <div class="recovery-head">
+            <div><b>8 mã dự phòng khẩn cấp</b><p>Chỉ dùng khi mất Authenticator. Mỗi mã dùng được một lần.</p></div>
+            <div class="recovery-actions">
+              <button type="button" @click="copyRecoveryCodes">Sao chép</button>
+              <button type="button" @click="downloadRecoveryCodes">Tải .txt</button>
+              <button type="button" @click="recoveryCodesVisible = !recoveryCodesVisible">{{ recoveryCodesVisible ? 'Ẩn mã' : 'Hiện mã' }}</button>
+            </div>
+          </div>
+          <div v-if="recoveryCodesVisible" class="recovery-grid"><code v-for="item in recoveryCodes" :key="item">{{ item }}</code></div>
+          <div v-else class="recovery-hidden">•••••••• &nbsp; Mã dự phòng đang được ẩn</div>
         </div>
         <div class="form-grid compact">
           <label><span>Thời gian hết phiên (phút)</span><input v-model.number="form.security.session_timeout_minutes" type="number" min="15" max="1440" /></label>
@@ -548,6 +694,34 @@ onMounted(async () => {
         </div>
       </section>
     </main>
+
+    <Teleport to="body">
+      <div v-if="twoFactorDialogContent" class="two-factor-dialog-backdrop" @click.self="twoFactorDialog = { mode: '', value: '', error: '' }">
+        <form class="two-factor-dialog" @submit.prevent="submitTwoFactorDialog">
+          <div class="two-factor-dialog-icon">2FA</div>
+          <h3>{{ twoFactorDialogContent.title }}</h3>
+          <p>{{ twoFactorDialogContent.description }}</p>
+          <label>
+            <span>{{ twoFactorDialogContent.label }}</span>
+            <input
+              v-model="twoFactorDialog.value"
+              :type="twoFactorDialogContent.type"
+              :placeholder="twoFactorDialogContent.placeholder"
+              :inputmode="['recovery', 'view-recovery'].includes(twoFactorDialog.mode) ? 'numeric' : undefined"
+              autocomplete="one-time-code"
+              autofocus
+            />
+          </label>
+          <div v-if="twoFactorDialog.error" class="two-factor-dialog-error">{{ twoFactorDialog.error }}</div>
+          <div class="two-factor-dialog-actions">
+            <button type="button" class="dialog-cancel" :disabled="twoFactorBusy" @click="twoFactorDialog = { mode: '', value: '', error: '' }">Hủy</button>
+            <button type="submit" class="dialog-submit" :class="{ danger: twoFactorDialog.mode === 'disable' }" :disabled="twoFactorBusy || !twoFactorDialog.value.trim()">
+              {{ twoFactorBusy ? 'Đang xử lý...' : twoFactorDialogContent.submit }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -629,6 +803,33 @@ input:focus,select:focus{outline:none;border-color:#93c5fd;box-shadow:0 0 0 3px 
 .bar{width:20px;max-height:150px;border-radius:10px 10px 4px 4px;background:linear-gradient(180deg,#3b82f6,#2563eb)}
 .chart-col small{font-size:11px;color:#64748b}
 .chart-col p{margin:0;color:#334155;font-size:12px}
-.two-factor-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}.two-factor-status{padding:5px 9px;border-radius:999px;background:#f1f5f9;color:#64748b;font-size:10px!important;font-weight:800}.two-factor-status.enabled{background:#dcfce7;color:#15803d}.two-factor-btn{height:28px;padding:0 10px;border:1px solid #2563eb;border-radius:8px;background:#2563eb;color:#fff;font-size:10px!important;font-weight:800;cursor:pointer}.two-factor-btn.secondary{border-color:#bfdbfe;background:#eff6ff;color:#1d4ed8}.two-factor-btn.danger{border-color:#fecaca;background:#fff;color:#dc2626}.two-factor-btn:disabled{opacity:.55;cursor:not-allowed}.two-factor-setup{margin:12px 15px;padding:14px;display:grid;grid-template-columns:150px 1fr;align-items:center;gap:16px;border:1px solid #bfdbfe;border-radius:12px;background:#eff6ff}.qr-code{display:grid;place-items:center;padding:8px;border-radius:10px;background:#fff}.qr-code:deep(svg){display:block;width:132px;height:132px}.two-factor-setup b,.recovery-card>b{color:#0f172a;font-size:12px!important}.two-factor-setup p,.recovery-card p{margin:5px 0;color:#64748b;font-size:10.5px!important;line-height:1.4}.two-factor-setup code{word-break:break-all;color:#1d4ed8;font-size:10px}.confirm-code{display:flex;gap:7px;margin-top:10px}.confirm-code input{width:115px;height:32px;padding:0 8px;font-size:12px;text-align:center;letter-spacing:.12em}.confirm-code button{height:32px;padding:0 10px;border:0;border-radius:8px;background:#2563eb;color:#fff;font-size:10px!important;font-weight:800;cursor:pointer}.confirm-code button:disabled{opacity:.5}.recovery-card{margin:12px 15px;padding:14px;border:1px solid #fde68a;border-radius:12px;background:#fffbeb}.recovery-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:10px}.recovery-grid code{padding:6px 8px;border:1px dashed #f59e0b;border-radius:7px;background:#fff;color:#92400e;font-size:10px;text-align:center}
+.two-factor-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}.two-factor-status{padding:5px 9px;border-radius:999px;background:#f1f5f9;color:#64748b;font-size:10px!important;font-weight:800}.two-factor-status.enabled{background:#dcfce7;color:#15803d}.two-factor-status.pending{background:#fef3c7;color:#a16207}.recovery-count{padding:2px 3px;border:0;background:transparent;color:#60a5fa;font-size:10px;font-weight:800;cursor:pointer;text-decoration:underline;text-underline-offset:3px}.recovery-count:hover{color:#93c5fd}.two-factor-btn{height:28px;padding:0 10px;border:1px solid #2563eb;border-radius:8px;background:#2563eb;color:#fff;font-size:10px!important;font-weight:800;cursor:pointer}.two-factor-btn.secondary{border-color:#bfdbfe;background:#eff6ff;color:#1d4ed8}.two-factor-btn.danger{border-color:#fecaca;background:#fff;color:#dc2626}.two-factor-btn:disabled{opacity:.55;cursor:not-allowed}.two-factor-setup{margin:12px 15px;padding:14px;display:grid;grid-template-columns:150px 1fr;align-items:center;gap:16px;border:1px solid #bfdbfe;border-radius:12px;background:#eff6ff}.qr-code{display:grid;place-items:center;padding:8px;border-radius:10px;background:#fff}.qr-code:deep(svg){display:block;width:132px;height:132px}.two-factor-setup b,.recovery-card>b{color:#0f172a;font-size:12px!important}.two-factor-setup p,.recovery-card p{margin:5px 0;color:#64748b;font-size:10.5px!important;line-height:1.4}.two-factor-setup code{word-break:break-all;color:#1d4ed8;font-size:10px}.confirm-code{display:flex;gap:7px;margin-top:10px}.confirm-code input{width:115px;height:32px;padding:0 8px;font-size:12px;text-align:center;letter-spacing:.12em}.confirm-code button{height:32px;padding:0 10px;border:0;border-radius:8px;background:#2563eb;color:#fff;font-size:10px!important;font-weight:800;cursor:pointer}.confirm-code button:disabled{border:1px solid #475569;background:#334155;color:#94a3b8;opacity:1;cursor:not-allowed}.two-factor-code-hint{display:block;margin-top:6px;color:#f59e0b;font-size:10px;font-weight:700}.two-factor-code-hint.ready{color:#22c55e}.recovery-card{margin:12px 15px;padding:14px;border:1px solid #fde68a;border-radius:12px;background:#fffbeb}.recovery-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:10px}.recovery-grid code{padding:6px 8px;border:1px dashed #f59e0b;border-radius:7px;background:#fff;color:#92400e;font-size:10px;text-align:center}
+.two-factor-pending-warning{width:fit-content;margin-bottom:9px;padding:6px 9px;border:1px solid #f59e0b;border-radius:8px;background:#fffbeb;color:#a16207;font-size:10.5px;font-weight:800}
+.recovery-head{display:flex;align-items:center;justify-content:space-between;gap:14px}.recovery-head b{color:#0f172a;font-size:12px}.recovery-actions{display:flex;gap:6px;flex-wrap:wrap}.recovery-actions button{height:28px;padding:0 9px;border:1px solid #d97706;border-radius:7px;background:#fff;color:#92400e;font-size:10px;font-weight:800;cursor:pointer}.recovery-hidden{margin-top:10px;padding:13px;border:1px dashed #d97706;border-radius:8px;color:#92400e;text-align:center;font-size:11px;font-weight:700}
+.two-factor-dialog-backdrop{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;padding:20px;background:rgba(2,6,23,.68);backdrop-filter:blur(6px)}
+.two-factor-dialog{width:min(430px,100%);padding:26px;border:1px solid #dbeafe;border-radius:20px;background:#fff;box-shadow:0 28px 80px rgba(2,6,23,.4)}
+.two-factor-dialog-icon{display:grid;place-items:center;width:54px;height:54px;margin-bottom:14px;border-radius:16px;background:linear-gradient(135deg,#2563eb,#60a5fa);color:#fff;font-size:15px;font-weight:900;box-shadow:0 10px 24px rgba(37,99,235,.28)}
+.two-factor-dialog h3{margin:0;color:#0f172a;font-size:20px}.two-factor-dialog>p{margin:7px 0 20px;color:#64748b;font-size:13px;line-height:1.55}.two-factor-dialog label span{font-size:12px;font-weight:800;color:#334155}.two-factor-dialog input{height:44px;margin-top:2px;font-size:14px}.two-factor-dialog-error{margin-top:10px;padding:9px 11px;border-radius:9px;background:#fef2f2;color:#dc2626;font-size:12px}.two-factor-dialog-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:20px}.two-factor-dialog-actions button{min-height:38px;padding:0 15px;border-radius:10px;font-size:12px;font-weight:800;cursor:pointer}.dialog-cancel{border:1px solid #dbe2ea;background:#fff;color:#475569}.dialog-submit{border:1px solid #2563eb;background:#2563eb;color:#fff}.dialog-submit.danger{border-color:#dc2626;background:#dc2626}.two-factor-dialog-actions button:disabled{opacity:.55;cursor:not-allowed}
+:global(html[data-admin-theme='dark'] .two-factor-dialog){border-color:#334155;background:#111827}
+:global(html[data-admin-theme='dark'] .two-factor-dialog h3){color:#f8fafc}
+:global(html[data-admin-theme='dark'] .two-factor-dialog>p){color:#94a3b8}
+:global(html[data-admin-theme='dark'] .two-factor-dialog label span){color:#cbd5e1}
+:global(html[data-admin-theme='dark'] .two-factor-dialog input){border-color:#475569;background:#1e293b;color:#f8fafc}
+:global(html[data-admin-theme='dark'] .dialog-cancel){border-color:#475569;background:#1e293b;color:#e2e8f0}
+:global(html[data-admin-theme='dark'] .two-factor-setup){border-color:#334155;background:#111827}
+:global(html[data-admin-theme='dark'] .two-factor-setup b){color:#f8fafc}
+:global(html[data-admin-theme='dark'] .two-factor-setup p){color:#94a3b8}
+:global(html[data-admin-theme='dark'] .two-factor-setup code){padding:2px 6px;border-radius:5px;background:#1e3a5f;color:#93c5fd}
+:global(html[data-admin-theme='dark'] .two-factor-setup .confirm-code input){border-color:#475569!important;background:#1e293b!important;color:#f8fafc!important;caret-color:#60a5fa!important;-webkit-text-fill-color:#f8fafc!important;opacity:1!important}
+:global(html[data-admin-theme='dark'] .two-factor-setup .confirm-code input::placeholder){color:#64748b}
+:global(html[data-admin-theme='dark'] .two-factor-setup .confirm-code input:-webkit-autofill){-webkit-box-shadow:0 0 0 1000px #1e293b inset!important;-webkit-text-fill-color:#f8fafc!important}
+:global(html[data-admin-theme='dark'] .two-factor-pending-warning){border-color:#a16207;background:#292524;color:#fde68a}
+:global(html[data-admin-theme='dark'] .recovery-card){border-color:#854d0e;background:#1c1917}
+:global(html[data-admin-theme='dark'] .recovery-card>b){color:#fef3c7}
+:global(html[data-admin-theme='dark'] .recovery-card p){color:#d6d3d1}
+:global(html[data-admin-theme='dark'] .recovery-grid code){border-color:#a16207;background:#292524;color:#fde68a}
+:global(html[data-admin-theme='dark'] .recovery-head b){color:#fef3c7}
+:global(html[data-admin-theme='dark'] .recovery-actions button){border-color:#a16207;background:#292524;color:#fde68a}
+:global(html[data-admin-theme='dark'] .recovery-hidden){border-color:#a16207;color:#fde68a}
 @media (max-width:1100px){.settings-v2{grid-template-columns:1fr}.left-card{position:static}.form-grid,.appearance-grid,.preview-card,.stats{grid-template-columns:1fr}.panel-head{align-items:flex-start;flex-direction:column}.row{align-items:flex-start}.switch{margin-top:4px}}
 </style>

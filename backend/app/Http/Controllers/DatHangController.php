@@ -569,6 +569,20 @@ class DatHangController extends Controller
         $userId = Auth::id();
         $diaChiGiaoHang = $request->diachi;
 
+        if (strtoupper((string) $request->PTTT) === 'COD') {
+            $hasActiveCodOrder = DatHang::where('id_khachhang', $userId)
+                ->where('PTTT', 'COD')
+                ->whereIn('trangthai', ['pending', 'confirmed', 'shipping'])
+                ->exists();
+
+            if ($hasActiveCodOrder) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn đang có một đơn COD chưa hoàn tất. Vui lòng hoàn tất hoặc hủy đơn cũ trước khi đặt đơn mới.',
+                ], 409);
+            }
+        }
+
         $recentUnpaidOrders = DatHang::where('id_khachhang', $userId)
             ->where('created_at', '>=', now()->subMinutes(30))
             ->where('trangthai', 'pending')
@@ -1424,7 +1438,7 @@ class DatHangController extends Controller
                 if (!is_array($files)) $files = [$files];
                 foreach ($files as $file) {
                     if ($file && $file->isValid()) {
-                        $filename = time().'_'.$file->getClientOriginalName();
+                        $filename = $file->hashName();
                         $proofPaths[] = $file->storeAs('refund_proofs', $filename, 'public');
                     }
                 }
@@ -1487,6 +1501,18 @@ class DatHangController extends Controller
     {
         $order = DatHang::findOrFail($id);
 
+        // API phía khách hàng chỉ được sửa đơn của chính họ. API admin đã được
+        // middleware admin kiểm tra quyền don_hang_sua trước khi tới đây.
+        if (! $request->is('api/admin/*') && (int) $order->id_khachhang !== (int) $request->user()->id) {
+            abort(403, 'Bạn không có quyền cập nhật đơn hàng này.');
+        }
+
+        $request->validate([
+            'proof' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,video/x-msvideo,video/webm', 'max:51200'],
+            'proofs' => ['nullable', 'array', 'max:8'],
+            'proofs.*' => ['file', 'mimetypes:image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,video/x-msvideo,video/webm', 'max:51200'],
+        ]);
+
         $existing = [];
         $proofSource = $order->minh_chung_hoan_tien 
             ?? $order->minh_chung 
@@ -1509,7 +1535,7 @@ class DatHangController extends Controller
             if (!is_array($files)) $files = [$files];
             foreach ($files as $file) {
                 if ($file && $file->isValid()) {
-                    $filename = time().'_'.$file->getClientOriginalName();
+                    $filename = $file->hashName();
                     $proofPaths[] = $file->storeAs('refund_proofs', $filename, 'public');
                 }
             }
@@ -1570,24 +1596,34 @@ class DatHangController extends Controller
             abort(404, 'Thieu duong dan tep.');
         }
 
-        $normalized = ltrim(str_replace(['\\', '..'], ['/', ''], $path), '/');
+        $decoded = rawurldecode((string) $path);
+        if (str_contains($decoded, "\0") || str_contains($decoded, '..') || str_starts_with($decoded, '/') || preg_match('/^[A-Za-z]:/', $decoded)) {
+            abort(400, 'Duong dan tep khong hop le.');
+        }
+
+        $normalized = str_replace('\\', '/', $decoded);
+        if (! str_starts_with($normalized, 'refund_proofs/') || substr_count($normalized, '/') !== 1) {
+            abort(403, 'Khong duoc phep truy cap tep nay.');
+        }
+
+        $user = $request->user();
+        $query = DatHang::query();
+        if ($user->vaitro === 'user') {
+            $query->where('id_khachhang', $user->id);
+        }
+
+        $needle = addcslashes($normalized, '%_\\');
+        $isReferenced = $query->where(function ($query) use ($needle) {
+            $query->where('minh_chung_hoan_tien', 'like', "%{$needle}%")
+                ->orWhere('du_lieu_thanh_toan', 'like', "%{$needle}%");
+        })->exists();
+
+        if (! $isReferenced) {
+            abort(403, 'Ban khong co quyen truy cap tep nay.');
+        }
 
         if (\Illuminate\Support\Facades\Storage::disk('public')->exists($normalized)) {
             return response()->file(\Illuminate\Support\Facades\Storage::disk('public')->path($normalized));
-        }
-
-        if (\Illuminate\Support\Facades\Storage::disk('local')->exists($normalized)) {
-            return response()->file(\Illuminate\Support\Facades\Storage::disk('local')->path($normalized));
-        }
-
-        $directPath = storage_path('app/' . $normalized);
-        if (file_exists($directPath)) {
-            return response()->file($directPath);
-        }
-
-        $directPublicPath = storage_path('app/public/' . $normalized);
-        if (file_exists($directPublicPath)) {
-            return response()->file($directPublicPath);
         }
 
         abort(404, 'Khong tim thay tep bang chung.');

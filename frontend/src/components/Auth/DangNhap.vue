@@ -17,6 +17,9 @@ const webOpening = ref(false)
 const socialOpening = ref(false)
 
 const failedAttempts = ref(Number(localStorage.getItem('login_failed_attempts') || 0))
+// Chỉ hiện cảnh báo sai mật khẩu sau một lần submit thất bại trong lần mở trang hiện tại.
+// Số lần sai vẫn được lưu để phục vụ khóa tạm, nhưng không làm cảnh báo cũ hiện mãi sau reload.
+const failedAttemptVisible = ref(false)
 const lockUntil = ref(Number(localStorage.getItem('login_lock_until') || 0))
 const lockCount = ref(Number(localStorage.getItem('login_lock_count') || 0))
 const secondsRemaining = ref(0)
@@ -53,7 +56,7 @@ const passwordError = computed(() => {
   if (secondsRemaining.value > 0) {
     return `Bạn đã nhập sai mật khẩu quá 5 lần. Vui lòng thử lại sau ${secondsRemaining.value} giây.`
   }
-  if (failedAttempts.value > 0 && failedAttempts.value < 5) {
+  if (failedAttemptVisible.value && failedAttempts.value > 0 && failedAttempts.value < 5) {
     const remaining = 5 - failedAttempts.value
     return `Bạn đã nhập sai mật khẩu. Còn lại ${remaining} lần thử.`
   }
@@ -348,6 +351,7 @@ const handleLogin = async () => {
     localStorage.removeItem('login_lock_until')
     localStorage.removeItem('login_lock_count')
     failedAttempts.value = 0
+    failedAttemptVisible.value = false
     lockUntil.value = 0
     lockCount.value = 0
     secondsRemaining.value = 0
@@ -390,7 +394,13 @@ const handleLogin = async () => {
       return
     }
 
-    // Increment failed attempts
+    // Chỉ tính là sai mật khẩu khi API thực sự trả về lỗi xác thực.
+    if (err.response?.status !== 401) {
+      showModal('error', 'Đăng nhập thất bại', formatAuthMessage(err, 'Không thể đăng nhập. Vui lòng thử lại.'))
+      return
+    }
+
+    failedAttemptVisible.value = true
     failedAttempts.value += 1
     localStorage.setItem('login_failed_attempts', failedAttempts.value)
 

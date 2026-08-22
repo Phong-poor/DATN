@@ -150,7 +150,8 @@ return [
         Features::twoFactorAuthentication([
             'confirm' => true,
             'confirmPassword' => true,
-            // 'window' => 0
+            // Chấp nhận lệch tối đa khoảng 60 giây giữa điện thoại và máy chủ.
+            'window' => 2,
         ]),
     ],
 

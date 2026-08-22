@@ -5,24 +5,33 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
-use Laravel\Fortify\Actions\ConfirmTwoFactorAuthentication;
 use Laravel\Fortify\Actions\EnableTwoFactorAuthentication;
 use Laravel\Fortify\Actions\GenerateNewRecoveryCodes;
 use Laravel\Fortify\Contracts\TwoFactorAuthenticationProvider;
+use Laravel\Fortify\Events\TwoFactorAuthenticationConfirmed;
 use Laravel\Fortify\Fortify;
+use PragmaRX\Google2FA\Google2FA;
 
 class AdminTwoFactorController extends Controller
 {
     public function status(Request $request)
     {
         $user = $request->user();
+        $pending = ! empty($user->two_factor_secret) && empty($user->two_factor_confirmed_at);
 
-        return response()->json([
+        $status = [
             'enabled' => $user->hasEnabledTwoFactorAuthentication(),
-            'pending' => ! empty($user->two_factor_secret) && empty($user->two_factor_confirmed_at),
+            'pending' => $pending,
             'recovery_codes_count' => $user->hasEnabledTwoFactorAuthentication() ? count($user->recoveryCodes()) : 0,
             'password_required' => empty($user->id_google),
-        ]);
+        ];
+
+        if ($pending) {
+            $status['qr_svg'] = $user->twoFactorQrCodeSvg();
+            $status['manual_key'] = Fortify::currentEncrypter()->decrypt($user->two_factor_secret);
+        }
+
+        return response()->json($status);
     }
 
     public function enable(Request $request, EnableTwoFactorAuthentication $enable)
@@ -41,17 +50,23 @@ class AdminTwoFactorController extends Controller
         ]);
     }
 
-    public function confirm(Request $request, ConfirmTwoFactorAuthentication $confirm)
+    public function confirm(Request $request, Google2FA $google2fa)
     {
         $validated = $request->validate(['code' => ['required', 'digits:6']]);
         $user = $request->user();
         $this->ensureAdmin($user);
 
-        try {
-            $confirm($user, $validated['code']);
-        } catch (ValidationException) {
+        if (empty($user->two_factor_secret)) {
             throw ValidationException::withMessages(['code' => ['Mã xác thực không đúng hoặc đã hết hạn.']]);
         }
+
+        $secret = Fortify::currentEncrypter()->decrypt($user->two_factor_secret);
+        if (! $google2fa->verifyKey($secret, $validated['code'], 2)) {
+            throw ValidationException::withMessages(['code' => ['Mã xác thực không đúng hoặc đã hết hạn. Hãy chờ mã mới rồi thử lại.']]);
+        }
+
+        $user->forceFill(['two_factor_confirmed_at' => now()])->save();
+        TwoFactorAuthenticationConfirmed::dispatch($user);
 
         $user->refresh();
 
@@ -77,6 +92,18 @@ class AdminTwoFactorController extends Controller
         ]);
     }
 
+    public function showRecoveryCodes(Request $request)
+    {
+        $validated = $request->validate(['code' => ['required', 'string']]);
+        $user = $request->user();
+        $this->ensureAdmin($user);
+        $this->verifyCodeOrRecovery($user, $validated['code']);
+
+        return response()->json([
+            'recovery_codes' => $user->fresh()->recoveryCodes(),
+        ]);
+    }
+
     public function disable(Request $request)
     {
         $validated = $request->validate(['code' => ['required', 'string']]);
@@ -91,6 +118,26 @@ class AdminTwoFactorController extends Controller
         ])->save();
 
         return response()->json(['message' => 'Đã tắt xác thực hai lớp.']);
+    }
+
+    public function cancelPending(Request $request)
+    {
+        $user = $request->user();
+        $this->ensureAdmin($user);
+
+        if ($user->hasEnabledTwoFactorAuthentication()) {
+            throw ValidationException::withMessages([
+                'two_factor' => ['2FA đã được bật. Hãy dùng chức năng Tắt 2FA.'],
+            ]);
+        }
+
+        $user->forceFill([
+            'two_factor_secret' => null,
+            'two_factor_recovery_codes' => null,
+            'two_factor_confirmed_at' => null,
+        ])->save();
+
+        return response()->json(['message' => 'Đã hủy thiết lập 2FA đang chờ xác nhận.']);
     }
 
     private function ensureAdmin($user): void

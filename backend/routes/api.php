@@ -52,7 +52,6 @@ use Illuminate\Support\Facades\Route;
 Route::get('/auth/google', [AuthController::class, 'redirectGoogle']);
 Route::get('/auth/google/callback', [AuthController::class, 'handleGoogle']);
 
-Route::get('/refund-file', [DatHangController::class, 'getRefundFile']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/auth/two-factor/challenge', [AuthController::class, 'verifyTwoFactorChallenge'])->middleware('throttle:5,1');
 Route::post('/register', [AuthController::class, 'register']);
@@ -436,7 +435,9 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::get('/account/two-factor', [AdminTwoFactorController::class, 'status']);
         Route::post('/account/two-factor/enable', [AdminTwoFactorController::class, 'enable'])->middleware('throttle:5,1');
         Route::post('/account/two-factor/confirm', [AdminTwoFactorController::class, 'confirm'])->middleware('throttle:5,1');
+        Route::delete('/account/two-factor/pending', [AdminTwoFactorController::class, 'cancelPending'])->middleware('throttle:5,1');
         Route::post('/account/two-factor/recovery-codes', [AdminTwoFactorController::class, 'recoveryCodes'])->middleware('throttle:3,1');
+        Route::post('/account/two-factor/recovery-codes/show', [AdminTwoFactorController::class, 'showRecoveryCodes'])->middleware('throttle:5,1');
         Route::delete('/account/two-factor', [AdminTwoFactorController::class, 'disable'])->middleware('throttle:5,1');
 
         // ===== ADMIN CHAT =====

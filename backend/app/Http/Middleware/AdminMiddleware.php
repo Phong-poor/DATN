@@ -32,8 +32,9 @@ class AdminMiddleware
             ], 403);
         }
 
-        // Quản trị viên tối cao (admin) có toàn quyền
-        if ($user->vaitro !== 'user') {
+        // Chỉ quản trị viên tối cao mới có toàn quyền. Các vai trò nhân viên
+        // phải tiếp tục đi qua bảng ánh xạ quyền ở bên dưới.
+        if ($user->vaitro === 'admin') {
             return $next($request);
         }
 
@@ -176,6 +177,14 @@ class AdminMiddleware
         if ($requiredPermission && !in_array($requiredPermission, $userPerms)) {
             return response()->json([
                 'message' => 'Tài khoản của bạn không có quyền thực hiện hành động này!'
+            ], 403);
+        }
+
+        // Fail closed: một API admin mới chưa được ánh xạ quyền không được tự
+        // động mở cho mọi nhân viên.
+        if (!$requiredPermission) {
+            return response()->json([
+                'message' => 'Tài khoản của bạn không có quyền truy cập chức năng này!'
             ], 403);
         }
 

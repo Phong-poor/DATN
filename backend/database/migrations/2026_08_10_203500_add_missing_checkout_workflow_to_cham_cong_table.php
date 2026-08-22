@@ -14,7 +14,7 @@ return new class extends Migration
             $table->text('ly_do_dieu_chinh')->nullable()->after('ghi_chu');
             $table->unsignedBigInteger('dieu_chinh_boi')->nullable()->after('ly_do_dieu_chinh');
             $table->timestamp('dieu_chinh_luc')->nullable()->after('dieu_chinh_boi');
-            $table->foreign('dieu_chinh_boi')->references('id')->on('khachhang')->nullOnDelete();
+            $table->foreign('dieu_chinh_boi')->references('id')->on('admins')->nullOnDelete();
         });
 
         DB::table('cham_cong')->whereNotNull('gio_ra')->update(['trang_thai' => 'completed']);
