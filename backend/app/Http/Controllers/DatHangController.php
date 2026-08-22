@@ -1361,9 +1361,10 @@ class DatHangController extends Controller
         }
 
         // 1. Kiểm tra trạng thái upload tệp từ PHP server (bắt lỗi UPLOAD_ERR_*)
-        if ($request->hasFile('proof')) {
-            $proofFile = $request->file('proof');
-            if (!$proofFile->isValid()) {
+        $checkFiles = $request->hasFile('proofs') ? $request->file('proofs') : ($request->hasFile('proof') ? [$request->file('proof')] : []);
+        if (!is_array($checkFiles)) $checkFiles = [$checkFiles];
+        foreach ($checkFiles as $proofFile) {
+            if ($proofFile && !$proofFile->isValid()) {
                 $errCode = $proofFile->getError();
                 $errMsg = $proofFile->getErrorMessage();
                 $maxUpload = ini_get('upload_max_filesize');
@@ -1371,42 +1372,48 @@ class DatHangController extends Controller
 
                 $detailMsg = "Lỗi tải tệp (Mã {$errCode}: {$errMsg}). Cấu hình PHP hiện tại: upload_max_filesize={$maxUpload}, post_max_size={$maxPost}.";
                 if ($errCode === UPLOAD_ERR_INI_SIZE || $errCode === UPLOAD_ERR_FORM_SIZE) {
-                    $detailMsg = "Tệp bị PHP chặn do vượt quá upload_max_filesize ({$maxUpload}) hoặc post_max_size ({$maxPost}) của Hosting. Vui lòng đặt cả 2 thông số này bằng 64M hoặc 2G trong cPanel.";
+                    $detailMsg = "Tệp bị chặn do vượt quá upload_max_filesize ({$maxUpload}) hoặc post_max_size ({$maxPost}).";
                 } elseif ($errCode === UPLOAD_ERR_CANT_WRITE || $errCode === UPLOAD_ERR_NO_TMP_DIR) {
-                    $detailMsg = "Lỗi phân quyền hoặc dung lượng thư mục tạm (upload_tmp_dir) trên Hosting. Mã lỗi: {$errCode}.";
+                    $detailMsg = "Lỗi phân quyền hoặc dung lượng thư mục tạm (upload_tmp_dir). Mã lỗi: {$errCode}.";
                 }
 
                 return response()->json([
                     'success' => false,
                     'message' => $detailMsg,
-                    'errors' => ['proof' => [$detailMsg]]
+                    'errors' => ['proofs' => [$detailMsg]]
                 ], 422);
             }
         }
 
         // 2. Kiểm tra dữ liệu hợp lệ
-        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
-            'lydo' => 'required|string',
-            'proof' => [
-                'required',
-                'file',
-                'max:51200',
-                function ($attribute, $value, $fail) {
-                    if ($value && $value->isValid()) {
-                        $ext = strtolower($value->getClientOriginalExtension());
-                        $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mov', 'avi', 'wmv', 'webm', 'mkv', 'flv', '3gp', 'quicktime'];
-                        if (!in_array($ext, $allowed)) {
-                            $fail('Định dạng tệp không được hỗ trợ. Vui lòng chọn tệp ảnh hoặc video (MP4, MOV, AVI, JPG, PNG).');
-                        }
+        $fileValidationRules = [
+            'file',
+            'max:51200',
+            function ($attribute, $value, $fail) {
+                if ($value && $value->isValid()) {
+                    $ext = strtolower($value->getClientOriginalExtension());
+                    $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mov', 'avi', 'wmv', 'webm', 'mkv', 'flv', '3gp', 'quicktime'];
+                    if (!in_array($ext, $allowed)) {
+                        $fail('Định dạng tệp không được hỗ trợ. Vui lòng chọn tệp ảnh hoặc video (MP4, MOV, AVI, JPG, PNG).');
                     }
                 }
-            ],
+            }
+        ];
+
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+            'lydo' => 'required|string',
+            'proof' => array_merge(['required_without:proofs'], $fileValidationRules),
+            'proofs' => 'required_without:proof|array|min:1',
+            'proofs.*' => $fileValidationRules,
             'item_ids' => 'required|array|min:1',
             'item_ids.*' => 'integer|distinct',
         ], [
+            'proof.required_without' => 'Vui lòng đính kèm tệp ảnh hoặc video bằng chứng.',
+            'proofs.required_without' => 'Vui lòng đính kèm tệp ảnh hoặc video bằng chứng.',
             'proof.uploaded' => 'Tệp bằng chứng tải lên thất bại do giới hạn upload_max_filesize của PHP Hosting.',
             'proof.max' => 'Tệp bằng chứng không được vượt quá 50MB.',
-            'proof.required' => 'Vui lòng đính kèm tệp ảnh hoặc video bằng chứng.',
+            'proofs.*.max' => 'Tệp bằng chứng không được vượt quá 50MB.',
+            'proofs.*.uploaded' => 'Tệp bằng chứng tải lên thất bại.',
             'lydo.required' => 'Vui lòng nhập lý do hoàn trả.',
             'item_ids.required' => 'Vui lòng chọn ít nhất 1 sản phẩm cần hoàn trả.',
         ]);
@@ -1635,7 +1642,7 @@ class DatHangController extends Controller
     {
         $this->syncDueDemoShipments();
 
-        $orders = DatHang::with(['user', 'chi_tiets.bienThe.sanPham'])
+        $orders = DatHang::with(['user', 'nhanVien', 'chi_tiets.bienThe.sanPham'])
             ->where(function ($query) {
                 $query->whereNotIn('PTTT', ['vnpay', 'momo'])
                     ->orWhereIn('trang_thai_thanh_toan', ['paid', 'refunded']);
@@ -1728,6 +1735,10 @@ class DatHangController extends Controller
                 'trangthai' => $newStatus,
                 'du_lieu_thanh_toan' => $this->paymentDataWithStatusTime($order, $newStatus),
             ];
+            if (!$order->id_nhanvien && Auth::id()) {
+                $updateData['id_nhanvien'] = Auth::id();
+                $order->id_nhanvien = Auth::id();
+            }
             if ($newStatus === 'cancelled') {
                 $updateData['du_lieu_thanh_toan']['cancellation'] = [
                     'source' => 'admin',
@@ -1764,6 +1775,8 @@ class DatHangController extends Controller
 
             // Broadcast the status update safely
             $this->safeBroadcastOrderStatus($order);
+
+            $order->load(['user', 'nhanVien', 'chi_tiets.bienThe.sanPham']);
 
             return response()->json([
                 'success' => true,
@@ -2163,5 +2176,160 @@ class DatHangController extends Controller
         } catch (\Exception $e) {
             Log::error('Lỗi dọn dẹp đơn hàng chưa thanh toán: '.$e->getMessage());
         }
+    }
+
+    public function assignEmployee(Request $request, $id)
+    {
+        $request->validate([
+            'id_nhanvien' => 'nullable|exists:admins,id',
+        ]);
+
+        $order = DatHang::findOrFail($id);
+        $order->id_nhanvien = $request->id_nhanvien;
+        $order->save();
+
+        $order->load(['user', 'nhanVien', 'chi_tiets.bienThe.sanPham']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Phân công nhân viên xử lý đơn hàng thành công!',
+            'order' => $order,
+        ]);
+    }
+
+    public function getEmployeeStats(Request $request)
+    {
+        $employeeId = $request->query('id_nhanvien');
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+        $status = $request->query('trangthai', 'done');
+
+        $query = DatHang::query();
+
+        if ($employeeId && $employeeId !== 'all') {
+            $query->where('id_nhanvien', $employeeId);
+        }
+
+        if ($status && $status !== 'all') {
+            $query->where('trangthai', $status);
+        }
+
+        if ($startDate) {
+            $query->whereDate('created_at', '>=', $startDate);
+        }
+        if ($endDate) {
+            $query->whereDate('created_at', '<=', $endDate);
+        }
+
+        $orders = $query->with(['chi_tiets.bienThe.sanPham', 'nhanVien'])->get();
+
+        $totalOrders = $orders->count();
+        $totalRevenue = $orders->sum('tongtien');
+
+        $leaderboard = [];
+        $timeline = [];
+        $products = [];
+
+        foreach ($orders as $order) {
+            $empId = $order->id_nhanvien ?? 0;
+            $empName = $order->nhanVien?->name ?? 'Chưa phân công';
+
+            $dateKey = Carbon::parse($order->created_at)->format('Y-m-d');
+
+            if (!isset($timeline[$dateKey])) {
+                $timeline[$dateKey] = [
+                    'date' => $dateKey,
+                    'orders_count' => 0,
+                    'revenue' => 0,
+                    'items_count' => 0
+                ];
+            }
+            $timeline[$dateKey]['orders_count']++;
+            $timeline[$dateKey]['revenue'] += $order->tongtien;
+
+            if ($empId) {
+                if (!isset($leaderboard[$empId])) {
+                    $leaderboard[$empId] = [
+                        'id' => $empId,
+                        'name' => $empName,
+                        'email' => $order->nhanVien?->email,
+                        'orders_count' => 0,
+                        'revenue' => 0,
+                        'items_count' => 0
+                    ];
+                }
+                $leaderboard[$empId]['orders_count']++;
+                $leaderboard[$empId]['revenue'] += $order->tongtien;
+            }
+
+            foreach ($order->chi_tiets as $item) {
+                $sp = $item->bienThe?->sanPham;
+                $bt = $item->bienThe;
+                if (!$sp) continue;
+
+                $spId = $sp->id_sanpham ?? $sp->id;
+                $spName = $sp->tenSP;
+
+                $variantName = '';
+                if ($bt->thuoc_tinh_json) {
+                    $attrs = is_array($bt->thuoc_tinh_json) ? $bt->thuoc_tinh_json : (json_decode($bt->thuoc_tinh_json, true) ?: []);
+                    $parts = [];
+                    foreach ($attrs as $k => $v) {
+                        if (is_array($v)) {
+                            if (isset($v['ten_thuoctinh']) && isset($v['giatri'])) {
+                                $parts[] = $v['ten_thuoctinh'] . ': ' . $v['giatri'];
+                            } else {
+                                foreach ($v as $subK => $subV) {
+                                    if (is_scalar($subV)) {
+                                        $parts[] = "$subK: $subV";
+                                    }
+                                }
+                            }
+                        } elseif (is_scalar($v)) {
+                            $parts[] = "$k: $v";
+                        }
+                    }
+                    $variantName = implode(', ', $parts);
+                }
+
+                $prodKey = $spId . '_' . ($bt->id_bienthe ?? 0);
+
+                if (!isset($products[$prodKey])) {
+                    $products[$prodKey] = [
+                        'product_id' => $spId,
+                        'product_name' => $spName,
+                        'variant_name' => $variantName,
+                        'image' => $bt->hinhanh ?: $sp->hinhanh ?: '',
+                        'quantity' => 0,
+                        'revenue' => 0
+                    ];
+                }
+
+                $products[$prodKey]['quantity'] += $item->soluong;
+                $products[$prodKey]['revenue'] += $item->soluong * $item->gia;
+
+                $timeline[$dateKey]['items_count'] += $item->soluong;
+                if ($empId && isset($leaderboard[$empId])) {
+                    $leaderboard[$empId]['items_count'] += $item->soluong;
+                }
+            }
+        }
+
+        usort($products, fn($a, $b) => $b['quantity'] <=> $a['quantity']);
+        usort($leaderboard, fn($a, $b) => $b['revenue'] <=> $a['revenue']);
+        ksort($timeline);
+        $timeline = array_values($timeline);
+
+        return response()->json([
+            'success' => true,
+            'summary' => [
+                'total_orders' => $totalOrders,
+                'total_revenue' => $totalRevenue,
+                'total_items' => array_sum(array_column($products, 'quantity')),
+            ],
+            'products' => array_values($products),
+            'leaderboard' => $leaderboard,
+            'timeline' => $timeline,
+        ]);
     }
 }

@@ -862,7 +862,7 @@ class ChamCongController extends Controller
             ]);
     }
 
-    private function calculateAttendanceTotals(User $user, string $gioVao, string $gioRa): array
+    private function calculateAttendanceTotals(Admin $user, string $gioVao, string $gioRa): array
     {
         $gioVaoPhut = $this->timeToMinutes($gioVao);
         $gioRaPhut = $this->timeToMinutes($gioRa);
@@ -886,7 +886,7 @@ class ChamCongController extends Controller
         ];
     }
 
-    private function attendanceScheduleError(User $user, Carbon $date): ?string
+    private function attendanceScheduleError(Admin $user, Carbon $date): ?string
     {
         $approvedLeave = DonXinNghi::where('id_nhanvien', $user->id)
             ->where('trang_thai', 'approved')
@@ -917,7 +917,7 @@ class ChamCongController extends Controller
         return null;
     }
 
-    private function checkInTimeError(User $user, Carbon $now): ?string
+    private function checkInTimeError(Admin $user, Carbon $now): ?string
     {
         $schedule = $this->scheduleMinutes($user);
         [$start, $end] = match ($schedule['shift']) {
@@ -938,7 +938,7 @@ class ChamCongController extends Controller
         return null;
     }
 
-    private function scheduleMinutes(?User $user = null): array
+    private function scheduleMinutes(?Admin $user = null): array
     {
         $schedule = CauHinhCaLam::current()->toScheduleArray();
         $shift = $user

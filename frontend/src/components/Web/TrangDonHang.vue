@@ -135,6 +135,98 @@ const refundProof = ref(null)
 const refundProofUrl = ref(null)
 const refundSelectedItems = ref([])
 
+// New multi-file state for images + video
+const refundImages = ref([])        // Array of { file, url }
+const refundVideo = ref(null)       // { file, url } or null
+const isDraggingOver = ref(false)
+
+const ALLOWED_IMAGE_TYPES = ['image/jpeg','image/jpg','image/png','image/gif','image/webp','image/svg+xml','image/bmp','image/heic','image/heif']
+const ALLOWED_VIDEO_TYPES = ['video/mp4','video/quicktime','video/avi','video/x-msvideo','video/webm','video/x-matroska','video/x-flv','video/3gpp','video/x-m4v','video/wmv']
+
+const isAllowedImageType = (file) => ALLOWED_IMAGE_TYPES.includes(file.type) || /\.(jpeg|jpg|png|gif|webp|svg|bmp|heic|heif)$/i.test(file.name)
+const isAllowedVideoType = (file) => ALLOWED_VIDEO_TYPES.includes(file.type) || /\.(mp4|mov|avi|wmv|webm|mkv|flv|3gp|m4v)$/i.test(file.name)
+
+const processProofFiles = (files) => {
+    const invalidFiles = []
+    const images = []
+    const videos = []
+
+    files.forEach(file => {
+        if (isAllowedImageType(file)) {
+            images.push(file)
+        } else if (isAllowedVideoType(file)) {
+            videos.push(file)
+        } else {
+            invalidFiles.push(file.name)
+        }
+    })
+
+    if (invalidFiles.length > 0) {
+        swal.warning('File không hợp lệ', `Các file sau không được hỗ trợ và đã bị bỏ qua:\n${invalidFiles.join('\n')}\n\nChỉ chấp nhận ảnh (JPG, PNG, GIF, WEBP...) và video (MP4, MOV, AVI, WEBM...).`)
+    }
+
+    // Add images (append)
+    images.forEach(file => {
+        refundImages.value.push({ file, url: URL.createObjectURL(file) })
+    })
+
+    // Handle video: only 1 allowed
+    if (videos.length > 0) {
+        if (videos.length > 1) {
+            swal.warning('Thông báo', 'Chỉ được gửi 1 video duy nhất. Chỉ video đầu tiên được chọn.')
+        }
+        if (refundVideo.value?.url) URL.revokeObjectURL(refundVideo.value.url)
+        refundVideo.value = { file: videos[0], url: URL.createObjectURL(videos[0]) }
+    }
+}
+
+const handleProofDragOver = (e) => {
+    e.preventDefault()
+    isDraggingOver.value = true
+}
+
+const handleProofDragLeave = () => {
+    isDraggingOver.value = false
+}
+
+const handleProofDrop = (e) => {
+    e.preventDefault()
+    isDraggingOver.value = false
+    const files = Array.from(e.dataTransfer.files || [])
+    if (files.length > 0) processProofFiles(files)
+}
+
+const handleProofFileInput = (e) => {
+    const files = Array.from(e.target.files || [])
+    if (files.length > 0) processProofFiles(files)
+    e.target.value = ''
+}
+
+const handleVideoFileInput = (e) => {
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0) return
+    const videoFiles = files.filter(f => isAllowedVideoType(f))
+    const invalidFiles = files.filter(f => !isAllowedVideoType(f))
+    if (invalidFiles.length > 0) {
+        swal.warning('File không hợp lệ', `Chỉ chấp nhận file video (MP4, MOV, AVI, WEBM...).`)
+    }
+    if (videoFiles.length > 0) {
+        if (refundVideo.value?.url) URL.revokeObjectURL(refundVideo.value.url)
+        refundVideo.value = { file: videoFiles[0], url: URL.createObjectURL(videoFiles[0]) }
+    }
+    e.target.value = ''
+}
+
+const removeRefundImage = (index) => {
+    const img = refundImages.value.splice(index, 1)[0]
+    if (img?.url) URL.revokeObjectURL(img.url)
+}
+
+const removeRefundVideo = () => {
+    if (refundVideo.value?.url) URL.revokeObjectURL(refundVideo.value.url)
+    refundVideo.value = null
+}
+
 const handleProofUpload = (e) => {
     const files = Array.from(e.target.files || [])
     if (files.length > 0) {
@@ -155,6 +247,12 @@ const openRefundModal = (order) => {
     if (refundProofUrl.value) URL.revokeObjectURL(refundProofUrl.value)
     refundProofUrl.value = null
     refundSelectedItems.value = []
+    // Clear new file state
+    refundImages.value.forEach(img => { if (img?.url) URL.revokeObjectURL(img.url) })
+    refundImages.value = []
+    if (refundVideo.value?.url) URL.revokeObjectURL(refundVideo.value.url)
+    refundVideo.value = null
+    isDraggingOver.value = false
     showRefundModal.value = true
 }
 
@@ -167,8 +265,8 @@ const confirmRefund = async () => {
         swal.warning('Thông báo', 'Vui lòng nhập lý do hoàn trả.')
         return
     }
-    if (!refundProof.value || (Array.isArray(refundProof.value) && refundProof.value.length === 0)) {
-        swal.warning('Thông báo', 'Vui lòng tải lên ảnh/video bằng chứng.')
+    if (!refundVideo.value) {
+        swal.warning('Thông báo', 'Video bằng chứng là bắt buộc. Vui lòng tải lên 1 video.')
         return
     }
 
@@ -176,11 +274,10 @@ const confirmRefund = async () => {
     try {
         const formData = new FormData()
         formData.append('lydo', refundReason.value)
-        if (Array.isArray(refundProof.value)) {
-            refundProof.value.forEach(f => formData.append('proofs[]', f))
-        } else {
-            formData.append('proof', refundProof.value)
-        }
+        // Append images
+        refundImages.value.forEach(img => formData.append('proofs[]', img.file))
+        // Append video (required)
+        formData.append('proofs[]', refundVideo.value.file)
         refundSelectedItems.value.forEach(id => {
             formData.append('item_ids[]', id)
         })
@@ -205,7 +302,7 @@ const confirmRefund = async () => {
 }
 
 const closeRefundModal = async () => {
-    if (refundReason.value.trim() || refundProof.value || refundSelectedItems.value.length > 0) {
+    if (refundReason.value.trim() || refundImages.value.length > 0 || refundVideo.value || refundSelectedItems.value.length > 0) {
         const confirmed = await swal.confirm(
             'Xác nhận đóng',
             'Bạn đang điền thông tin yêu cầu hoàn trả. Nếu đóng, các thông tin này sẽ bị mất. Bạn vẫn muốn tiếp tục chứ?',
@@ -221,6 +318,11 @@ const closeRefundModal = async () => {
         URL.revokeObjectURL(refundProofUrl.value)
         refundProofUrl.value = null
     }
+    refundImages.value.forEach(img => { if (img?.url) URL.revokeObjectURL(img.url) })
+    refundImages.value = []
+    if (refundVideo.value?.url) URL.revokeObjectURL(refundVideo.value.url)
+    refundVideo.value = null
+    isDraggingOver.value = false
     refundSelectedItems.value = []
 }
 
@@ -554,14 +656,72 @@ onUnmounted(() => {
 
                         <textarea v-model="refundReason" class="cancel-textarea mb-3" rows="3" placeholder="Nhập lý do hoàn trả..."></textarea>
                         
+                        <!-- ===== Upload ảnh / video bằng chứng ===== -->
                         <div class="mb-3">
-                            <label class="form-label" style="font-size: 13px; font-weight: 600;">Hình ảnh / Video bằng chứng</label>
-                            <input type="file" multiple @change="handleProofUpload" class="form-control" accept="image/*,video/*" />
-                            <small class="text-muted d-block mt-1" style="font-size: 11px;">Hỗ trợ ảnh hoặc video (tối đa 20MB)</small>
-                            
-                            <div v-if="refundProofUrl" class="mt-3" style="text-align: center;">
-                                <img v-if="refundProof && refundProof.type.startsWith('image/')" :src="refundProofUrl" alt="Bằng chứng" style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
-                                <video v-else-if="refundProof && refundProof.type.startsWith('video/')" :src="refundProofUrl" controls style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></video>
+                            <label class="form-label" style="font-size: 13px; font-weight: 600; color: #1e293b;">Hình ảnh / Video bằng chứng</label>
+
+                            <!-- Drag & Drop Zone -->
+                            <div
+                                class="refund-dropzone"
+                                :class="{ 'drag-over': isDraggingOver }"
+                                @dragover="handleProofDragOver"
+                                @dragleave="handleProofDragLeave"
+                                @drop="handleProofDrop"
+                            >
+                                <div class="dropzone-icon">
+                                    <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                        <polyline points="17 8 12 3 7 8"/>
+                                        <line x1="12" y1="3" x2="12" y2="15"/>
+                                    </svg>
+                                </div>
+                                <p class="dropzone-text">Kéo thả ảnh &amp; video vào đây</p>
+                                <p class="dropzone-hint">Hoặc chọn thủ công bên dưới</p>
+                                <div class="dropzone-btns">
+                                    <label class="dropzone-btn btn-images">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                                        Chọn ảnh
+                                        <input type="file" multiple accept="image/*" @change="handleProofFileInput" style="display:none;" />
+                                    </label>
+                                    <label class="dropzone-btn btn-video">
+                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+                                        {{ refundVideo ? 'Thay video' : 'Chọn video' }}
+                                        <input type="file" accept="video/*" @change="handleVideoFileInput" style="display:none;" />
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Hints -->
+                            <div style="display:flex; gap:16px; margin-top:8px; flex-wrap:wrap;">
+                                <small style="font-size:11px; color:#64748b;">📸 Ảnh: JPG, PNG, GIF, WEBP... (nhiều ảnh)</small>
+                                <small style="font-size:11px; color:#ef4444; font-weight:600;">🎥 Video: MP4, MOV, WEBM... (bắt buộc, tối đa 1 video)</small>
+                            </div>
+
+                            <!-- Preview: Images -->
+                            <div v-if="refundImages.length > 0" style="margin-top:12px;">
+                                <div style="font-size:12px; font-weight:600; color:#374151; margin-bottom:8px;">📸 Ảnh đính kèm ({{ refundImages.length }})</div>
+                                <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                                    <div v-for="(img, idx) in refundImages" :key="idx" style="position:relative; width:80px; height:80px; border-radius:8px; overflow:hidden; border:2px solid #e2e8f0; flex-shrink:0;">
+                                        <img :src="img.url" style="width:100%; height:100%; object-fit:cover;" />
+                                        <button @click.prevent="removeRefundImage(idx)" no-guard style="position:absolute; top:2px; right:2px; width:20px; height:20px; border-radius:50%; background:rgba(239,68,68,0.9); color:#fff; border:none; cursor:pointer; font-size:12px; line-height:1; display:flex; align-items:center; justify-content:center; padding:0;">×</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Preview: Video (Required) -->
+                            <div style="margin-top:12px;">
+                                <div style="font-size:12px; font-weight:600; margin-bottom:6px;" :style="refundVideo ? 'color:#374151;' : 'color:#ef4444;'">
+                                    🎥 Video bằng chứng <span style="font-size:11px;">(bắt buộc)</span>
+                                    <span v-if="!refundVideo" style="font-size:11px; color:#ef4444;"> — Chưa có video</span>
+                                </div>
+                                <div v-if="refundVideo" style="position:relative; display:inline-block; max-width:100%;">
+                                    <video :src="refundVideo.url" controls style="max-width:100%; max-height:180px; border-radius:8px; border:2px solid #3b82f6; display:block;"></video>
+                                    <button @click.prevent="removeRefundVideo" no-guard style="position:absolute; top:6px; right:6px; padding:3px 8px; background:rgba(239,68,68,0.9); color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:11px; font-weight:600;">✕ Xóa</button>
+                                    <div style="font-size:11px; color:#6b7280; margin-top:4px; word-break:break-all;">{{ refundVideo.file.name }}</div>
+                                </div>
+                                <div v-else style="padding:14px; background:#fef2f2; border:1px dashed #fca5a5; border-radius:8px; text-align:center; font-size:12px; color:#ef4444;">
+                                    ⚠️ Vui lòng tải lên 1 video bằng chứng để tiếp tục
+                                </div>
                             </div>
                         </div>
 
@@ -852,6 +1012,78 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+
+/* ===== REFUND DROPZONE ===== */
+.refund-dropzone {
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 20px 16px;
+    text-align: center;
+    background: #f8fafc;
+    transition: border-color 0.2s, background 0.2s;
+    cursor: default;
+    user-select: none;
+}
+.refund-dropzone.drag-over {
+    border-color: #3b82f6;
+    background: #eff6ff;
+}
+.dropzone-icon {
+    color: #94a3b8;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: center;
+}
+.refund-dropzone.drag-over .dropzone-icon {
+    color: #3b82f6;
+}
+.dropzone-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    margin: 0 0 2px;
+}
+.dropzone-hint {
+    font-size: 11px;
+    color: #94a3b8;
+    margin: 0 0 12px;
+}
+.dropzone-btns {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+.dropzone-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: none;
+    white-space: nowrap;
+}
+.dropzone-btn.btn-images {
+    background: #e0f2fe;
+    color: #0284c7;
+    border: 1px solid #bae6fd;
+}
+.dropzone-btn.btn-images:hover {
+    background: #bae6fd;
+}
+.dropzone-btn.btn-video {
+    background: #fef3c7;
+    color: #d97706;
+    border: 1px solid #fde68a;
+}
+.dropzone-btn.btn-video:hover {
+    background: #fde68a;
+}
+/* ===== END REFUND DROPZONE ===== */
 
 .page {
     min-height: 100vh;

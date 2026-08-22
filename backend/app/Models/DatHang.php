@@ -14,6 +14,7 @@ class DatHang extends Model
 
     protected $fillable = [
         'id_khachhang',
+        'id_nhanvien',
         'user_id',
         'tongtien',
         'trangthai',
@@ -80,5 +81,10 @@ class DatHang extends Model
     public function chiTiets()
     {
         return $this->chi_tiets();
+    }
+
+    public function nhanVien()
+    {
+        return $this->belongsTo(Admin::class, 'id_nhanvien', 'id');
     }
 }
