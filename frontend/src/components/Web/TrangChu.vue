@@ -548,11 +548,12 @@ onMounted(async () => {
 
     try {
         // Gọi song song toàn bộ API lấy dữ liệu ngầm
-        const [newsRes, productsBundle, bannersRes, affiliateVideoRes] = await Promise.all([
+        const [newsRes, productsBundle, bannersRes, affiliateVideoRes, reviewsRes] = await Promise.all([
             api.get('/news', { params: { scope: 'public', per_page: 6 } }).catch(e => { console.error('News API failed', e); return { data: { data: [] } }; }),
             prefetchProductsPage().catch(e => { console.error('Products bundle API failed', e); return { productsRaw: [], categories: [] }; }),
             api.get('/banners').catch(e => { console.error('Banners API failed', e); return { data: [] }; }),
-            api.get('/affiliate-videos/public', { params: { limit: 12 } }).catch(e => { console.error('Affiliate videos API failed', e); return { data: [] }; })
+            api.get('/affiliate-videos/public', { params: { limit: 12 } }).catch(e => { console.error('Affiliate videos API failed', e); return { data: [] }; }),
+            api.get('/reviews/featured', { params: { limit: 3 } }).catch(e => { console.error('Featured reviews API failed', e); return { data: { reviews: [] } }; })
         ])
 
         const fetchedNews = (newsRes.data?.data || newsRes.data?.items || []).map(mapNewsPost)
@@ -584,6 +585,7 @@ onMounted(async () => {
         const apiBanners = Array.isArray(bannersRes.data) ? bannersRes.data : (bannersRes.data?.data || [])
         bannerSlides.value = apiBanners.map(mapApiBannerToSlide)
         affiliateVideos.value = Array.isArray(affiliateVideoRes.data) ? affiliateVideoRes.data : (affiliateVideoRes.data?.data || [])
+        reviews.value = (reviewsRes.data?.reviews || []).map(mapFeaturedReview).filter(review => review.content)
         primeAffiliateVideoSlider()
         saveCache()
         setTimeout(initScrollReveal, 200)
@@ -731,11 +733,17 @@ const initStatsObserver = () => {
     observer.observe(section)
 }
 
-const reviews = [
-    { name: 'Trần Minh Quân', role: 'Creative Director', content: 'Thiết kế đẹp, mua hàng dễ, tư vấn đúng nhu cầu. Máy nhận được đúng như mong đợi và hiệu suất render vượt trội.', avatar: 'https://randomuser.me/api/portraits/men/32.jpg' },
-    { name: 'Nguyễn Phương Anh', role: 'Marketing Manager', content: 'Mình rất thích cách trình bày sản phẩm và trải nghiệm đặt hàng. Không gian hiển thị tối giản nhưng cực sang trọng.', avatar: 'https://randomuser.me/api/portraits/women/44.jpg' },
-    { name: 'Lê Hoàng Nam', role: 'Pro Gamer', content: 'Cấu hình cực mạnh, tản nhiệt tốt, giao hàng siêu nhanh. Phần gaming bento nhìn cực kỳ kích thích và chuyên nghiệp.', avatar: 'https://randomuser.me/api/portraits/men/52.jpg' }
-]
+const reviews = ref([])
+
+const mapFeaturedReview = (review) => ({
+    id: review.id,
+    name: review.customer_name || 'Khách hàng',
+    role: review.product_name ? `Đã mua ${review.product_name}` : 'Khách hàng đã mua hàng',
+    content: review.content || '',
+    rating: Math.max(1, Math.min(Number(review.rating) || 5, 5)),
+    avatar: review.avatar ? storageUrl(review.avatar) : '',
+    verifiedPurchase: Boolean(review.verified_purchase),
+})
 
 // Flash Sale Countdown Logic
 const days = ref('00')
@@ -1499,23 +1507,27 @@ onUnmounted(() => {
                     </div>
                 </div>
 
-                <div class="reviews-editorial-grid scroll-reveal reveal-stagger">
-                    <article class="editorial-review-card" v-for="(r, i) in reviews" :key="i">
-                        <div class="stars-row">★★★★★</div>
+                <div v-if="reviews.length" class="reviews-editorial-grid scroll-reveal reveal-stagger">
+                    <article class="editorial-review-card" v-for="r in reviews" :key="r.id">
+                        <div class="stars-row" :aria-label="`${r.rating} trên 5 sao`">
+                            <span v-for="star in 5" :key="star" :class="{ 'star-muted': star > r.rating }">★</span>
+                        </div>
                         <p class="review-quote">"{{ r.content }}"</p>
                         <div class="review-author-pill">
-                            <img :src="r.avatar" :alt="r.name" class="reviewer-avatar" />
+                            <img v-if="r.avatar" :src="r.avatar" :alt="r.name" class="reviewer-avatar" @error="handleImgError($event)" />
+                            <span v-else class="reviewer-avatar reviewer-avatar-fallback">{{ r.name.charAt(0).toUpperCase() }}</span>
                             <div class="reviewer-meta">
                                 <strong>{{ r.name }}</strong>
                                 <span>{{ r.role }}</span>
                             </div>
-                            <span class="verified-token">
+                            <span v-if="r.verifiedPurchase" class="verified-token">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"/></svg>
-                                Đã Mua
+                                Đã mua
                             </span>
                         </div>
                     </article>
                 </div>
+                <div v-else class="reviews-empty-state">Chưa có đánh giá khách hàng đã duyệt để hiển thị.</div>
             </div>
         </section>
 
@@ -3702,6 +3714,9 @@ onUnmounted(() => {
     margin-bottom: 16px;
     letter-spacing: 2px;
 }
+.stars-row .star-muted {
+    color: #cbd5e1;
+}
 .review-quote {
     font-size: 14.5px;
     line-height: 1.75;
@@ -3723,9 +3738,28 @@ onUnmounted(() => {
     object-fit: cover;
     border: 2px solid rgba(0, 0, 0, 0.05);
 }
+.reviewer-avatar-fallback {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 44px;
+    background: linear-gradient(135deg, #2563eb, #60a5fa);
+    color: #fff;
+    font-weight: 800;
+}
+.reviews-empty-state {
+    padding: 38px 24px;
+    border: 1px dashed var(--tn-border);
+    border-radius: 20px;
+    color: var(--tn-text-muted);
+    text-align: center;
+    background: var(--tn-surface);
+}
 .reviewer-meta {
     display: flex;
     flex-direction: column;
+    min-width: 0;
+    flex: 1;
 }
 .reviewer-meta strong {
     font-size: 13.5px;
@@ -3736,23 +3770,30 @@ onUnmounted(() => {
     font-size: 11px;
     color: var(--tn-text-muted);
     font-weight: 600;
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
 }
 .verified-token {
     margin-left: auto;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    font-size: 10px;
+    justify-content: center;
+    flex: 0 0 auto;
+    gap: 5px;
+    white-space: nowrap;
+    font-size: 11px;
     font-weight: 800;
-    color: var(--col-success);
-    background: rgba(37, 99, 235, 0.05);
-    border: 1px solid rgba(37, 99, 235, 0.12);
-    padding: 3px 8px;
-    border-radius: 4px;
+    color: #047857;
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    padding: 6px 10px;
+    border-radius: 999px;
 }
 .verified-token svg {
-    width: 12px;
-    height: 12px;
+    width: 14px;
+    height: 14px;
 }
 
 /* ─── 9. CYBER ECOSYSTEM NEWSLETTER CTA (Always Premium Dark Luxury themed) ─── */

@@ -3,8 +3,9 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { AlertTriangle, Banknote, CheckCircle, Clock, MessageSquare, ShieldCheck, Wallet } from 'lucide-vue-next'
 import api from '@/services/api'
 import swal from '@/services/swal'
+import { vietnamBanks } from '@/constants/vietnamBanks'
 
-const banks = ['Vietcombank', 'BIDV', 'VietinBank', 'Agribank', 'Techcombank', 'MB Bank', 'ACB', 'Sacombank', 'VPBank', 'TPBank']
+const banks = vietnamBanks
 const loading = ref(true)
 const submitting = ref(false)
 const wallet = ref({ balance: 0, pending_balance: 0, total_withdrawn: 0, formatted: {} })

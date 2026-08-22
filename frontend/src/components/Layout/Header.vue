@@ -1404,26 +1404,56 @@ const openLuckyWheelMobile = () => {
                   </button>
                 </template>
                 <template v-else>
+                  <p class="um-section-label">Tài khoản</p>
                   <router-link to="/profile" @click="showUser = false" class="um-item">
                     <span class="um-left">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                        <circle cx="12" cy="7" r="4" />
-                      </svg>
-                      Thông tin cá nhân
+                      <span class="um-icon-box profile">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                          <circle cx="12" cy="7" r="4" />
+                        </svg>
+                      </span>
+                      <span class="um-copy"><strong>Thông tin cá nhân</strong><small>Hồ sơ và bảo mật tài khoản</small></span>
                     </span>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                       <polyline points="9 18 15 12 9 6" />
                     </svg>
                   </router-link>
 
+                  <router-link to="/orderspage" @click="showUser = false" class="um-item">
+                    <span class="um-left">
+                      <span class="um-icon-box orders">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M6 2h12l2 4v16H4V6l2-4Z" />
+                          <path d="M4 7h16M9 11h6" />
+                        </svg>
+                      </span>
+                      <span class="um-copy"><strong>Đơn mua</strong><small>Theo dõi và quản lý đơn hàng</small></span>
+                    </span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6" /></svg>
+                  </router-link>
+
+                  <router-link to="/wishlistpage" @click="showUser = false" class="um-item">
+                    <span class="um-left">
+                      <span class="um-icon-box favorite">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z" />
+                        </svg>
+                      </span>
+                      <span class="um-copy"><strong>Yêu thích</strong><small>{{ wishlistItems.length }} sản phẩm đã lưu</small></span>
+                    </span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6" /></svg>
+                  </router-link>
+
                   <router-link to="/affiliate" @click="showUser = false" class="um-item">
                     <span class="um-left">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="2" y="7" width="20" height="14" rx="2" />
-                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-                      </svg>
-                      Affiliate Center
+                      <span class="um-icon-box affiliate">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <rect x="2" y="7" width="20" height="14" rx="2" />
+                          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                        </svg>
+                      </span>
+                      <span class="um-copy"><strong>Affiliate Center</strong><small>Tiếp thị và quản lý hoa hồng</small></span>
                     </span>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                       <polyline points="9 18 15 12 9 6" />
@@ -2728,8 +2758,8 @@ const openLuckyWheelMobile = () => {
 }
 
 .user-drop {
-  width: 280px;
-  min-width: 260px;
+  width: 304px;
+  min-width: 288px;
 }
 
 /* DROP HEADER */
@@ -2959,15 +2989,17 @@ const openLuckyWheelMobile = () => {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 14px 12px;
-  background: rgba(15, 23, 42, 0.42);
+  padding: 14px;
+  background:
+    radial-gradient(circle at 88% 0%, rgba(59, 130, 246, .22), transparent 42%),
+    linear-gradient(145deg, rgba(18, 36, 60, .96), rgba(8, 18, 32, .88));
   border-bottom: 1px solid rgba(148, 163, 184, 0.16);
 }
 
 .user-card-avatar {
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
   object-fit: cover;
   border: 2px solid rgba(96, 165, 250, 0.75);
   flex-shrink: 0;
@@ -2976,7 +3008,7 @@ const openLuckyWheelMobile = () => {
 
 .uc-name {
   font-family: 'Outfit', sans-serif;
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 900;
   color: #ffffff;
   margin-bottom: 2px;
@@ -2991,7 +3023,7 @@ const openLuckyWheelMobile = () => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 160px;
+  max-width: 190px;
 }
 
 .uc-badge {
@@ -3001,7 +3033,7 @@ const openLuckyWheelMobile = () => {
   color: #dbeafe;
   background: rgba(37, 99, 235, 0.38);
   border: 1px solid rgba(96, 165, 250, 0.55);
-  padding: 2px 7px;
+  padding: 3px 8px;
   border-radius: 20px;
   text-transform: capitalize;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
@@ -3015,11 +3047,21 @@ const openLuckyWheelMobile = () => {
   gap: 3px;
 }
 
+.um-section-label {
+  margin: 2px 8px 4px;
+  color: #7f91a8;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
 .um-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
+  min-height: 50px;
+  padding: 6px 9px;
   border-radius: 10px;
   font-family: 'Inter', sans-serif;
   font-size: 13.5px;
@@ -3037,6 +3079,48 @@ const openLuckyWheelMobile = () => {
   display: flex;
   align-items: center;
   gap: 9px;
+  min-width: 0;
+}
+
+.um-icon-box {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(148, 163, 184, .2);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .055);
+  color: #cbd5e1;
+  transition: transform .18s ease, border-color .18s ease, background .18s ease;
+}
+
+.um-icon-box.profile { color: #93c5fd; }
+.um-icon-box.orders { color: #c4b5fd; }
+.um-icon-box.favorite { color: #fda4af; }
+.um-icon-box.affiliate { color: #6ee7b7; }
+
+.um-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.um-copy strong {
+  color: inherit;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.2;
+}
+
+.um-copy small {
+  color: #8fa0b5;
+  font-size: 8.8px;
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
 }
 
 .um-left svg {
@@ -3052,10 +3136,18 @@ const openLuckyWheelMobile = () => {
 }
 
 .um-item:hover {
-  background: rgba(37, 99, 235, 0.42);
-  border-color: rgba(96, 165, 250, 0.62);
+  background: linear-gradient(90deg, rgba(37, 99, 235, .24), rgba(37, 99, 235, .1));
+  border-color: rgba(96, 165, 250, .4);
   color: #ffffff;
 }
+
+.um-item:hover .um-icon-box {
+  transform: translateX(2px);
+  border-color: rgba(96, 165, 250, .45);
+  background: rgba(37, 99, 235, .16);
+}
+
+.um-item:hover .um-copy small { color: #bfdbfe; }
 
 .um-item:hover>svg {
   color: #bfdbfe;
@@ -3074,6 +3166,7 @@ const openLuckyWheelMobile = () => {
 }
 
 .um-item.logout {
+  min-height: 40px;
   color: #fecaca;
   background: rgba(239, 68, 68, 0.20);
   border-color: rgba(239, 68, 68, 0.34);
@@ -3088,7 +3181,7 @@ const openLuckyWheelMobile = () => {
 .um-divider {
   height: 1px;
   background: rgba(148, 163, 184, 0.18);
-  margin: 4px 0;
+  margin: 5px 2px;
 }
 
 /* DROPDOWN TRANSITION */

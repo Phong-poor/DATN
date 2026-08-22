@@ -32,6 +32,7 @@ use App\Http\Controllers\GeocodeController;
 use App\Http\Controllers\GioHangController;
 use App\Http\Controllers\LienHeController;
 use App\Http\Controllers\MomoController;
+use App\Http\Controllers\MomoPayoutController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\PromotionController;
 use App\Http\Controllers\SanPhamController;
@@ -42,6 +43,7 @@ use App\Http\Controllers\ThuongHieuController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VaiTroController;
 use App\Http\Controllers\VnpayController;
+use App\Http\Controllers\VnpayPayoutController;
 use App\Http\Controllers\VongQuayController;
 use App\Http\Controllers\XuController;
 use App\Http\Controllers\YeuThichController;
@@ -61,6 +63,8 @@ Route::get('/vnpay/return', [VnpayController::class, 'vnpayReturn']);
 Route::get('/vnpay/ipn', [VnpayController::class, 'handleIPN']);
 Route::get('/momo/return', [MomoController::class, 'momoReturn']);
 Route::post('/momo/ipn', [MomoController::class, 'momoIpn']);
+Route::post('/payout/momo/ipn', [MomoPayoutController::class, 'ipn']);
+Route::post('/payout/vnpay/ipn', [VnpayPayoutController::class, 'ipn']);
 Route::post('/sepay/webhook', [SepayController::class, 'webhook']);
 
 Route::post('/forgot-password/send-otp', [ForgotPasswordController::class, 'sendOtp']);
@@ -279,6 +283,7 @@ Route::get('/sanpham/attribute-options', [SanPhamController::class, 'attributeOp
 Route::get('/sanpham', [SanPhamController::class, 'index']);
 Route::get('/sanpham/{id}', [SanPhamController::class, 'show']);
 Route::get('/sanpham/{id}/reviews', [DanhGiaController::class, 'index']);
+Route::get('/reviews/featured', [DanhGiaController::class, 'featured']);
 
 // ================= COMBOS =================
 Route::get('/combos', [ComboController::class, 'index']);
@@ -493,4 +498,3 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::get('/vong-quay/lich-su', [VongQuayController::class, 'adminHistory']);
 
     });
-

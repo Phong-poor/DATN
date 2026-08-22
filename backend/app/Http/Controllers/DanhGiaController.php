@@ -33,6 +33,44 @@ class DanhGiaController extends Controller
         ]);
     }
 
+    /** Các đánh giá đã duyệt dùng cho khu vực ý kiến khách hàng trên trang chủ. */
+    public function featured(Request $request)
+    {
+        $limit = max(1, min((int) $request->query('limit', 3), 6));
+
+        $reviews = DanhGia::query()
+            ->with([
+                'user:id,ten,anhdaidien',
+                'bienThe:id_bienthe,id_sanpham',
+                'bienThe.sanPham:id_sanpham,tenSP',
+            ])
+            ->where('trangthai', 'approved')
+            ->whereNotNull('binhluan')
+            ->whereRaw("TRIM(binhluan) <> ''")
+            ->whereHas('user')
+            ->whereHas('bienThe.sanPham')
+            ->orderByDesc('danhgia')
+            ->orderByDesc('created_at')
+            ->limit($limit)
+            ->get()
+            ->map(function (DanhGia $review) {
+                $customerComment = trim((string) preg_split('/\R\s*\R/u', (string) $review->binhluan, 2)[0]);
+
+                return [
+                    'id' => $review->id_danhgia,
+                    'rating' => (int) $review->danhgia,
+                    'content' => $customerComment,
+                    'customer_name' => $review->user?->ten ?: 'Khách hàng',
+                    'avatar' => $review->user?->anhdaidien,
+                    'product_name' => $review->bienThe?->sanPham?->tenSP,
+                    'verified_purchase' => ! empty($review->id_dathang),
+                    'created_at' => optional($review->created_at)->toIso8601String(),
+                ];
+            });
+
+        return response()->json(['success' => true, 'reviews' => $reviews]);
+    }
+
     /**
      * Admin: Lấy toàn bộ danh sách đánh giá
      */

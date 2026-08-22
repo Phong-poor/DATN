@@ -202,6 +202,7 @@ class PurchaseReviewFlowTest extends TestCase
     {
         $shipmentService = \Mockery::mock(DemoShipmentService::class);
         $shipmentService->shouldReceive('syncDueShipments')
+            ->with(false)
             ->once()
             ->andThrow(new \RuntimeException('Temporary demo shipment failure'));
         $this->app->instance(DemoShipmentService::class, $shipmentService);

@@ -3368,4 +3368,56 @@ a {
 .admin-layout.theme-dark .main :deep(.admin-profile-capsule .admin-status-text.offline) {
   color: #aeb8c6 !important;
 }
+
+/* Topbar sáng chỉ áp dụng khi người dùng chọn giao diện sáng. */
+.admin-layout.theme-light .admin-topbar {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08) !important;
+}
+
+.admin-layout.theme-light .admin-topbar-title h2 {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+}
+
+.admin-layout.theme-light .admin-topbar-title p,
+.admin-layout.theme-light .attendance-topbar-clock span {
+  color: #64748b !important;
+}
+
+.admin-layout.theme-light .attendance-topbar-clock strong {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  text-shadow: none !important;
+}
+
+.admin-layout.theme-light .topbar-home-link,
+.admin-layout.theme-light .topbar-icon-button,
+.admin-layout.theme-light .topbar-user-btn {
+  background: #f8fafc !important;
+  border-color: #dbe3ee !important;
+  color: #475569 !important;
+}
+
+.admin-layout.theme-light .topbar-home-link:hover,
+.admin-layout.theme-light .topbar-icon-button:hover,
+.admin-layout.theme-light .topbar-user-btn:hover {
+  background: #eff6ff !important;
+  border-color: #93c5fd !important;
+  color: #2563eb !important;
+}
+
+.admin-layout.theme-light .topbar-divider {
+  background: #e2e8f0 !important;
+}
+
+.admin-layout.theme-light .topbar-user-btn .user-name {
+  color: #0f172a !important;
+}
+
+.admin-layout.theme-light .topbar-user-btn .user-role,
+.admin-layout.theme-light .topbar-user-btn > svg {
+  color: #64748b !important;
+}
 </style>
