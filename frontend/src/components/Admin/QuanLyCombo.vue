@@ -832,62 +832,17 @@ onBeforeUnmount(() => {
             </tr>
           </tbody>
         </table>
-        <PhanTrangAdmin
-          v-if="filteredCombos.length"
-          v-model:currentPage="comboCurrentPage"
-          :total-pages="comboTotalPages"
-          :total-items="filteredCombos.length"
-          :page-size="comboItemsPerPage"
-          item-label="combo"
-          @change-page="changeComboPage"
-        />
-        <div v-if="false" v-for="combo in filteredCombos" :key="combo.id_combo" class="combo-card" :class="{ inactive: combo.trangthai === 0 || combo.is_in_stock === false }">
-          <div class="combo-badge" :class="combo.trangthai === 1 ? 'active' : 'draft'">
-            {{ combo.trangthai === 1 ? 'Hoạt động' : 'Ngừng chạy' }}
-          </div>
-          <div v-if="combo.is_in_stock === false" class="combo-badge" style="right: auto; left: 12px; background: #fff1f2; color: #e11d48; border: 1px solid #fecdd3;">
-            ⚠️ Hết hàng phụ kiện
-          </div>
-          <div class="combo-img">
-            <img :src="storageUrl(combo.hinhanh) || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400'" :alt="combo.ten_combo" />
-          </div>
-          <div class="combo-details">
-            <h3>{{ combo.ten_combo }}</h3>
-            <p class="desc">{{ combo.mota || 'Không có mô tả cho combo này.' }}</p>
-            
-            <div class="products-list">
-              <h4>Mặt hàng trong combo:</h4>
-              <ul>
-                <li v-for="p in combo.products" :key="p.id_sanpham">
-                  🔹 {{ p.tenSP }}
-                </li>
-              </ul>
-            </div>
-            
-            <div class="combo-footer">
-              <div class="price-box">
-                <span class="lbl">Giá Combo:</span>
-                <span class="price">{{ Number(combo.giakhuyenmai).toLocaleString('vi-VN') }}đ</span>
-              </div>
-              <div class="actions">
-                <button class="act-btn" title="Sửa" @click="openEditModal(combo)">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="16" height="16">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                  </svg>
-                </button>
-                <button class="act-btn danger" title="Xóa" @click="deleteCombo(combo.id_combo)">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="16" height="16">
-                    <polyline points="3 6 5 6 21 6" />
-                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                    <path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
+      <PhanTrangAdmin
+        v-if="filteredCombos.length"
+        v-model:currentPage="comboCurrentPage"
+        :total-pages="comboTotalPages"
+        :total-items="filteredCombos.length"
+        :page-size="comboItemsPerPage"
+        item-label="combo"
+        @change-page="changeComboPage"
+        style="margin-top: 16px;"
+      />
     </div>
 
     <!-- TAB 2: PROMOTIONAL VARIANT OFFERS -->
@@ -1185,20 +1140,29 @@ onBeforeUnmount(() => {
               
               <!-- Search box if no product chosen -->
               <div v-if="!selectedOfferProduct">
-                <div class="pool-search-box" style="margin-bottom: 4px;">
+                <div class="pool-search-input-wrap">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="m21 21-4.35-4.35" />
+                  </svg>
                   <input v-model="offerProductSearchQuery" placeholder="Nhập tên Laptop để tìm kiếm..." />
                 </div>
-                <div class="products-pool" style="max-height: 320px; margin-top: 6px;">
+                <div class="laptop-pool-grid">
                   <div 
                     v-for="p in filteredLaptopProducts" 
                     :key="p.id_sanpham" 
-                    class="pool-item" 
+                    class="laptop-select-card" 
                     @click="selectOfferProductAction(p)"
                   >
-                    <div class="p-info" style="text-align: left;">
+                    <div class="laptop-card-icon">💻</div>
+                    <div class="laptop-card-info">
                       <b class="laptop-item-name">{{ p.tenSP }}</b>
-                      <span class="laptop-item-sku">SKU: {{ p.SKU || 'N/A' }} | {{ p.danh_muc?.ten_danhmuc || 'Laptop' }}</span>
+                      <div class="laptop-item-meta">
+                        <span class="meta-tag sku">SKU: {{ p.SKU || 'N/A' }}</span>
+                        <span class="meta-tag category">{{ p.danh_muc?.ten_danhmuc || 'Laptop' }}</span>
+                      </div>
                     </div>
+                    <button type="button" class="laptop-pick-btn">+ Chọn</button>
                   </div>
                   <div v-if="!filteredLaptopProducts.length" class="pool-empty-notice">
                     Không tìm thấy sản phẩm laptop nào phù hợp.
@@ -1206,14 +1170,17 @@ onBeforeUnmount(() => {
                 </div>
               </div>
 
-              <!-- Selected product badge/info -->
-              <div v-else class="selected-product-info">
-                <div style="text-align: left;">
-                  <span class="selected-product-label">Laptop Đang Chọn:</span>
-                  <b class="selected-product-name">{{ getSelectedOfferProductName(selectedOfferProduct) }}</b>
+              <!-- Selected product Showcase Banner -->
+              <div v-else class="selected-laptop-showcase">
+                <div class="showcase-left">
+                  <div class="showcase-icon">💻</div>
+                  <div class="showcase-details">
+                    <span class="showcase-badge">Laptop Đang Chọn Kích Hoạt</span>
+                    <b class="showcase-title">{{ getSelectedOfferProductName(selectedOfferProduct) }}</b>
+                  </div>
                 </div>
-                <button v-if="!isOfferEditMode" type="button" @click="selectedOfferProduct = null" class="img-remove-btn action-change-btn">
-                  Thay đổi
+                <button v-if="!isOfferEditMode" type="button" @click="selectedOfferProduct = null" class="showcase-change-btn">
+                  🔄 Thay đổi
                 </button>
               </div>
             </div>
@@ -1258,12 +1225,13 @@ onBeforeUnmount(() => {
                       <span v-if="isVariantSelected(v)">✓</span>
                     </div>
                     
-                    <div class="variant-config-title">
-                      {{ v.configName }}
-                    </div>
-                    
-                    <div class="variant-config-price">
-                      Lẻ: {{ Number(v.gia).toLocaleString('vi-VN') }}đ
+                    <div class="variant-card-body">
+                      <div class="variant-config-title">
+                        {{ v.configName }}
+                      </div>
+                      <div class="variant-config-price">
+                        Giá lẻ: {{ Number(v.gia).toLocaleString('vi-VN') }}đ
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1286,23 +1254,32 @@ onBeforeUnmount(() => {
               <small class="step-help-text">Phải tạo Combo phụ kiện tại Tab 1 trước khi gắn ưu đãi tại đây.</small>
             </div>
 
-            <!-- Offer Type radio list -->
+            <!-- Offer Type 2-column card grid -->
             <div class="form-group form-step-section">
-              <label>Bước 4: Loại ưu đãi</label>
-              <div class="offer-type-cards">
-                <label class="offer-type-card" :class="{ active: offerForm.loai_uudai === 'free' }">
-                  <div class="offer-type-header">
-                    <input type="radio" value="free" v-model="offerForm.loai_uudai" class="offer-type-radio" />
-                    <b class="offer-type-title">Tặng miễn phí (0đ)</b>
+              <label>Bước 4: Loại ưu đãi <span class="required">*</span></label>
+              <div class="offer-type-cards-grid">
+                <label class="offer-type-card-item" :class="{ active: offerForm.loai_uudai === 'free' }">
+                  <input type="radio" value="free" v-model="offerForm.loai_uudai" class="offer-type-radio-hidden" />
+                  <div class="offer-type-icon-badge free">🎁</div>
+                  <div class="offer-type-content">
+                    <b class="offer-type-heading">Tặng Miễn Phí (0đ)</b>
+                    <p class="offer-type-subtext">Combo Phụ Kiện con được tặng 100% miễn phí khi khách mua sản phẩm này.</p>
                   </div>
-                  <span class="offer-type-desc">Combo phụ kiện con được tặng 100% miễn phí khi khách mua sản phẩm này.</span>
+                  <div class="offer-type-radio-circle" :class="{ active: offerForm.loai_uudai === 'free' }">
+                    <div class="radio-inner-dot" v-if="offerForm.loai_uudai === 'free'"></div>
+                  </div>
                 </label>
-                <label class="offer-type-card" :class="{ active: offerForm.loai_uudai === 'discount' }">
-                  <div class="offer-type-header">
-                    <input type="radio" value="discount" v-model="offerForm.loai_uudai" class="offer-type-radio" />
-                    <b class="offer-type-title">Mua kèm giá đặc biệt</b>
+
+                <label class="offer-type-card-item" :class="{ active: offerForm.loai_uudai === 'discount' }">
+                  <input type="radio" value="discount" v-model="offerForm.loai_uudai" class="offer-type-radio-hidden" />
+                  <div class="offer-type-icon-badge discount">🏷️</div>
+                  <div class="offer-type-content">
+                    <b class="offer-type-heading">Mua Kèm Giá Đặc Biệt</b>
+                    <p class="offer-type-subtext">Khách hàng được mua kèm Combo phụ kiện này với một mức giá ưu đãi tự chọn.</p>
                   </div>
-                  <span class="offer-type-desc">Khách hàng được mua kèm combo phụ kiện này với một mức giá ưu đãi tự chọn.</span>
+                  <div class="offer-type-radio-circle" :class="{ active: offerForm.loai_uudai === 'discount' }">
+                    <div class="radio-inner-dot" v-if="offerForm.loai_uudai === 'discount'"></div>
+                  </div>
                 </label>
               </div>
             </div>
@@ -2662,10 +2639,10 @@ onBeforeUnmount(() => {
 .tab-nav-list {
   display: flex;
   gap: 8px;
-  padding: 4px;
-  border: 1px solid #e2e8f0;
+  padding: 0;
+  border: none;
   border-radius: 12px;
-  background: #f1f5f9;
+  background: transparent;
 }
 
 @media (max-width: 768px) {
@@ -2687,9 +2664,9 @@ onBeforeUnmount(() => {
   padding: 10px 24px;
   font-size: 13.5px;
   font-weight: 600;
-  background: transparent;
-  border: none;
-  color: #64748b;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #475569;
   border-radius: 9px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -2697,13 +2674,16 @@ onBeforeUnmount(() => {
 }
 
 .tab-nav-btn:hover {
-  color: #0f172a;
+  color: #2563eb;
+  border-color: #cbd5e1;
+  background: #f8fafc;
 }
 
 .tab-nav-btn.active {
-  background: white;
+  background: #ffffff;
+  border: 1px solid #2563eb;
   color: #2563eb;
-  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.05);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.12);
 }
 
 /* ── Promotional Offers Table Styles ── */
@@ -2714,6 +2694,28 @@ onBeforeUnmount(() => {
   box-shadow: 0 4px 20px rgba(15, 23, 42, 0.03);
   overflow-x: auto;
   margin-top: 16px;
+}
+
+:global(html[data-admin-theme='dark']) .offers-table-wrap,
+:global(.admin-layout.theme-dark) .offers-table-wrap,
+:global(.admin-layout.dark) .offers-table-wrap,
+:global(.dark) .offers-table-wrap,
+:global(html[data-admin-theme='dark']) .combo-list-panel,
+:global(.admin-layout.theme-dark) .combo-list-panel,
+:global(.admin-layout.dark) .combo-list-panel,
+:global(.dark) .combo-list-panel {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
+}
+
+:global(html[data-admin-theme='dark']) .offers-table th,
+:global(.admin-layout.theme-dark) .offers-table th,
+:global(.admin-layout.dark) .offers-table th,
+:global(.dark) .offers-table th {
+  background: #11161f !important;
+  border-bottom: 1px solid #28303d !important;
+  color: #94a3b8 !important;
 }
 
 .offers-table {
@@ -2788,6 +2790,32 @@ onBeforeUnmount(() => {
   max-width: 220px;
   word-break: break-word;
   box-shadow: 0 2px 6px rgba(244, 63, 94, 0.04);
+}
+
+.detail-modal-card .vip-banner-box {
+  width: 100% !important;
+  max-width: 100% !important;
+  border-radius: 10px !important;
+  padding: 12px 16px !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+}
+
+.detail-modal-card .vip-banner-title {
+  display: block !important;
+  font-size: 12.5px !important;
+  font-weight: 700 !important;
+  color: inherit !important;
+}
+
+.detail-modal-card .vip-banner-sub {
+  display: block !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  word-break: break-word !important;
+  color: inherit !important;
 }
 
 /* Specific truncation for VIP Banner column inside table */
@@ -2912,34 +2940,281 @@ onBeforeUnmount(() => {
   color: #64748b;
 }
 
-.block {
-  display: block;
+/* ── Step 1: Laptop Pool Selection Styles ── */
+.pool-search-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
 }
 
-.text-gray {
-  color: #64748b;
+.pool-search-input-wrap svg {
+  position: absolute;
+  left: 14px;
+  width: 18px;
+  height: 18px;
+  color: #94a3b8;
+  pointer-events: none;
 }
 
-/* ── Variant Offer Cards Styles ── */
-.variant-offer-card {
+.pool-search-input-wrap input {
+  padding-left: 42px !important;
+  height: 44px;
+  border-radius: 12px !important;
+  font-size: 13.5px !important;
+}
+
+.laptop-pool-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.laptop-select-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: left;
+}
+
+.laptop-select-card:hover {
+  border-color: #2563eb;
+  background: #f8fafc;
+  transform: translateX(3px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.06);
+}
+
+.laptop-card-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: #eff6ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.laptop-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.laptop-item-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.laptop-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.meta-tag {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.meta-tag.sku {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.meta-tag.category {
+  background: #f5f3ff;
+  color: #6d28d9;
+}
+
+.laptop-pick-btn {
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.laptop-select-card:hover .laptop-pick-btn {
+  background: #2563eb;
+  color: white;
+  border-color: #2563eb;
+}
+
+/* ── Selected Laptop Showcase Card ── */
+.selected-laptop-showcase {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%);
+  border: 1.5px solid #bfdbfe;
+  border-radius: 14px;
+  gap: 16px;
+}
+
+.showcase-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-align: left;
+  min-width: 0;
+}
+
+.showcase-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #2563eb;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
+}
+
+.showcase-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.showcase-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #2563eb;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.showcase-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.showcase-change-btn {
+  padding: 8px 16px;
+  border-radius: 10px;
+  background: white;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.showcase-change-btn:hover {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: white;
+}
+
+/* ── Variant Offer Cards Styles (Step 2) ── */
+.variant-offer-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.variant-offer-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  text-align: left;
 }
 
 .variant-offer-card:hover:not(.disabled) {
-  border-color: #cbd5e1 !important;
+  border-color: #2563eb !important;
   background: #f8fafc !important;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
 }
 
 .variant-offer-card.selected {
-  border-color: #3b82f6 !important;
+  border-color: #2563eb !important;
   background: #eff6ff !important;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.08);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.12) !important;
 }
 
-.variant-offer-card.selected .variant-select-chk {
-  border-color: #3b82f6 !important;
-  background: #3b82f6 !important;
+.variant-select-chk {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: white;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.variant-select-chk.selected {
+  border-color: #2563eb !important;
+  background: #2563eb !important;
+}
+
+.variant-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.variant-config-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.35;
+}
+
+.variant-config-price {
+  font-size: 12px;
+  font-weight: 600;
+  color: #2563eb;
 }
 
 .variant-offer-card.disabled {
@@ -2948,17 +3223,110 @@ onBeforeUnmount(() => {
   background: #f1f5f9;
 }
 
-/* ── Offer Type Cards Styles ── */
-.offer-type-card:hover {
-  border-color: #cbd5e1 !important;
-  background: #f8fafc !important;
-  transform: translateY(-1px);
+/* ── Offer Type Cards Grid (Step 4) ── */
+.offer-type-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+  margin-top: 8px;
 }
 
-.offer-type-card.active {
+.offer-type-card-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  text-align: left;
+  user-select: none;
+}
+
+.offer-type-card-item:hover {
+  border-color: #3b82f6;
+  background: #f8fafc;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.06);
+}
+
+.offer-type-card-item.active {
   border-color: #2563eb !important;
-  background: #f5f3ff !important;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08) !important;
+  background: #eff6ff !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.12) !important;
+}
+
+.offer-type-radio-hidden {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.offer-type-icon-badge {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.offer-type-icon-badge.free {
+  background: #dcfce7;
+}
+
+.offer-type-icon-badge.discount {
+  background: #ffedd5;
+}
+
+.offer-type-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.offer-type-heading {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.offer-type-subtext {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.offer-type-radio-circle {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  margin-top: 2px;
+}
+
+.offer-type-radio-circle.active {
+  border-color: #2563eb !important;
+  background: #2563eb !important;
+}
+
+.radio-inner-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: white;
 }
 
 /* ── Detail Modal styling ── */
@@ -3009,5 +3377,53 @@ onBeforeUnmount(() => {
 .detail-info-value {
   font-weight: 600;
   color: #0f172a;
+}
+
+/* Campaign Detail Modal Dark Mode Overrides */
+:global(html[data-admin-theme='dark']) .detail-section,
+:global(.admin-layout.theme-dark) .detail-section,
+:global(.admin-layout.dark) .detail-section,
+:global(.dark) .detail-section {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  color: #f8fafc !important;
+}
+
+:global(html[data-admin-theme='dark']) .detail-section-title,
+:global(.admin-layout.theme-dark) .detail-section-title,
+:global(.admin-layout.dark) .detail-section-title,
+:global(.dark) .detail-section-title {
+  color: #94a3b8 !important;
+  border-bottom-color: #28303d !important;
+}
+
+:global(html[data-admin-theme='dark']) .detail-info-row,
+:global(.admin-layout.theme-dark) .detail-info-row,
+:global(.admin-layout.dark) .detail-info-row,
+:global(.dark) .detail-info-row {
+  border-bottom-color: #28303d !important;
+}
+
+:global(html[data-admin-theme='dark']) .detail-info-label,
+:global(.admin-layout.theme-dark) .detail-info-label,
+:global(.admin-layout.dark) .detail-info-label,
+:global(.dark) .detail-info-label {
+  color: #94a3b8 !important;
+}
+
+:global(html[data-admin-theme='dark']) .detail-info-value,
+:global(.admin-layout.theme-dark) .detail-info-value,
+:global(.admin-layout.dark) .detail-info-value,
+:global(.dark) .detail-info-value {
+  color: #f8fafc !important;
+}
+
+:global(html[data-admin-theme='dark']) .vip-banner-box,
+:global(.admin-layout.theme-dark) .vip-banner-box,
+:global(.admin-layout.dark) .vip-banner-box,
+:global(.dark) .vip-banner-box {
+  background: rgba(244, 63, 94, 0.15) !important;
+  border-left-color: #f43f5e !important;
+  color: #fda4af !important;
 }
 </style>
