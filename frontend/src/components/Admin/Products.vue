@@ -5324,12 +5324,12 @@ tbody td {
   display: flex;
   gap: 12px;
   margin: 24px 0 16px;
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(10px);
-  padding: 6px;
+  background: transparent;
+  backdrop-filter: none;
+  padding: 0;
   border-radius: 12px;
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+  border: none;
+  box-shadow: none;
   width: fit-content;
 }
 

@@ -52,7 +52,6 @@ const unwrapImageValue = (value) => {
 }
 
 export const storageUrl = (path) => {
-
   if (!path) return ''
 
   let raw = unwrapImageValue(path)
@@ -63,32 +62,19 @@ export const storageUrl = (path) => {
     raw = raw.replace('photo-1611186871348-b1ce696e52c9', 'photo-1588872657578-7efd1f1555ed')
   }
 
+  // 1. Direct Web URLs (http://, https://, data:, blob:)
   if (/^(https?:)?\/\//i.test(raw) || raw.startsWith('data:') || raw.startsWith('blob:')) {
-
-    return raw
-
-  }
-
-  if (raw.startsWith('/') && !raw.startsWith('/storage/')) {
     return raw
   }
 
-
-
+  // 2. Local uploaded files (stored in storage/app/public/... and accessed via /storage/...)
   const normalizedPath = raw
-
     .replace(/\\/g, '/')
-
     .replace(/^\/+/, '')
-
     .replace(/^public\//i, '')
-
     .replace(/^storage\//i, '')
 
-
-
-  return `${backendBaseUrl}/storage/${normalizedPath}`
-
+  return backendBaseUrl ? `${backendBaseUrl}/storage/${normalizedPath}` : `/storage/${normalizedPath}`
 }
 
 export const imageFallbackUrl = 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500'

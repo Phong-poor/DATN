@@ -349,6 +349,111 @@ const handleSelectOptionWithReset = (groupName, value) => {
     soLuongMua.value = 1
 }
 
+const colorGroup = computed(() => {
+    const variants = product.value.bienThes || []
+    const map = new Map()
+
+    variants.forEach(variant => {
+        const attrs = getVariantAttributes(variant)
+        const colorAttr = attrs.find(a => a.ten_thuoctinh === 'Màu sắc' || a.ten_thuoctinh === 'Color')
+        if (colorAttr && !map.has(colorAttr.giatri)) {
+            map.set(colorAttr.giatri, { giatri: colorAttr.giatri, ma_mau: colorAttr.ma_mau || null })
+        }
+    })
+
+    return Array.from(map.values())
+})
+
+const getVariantSpecLabel = (variant) => {
+    const attrs = getVariantAttributes(variant)
+    const specAttrs = attrs.filter(a => a.ten_thuoctinh !== 'Màu sắc' && a.ten_thuoctinh !== 'Color')
+    if (specAttrs.length > 0) {
+        return specAttrs.map(a => a.giatri).join(' / ')
+    }
+    return variant.ten_bienthe || 'Cấu hình tiêu chuẩn'
+}
+
+const combinedSpecOptions = computed(() => {
+    const variants = product.value.bienThes || []
+    const map = new Map()
+
+    variants.forEach(variant => {
+        const label = getVariantSpecLabel(variant)
+        if (!map.has(label)) {
+            map.set(label, { label, variant })
+        }
+    })
+
+    return Array.from(map.values())
+})
+
+const selectedCombinedSpecLabel = computed(() => {
+    if (!selectedVariant.value) return ''
+    return getVariantSpecLabel(selectedVariant.value)
+})
+
+const getCombinedSpecInfo = (specLabel) => {
+    const variants = product.value.bienThes || []
+    const currentColor = selectedOptions.value['Màu sắc'] || selectedOptions.value['Color']
+
+    let matched = null
+    if (currentColor) {
+        matched = variants.find(v => {
+            const attrs = getVariantAttributes(v)
+            const cAttr = attrs.find(a => a.ten_thuoctinh === 'Màu sắc' || a.ten_thuoctinh === 'Color')
+            const matchColor = cAttr && cAttr.giatri === currentColor
+            const matchSpec = getVariantSpecLabel(v) === specLabel
+            return matchColor && matchSpec
+        })
+    }
+
+    if (!matched) {
+        matched = variants.find(v => getVariantSpecLabel(v) === specLabel)
+    }
+
+    if (!matched) {
+        return { isAvailable: false, priceText: 'Hết hàng', price: 0 }
+    }
+
+    const stock = Number(matched.soluong ?? 0)
+    const isAvailable = stock > 0 && matched.enabled !== false
+
+    return {
+        variant: matched,
+        isAvailable,
+        price: matched.gia,
+        priceText: isAvailable ? formatPrice(matched.gia) : 'Tạm hết hàng'
+    }
+}
+
+const handleSelectColor = (colorVal) => {
+    selectedOptions.value = { ...selectedOptions.value, 'Màu sắc': colorVal }
+    const currentSpecLabel = selectedCombinedSpecLabel.value
+    let matched = null
+    if (currentSpecLabel) {
+        matched = getCombinedSpecInfo(currentSpecLabel).variant
+    }
+    if (!matched) {
+        const variants = product.value.bienThes || []
+        matched = variants.find(v => {
+            const attrs = getVariantAttributes(v)
+            return attrs.some(a => (a.ten_thuoctinh === 'Màu sắc' || a.ten_thuoctinh === 'Color') && a.giatri === colorVal)
+        })
+    }
+    if (matched) {
+        applySelectedVariant(matched)
+    }
+    soLuongMua.value = 1
+}
+
+const handleSelectSpec = (specLabel) => {
+    const info = getCombinedSpecInfo(specLabel)
+    if (info.variant) {
+        applySelectedVariant(info.variant)
+    }
+    soLuongMua.value = 1
+}
+
 // ===================== SỐ LƯỢNG MUA =====================
 const giamSoLuong = () => { if (soLuongMua.value > 1) soLuongMua.value-- }
 const tangSoLuong = () => {
@@ -1560,39 +1665,59 @@ const handleSelectVariantById = (idBienThe) => {
                             </div>
                         </div>
 
-                        <!-- Variant Selectors Option Groups -->
+                        <!-- Variant Selectors Option Groups (Hàng 1: Màu sắc | Hàng 2: Gộp Cấu hình kiểu Shopee) -->
                         <div class="premium-selectors-wrapper" v-if="product.bienThes && product.bienThes.length > 0">
-                            <div class="premium-option-group" v-for="group in variantGroups" :key="group.name">
+                            
+                            <!-- HÀNG 1: MÀU SẮC (NẾU CÓ) -->
+                            <div class="premium-option-group" v-if="colorGroup.length > 0">
                                 <div class="option-header-row">
-                                    <span class="option-label-title">{{ group.name }}</span>
-                                    <span v-if="group.values.length > 1" class="option-selected-value">{{ selectedOptions[group.name] }}</span>
+                                    <span class="option-label-title">Chọn Màu sắc</span>
+                                    <span class="option-selected-value">{{ selectedOptions['Màu sắc'] || selectedOptions['Color'] }}</span>
                                 </div>
-
-                                <div class="premium-variant-dropdown">
-                                    <div class="dropdown-trigger" @click.stop="toggleDropdown(group.name)" :class="{ active: activeDropdown === group.name }">
-                                        <div class="selected-info-container">
-                                            <span v-if="group.name === 'Màu sắc' && selectedOptions[group.name]" class="selected-color-dot" :style="{ backgroundColor: (group.values.find(v => v.giatri === selectedOptions[group.name])?.ma_mau || '#ccc') }"></span>
-                                            <span class="selected-value-text">{{ selectedOptions[group.name] || 'Chọn ' + group.name }}</span>
-                                        </div>
-                                        <span class="dropdown-arrow-icon">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 14px; height: 14px;">
-                                                <polyline points="6 9 12 15 18 9"></polyline>
-                                            </svg>
-                                        </span>
-                                    </div>
-                                    <transition name="dropdown-fade">
-                                        <div class="dropdown-menu-list" v-show="activeDropdown === group.name">
-                                            <div v-for="item in group.values" :key="item.giatri"
-                                                 :class="['dropdown-item-option', { active: selectedOptions[group.name] === item.giatri }]"
-                                                 @click="selectOptionAndClose(group.name, item.giatri)">
-                                                <span v-if="group.name === 'Màu sắc'" class="item-color-dot" :style="{ backgroundColor: item.ma_mau || '#ccc' }"></span>
-                                                <span class="item-text-label">{{ item.giatri }}</span>
-                                                <span v-if="selectedOptions[group.name] === item.giatri" class="checkmark-active">✓</span>
-                                            </div>
-                                        </div>
-                                    </transition>
+                                <div class="color-swatch-flex">
+                                    <button v-for="c in colorGroup" :key="c.giatri"
+                                            type="button"
+                                            :class="['color-swatch-card', { active: (selectedOptions['Màu sắc'] === c.giatri || selectedOptions['Color'] === c.giatri) }]"
+                                            @click="handleSelectColor(c.giatri)">
+                                        <span class="swatch-color-dot" :style="{ backgroundColor: c.ma_mau || '#ccc' }"></span>
+                                        <span class="swatch-name-text">{{ c.giatri }}</span>
+                                        <span v-if="selectedOptions['Màu sắc'] === c.giatri || selectedOptions['Color'] === c.giatri" class="swatch-card-check">✓</span>
+                                    </button>
                                 </div>
                             </div>
+
+                            <!-- HÀNG 2: CẤU HÌNH GỘP (SHOPEE STYLE WITH PRICE) -->
+                            <div class="premium-option-group" v-if="combinedSpecOptions.length > 0">
+                                <div class="option-header-row">
+                                    <span class="option-label-title">Chọn Cấu hình (RAM / SSD / CPU)</span>
+                                    <span class="option-selected-value">{{ selectedCombinedSpecLabel }}</span>
+                                </div>
+                                <div class="spec-card-grid">
+                                    <button v-for="spec in combinedSpecOptions" :key="spec.label"
+                                            type="button"
+                                            :class="[
+                                                'spec-card-btn',
+                                                { active: selectedCombinedSpecLabel === spec.label },
+                                                { disabled: !getCombinedSpecInfo(spec.label).isAvailable }
+                                            ]"
+                                            :disabled="!getCombinedSpecInfo(spec.label).isAvailable"
+                                            @click="handleSelectSpec(spec.label)">
+                                        <div class="card-left-info">
+                                            <span class="card-title-text">{{ spec.label }}</span>
+                                        </div>
+                                        <div class="card-right-price">
+                                            <span class="card-price-text" v-if="getCombinedSpecInfo(spec.label).isAvailable">
+                                                {{ getCombinedSpecInfo(spec.label).priceText }}
+                                            </span>
+                                            <span class="card-out-text" v-else>
+                                                Tạm hết hàng
+                                            </span>
+                                        </div>
+                                        <span v-if="selectedCombinedSpecLabel === spec.label" class="spec-card-check">✓</span>
+                                    </button>
+                                </div>
+                            </div>
+
                         </div>
 
                         <!-- Option Group fallback if none -->
@@ -3399,57 +3524,41 @@ const handleSelectVariantById = (idBienThe) => {
 
 /* ==================== SELECTORS ==================== */
 .premium-selectors-wrapper {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-    margin: 10px 0 12px;
-}
-.premium-option-group {
-    display: grid;
-    grid-template-columns: minmax(64px, 0.62fr) minmax(0, 1.38fr);
-    align-items: center;
-    gap: 6px 8px;
-    min-height: 46px;
-    padding: 8px 10px;
-    border: 1px solid #dbe5f0;
-    border-radius: 10px;
-    background: #ffffff;
-}
-
-@media (max-width: 1280px) {
-    .premium-selectors-wrapper {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 760px) {
-    .premium-selectors-wrapper {
-        grid-template-columns: 1fr;
-    }
-}
-.option-header-row {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    justify-content: center;
-    gap: 2px;
-    min-width: 0;
-    font-size: 11.5px;
-    font-weight: 750;
+    gap: 16px;
+    margin: 12px 0 16px;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+}
+.premium-option-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.option-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13.5px;
+    font-weight: 700;
 }
 .option-label-title {
-    overflow: hidden;
-    max-width: 100%;
-    color: var(--text-primary);
-    font-weight: 850;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    color: #0f172a;
+    font-weight: 800;
+    font-size: 14px;
 }
 .option-selected-value {
-    color: var(--primary);
-    font-size: 10.5px;
-    font-weight: 800;
-    line-height: 1.25;
+    color: #2563eb;
+    font-size: 13px;
+    font-weight: 700;
 }
 
 .premium-color-selectors {
@@ -6266,5 +6375,169 @@ const handleSelectVariantById = (idBienThe) => {
 
 .empty-reviews-state h4 {
     color: #0f172a;
+}
+
+/* Color Swatch Flex Styles */
+.color-swatch-flex {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.color-swatch-card {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: #ffffff;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    outline: none;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.color-swatch-card:hover {
+    border-color: #3b82f6;
+    background: #f0f9ff;
+}
+
+.color-swatch-card.active {
+    border-color: #2563eb;
+    background: #eff6ff;
+    color: #1d4ed8;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+}
+
+.swatch-color-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    display: inline-block;
+}
+
+.swatch-card-check {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 16px;
+    height: 16px;
+    background: #2563eb;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 900;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Card Spec Grid Styles - Shopee Style with Price */
+.spec-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+    width: 100%;
+}
+
+.spec-card-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 4px;
+    padding: 10px 14px;
+    background: #ffffff;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    text-align: left;
+    outline: none;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.spec-card-btn:hover:not(.disabled) {
+    border-color: #2563eb;
+    background: #f0f9ff;
+    transform: translateY(-1px);
+}
+
+.spec-card-btn.active {
+    border-color: #2563eb;
+    background: #eff6ff;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+}
+
+.spec-card-btn.disabled {
+    opacity: 0.5;
+    background: #f8fafc;
+    border-color: #e2e8f0;
+    cursor: not-allowed;
+    filter: grayscale(0.5);
+}
+
+.card-left-info {
+    width: 100%;
+}
+
+.card-title-text {
+    font-size: 13.5px;
+    font-weight: 750;
+    color: #0f172a;
+    line-height: 1.3;
+}
+
+.spec-card-btn.active .card-title-text {
+    color: #1d4ed8;
+}
+
+.spec-card-btn.disabled .card-title-text {
+    color: #94a3b8;
+    text-decoration: line-through;
+}
+
+.card-right-price {
+    width: 100%;
+    margin-top: 2px;
+}
+
+.card-price-text {
+    font-size: 13px;
+    font-weight: 800;
+    color: #2563eb;
+}
+
+.card-out-text {
+    font-size: 11px;
+    font-weight: 600;
+    color: #ef4444;
+    background: #fee2e2;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.spec-card-check {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 18px;
+    height: 18px;
+    background: #2563eb;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 900;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4);
 }
 </style>

@@ -1027,7 +1027,7 @@ onBeforeUnmount(() => {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><path d="M15 18l-6-6 6-6"/></svg>
           Quay lại danh sách
         </button>
-        <h1>{{ isEditMode ? '✏️ Chỉnh sửa Combo' : '➕ Tạo Combo mới' }}</h1>
+        <h1>{{ isEditMode ? 'Chỉnh sửa Combo' : 'Tạo Combo mới' }}</h1>
         <p>{{ isEditMode ? 'Cập nhật thông tin và sản phẩm trong combo' : 'Ghép sản phẩm phụ kiện thành combo khuyến mãi' }}</p>
       </div>
 
@@ -1058,40 +1058,18 @@ onBeforeUnmount(() => {
                 <button 
                   type="button" 
                   class="tab-btn" 
-                  :class="{ active: selectedPoolCategory === 10 }" 
-                  @click="selectedPoolCategory = 10"
+                  :class="{ active: selectedPoolCategory === cat.id_danhmuc }" 
+                  @click="selectedPoolCategory = cat.id_danhmuc"
+                  v-for="cat in poolCategories" 
+                  :key="cat.id_danhmuc"
                 >
-                  🖱️ Chuột
-                </button>
-                <button 
-                  type="button" 
-                  class="tab-btn" 
-                  :class="{ active: selectedPoolCategory === 11 }" 
-                  @click="selectedPoolCategory = 11"
-                >
-                  ⌨️ Bàn phím
-                </button>
-                <button 
-                  type="button" 
-                  class="tab-btn" 
-                  :class="{ active: selectedPoolCategory === 12 }" 
-                  @click="selectedPoolCategory = 12"
-                >
-                  🎧 Tai nghe
-                </button>
-                <button 
-                  type="button" 
-                  class="tab-btn" 
-                  :class="{ active: selectedPoolCategory === 13 }" 
-                  @click="selectedPoolCategory = 13"
-                >
-                  🔲 Lót chuột
+                  {{ cat.ten_danhmuc }}
                 </button>
               </div>
 
               <!-- Product Search & List -->
               <div class="pool-search-box" style="margin-top: 8px;">
-                <input v-model="productSearchQuery" placeholder="🔍 Nhập tên sản phẩm để tìm nhanh..." />
+                <input v-model="productSearchQuery" placeholder="Nhập tên sản phẩm để tìm nhanh..." />
               </div>
 
               <div class="products-pool">
@@ -1108,7 +1086,7 @@ onBeforeUnmount(() => {
                   <div class="p-info">
                     <b>{{ p.tenSP }}</b>
                     <span>SKU: {{ p.SKU || 'N/A' }} | {{ p.danh_muc?.ten_danhmuc || 'Không có danh mục con' }}</span>
-                    <span class="p-pool-price" style="font-size: 11.5px; font-weight: 800; color: #2563eb; margin-top: 4px; display: block;">
+                    <span class="p-pool-price">
                       Giá bán lẻ: {{ getProductDisplayPrice(p) }}
                     </span>
                   </div>
@@ -1117,63 +1095,63 @@ onBeforeUnmount(() => {
           </div>
 
           <!-- 2. Tải lên hình ảnh đại diện -->
-            <div class="form-group" style="border-top: 1px solid #e2e8f0; padding-top: 16px; margin-top: 8px;">
-              <label>Bước 2: Ảnh đại diện Combo</label>
-              <input ref="fileInputRef" type="file" accept="image/*" style="display:none" @change="onFileChange" />
-              <div v-if="!imgPreview" class="upload-zone" @click="triggerFileInput">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="17 8 12 3 7 8" />
-                  <line x1="12" y1="3" x2="12" y2="15" />
-                </svg>
-                <p>Kéo thả hoặc <span>bấm để chọn ảnh</span></p>
-                <small>PNG, JPG, WEBP — tối đa 5MB</small>
-              </div>
-              <div v-else class="img-preview-wrap">
-                <img :src="imgPreview" class="img-preview" alt="preview" />
-                <div class="img-actions">
-                  <button class="img-change" @click="triggerFileInput">Đổi ảnh</button>
-                  <button class="img-remove-btn" @click="removeImg">Xóa</button>
-                </div>
-              </div>
+          <div class="form-group form-step-section">
+            <label>Bước 2: Ảnh Đại Diện Combo</label>
+            <input ref="fileInputRef" type="file" accept="image/*" style="display:none" @change="onFileChange" />
+            <div v-if="!imgPreview" class="upload-zone" @click="triggerFileInput">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              <p>Kéo thả hoặc <span>bấm để chọn ảnh</span></p>
+              <small>PNG, JPG, WEBP — tối đa 5MB</small>
             </div>
-
-            <!-- 3. Tên và Giá Combo -->
-            <div class="form-cols-2" style="border-top: 1px solid #e2e8f0; padding-top: 16px; margin-top: 8px;">
-              <div class="form-group">
-                <label>Bước 3: Tên Combo <span class="required">*</span></label>
-                <input v-model="form.ten_combo" @input="isNameManuallyEdited = true" placeholder="VD: Combo Bàn phím + Chuột gaming" :class="{ 'input-error': fieldErrors.ten_combo }" />
-                <p v-if="fieldErrors.ten_combo" class="field-error">{{ fieldErrors.ten_combo }}</p>
-                <small style="color: #64748b; font-size:11px; margin-top:4px; display:block; line-height:1.4">Tên combo sẽ tự động ghép từ các sản phẩm phụ kiện đã chọn trừ khi bạn chỉnh sửa thủ công.</small>
-              </div>
-
-              <div class="form-group">
-                <label>Bước 3.2: Giá khuyến mãi Combo (đ) <span class="required">*</span></label>
-                <input v-model="form.giakhuyenmai" type="number" @input="isPriceManuallyEdited = true" placeholder="VD: 550000" :class="{ 'input-error': fieldErrors.giakhuyenmai }" />
-                <p v-if="fieldErrors.giakhuyenmai" class="field-error">{{ fieldErrors.giakhuyenmai }}</p>
-                <div v-if="selectedOriginalPriceTotal > 0" style="color: #166534; font-size:11px; margin-top:4px; display:flex; flex-direction:column; gap:2px; text-align:left; background:#f0fdf4; padding:6px 10px; border-radius:8px; border:1px solid #bbf7d0; line-height:1.4">
-                  <span>💡 Tổng giá gốc mua lẻ: <b>{{ selectedOriginalPriceTotal.toLocaleString('vi-VN') }}đ</b></span>
-                  <span>🚀 Đã tự động đề xuất giảm <b>15%</b></span>
-                </div>
+            <div v-else class="img-preview-wrap">
+              <img :src="imgPreview" class="img-preview" alt="preview" />
+              <div class="img-actions">
+                <button type="button" class="img-change" @click="triggerFileInput">Đổi ảnh</button>
+                <button type="button" class="img-remove-btn" @click="removeImg">Xóa</button>
               </div>
             </div>
+          </div>
 
-            <!-- 4. Mô tả Combo -->
-            <div class="form-group" style="border-top: 1px solid #e2e8f0; padding-top: 16px; margin-top: 8px;">
-              <label>Bước 4: Mô tả combo</label>
-              <textarea v-model="form.mota" placeholder="Mô tả các sản phẩm & ưu đãi của combo..." rows="3"></textarea>
+          <!-- 3. Tên và Giá Combo -->
+          <div class="form-cols-2 form-step-section">
+            <div class="form-group">
+              <label>Bước 3: Tên Combo <span class="required">*</span></label>
+              <input v-model="form.ten_combo" @input="isNameManuallyEdited = true" placeholder="VD: Combo Bàn phím + Chuột gaming" :class="{ 'input-error': fieldErrors.ten_combo }" />
+              <p v-if="fieldErrors.ten_combo" class="field-error">{{ fieldErrors.ten_combo }}</p>
+              <small class="step-help-text">Tên combo sẽ tự động ghép từ các sản phẩm phụ kiện đã chọn trừ khi bạn chỉnh sửa thủ công.</small>
             </div>
 
-            <!-- 5. Trạng thái -->
-            <div class="form-group" style="border-top: 1px solid #e2e8f0; padding-top: 16px; margin-top: 8px;">
-              <label>Bước 5: Trạng thái hoạt động</label>
-              <select v-model="form.trangthai">
-                <option :value="1">Hoạt động (Được mở bán)</option>
-                <option :value="0">Tạm ẩn (Ngừng bán)</option>
-              </select>
+            <div class="form-group">
+              <label>Bước 3.2: Giá Khuyến Mãi Combo (Đ) <span class="required">*</span></label>
+              <input v-model="form.giakhuyenmai" type="number" @input="isPriceManuallyEdited = true" placeholder="VD: 550000" :class="{ 'input-error': fieldErrors.giakhuyenmai }" />
+              <p v-if="fieldErrors.giakhuyenmai" class="field-error">{{ fieldErrors.giakhuyenmai }}</p>
+              <div v-if="selectedOriginalPriceTotal > 0" class="combo-price-suggest-box">
+                <span>Tổng giá gốc mua lẻ: <b>{{ selectedOriginalPriceTotal.toLocaleString('vi-VN') }}đ</b></span>
+                <span>Đã tự động đề xuất giảm <b>15%</b></span>
+              </div>
             </div>
+          </div>
 
-          <p v-if="formError" class="form-error">⚠ {{ formError }}</p>
+          <!-- 4. Mô tả Combo -->
+          <div class="form-group form-step-section">
+            <label>Bước 4: Mô Tả Combo</label>
+            <textarea v-model="form.mota" placeholder="Mô tả các sản phẩm & ưu đãi của combo..." rows="3"></textarea>
+          </div>
+
+          <!-- 5. Trạng thái -->
+          <div class="form-group form-step-section">
+            <label>Bước 5: Trạng Thái Hoạt Động</label>
+            <select v-model="form.trangthai">
+              <option :value="1">Hoạt động (Được mở bán)</option>
+              <option :value="0">Tạm ẩn (Ngừng bán)</option>
+            </select>
+          </div>
+
+          <p v-if="formError" class="form-error">{{ formError }}</p>
 
           <!-- Footer actions -->
           <div class="inline-form-footer">
@@ -1195,7 +1173,7 @@ onBeforeUnmount(() => {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><path d="M15 18l-6-6 6-6"/></svg>
           Quay lại danh sách
         </button>
-        <h1>{{ isOfferEditMode ? '✏️ Chỉnh sửa Ưu đãi' : '🎁 Tạo Ưu đãi mới' }}</h1>
+        <h1>{{ isOfferEditMode ? 'Chỉnh sửa Ưu đãi' : 'Tạo Ưu đãi mới' }}</h1>
         <p>{{ isOfferEditMode ? 'Cập nhật cấu hình ưu đãi biến thể' : 'Gắn combo phụ kiện làm quà tặng cho biến thể sản phẩm chính' }}</p>
       </div>
 
@@ -1203,14 +1181,14 @@ onBeforeUnmount(() => {
             <!-- Product selection -->
             <div class="form-group">
               <label>Bước 1: Chọn Laptop chính kích hoạt ưu đãi <span class="required">*</span></label>
-              <p v-if="offerFieldErrors.id_sanpham" class="field-error">{{ offerFieldErrors.id_sanpham }}</p>
+              <p v-if="offerFieldErrors.id_sanpham" class="field-error" style="margin-bottom: 4px;">{{ offerFieldErrors.id_sanpham }}</p>
               
               <!-- Search box if no product chosen -->
               <div v-if="!selectedOfferProduct">
                 <div class="pool-search-box" style="margin-bottom: 4px;">
-                  <input v-model="offerProductSearchQuery" placeholder="🔍 Nhập tên Laptop để tìm kiếm..." />
+                  <input v-model="offerProductSearchQuery" placeholder="Nhập tên Laptop để tìm kiếm..." />
                 </div>
-                <div class="products-pool" style="max-height: 160px; margin-top: 4px;">
+                <div class="products-pool" style="max-height: 320px; margin-top: 6px;">
                   <div 
                     v-for="p in filteredLaptopProducts" 
                     :key="p.id_sanpham" 
@@ -1218,23 +1196,23 @@ onBeforeUnmount(() => {
                     @click="selectOfferProductAction(p)"
                   >
                     <div class="p-info" style="text-align: left;">
-                      <b style="font-size: 12px; color: #1e293b; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ p.tenSP }}</b>
-                      <span style="font-size: 10px; color: #64748b;">SKU: {{ p.SKU || 'N/A' }} | {{ p.danh_muc?.ten_danhmuc || 'Laptop' }}</span>
+                      <b class="laptop-item-name">{{ p.tenSP }}</b>
+                      <span class="laptop-item-sku">SKU: {{ p.SKU || 'N/A' }} | {{ p.danh_muc?.ten_danhmuc || 'Laptop' }}</span>
                     </div>
                   </div>
-                  <div v-if="!filteredLaptopProducts.length" style="padding: 14px; text-align: center; color: #64748b; font-size: 12.5px;">
+                  <div v-if="!filteredLaptopProducts.length" class="pool-empty-notice">
                     Không tìm thấy sản phẩm laptop nào phù hợp.
                   </div>
                 </div>
               </div>
 
               <!-- Selected product badge/info -->
-              <div v-else class="selected-product-info" style="display: flex; justify-content: space-between; align-items: center; background: #eff6ff; border: 1px solid #bfdbfe; padding: 12px 16px; border-radius: 10px;">
+              <div v-else class="selected-product-info">
                 <div style="text-align: left;">
-                  <span style="font-size: 10px; color: #2563eb; font-weight: 700; display: block; text-transform: capitalize; letter-spacing: 0.05em; margin-bottom: 2px;">Laptop Đang Chọn:</span>
-                  <b style="font-size: 13px; color: #1e293b; display: block; line-height: 1.4;">{{ getSelectedOfferProductName(selectedOfferProduct) }}</b>
+                  <span class="selected-product-label">Laptop Đang Chọn:</span>
+                  <b class="selected-product-name">{{ getSelectedOfferProductName(selectedOfferProduct) }}</b>
                 </div>
-                <button v-if="!isOfferEditMode" type="button" @click="selectedOfferProduct = null" class="img-remove-btn" style="padding: 6px 12px; font-size: 11px; margin: 0;">
+                <button v-if="!isOfferEditMode" type="button" @click="selectedOfferProduct = null" class="img-remove-btn action-change-btn">
                   Thay đổi
                 </button>
               </div>
@@ -1246,22 +1224,22 @@ onBeforeUnmount(() => {
               <p v-if="offerFieldErrors.id_bienthe" class="field-error" style="margin-bottom: 4px;">{{ offerFieldErrors.id_bienthe }}</p>
               
               <!-- Selected variant badge/info (similar to Selected Laptop box) -->
-              <div v-if="offerForm.id_bienthe && isVariantCollapsed" class="selected-product-info" style="display: flex; justify-content: space-between; align-items: center; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 12px 16px; border-radius: 10px;">
+              <div v-if="offerForm.id_bienthe && isVariantCollapsed" class="selected-variant-info">
                 <div style="text-align: left;">
-                  <span style="font-size: 10px; color: #166534; font-weight: 700; display: block; text-transform: capitalize; letter-spacing: 0.05em; margin-bottom: 2px;">Cấu Hình Đang Chọn:</span>
-                  <b style="font-size: 13px; color: #1e293b; display: block; line-height: 1.4;">{{ getSelectedVariantName(offerForm.id_bienthe) }}</b>
-                  <span style="font-size: 11px; color: #166534; font-weight: 700; margin-top: 4px; display: block;">
-                    Giá bán lẻ lẻ: {{ getSelectedVariantPrice(offerForm.id_bienthe) }}
+                  <span class="selected-variant-label">Cấu Hình Đang Chọn:</span>
+                  <b class="selected-variant-name">{{ getSelectedVariantName(offerForm.id_bienthe) }}</b>
+                  <span class="selected-variant-price">
+                    Giá bán lẻ: {{ getSelectedVariantPrice(offerForm.id_bienthe) }}
                   </span>
                 </div>
-                <button v-if="!isOfferEditMode" type="button" @click="isVariantCollapsed = false" class="img-change" style="padding: 6px 12px; font-size: 11px; margin: 0; background: white; border: 1px solid #cbd5e1; border-radius: 6px;">
+                <button v-if="!isOfferEditMode" type="button" @click="isVariantCollapsed = false" class="img-change action-change-btn">
                   Thay đổi
                 </button>
               </div>
 
               <!-- Available variant grid to select from -->
               <div v-else>
-                <div v-if="groupedOfferVariants.length" class="variant-offer-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 4px;">
+                <div v-if="groupedOfferVariants.length" class="variant-offer-cards-grid">
                   <div 
                     v-for="v in groupedOfferVariants" 
                     :key="v.configName"
@@ -1271,27 +1249,25 @@ onBeforeUnmount(() => {
                       disabled: isOfferEditMode && !isVariantSelected(v)
                     }"
                     @click="selectVariantAction(v)"
-                    style="border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 12px; cursor: pointer; transition: all 0.2s; position: relative; text-align: left; background: white;"
                   >
                     <!-- Checkbox circle badge -->
                     <div 
                       class="variant-select-chk" 
-                      style="position: absolute; top: 10px; right: 10px; width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 10px; color: white; background: white; font-weight: bold; transition: all 0.2s;"
-                      :style="isVariantSelected(v) ? { borderColor: '#3b82f6', backgroundColor: '#3b82f6' } : {}"
+                      :class="{ selected: isVariantSelected(v) }"
                     >
                       <span v-if="isVariantSelected(v)">✓</span>
                     </div>
                     
-                    <div style="font-weight: 700; font-size: 12px; color: #1e293b; padding-right: 20px; line-height: 1.4; transition: color 0.2s;">
+                    <div class="variant-config-title">
                       {{ v.configName }}
                     </div>
                     
-                    <div style="font-size: 11px; font-weight: 800; color: #2563eb; margin-top: 8px;">
+                    <div class="variant-config-price">
                       Lẻ: {{ Number(v.gia).toLocaleString('vi-VN') }}đ
                     </div>
                   </div>
                 </div>
-                <div v-else style="padding: 14px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 10px; text-align: center; color: #64748b; font-size: 12.5px;">
+                <div v-else class="pool-empty-notice">
                   Sản phẩm laptop này chưa có cấu hình biến thể nào.
                 </div>
               </div>
@@ -1307,24 +1283,26 @@ onBeforeUnmount(() => {
                 </option>
               </select>
               <p v-if="offerFieldErrors.id_combo" class="field-error">{{ offerFieldErrors.id_combo }}</p>
-              <small style="color: #64748b; font-size:11px; margin-top:2px;">⚠️ Phải tạo Combo phụ kiện tại Tab 1 trước khi gắn ưu đãi tại đây.</small>
+              <small class="step-help-text">Phải tạo Combo phụ kiện tại Tab 1 trước khi gắn ưu đãi tại đây.</small>
             </div>
 
             <!-- Offer Type radio list -->
-            <div class="form-group" style="border-top: 1px solid #e2e8f0; padding-top: 14px; margin-top: 4px;">
+            <div class="form-group form-step-section">
               <label>Bước 4: Loại ưu đãi</label>
-              <div class="offer-type-cards" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 10px; width: 100%;">
-                <label class="offer-type-card" :class="{ active: offerForm.loai_uudai === 'free' }" style="display: flex; flex-direction: column; align-items: flex-start; padding: 16px 20px; border-radius: 12px; border: 2px solid #e2e8f0; background: white; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.02); position: relative; text-align: left; font-weight: normal;">
-                  <input type="radio" value="free" v-model="offerForm.loai_uudai" style="position: absolute; top: 16px; right: 16px; width: 18px; height: 18px; accent-color: #2563eb; margin: 0; cursor: pointer;" />
-                  <span style="font-size: 20px; margin-bottom: 8px;">🎁</span>
-                  <b style="font-size: 14px; color: #1e293b; font-weight: 700; margin-bottom: 4px; text-transform: none; letter-spacing: normal;">Tặng miễn phí (0đ)</b>
-                  <span style="font-size: 11.5px; color: #64748b; line-height: 1.4;">Combo phụ kiện con được tặng 100% miễn phí khi khách mua sản phẩm này.</span>
+              <div class="offer-type-cards">
+                <label class="offer-type-card" :class="{ active: offerForm.loai_uudai === 'free' }">
+                  <div class="offer-type-header">
+                    <input type="radio" value="free" v-model="offerForm.loai_uudai" class="offer-type-radio" />
+                    <b class="offer-type-title">Tặng miễn phí (0đ)</b>
+                  </div>
+                  <span class="offer-type-desc">Combo phụ kiện con được tặng 100% miễn phí khi khách mua sản phẩm này.</span>
                 </label>
-                <label class="offer-type-card" :class="{ active: offerForm.loai_uudai === 'discount' }" style="display: flex; flex-direction: column; align-items: flex-start; padding: 16px 20px; border-radius: 12px; border: 2px solid #e2e8f0; background: white; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.02); position: relative; text-align: left; font-weight: normal;">
-                  <input type="radio" value="discount" v-model="offerForm.loai_uudai" style="position: absolute; top: 16px; right: 16px; width: 18px; height: 18px; accent-color: #2563eb; margin: 0; cursor: pointer;" />
-                  <span style="font-size: 20px; margin-bottom: 8px;">🏷️</span>
-                  <b style="font-size: 14px; color: #1e293b; font-weight: 700; margin-bottom: 4px; text-transform: none; letter-spacing: normal;">Mua kèm giá đặc biệt</b>
-                  <span style="font-size: 11.5px; color: #64748b; line-height: 1.4;">Khách hàng được mua kèm combo phụ kiện này với một mức giá ưu đãi tự chọn.</span>
+                <label class="offer-type-card" :class="{ active: offerForm.loai_uudai === 'discount' }">
+                  <div class="offer-type-header">
+                    <input type="radio" value="discount" v-model="offerForm.loai_uudai" class="offer-type-radio" />
+                    <b class="offer-type-title">Mua kèm giá đặc biệt</b>
+                  </div>
+                  <span class="offer-type-desc">Khách hàng được mua kèm combo phụ kiện này với một mức giá ưu đãi tự chọn.</span>
                 </label>
               </div>
             </div>
@@ -1337,19 +1315,19 @@ onBeforeUnmount(() => {
             </div>
 
             <!-- Description tag (VIP Banner display text) -->
-            <div class="form-group" style="border-top: 1px solid #e2e8f0; padding-top: 14px; margin-top: 4px;">
+            <div class="form-group form-step-section">
               <label>Bước 5: Tiêu đề / Nội dung hiển thị VIP Banner (Khách hàng xem) <span class="required">*</span></label>
               <input v-model="offerForm.mota_uudai" placeholder="VD: Tặng combo Phím Chuột Gaming trị giá 650k khi chọn phiên bản RAM 16GB" />
-              <small style="color: #64748b; font-size:11px; margin-top:2px;">Dòng này sẽ được hiển thị nổi bật tại trang chi tiết sản phẩm chính để thu hút khách nâng cấp cấu hình.</small>
+              <small class="step-help-text">Dòng này sẽ được hiển thị nổi bật tại trang chi tiết sản phẩm chính để thu hút khách nâng cấp cấu hình.</small>
             </div>
 
             <!-- Limit & Expiry Date (2 columns) -->
-            <div class="form-cols-2" style="border-top: 1px solid #e2e8f0; padding-top: 14px; margin-top: 4px;">
+            <div class="form-cols-2 form-step-section">
               <div class="form-group">
                 <label>Giới hạn số lượng (suất)</label>
                 <input v-model="offerForm.gioi_han_soluong" type="number" placeholder="Không giới hạn" :class="{ 'input-error': offerFieldErrors.gioi_han_soluong }" />
                 <p v-if="offerFieldErrors.gioi_han_soluong" class="field-error">{{ offerFieldErrors.gioi_han_soluong }}</p>
-                <small style="color: #64748b; font-size:11px; margin-top:2px; display:block;">Ưu đãi tự động đóng khi đạt giới hạn.</small>
+                <small class="step-help-text">Ưu đãi tự động đóng khi đạt giới hạn.</small>
               </div>
 
               <div class="form-group">
@@ -1386,33 +1364,33 @@ onBeforeUnmount(() => {
     ══════════════════════════════════════════════════════ -->
     <teleport to="body">
       <div v-if="showDetailModal && selectedOfferDetail" class="modal-overlay" @click.self="closeDetailModal">
-        <div class="modal">
+        <div class="modal detail-modal">
           <div class="modal-header">
-            <h3>🔍 Chi tiết Chiến dịch Ưu đãi</h3>
+            <h3>Chi tiết Chiến dịch Ưu đãi</h3>
             <button class="modal-close" @click="closeDetailModal">&times;</button>
           </div>
           <div class="modal-body" style="gap: 14px;">
             <div class="detail-modal-card">
               <!-- Banner Title Section -->
-              <div class="vip-banner-box" style="max-width: 100%; width: 100%; box-sizing: border-box; margin-bottom: 8px;">
-                📢 <b>Nội dung hiển thị VIP Banner (Khách xem):</b><br/>
-                <span style="font-size: 13px; display: inline-block; margin-top: 6px; font-weight: normal; color: #475569;">
+              <div class="vip-banner-box">
+                <b class="vip-banner-title">Nội dung hiển thị VIP Banner (Khách xem):</b>
+                <div class="vip-banner-sub">
                   {{ selectedOfferDetail.mota_uudai || 'Chưa thiết lập banner' }}
-                </span>
+                </div>
               </div>
 
               <!-- Section 1: Activation Condition -->
               <div class="detail-section">
-                <div class="detail-section-title">💻 Điều kiện kích hoạt (Sản phẩm chính)</div>
+                <div class="detail-section-title">Điều kiện kích hoạt (Sản phẩm chính)</div>
                 <div class="detail-info-row">
                   <span class="detail-info-label">Laptop áp dụng</span>
-                  <span class="detail-info-value" style="color: #2563eb; font-weight: bold;">{{ selectedOfferDetail.sanpham_ten }}</span>
+                  <span class="detail-info-value offer-laptop-name">{{ selectedOfferDetail.sanpham_ten }}</span>
                 </div>
                 <div class="detail-info-row">
                   <span class="detail-info-label">Phiên bản / Cấu hình</span>
                   <span class="detail-info-value">
-                    <span class="variant-spec-badge" style="margin: 0; font-size: 11px; padding: 4px 8px;">
-                      💻 {{ getConfigName(selectedOfferDetail.ten_bienthe) }}
+                    <span class="variant-spec-badge">
+                      {{ getConfigName(selectedOfferDetail.ten_bienthe) }}
                     </span>
                   </span>
                 </div>
@@ -1420,28 +1398,28 @@ onBeforeUnmount(() => {
 
               <!-- Section 2: Applied Combo details -->
               <div class="detail-section">
-                <div class="detail-section-title">🎁 Combo quà tặng / mua kèm</div>
+                <div class="detail-section-title">Combo quà tặng / mua kèm</div>
                 <div class="detail-info-row">
                   <span class="detail-info-label">Combo áp dụng</span>
-                  <span class="detail-info-value" style="color: #2563eb; font-weight: bold;">{{ selectedOfferDetail.combo_ten }}</span>
+                  <span class="detail-info-value offer-combo-name">{{ selectedOfferDetail.combo_ten }}</span>
                 </div>
                 <div class="detail-info-row">
                   <span class="detail-info-label">Giá trị Combo gốc</span>
-                  <span class="detail-info-value" style="text-decoration: line-through; color: #94a3b8;">
+                  <span class="detail-info-value combo-original-price">
                     {{ Number(selectedOfferDetail.combo_gia).toLocaleString('vi-VN') }}đ
                   </span>
                 </div>
                 <div class="detail-info-row">
                   <span class="detail-info-label">Loại ưu đãi</span>
                   <span class="detail-info-value">
-                    <span class="badge" :class="selectedOfferDetail.loai_uudai === 'free' ? 'badge-green' : 'badge-orange'" style="padding: 4px 8px; font-size: 10px;">
-                      {{ selectedOfferDetail.loai_uudai === 'free' ? '🎁 Tặng 0đ' : '🏷️ Mua kèm' }}
+                    <span class="badge" :class="selectedOfferDetail.loai_uudai === 'free' ? 'badge-green' : 'badge-orange'">
+                      {{ selectedOfferDetail.loai_uudai === 'free' ? 'Tặng 0đ' : 'Mua kèm' }}
                     </span>
                   </span>
                 </div>
                 <div class="detail-info-row">
                   <span class="detail-info-label">Giá ưu đãi thực tế</span>
-                  <span class="detail-info-value" :class="{ 'free-text': selectedOfferDetail.loai_uudai === 'free' }" style="font-size: 14.5px; font-weight: 800; color: #ef4444;">
+                  <span class="detail-info-value offer-real-price" :class="{ 'free-text': selectedOfferDetail.loai_uudai === 'free' }">
                     {{ selectedOfferDetail.loai_uudai === 'free' ? 'Miễn phí (0đ)' : Number(selectedOfferDetail.giakhuyenmai_override).toLocaleString('vi-VN') + 'đ' }}
                   </span>
                 </div>
@@ -1449,7 +1427,7 @@ onBeforeUnmount(() => {
 
               <!-- Section 3: Limits & Duration -->
               <div class="detail-section">
-                <div class="detail-section-title">📊 Giới hạn & Thời gian chiến dịch</div>
+                <div class="detail-section-title">Giới hạn & Thời gian chiến dịch</div>
                 <div class="detail-info-row">
                   <span class="detail-info-label">Đã sử dụng</span>
                   <span class="detail-info-value">
@@ -1460,10 +1438,10 @@ onBeforeUnmount(() => {
                   <span class="detail-info-label">Tiến độ sử dụng</span>
                   <span class="detail-info-value">
                     <div style="display: flex; align-items: center; gap: 8px;">
-                      <div class="usage-bar-bg" style="width: 100px; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; display: inline-block;">
-                        <div class="usage-bar-fill" :style="{ width: Math.min((selectedOfferDetail.da_su_dung / selectedOfferDetail.gioi_han_soluong) * 100, 100) + '%' }" style="height: 100%; background: linear-gradient(90deg, #2563eb, #3b82f6); border-radius: 3px;"></div>
+                      <div class="usage-bar-bg">
+                        <div class="usage-bar-fill" :style="{ width: Math.min((selectedOfferDetail.da_su_dung / selectedOfferDetail.gioi_han_soluong) * 100, 100) + '%' }"></div>
                       </div>
-                      <span style="font-size: 11px; color: #475569; font-weight: bold;">
+                      <span class="usage-percent-text">
                         {{ Math.round((selectedOfferDetail.da_su_dung / selectedOfferDetail.gioi_han_soluong) * 100) }}%
                       </span>
                     </div>
@@ -1471,19 +1449,19 @@ onBeforeUnmount(() => {
                 </div>
                 <div class="detail-info-row">
                   <span class="detail-info-label">Thời hạn hết hạn</span>
-                  <span class="detail-info-value" style="font-weight: 600;">
-                    {{ selectedOfferDetail.ngay_het_han ? formatOfferDate(selectedOfferDetail.ngay_het_han) : 'Vô thời hạn ♾️' }}
+                  <span class="detail-info-value">
+                    {{ selectedOfferDetail.ngay_het_han ? formatOfferDate(selectedOfferDetail.ngay_het_han) : 'Vô thời hạn' }}
                   </span>
                 </div>
               </div>
 
               <!-- Section 4: Status and Validity -->
               <div class="detail-section">
-                <div class="detail-section-title">⚙️ Trạng thái & Tính hợp lệ</div>
+                <div class="detail-section-title">Trạng thái & Tính hợp lệ</div>
                 <div class="detail-info-row">
                   <span class="detail-info-label">Trạng thái cấu hình</span>
                   <span class="detail-info-value">
-                    <span class="badge" :class="selectedOfferDetail.trangthai === 1 ? 'badge-success' : 'badge-draft'" style="padding: 4px 8px; font-size: 10px;">
+                    <span class="badge" :class="selectedOfferDetail.trangthai === 1 ? 'badge-success' : 'badge-draft'">
                       {{ selectedOfferDetail.trangthai === 1 ? 'Đang kích hoạt' : 'Tạm ẩn' }}
                     </span>
                   </span>
@@ -1491,22 +1469,22 @@ onBeforeUnmount(() => {
                 <div class="detail-info-row">
                   <span class="detail-info-label">Hiệu lực hệ thống</span>
                   <span class="detail-info-value">
-                    <span class="badge" :class="selectedOfferDetail.is_valid ? 'badge-active-green' : 'badge-expired-red'" style="padding: 4px 8px; font-size: 10px;">
-                      {{ selectedOfferDetail.is_valid ? '🟢 Khả dụng' : '🔴 Vô hiệu' }}
+                    <span class="badge" :class="selectedOfferDetail.is_valid ? 'badge-active-green' : 'badge-expired-red'">
+                      {{ selectedOfferDetail.is_valid ? 'Khả dụng' : 'Vô hiệu' }}
                     </span>
                   </span>
                 </div>
-                <div v-if="selectedOfferDetail.is_combo_in_stock === false" class="detail-info-row" style="background: #fff1f2; border-radius: 8px; padding: 10px 12px; margin-top: 8px; border: 1px solid #fecdd3;">
-                  <span class="detail-info-label" style="color: #e11d48; font-weight: bold;">Cảnh báo kho hàng</span>
-                  <span class="detail-info-value" style="color: #e11d48; font-weight: bold;">
-                    ⚠️ Thiếu hàng phụ kiện trong combo!
+                <div v-if="selectedOfferDetail.is_combo_in_stock === false" class="detail-info-row stock-warning-row">
+                  <span class="detail-info-label warning-label">Cảnh báo kho hàng</span>
+                  <span class="detail-info-value warning-value">
+                    Thiếu hàng phụ kiện trong combo!
                   </span>
                 </div>
               </div>
             </div>
           </div>
           <div class="modal-footer">
-            <button class="btn-cancel" @click="closeDetailModal" style="padding: 10px 20px; font-size: 13px;">Đóng</button>
+            <button class="btn-cancel" @click="closeDetailModal">Đóng</button>
           </div>
         </div>
       </div>
@@ -2438,7 +2416,7 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 12px;
-  max-height: 240px;
+  max-height: 320px;
   overflow-y: auto;
   padding: 8px;
   background: #f8fafc;
@@ -2967,7 +2945,7 @@ onBeforeUnmount(() => {
 .variant-offer-card.disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background: #f1f5f9 !important;
+  background: #f1f5f9;
 }
 
 /* ── Offer Type Cards Styles ── */
