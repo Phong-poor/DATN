@@ -13,13 +13,59 @@ export function normalizeAuthUser(user) {
   }
 }
 
+const disposableCachePrefixes = [
+  'nextgen_product_detail_cache_',
+  'nextgen_news_detail_cache_',
+  'nextgen_admin_dashboard_',
+  'predator_admin_dashboard_',
+  'global_form_draft_',
+]
+
+const disposableCacheKeys = new Set([
+  'nextgen_products_prefetch_cache',
+  'nextgen_admin_products_cache',
+  'nextgen_news_cache',
+  'premium_home_cache',
+  'nextgen_cart_cache',
+])
+
+function freeLocalStorageForAuth() {
+  Object.keys(localStorage).forEach((key) => {
+    if (disposableCacheKeys.has(key) || disposableCachePrefixes.some((prefix) => key.startsWith(prefix))) {
+      localStorage.removeItem(key)
+    }
+  })
+}
+
+function writePersistentAuth(token, encodedUser) {
+  try {
+    localStorage.setItem('token', token)
+    localStorage.setItem('user', encodedUser)
+  } catch (error) {
+    // Cache sản phẩm/tin tức có thể chiếm hết quota. Dọn cache tái tạo được rồi thử lại.
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    freeLocalStorageForAuth()
+    localStorage.setItem('token', token)
+    localStorage.setItem('user', encodedUser)
+  }
+}
+
+function broadcastAuthEvent(key, value) {
+  try {
+    localStorage.setItem(key, value)
+    localStorage.removeItem(key)
+  } catch (_) {
+    // Đồng bộ giữa các tab là phụ; không được làm đăng nhập thất bại khi storage đầy.
+  }
+}
+
 export function saveAuth(token, user, remember = false) {
   const normalizedUser = normalizeAuthUser(user)
   const encodedUser = btoa(unescape(encodeURIComponent(JSON.stringify(normalizedUser))))
 
   if (remember) {
-    localStorage.setItem('token', token)
-    localStorage.setItem('user', encodedUser)
+    writePersistentAuth(token, encodedUser)
     sessionStorage.removeItem('token')
     sessionStorage.removeItem('user')
   } else {
@@ -30,8 +76,7 @@ export function saveAuth(token, user, remember = false) {
   }
 
   const loginData = { token, user: encodedUser, remember }
-  localStorage.setItem('login-event', JSON.stringify(loginData))
-  localStorage.removeItem('login-event')
+  broadcastAuthEvent('login-event', JSON.stringify(loginData))
 
   window.dispatchEvent(new Event('user-updated'))
 }
@@ -42,8 +87,7 @@ export function clearAuth() {
   sessionStorage.removeItem('token')
   sessionStorage.removeItem('user')
 
-  localStorage.setItem('logout-event', Date.now().toString())
-  localStorage.removeItem('logout-event')
+  broadcastAuthEvent('logout-event', Date.now().toString())
 
   window.dispatchEvent(new Event('user-updated'))
 }
@@ -84,7 +128,12 @@ export function updateUser(user) {
     sessionStorage.setItem('user', encodedUser)
     localStorage.removeItem('user')
   } else {
-    localStorage.setItem('user', encodedUser)
+    try {
+      localStorage.setItem('user', encodedUser)
+    } catch (_) {
+      freeLocalStorageForAuth()
+      localStorage.setItem('user', encodedUser)
+    }
     sessionStorage.removeItem('user')
   }
 

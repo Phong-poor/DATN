@@ -25,8 +25,8 @@ return new class extends Migration
             $table->timestamp('xu_ly_luc')->nullable();
             $table->timestamps();
 
-            $table->foreign('id_nhanvien')->references('id')->on('khachhang')->cascadeOnDelete();
-            $table->foreign('xu_ly_boi')->references('id')->on('khachhang')->nullOnDelete();
+            $table->foreign('id_nhanvien')->references('id')->on('admins')->cascadeOnDelete();
+            $table->foreign('xu_ly_boi')->references('id')->on('admins')->nullOnDelete();
             $table->index(['id_nhanvien', 'tu_ngay', 'den_ngay']);
             $table->index(['trang_thai', 'tu_ngay']);
         });

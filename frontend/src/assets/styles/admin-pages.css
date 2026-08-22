@@ -81,10 +81,10 @@
 
 .admin-layout .admin-topbar {
   border: 0 !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-bottom: 1px solid #e2e8f0 !important;
   border-radius: 0 !important;
-  background: #0b0d12 !important;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16) !important;
+  background: #ffffff !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08) !important;
   backdrop-filter: blur(14px);
 }
 
@@ -129,19 +129,19 @@
 }
 
 .admin-layout .admin-topbar .admin-topbar-title h2 {
-  color: #ffffff !important;
+  color: #0f172a !important;
 }
 
 .admin-layout .admin-topbar .admin-topbar-title p {
-  color: rgba(219, 234, 254, 0.76) !important;
+  color: #64748b !important;
 }
 
 .admin-layout .admin-topbar .topbar-home-link,
 .admin-layout .admin-topbar .topbar-icon-button,
 .admin-layout .admin-topbar .topbar-user-btn {
-  background: rgba(255, 255, 255, 0.08) !important;
-  border-color: rgba(191, 219, 254, 0.24) !important;
-  color: #e0f2fe !important;
+  background: #f8fafc !important;
+  border-color: #dbe3ee !important;
+  color: #475569 !important;
 }
 
 .admin-layout .admin-topbar .topbar-home-link:hover,
@@ -155,16 +155,16 @@
 
 .admin-layout .admin-topbar .user-name,
 .admin-layout .admin-topbar .icon-flag {
-  color: #ffffff !important;
+  color: #0f172a !important;
 }
 
 .admin-layout .admin-topbar .user-role,
 .admin-layout .admin-topbar .topbar-user-btn svg {
-  color: rgba(219, 234, 254, 0.72) !important;
+  color: #64748b !important;
 }
 
 .admin-layout .admin-topbar .topbar-divider {
-  background: rgba(191, 219, 254, 0.22) !important;
+  background: #e2e8f0 !important;
 }
 
 /* Header chính của layout đã hiển thị tên trang. Ẩn các tiêu đề lặp lại
@@ -1559,6 +1559,36 @@ html[data-admin-theme='dark'] .logo-upload-wrap .logo-placeholder-text {
   background: #172438 !important;
 }
 
+.admin-layout.theme-dark .admin-topbar {
+  border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+  background: #0b0d12 !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16) !important;
+}
+
+.admin-layout.theme-dark .admin-topbar .admin-topbar-title h2,
+.admin-layout.theme-dark .admin-topbar .user-name,
+.admin-layout.theme-dark .admin-topbar .icon-flag {
+  color: #ffffff !important;
+}
+
+.admin-layout.theme-dark .admin-topbar .admin-topbar-title p,
+.admin-layout.theme-dark .admin-topbar .user-role,
+.admin-layout.theme-dark .admin-topbar .topbar-user-btn svg {
+  color: rgba(219, 234, 254, 0.76) !important;
+}
+
+.admin-layout.theme-dark .admin-topbar .topbar-home-link,
+.admin-layout.theme-dark .admin-topbar .topbar-icon-button,
+.admin-layout.theme-dark .admin-topbar .topbar-user-btn {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(191, 219, 254, 0.24) !important;
+  color: #e0f2fe !important;
+}
+
+.admin-layout.theme-dark .admin-topbar .topbar-divider {
+  background: rgba(191, 219, 254, 0.22) !important;
+}
+
 .admin-layout.theme-dark .schedule-guide-title {
   background: transparent !important;
   border: 0 !important;
@@ -1951,6 +1981,264 @@ html[data-admin-theme='dark'] .period-tab.active,
   background: #2563eb !important;
   color: #ffffff !important;
   box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3) !important;
+}
+
+/* Remaining add/edit/detail/delete surfaces used by individual admin modules. */
+html[data-admin-theme='dark'] .holiday-modal,
+html[data-admin-theme='dark'] .revenue-history-modal,
+html[data-admin-theme='dark'] .age-chart-modal,
+html[data-admin-theme='dark'] .revision-modal,
+html[data-admin-theme='dark'] .detail-modal-card,
+html[data-admin-theme='dark'] .confirm-box,
+html[data-admin-theme='dark'] [class$='-modal']:not(.preview-box-modal),
+.admin-layout.theme-dark .holiday-modal,
+.admin-layout.theme-dark .revenue-history-modal,
+.admin-layout.theme-dark .age-chart-modal,
+.admin-layout.theme-dark .revision-modal,
+.admin-layout.theme-dark .detail-modal-card,
+.admin-layout.theme-dark .confirm-box,
+.admin-layout.theme-dark [class$='-modal']:not(.preview-box-modal) {
+  border-color: #3b424b !important;
+  background: #15191f !important;
+  color: #e8edf4 !important;
+  box-shadow: 0 26px 72px rgba(0, 0, 0, 0.52) !important;
+}
+
+html[data-admin-theme='dark'] .holiday-modal header,
+html[data-admin-theme='dark'] .holiday-modal footer,
+html[data-admin-theme='dark'] .revenue-history-modal header,
+html[data-admin-theme='dark'] .revenue-history-modal footer,
+html[data-admin-theme='dark'] .age-chart-modal-head,
+html[data-admin-theme='dark'] .revision-modal .modal-header,
+.admin-layout.theme-dark .holiday-modal header,
+.admin-layout.theme-dark .holiday-modal footer,
+.admin-layout.theme-dark .revenue-history-modal header,
+.admin-layout.theme-dark .revenue-history-modal footer,
+.admin-layout.theme-dark .age-chart-modal-head,
+.admin-layout.theme-dark .revision-modal .modal-header {
+  border-color: #343c47 !important;
+  background: #181d24 !important;
+  color: #eef2f7 !important;
+}
+
+html[data-admin-theme='dark'] .holiday-modal h1,
+html[data-admin-theme='dark'] .holiday-modal h2,
+html[data-admin-theme='dark'] .holiday-modal h3,
+html[data-admin-theme='dark'] .revenue-history-modal h1,
+html[data-admin-theme='dark'] .revenue-history-modal h2,
+html[data-admin-theme='dark'] .revenue-history-modal h3,
+html[data-admin-theme='dark'] .age-chart-modal h2,
+html[data-admin-theme='dark'] .revision-modal h3,
+html[data-admin-theme='dark'] .detail-modal-card strong,
+html[data-admin-theme='dark'] .confirm-box h3,
+html[data-admin-theme='dark'] .confirm-box strong {
+  color: #f8fafc !important;
+}
+
+html[data-admin-theme='dark'] .holiday-modal p,
+html[data-admin-theme='dark'] .holiday-modal small,
+html[data-admin-theme='dark'] .revenue-history-modal p,
+html[data-admin-theme='dark'] .revenue-history-modal small,
+html[data-admin-theme='dark'] .age-chart-modal p,
+html[data-admin-theme='dark'] .revision-modal p,
+html[data-admin-theme='dark'] .detail-modal-card span,
+html[data-admin-theme='dark'] .detail-modal-card small,
+html[data-admin-theme='dark'] .confirm-box p {
+  color: #a8b2c1 !important;
+}
+
+/* Revenue history is teleported to <body>, so its dark styles must be rooted at html. */
+html[data-admin-theme='dark'] .revenue-month-nav strong {
+  color: #f8fafc !important;
+}
+
+html[data-admin-theme='dark'] .revenue-close,
+html[data-admin-theme='dark'] .revenue-month-nav button {
+  border-color: #475569 !important;
+  background: #252c36 !important;
+  color: #e2e8f0 !important;
+}
+
+html[data-admin-theme='dark'] .revenue-close:hover,
+html[data-admin-theme='dark'] .revenue-month-nav button:hover {
+  border-color: #60a5fa !important;
+  background: #303947 !important;
+  color: #ffffff !important;
+}
+
+html[data-admin-theme='dark'] .revenue-month-summary div {
+  border-color: rgba(96, 165, 250, 0.32) !important;
+  background: rgba(37, 99, 235, 0.14) !important;
+}
+
+html[data-admin-theme='dark'] .revenue-month-summary span {
+  color: #a8b2c1 !important;
+}
+
+html[data-admin-theme='dark'] .revenue-month-summary b {
+  color: #60a5fa !important;
+}
+
+html[data-admin-theme='dark'] .daily-revenue-row {
+  border-color: #343c47 !important;
+  background: #1d232b !important;
+}
+
+html[data-admin-theme='dark'] .daily-revenue-row time b {
+  color: #f1f5f9 !important;
+}
+
+html[data-admin-theme='dark'] .daily-revenue-row time span,
+html[data-admin-theme='dark'] .daily-revenue-row > span,
+html[data-admin-theme='dark'] .revenue-loading {
+  color: #a8b2c1 !important;
+}
+
+html[data-admin-theme='dark'] .daily-revenue-row > strong {
+  color: #34d399 !important;
+}
+
+html[data-admin-theme='dark'] .daily-revenue-row.empty > strong {
+  color: #94a3b8 !important;
+}
+
+html[data-admin-theme='dark'] .revision-item,
+html[data-admin-theme='dark'] .revenue-history-row,
+html[data-admin-theme='dark'] .calendar-day,
+html[data-admin-theme='dark'] .calendar-summary-card,
+html[data-admin-theme='dark'] .detail-row,
+html[data-admin-theme='dark'] .detail-section,
+.admin-layout.theme-dark .revision-item,
+.admin-layout.theme-dark .revenue-history-row,
+.admin-layout.theme-dark .calendar-day,
+.admin-layout.theme-dark .calendar-summary-card,
+.admin-layout.theme-dark .detail-row,
+.admin-layout.theme-dark .detail-section {
+  border-color: #343c47 !important;
+  background: #1d232b !important;
+  color: #dce3ec !important;
+}
+
+html[data-admin-theme='dark'] .calendar-day:hover,
+html[data-admin-theme='dark'] .revision-item:hover,
+html[data-admin-theme='dark'] .revenue-history-row:hover,
+.admin-layout.theme-dark .calendar-day:hover,
+.admin-layout.theme-dark .revision-item:hover,
+.admin-layout.theme-dark .revenue-history-row:hover {
+  border-color: #5276ad !important;
+  background: #252e39 !important;
+}
+
+html[data-admin-theme='dark'] .inline-form-footer,
+.admin-layout.theme-dark .inline-form-footer {
+  border-color: #343c47 !important;
+  background: #171c23 !important;
+}
+
+/* Bright remnants found by computed-style audit across every admin route. */
+html[data-admin-theme='dark'] .bottom-icon.orange,
+html[data-admin-theme='dark'] .banner-icon,
+.admin-layout.theme-dark .bottom-icon.orange,
+.admin-layout.theme-dark .banner-icon {
+  background: #2f281b !important;
+  color: #fbbf24 !important;
+}
+
+html[data-admin-theme='dark'] .export-sm-btn,
+html[data-admin-theme='dark'] .stat-card-btn,
+html[data-admin-theme='dark'] .edit-btn,
+.admin-layout.theme-dark .export-sm-btn,
+.admin-layout.theme-dark .stat-card-btn,
+.admin-layout.theme-dark .edit-btn {
+  border-color: #3f5f8d !important;
+  background: #1b2736 !important;
+  color: #9bc0ff !important;
+}
+
+html[data-admin-theme='dark'] .status-dot.active,
+html[data-admin-theme='dark'] .status-badge.approved,
+html[data-admin-theme='dark'] .face-state.registered,
+html[data-admin-theme='dark'] .badge.badge-success,
+.admin-layout.theme-dark .status-dot.active,
+.admin-layout.theme-dark .status-badge.approved,
+.admin-layout.theme-dark .face-state.registered,
+.admin-layout.theme-dark .badge.badge-success {
+  border-color: #286047 !important;
+  background: #153527 !important;
+  color: #75e3a8 !important;
+}
+
+html[data-admin-theme='dark'] .registration-state,
+html[data-admin-theme='dark'] .role-name-badge.admin-badge,
+.admin-layout.theme-dark .registration-state,
+.admin-layout.theme-dark .role-name-badge.admin-badge {
+  border-color: #71353c !important;
+  background: #351e22 !important;
+  color: #ff9a9a !important;
+}
+
+html[data-admin-theme='dark'] .tag,
+html[data-admin-theme='dark'] .action-tag.action-update,
+html[data-admin-theme='dark'] .role-badge,
+.admin-layout.theme-dark .tag,
+.admin-layout.theme-dark .action-tag.action-update,
+.admin-layout.theme-dark .role-badge {
+  border-color: #355d96 !important;
+  background: #1b2d49 !important;
+  color: #93c5fd !important;
+}
+
+html[data-admin-theme='dark'] .brand-logo-cell,
+.admin-layout.theme-dark .brand-logo-cell {
+  border-color: #3b4654 !important;
+  background: #20262f !important;
+  color: #dbeafe !important;
+}
+
+html[data-admin-theme='dark'] td > div[style*='flex-wrap'] > span[style*='background'],
+.admin-layout.theme-dark td > div[style*='flex-wrap'] > span[style*='background'] {
+  border: 1px solid #355d96 !important;
+  background: #1b2d49 !important;
+  color: #93c5fd !important;
+}
+
+html[data-admin-theme='dark'] .ttlk-badge,
+html[data-admin-theme='dark'] .gmsn-badge,
+.admin-layout.theme-dark .ttlk-badge,
+.admin-layout.theme-dark .gmsn-badge {
+  border-color: #46515f !important;
+  background: #252c35 !important;
+  color: #dbe3ed !important;
+}
+
+html[data-admin-theme='dark'] .ttlk-badge.success,
+html[data-admin-theme='dark'] .gmsn-badge.success,
+.admin-layout.theme-dark .ttlk-badge.success,
+.admin-layout.theme-dark .gmsn-badge.success {
+  border-color: #286047 !important;
+  background: #153527 !important;
+  color: #75e3a8 !important;
+}
+
+html[data-admin-theme='dark'] .ttlk-badge.warning,
+.admin-layout.theme-dark .ttlk-badge.warning {
+  border-color: #6a5421 !important;
+  background: #3e3218 !important;
+  color: #f8cf69 !important;
+}
+
+html[data-admin-theme='dark'] button.action.warn,
+.admin-layout.theme-dark button.action.warn {
+  border-color: #76591d !important;
+  background: #342914 !important;
+  color: #f8cf69 !important;
+}
+
+html[data-admin-theme='dark'] code,
+.admin-layout.theme-dark code {
+  border: 1px solid #3b4654 !important;
+  background: #20262f !important;
+  color: #bfdbfe !important;
 }
 
 /* ============================================================

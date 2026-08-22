@@ -12,6 +12,7 @@ use App\Models\BienThe;
 use App\Models\DatHangChiTiet;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Tổng hợp số liệu doanh thu, đơn hàng, sản phẩm và người dùng cho dashboard.
