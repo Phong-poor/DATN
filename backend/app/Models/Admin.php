@@ -72,6 +72,11 @@ class Admin extends Authenticatable
         return $this->hasMany(DonXinNghi::class, 'id_nhanvien');
     }
 
+    public function donHangs()
+    {
+        return $this->hasMany(DatHang::class, 'id_nhanvien', 'id');
+    }
+
     public function getOnlineAttribute(): bool
     {
         if (!$this->hoat_dong_cuoi_luc) {

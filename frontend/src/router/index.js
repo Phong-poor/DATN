@@ -61,6 +61,7 @@ const adminChildren = [
   { path: 'bang-dieu-khien', alias: ['dashboard'], name: 'admin-dashboard', component: () => import('../components/Admin/BangDieuKhien.vue'), meta: { title: 'Bảng điều khiển' } },
   { path: 'quan-ly-san-pham', alias: ['products'], name: 'admin-products', component: () => import('../components/Admin/QuanLySanPham.vue'), meta: { title: 'Quản lý sản phẩm' } },
   { path: 'quan-ly-don-hang', alias: ['orders'], name: 'admin-orders', component: () => import('../components/Admin/QuanLyDonHang.vue'), meta: { title: 'Quản lý đơn hàng' } },
+  { path: 'thong-ke-doanh-so-nhan-vien', name: 'admin-employee-stats', component: () => import('../components/Admin/ThongKeNhanVien.vue'), meta: { title: 'Doanh số nhân viên' } },
   { path: 'quan-ly-nguoi-dung', alias: ['users'], name: 'admin-users', component: () => import('../components/Admin/QuanLyNguoiDung.vue'), meta: { title: 'Quản lý người dùng' } },
   { path: 'quan-ly-tin-tuc', alias: ['news'], name: 'admin-news', component: () => import('../components/Admin/QuanLyTinTuc.vue'), meta: { title: 'Quản lý bài viết' } },
   { path: 'bien-the', alias: ['variants', 'bien-the-san-pham'], name: 'admin-variants', component: () => import('../components/Admin/BienTheSanPham.vue'), meta: { title: 'Quản lý biến thể' } },

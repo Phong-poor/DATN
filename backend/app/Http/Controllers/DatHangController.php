@@ -1599,7 +1599,7 @@ class DatHangController extends Controller
     {
         $this->syncDueDemoShipments();
 
-        $orders = DatHang::with(['user', 'chi_tiets.bienThe.sanPham'])
+        $orders = DatHang::with(['user', 'nhanVien', 'chi_tiets.bienThe.sanPham'])
             ->where(function ($query) {
                 $query->whereNotIn('PTTT', ['vnpay', 'momo'])
                     ->orWhereIn('trang_thai_thanh_toan', ['paid', 'refunded']);
@@ -1692,6 +1692,10 @@ class DatHangController extends Controller
                 'trangthai' => $newStatus,
                 'du_lieu_thanh_toan' => $this->paymentDataWithStatusTime($order, $newStatus),
             ];
+            if (!$order->id_nhanvien && Auth::id()) {
+                $updateData['id_nhanvien'] = Auth::id();
+                $order->id_nhanvien = Auth::id();
+            }
             if ($newStatus === 'cancelled') {
                 $updateData['du_lieu_thanh_toan']['cancellation'] = [
                     'source' => 'admin',
@@ -1728,6 +1732,8 @@ class DatHangController extends Controller
 
             // Broadcast the status update safely
             $this->safeBroadcastOrderStatus($order);
+
+            $order->load(['user', 'nhanVien', 'chi_tiets.bienThe.sanPham']);
 
             return response()->json([
                 'success' => true,
@@ -2127,5 +2133,160 @@ class DatHangController extends Controller
         } catch (\Exception $e) {
             Log::error('Lỗi dọn dẹp đơn hàng chưa thanh toán: '.$e->getMessage());
         }
+    }
+
+    public function assignEmployee(Request $request, $id)
+    {
+        $request->validate([
+            'id_nhanvien' => 'nullable|exists:admins,id',
+        ]);
+
+        $order = DatHang::findOrFail($id);
+        $order->id_nhanvien = $request->id_nhanvien;
+        $order->save();
+
+        $order->load(['user', 'nhanVien', 'chi_tiets.bienThe.sanPham']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Phân công nhân viên xử lý đơn hàng thành công!',
+            'order' => $order,
+        ]);
+    }
+
+    public function getEmployeeStats(Request $request)
+    {
+        $employeeId = $request->query('id_nhanvien');
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+        $status = $request->query('trangthai', 'done');
+
+        $query = DatHang::query();
+
+        if ($employeeId && $employeeId !== 'all') {
+            $query->where('id_nhanvien', $employeeId);
+        }
+
+        if ($status && $status !== 'all') {
+            $query->where('trangthai', $status);
+        }
+
+        if ($startDate) {
+            $query->whereDate('created_at', '>=', $startDate);
+        }
+        if ($endDate) {
+            $query->whereDate('created_at', '<=', $endDate);
+        }
+
+        $orders = $query->with(['chi_tiets.bienThe.sanPham', 'nhanVien'])->get();
+
+        $totalOrders = $orders->count();
+        $totalRevenue = $orders->sum('tongtien');
+
+        $leaderboard = [];
+        $timeline = [];
+        $products = [];
+
+        foreach ($orders as $order) {
+            $empId = $order->id_nhanvien ?? 0;
+            $empName = $order->nhanVien?->name ?? 'Chưa phân công';
+
+            $dateKey = Carbon::parse($order->created_at)->format('Y-m-d');
+
+            if (!isset($timeline[$dateKey])) {
+                $timeline[$dateKey] = [
+                    'date' => $dateKey,
+                    'orders_count' => 0,
+                    'revenue' => 0,
+                    'items_count' => 0
+                ];
+            }
+            $timeline[$dateKey]['orders_count']++;
+            $timeline[$dateKey]['revenue'] += $order->tongtien;
+
+            if ($empId) {
+                if (!isset($leaderboard[$empId])) {
+                    $leaderboard[$empId] = [
+                        'id' => $empId,
+                        'name' => $empName,
+                        'email' => $order->nhanVien?->email,
+                        'orders_count' => 0,
+                        'revenue' => 0,
+                        'items_count' => 0
+                    ];
+                }
+                $leaderboard[$empId]['orders_count']++;
+                $leaderboard[$empId]['revenue'] += $order->tongtien;
+            }
+
+            foreach ($order->chi_tiets as $item) {
+                $sp = $item->bienThe?->sanPham;
+                $bt = $item->bienThe;
+                if (!$sp) continue;
+
+                $spId = $sp->id_sanpham ?? $sp->id;
+                $spName = $sp->tenSP;
+
+                $variantName = '';
+                if ($bt->thuoc_tinh_json) {
+                    $attrs = is_array($bt->thuoc_tinh_json) ? $bt->thuoc_tinh_json : (json_decode($bt->thuoc_tinh_json, true) ?: []);
+                    $parts = [];
+                    foreach ($attrs as $k => $v) {
+                        if (is_array($v)) {
+                            if (isset($v['ten_thuoctinh']) && isset($v['giatri'])) {
+                                $parts[] = $v['ten_thuoctinh'] . ': ' . $v['giatri'];
+                            } else {
+                                foreach ($v as $subK => $subV) {
+                                    if (is_scalar($subV)) {
+                                        $parts[] = "$subK: $subV";
+                                    }
+                                }
+                            }
+                        } elseif (is_scalar($v)) {
+                            $parts[] = "$k: $v";
+                        }
+                    }
+                    $variantName = implode(', ', $parts);
+                }
+
+                $prodKey = $spId . '_' . ($bt->id_bienthe ?? 0);
+
+                if (!isset($products[$prodKey])) {
+                    $products[$prodKey] = [
+                        'product_id' => $spId,
+                        'product_name' => $spName,
+                        'variant_name' => $variantName,
+                        'image' => $bt->hinhanh ?: $sp->hinhanh ?: '',
+                        'quantity' => 0,
+                        'revenue' => 0
+                    ];
+                }
+
+                $products[$prodKey]['quantity'] += $item->soluong;
+                $products[$prodKey]['revenue'] += $item->soluong * $item->gia;
+
+                $timeline[$dateKey]['items_count'] += $item->soluong;
+                if ($empId && isset($leaderboard[$empId])) {
+                    $leaderboard[$empId]['items_count'] += $item->soluong;
+                }
+            }
+        }
+
+        usort($products, fn($a, $b) => $b['quantity'] <=> $a['quantity']);
+        usort($leaderboard, fn($a, $b) => $b['revenue'] <=> $a['revenue']);
+        ksort($timeline);
+        $timeline = array_values($timeline);
+
+        return response()->json([
+            'success' => true,
+            'summary' => [
+                'total_orders' => $totalOrders,
+                'total_revenue' => $totalRevenue,
+                'total_items' => array_sum(array_column($products, 'quantity')),
+            ],
+            'products' => array_values($products),
+            'leaderboard' => $leaderboard,
+            'timeline' => $timeline,
+        ]);
     }
 }
