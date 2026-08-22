@@ -26,6 +26,7 @@ const NO_CACHE_GET_PREFIXES = [
   '/orders',
   '/user/vouchers',
   '/affiliate',
+  '/admin',
 ]
 
 export const clearApiGetCache = () => {

@@ -316,6 +316,10 @@ class AdminAccountController extends Controller
 
         $admins = Admin::orderBy('hoat_dong_cuoi_luc', 'desc')
             ->get()
+            ->filter(function ($admin) {
+                $role = strtolower(trim((string)$admin->vaitro));
+                return in_array($role, ['admin', 'cskh']);
+            })
             ->map(function ($admin) use ($onlineSince) {
                 // Xác định trạng thái online dựa trên thời gian hoạt động cuối (5 phút)
                 $lastActiveAt = $admin->hoat_dong_cuoi_luc

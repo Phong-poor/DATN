@@ -350,7 +350,8 @@ const menuConfig = [
     icon: ShoppingCart,
     isDropdown: true,
     children: [
-      { path: '/admin/quan-ly-don-hang', label: 'Đơn hàng', badge: 'ĐƠN HÀNG' }
+      { path: '/admin/quan-ly-don-hang', label: 'Đơn hàng', badge: 'ĐƠN HÀNG' },
+      { path: '/admin/thong-ke-doanh-so-nhan-vien', label: 'Doanh số nhân viên', badge: 'ĐƠN HÀNG' }
     ]
   },
   {

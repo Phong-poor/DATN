@@ -186,6 +186,8 @@ const mapOrder = (o) => ({
     phone: o.user?.phone || '',
     address: o.diachi || '',
     shipping: o.du_lieu_thanh_toan?.shipping_demo || null,
+    id_nhanvien: o.id_nhanvien || null,
+    nhan_vien: o.nhan_vien || o.nhanVien || null,
     raw: o,
     note: '',
 })
@@ -452,12 +454,37 @@ const deleteOrder = async (id) => {
     }
 }
 
+const employees = ref([])
+const fetchEmployees = async () => {
+    try {
+        const res = await api.get('/admin/account/active-admins')
+        if (res.data.success) {
+            employees.value = res.data.admins || res.data.data || []
+        }
+    } catch (err) {
+        console.error('Lỗi tải danh sách nhân viên:', err)
+    }
+}
+
+const assignEmployee = async (orderId, empId) => {
+    try {
+        const res = await api.put(`/admin/orders/${orderId}/assign-employee`, { id_nhanvien: empId })
+        if (res.data.success) {
+            swal.toast('Phân công nhân viên xử lý thành công!', 'success')
+            syncOrderFromApi(res.data.order)
+        }
+    } catch (err) {
+        swal.error('Lỗi', err.response?.data?.message || 'Không thể phân công nhân viên')
+    }
+}
+
 const syncSuccessHandler = () => {
     fetchOrders()
 }
 
 onMounted(() => {
     fetchOrders()
+    fetchEmployees()
     autoRefreshTimer = window.setInterval(() => {
         fetchOrders()
     }, 4000)
@@ -869,6 +896,7 @@ async function exportExcel() {
                         <th>Khách hàng</th>
                         <th>Ngày đặt hàng</th>
                         <th>Tổng tiền</th>
+                        <th>Nhân viên</th>
                         <th>Trạng thái</th>
                         <th>Thanh toán</th>
                         <th>Thao tác</th>
@@ -876,7 +904,7 @@ async function exportExcel() {
                 </thead>
                 <tbody>
                     <tr v-if="paginatedOrders.length === 0">
-                        <td colspan="8" class="empty">Không tìm thấy đơn hàng nào.</td>
+                        <td colspan="9" class="empty">Không tìm thấy đơn hàng nào.</td>
                     </tr>
                     <tr v-for="(o, i) in paginatedOrders" :key="o.id"
                         :class="{ 'row-selected': selectedIds.includes(o.id_backend) }">
@@ -903,6 +931,17 @@ async function exportExcel() {
                         <td class="date-cell">{{ o.date }}</td>
 
                         <td><b class="total">{{ o.total }}</b></td>
+
+                        <td>
+                            <span v-if="o.nhan_vien" class="emp-name-badge" style="background: #f1f5f9; color: #475569; padding: 4px 8px; border-radius: 6px; font-weight: 600; font-size: 12px; white-space: nowrap; border: 1px solid #e2e8f0; display: inline-flex; align-items: center; gap: 4px;">
+                                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" style="color: #64748b;">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
+                                </svg>
+                                {{ o.nhan_vien.name || o.nhan_vien.ten }}
+                            </span>
+                            <span v-else style="color: #94a3b8; font-style: italic; font-size: 12px;">Chưa phân công</span>
+                        </td>
 
                         <td>
                             <div class="status-stack">
@@ -1100,6 +1139,33 @@ async function exportExcel() {
                                             </svg>
                                             Xác nhận đã thanh toán
                                         </button>
+                                    </div>
+                                </div>
+                                <div class="info-item" style="grid-column: span 2;">
+                                    <span class="info-label">Nhân viên phụ trách</span>
+                                    <div class="info-value" style="display: flex; align-items: center; gap: 12px; min-height: 42px;">
+                                        <select :value="viewOrder.id_nhanvien || ''" 
+                                            :disabled="!!viewOrder.id_nhanvien"
+                                            @change="assignEmployee(viewOrder.id_backend, $event.target.value ? Number($event.target.value) : null)"
+                                            :style="{ 
+                                                padding: '8px 12px', 
+                                                borderRadius: '8px', 
+                                                border: '1px solid #cbd5e1', 
+                                                fontSize: '13px', 
+                                                fontWeight: '600', 
+                                                color: '#334155', 
+                                                outline: 'none', 
+                                                backgroundColor: viewOrder.id_nhanvien ? '#f1f5f9' : '#f8fafc', 
+                                                cursor: viewOrder.id_nhanvien ? 'not-allowed' : 'pointer', 
+                                                flex: 1, 
+                                                transition: 'border-color 0.2s',
+                                                opacity: viewOrder.id_nhanvien ? 0.85 : 1
+                                            }">
+                                            <option value="">Chưa phân công</option>
+                                            <option v-for="emp in employees" :key="emp.id" :value="emp.id">
+                                                {{ emp.name }} ({{ emp.email }})
+                                            </option>
+                                        </select>
                                     </div>
                                 </div>
                             </div>
@@ -1436,6 +1502,14 @@ async function exportExcel() {
     flex-direction: column;
     gap: 14px;
     box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+    position: sticky;
+    top: 77px;
+    z-index: 7;
+    transition: top 0.28s cubic-bezier(.4, 0, .2, 1);
+}
+
+:global(.admin-header-hidden) .filter-wrap {
+    top: 12px;
 }
 
 .search-row {
