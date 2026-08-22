@@ -38,6 +38,12 @@ const FALLBACK_IMAGE =
 const tryRecoverAdminRuntime = (event) => {
   if (!window.location.pathname.startsWith('/admin')) return
   if (event?.target && event.target !== window) return
+
+  const msg = String(event?.reason?.message || event?.message || event?.reason || '')
+  if (!msg.includes('Loading chunk') && !msg.includes('ChunkLoadError') && !msg.includes('Failed to fetch dynamically imported module')) {
+    return
+  }
+
   const recovered = sessionStorage.getItem(ADMIN_RECOVERY_KEY)
   if (recovered === '1') return
   sessionStorage.setItem(ADMIN_RECOVERY_KEY, '1')
@@ -57,7 +63,9 @@ window.addEventListener('error', tryRecoverAdminRuntime)
 window.addEventListener('unhandledrejection', tryRecoverAdminRuntime)
 window.addEventListener('pageshow', () => {
   if (window.location.pathname.startsWith('/admin')) {
-    sessionStorage.removeItem(ADMIN_RECOVERY_KEY)
+    setTimeout(() => {
+      sessionStorage.removeItem(ADMIN_RECOVERY_KEY)
+    }, 5000)
   }
 })
 window.addEventListener('pageshow', (event) => {

@@ -134,7 +134,7 @@
               <div class="form-group" v-if="!isCreatingParent">
                 <label class="form-label">Thuộc Danh mục Gốc <span class="required">*</span></label>
                 <select class="form-input" v-model="form.id_danhmuc_cha">
-                  <option value="" disabled>-- Chọn danh mục gốc --</option>
+                  <option value="">-- Chọn danh mục gốc --</option>
                   <option v-for="p in parentCategories" :key="p.id" :value="p.id">
                     {{ p.ten_danhmuc }}
                   </option>
@@ -582,5 +582,198 @@ td { padding: 16px 20px; vertical-align: middle; }
 .filter-select:focus {
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+
+/* ── DARK MODE OVERRIDES FOR CATEGORIES & MODAL ── */
+html[data-admin-theme='dark'] .page,
+.admin-layout.theme-dark .page,
+.admin-layout.dark .page,
+.dark .page {
+  background: transparent !important;
+}
+
+html[data-admin-theme='dark'] .table-card,
+.admin-layout.theme-dark .table-card,
+.admin-layout.dark .table-card,
+.dark .table-card {
+  background: #111827 !important;
+  border-color: #1f2937 !important;
+}
+
+html[data-admin-theme='dark'] thead tr,
+.admin-layout.theme-dark thead tr,
+.admin-layout.dark thead tr,
+.dark thead tr {
+  background: #1f2937 !important;
+  border-bottom-color: #374151 !important;
+}
+
+html[data-admin-theme='dark'] th,
+.admin-layout.theme-dark th,
+.admin-layout.dark th,
+.dark th {
+  color: #9ca3af !important;
+}
+
+html[data-admin-theme='dark'] tbody tr,
+.admin-layout.theme-dark tbody tr,
+.admin-layout.dark tbody tr,
+.dark tbody tr {
+  border-bottom-color: #1f2937 !important;
+}
+
+html[data-admin-theme='dark'] tbody tr:hover,
+.admin-layout.theme-dark tbody tr:hover,
+.admin-layout.dark tbody tr:hover,
+.dark tbody tr:hover {
+  background: #1f2937 !important;
+}
+
+html[data-admin-theme='dark'] .cat-name,
+.admin-layout.theme-dark .cat-name,
+.admin-layout.dark .cat-name,
+.dark .cat-name {
+  color: #f3f4f6 !important;
+}
+
+html[data-admin-theme='dark'] .top h1,
+.admin-layout.theme-dark .top h1,
+.admin-layout.dark .top h1,
+.dark .top h1 {
+  color: #f9fafb !important;
+}
+
+html[data-admin-theme='dark'] .category-tabs,
+.admin-layout.theme-dark .category-tabs,
+.admin-layout.dark .category-tabs,
+.dark .category-tabs {
+  border-bottom-color: #374151 !important;
+}
+
+html[data-admin-theme='dark'] .cat-tab,
+.admin-layout.theme-dark .cat-tab,
+.admin-layout.dark .cat-tab,
+.dark .cat-tab {
+  color: #9ca3af !important;
+}
+
+html[data-admin-theme='dark'] .cat-tab.active,
+.admin-layout.theme-dark .cat-tab.active,
+.admin-layout.dark .cat-tab.active,
+.dark .cat-tab.active {
+  color: #3b82f6 !important;
+  border-bottom-color: #3b82f6 !important;
+}
+
+html[data-admin-theme='dark'] .search-wrap input,
+html[data-admin-theme='dark'] .filter-select,
+.admin-layout.theme-dark .search-wrap input,
+.admin-layout.theme-dark .filter-select,
+.admin-layout.dark .search-wrap input,
+.admin-layout.dark .filter-select,
+.dark .search-wrap input,
+.dark .filter-select {
+  background: #111827 !important;
+  border-color: #374151 !important;
+  color: #f9fafb !important;
+}
+
+html[data-admin-theme='dark'] .modal,
+.admin-layout.theme-dark .modal,
+.admin-layout.dark .modal,
+.dark .modal {
+  background: #111827 !important;
+  border: 1px solid #374151 !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7) !important;
+}
+
+html[data-admin-theme='dark'] .modal-header,
+.admin-layout.theme-dark .modal-header,
+.admin-layout.dark .modal-header,
+.dark .modal-header {
+  border-bottom-color: #374151 !important;
+}
+
+html[data-admin-theme='dark'] .modal-title,
+.admin-layout.theme-dark .modal-title,
+.admin-layout.dark .modal-title,
+.dark .modal-title {
+  color: #f9fafb !important;
+}
+
+html[data-admin-theme='dark'] .modal-subtitle,
+.admin-layout.theme-dark .modal-subtitle,
+.admin-layout.dark .modal-subtitle,
+.dark .modal-subtitle {
+  color: #9ca3af !important;
+}
+
+html[data-admin-theme='dark'] .modal-close,
+.admin-layout.theme-dark .modal-close,
+.admin-layout.dark .modal-close,
+.dark .modal-close {
+  background: #1f2937 !important;
+  border-color: #374151 !important;
+}
+
+html[data-admin-theme='dark'] .form-label,
+.admin-layout.theme-dark .form-label,
+.admin-layout.dark .form-label,
+.dark .form-label {
+  color: #d1d5db !important;
+}
+
+html[data-admin-theme='dark'] .form-input,
+.admin-layout.theme-dark .form-input,
+.admin-layout.dark .form-input,
+.dark .form-input {
+  background: #1f2937 !important;
+  border-color: #374151 !important;
+  color: #f9fafb !important;
+}
+
+html[data-admin-theme='dark'] .form-input option,
+.admin-layout.theme-dark .form-input option,
+.admin-layout.dark .form-input option,
+.dark .form-input option,
+html[data-admin-theme='dark'] .filter-select option,
+.admin-layout.theme-dark .filter-select option,
+.admin-layout.dark .filter-select option,
+.dark .filter-select option {
+  background-color: #1f2937 !important;
+  color: #f9fafb !important;
+}
+
+html[data-admin-theme='dark'] .form-input option:disabled,
+.admin-layout.theme-dark .form-input option:disabled,
+.admin-layout.dark .form-input option:disabled,
+.dark .form-input option:disabled,
+html[data-admin-theme='dark'] .filter-select option:disabled,
+.admin-layout.theme-dark .filter-select option:disabled,
+.admin-layout.dark .filter-select option:disabled,
+.dark .filter-select option:disabled,
+html[data-admin-theme='dark'] .form-input option[value=""],
+.admin-layout.theme-dark .form-input option[value=""],
+.admin-layout.dark .form-input option[value=""],
+.dark .form-input option[value=""] {
+  background-color: #1f2937 !important;
+  color: #9ca3af !important;
+}
+
+html[data-admin-theme='dark'] .modal-footer,
+.admin-layout.theme-dark .modal-footer,
+.admin-layout.dark .modal-footer,
+.dark .modal-footer {
+  background: #111827 !important;
+  border-top-color: #374151 !important;
+}
+
+html[data-admin-theme='dark'] .btn-cancel,
+.admin-layout.theme-dark .btn-cancel,
+.admin-layout.dark .btn-cancel,
+.dark .btn-cancel {
+  background: #1f2937 !important;
+  border-color: #374151 !important;
+  color: #d1d5db !important;
 }
 </style>

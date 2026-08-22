@@ -1316,9 +1316,9 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
                             <div class="stat-icon-wrap" :style="{ background: s.iconBg }">
                                 <component :is="s.icon" aria-hidden="true" />
                             </div>
-                            <p class="stat-label" style="color: #fff !important">{{ s.label }}</p>
+                            <p class="stat-label" :style="{ color: s.labelColor }">{{ s.label }}</p>
                         </div>
-                        <b class="stat-value" style="color: #fff !important">{{ s.value }}</b>
+                        <b class="stat-value">{{ s.value }}</b>
                         <span class="stat-card-action">{{ s.hint }}</span>
                     </router-link>
                 </div>
@@ -2520,16 +2520,14 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 }
 
 :global(.admin-layout.theme-dark) .dashboard-controls {
-    border-bottom-color: rgba(71, 85, 105, 0.65);
-    background: rgba(15, 23, 42, 0.94);
+    border-bottom-color: transparent;
+    background: transparent;
 }
 
-:global(.admin-layout.theme-dark) .dashboard-controls::before {
-    background: #0f172a;
-}
-
+:global(.admin-layout.theme-dark) .dashboard-controls::before,
 :global(.admin-layout.theme-dark) .dashboard-controls::after {
-    background: #0f172a;
+    display: none;
+    background: transparent;
 }
 
 .period-bar {

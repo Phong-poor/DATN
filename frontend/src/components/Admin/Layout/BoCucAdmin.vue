@@ -306,33 +306,9 @@ function applyAdminTheme(theme) {
   document.documentElement.style.colorScheme = theme
 }
 
-function saveAdminTheme(theme) {
-  try {
-    localStorage.setItem('admin-theme', theme)
-  } catch (error) {
-    console.warn('Không thể lưu giao diện admin:', error)
-  }
-}
-
-function syncThemeFromAppearance(themeMode, force = false) {
-  if (!['light', 'dark', 'system'].includes(themeMode)) return
-  const savedTheme = localStorage.getItem('admin-theme')
-  if (!force && (savedTheme === 'light' || savedTheme === 'dark')) {
-    adminTheme.value = savedTheme
-    applyAdminTheme(savedTheme)
-    return
-  }
-  const resolvedTheme = themeMode === 'system'
-    ? (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-    : themeMode
-  adminTheme.value = resolvedTheme
-  saveAdminTheme(resolvedTheme)
-  applyAdminTheme(resolvedTheme)
-}
-
 function toggleAdminTheme() {
   adminTheme.value = adminTheme.value === 'dark' ? 'light' : 'dark'
-  saveAdminTheme(adminTheme.value)
+  localStorage.setItem('admin-theme', adminTheme.value)
   applyAdminTheme(adminTheme.value)
 }
 
@@ -827,10 +803,7 @@ async function loadAppearanceSettings() {
   try {
     const res = await api.get('/admin/account/settings')
     const ap = res.data?.data?.appearance
-    if (ap) {
-      appearance.value = { ...appearance.value, ...ap }
-      syncThemeFromAppearance(ap.theme_mode)
-    }
+    if (ap) appearance.value = { ...appearance.value, ...ap }
   } catch (e) {
     // keep defaults
   }
@@ -838,10 +811,7 @@ async function loadAppearanceSettings() {
 
 function handleSettingsUpdated(event) {
   const ap = event?.detail?.appearance
-  if (ap) {
-    appearance.value = { ...appearance.value, ...ap }
-    syncThemeFromAppearance(ap.theme_mode, true)
-  }
+  if (ap) appearance.value = { ...appearance.value, ...ap }
 }
 
 async function fetchLatestUserProfile() {
@@ -919,6 +889,14 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+:global(html),
+:global(body),
+:global(#app) {
+  height: 100% !important;
+  max-height: 100vh !important;
+  overflow: hidden !important;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -1461,8 +1439,7 @@ a {
 .admin-topbar { 
     position: sticky; 
     top: 0; 
-    /* Keep account/notification dropdowns above sticky page toolbars. */
-    z-index: 100;
+    z-index: 8; 
     display: flex; 
     justify-content: space-between; 
     align-items: center; 
@@ -1470,10 +1447,10 @@ a {
     margin: 0 -24px;
     padding: 10px 24px;
     width: calc(100% + 48px);
-    background: #ffffff;
-    border-bottom: 1px solid #e2e8f0;
+    background: #0b0d12; 
+    border-bottom: 1px solid rgba(125, 211, 252, 0.14); 
     border-radius: 0;
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    box-shadow: 0 12px 30px rgba(8, 43, 80, 0.18);
     transform: translateY(0);
     transition: transform 0.28s cubic-bezier(.4, 0, .2, 1), opacity 0.2s ease, box-shadow 0.28s ease, visibility 0s;
     will-change: transform;
@@ -1511,7 +1488,7 @@ a {
 }
 
 .attendance-topbar-clock span {
-  color: #64748b !important;
+  color: #cbd5e1 !important;
   font-size: 10px;
   font-weight: 600;
   text-transform: capitalize;
@@ -1519,14 +1496,14 @@ a {
 
 .attendance-topbar-clock strong {
   margin-top: 1px;
-  color: #0f172a !important;
+  color: #ffffff !important;
   font-size: 20px;
   font-weight: 800;
   line-height: 1;
   letter-spacing: .04em;
   font-variant-numeric: tabular-nums;
-  text-shadow: none;
-  -webkit-text-fill-color: #0f172a;
+  text-shadow: 0 0 14px rgba(96, 165, 250, .38);
+  -webkit-text-fill-color: #ffffff;
 }
 
 .topbar-attendance-link {
@@ -1594,12 +1571,12 @@ a {
   margin: 0;
   font-size: 19px;
   font-weight: 700;
-  color: #0f172a;
+  color: #ffffff;
 }
 
 .admin-topbar-title p {
   margin: 3px 0 0;
-  color: #64748b;
+  color: rgba(219, 234, 254, 0.76);
   font-size: 11.5px;
 }
 
@@ -2075,60 +2052,6 @@ a {
   .topbar-icon-button.notification-alerting>svg {
     animation: none;
   }
-}
-
-.admin-layout.theme-light .admin-topbar {
-  background: #ffffff;
-  border-color: #e2e8f0;
-}
-
-.admin-layout.theme-light .topbar-home-link,
-.admin-layout.theme-light .topbar-icon-button,
-.admin-layout.theme-light .topbar-user-btn {
-  background: #f8fafc;
-  border-color: #dbe3ee;
-  color: #475569;
-}
-
-.admin-layout.theme-light .topbar-home-link:hover,
-.admin-layout.theme-light .topbar-icon-button:hover,
-.admin-layout.theme-light .topbar-user-btn:hover {
-  background: #eff6ff;
-  border-color: #93c5fd;
-  color: #2563eb;
-}
-
-.admin-layout.theme-light .topbar-divider {
-  background: #e2e8f0;
-}
-
-.admin-layout.theme-light .topbar-user-btn svg,
-.admin-layout.theme-light .user-role {
-  color: #64748b;
-}
-
-.admin-layout.theme-light .topbar-user-btn .user-name {
-  color: #0f172a;
-}
-
-.admin-layout.theme-light .attendance-topbar-clock strong {
-  color: #0f172a !important;
-  -webkit-text-fill-color: #0f172a;
-  text-shadow: none;
-}
-
-.admin-layout.dark .attendance-topbar-clock span {
-  color: #cbd5e1 !important;
-}
-
-.admin-layout.dark .attendance-topbar-clock strong {
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff;
-  text-shadow: 0 0 14px rgba(96, 165, 250, .38);
-}
-
-.admin-layout.dark .topbar-user-btn .user-name {
-  color: #ffffff;
 }
 
 .admin-layout.dark .main,
@@ -2686,16 +2609,18 @@ a {
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22) !important;
 }
 
-/* Keep the dashboard toolbar and its light-only controls consistent in dark mode. */
+/* Keep the dashboard toolbar transparent in dark mode. */
 .admin-layout.theme-dark .main :deep(.dashboard-controls),
 .admin-layout.theme-dark .main :deep(.dashboard-controls::before),
 .admin-layout.theme-dark .main :deep(.dashboard-controls::after) {
-  background: #171a1f !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
 }
 
-.admin-layout.theme-dark .main :deep(.dashboard-controls) {
-  border-bottom-color: #3c434d !important;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28) !important;
+.admin-layout.theme-dark .main :deep(.dashboard-controls::before),
+.admin-layout.theme-dark .main :deep(.dashboard-controls::after) {
+  display: none !important;
 }
 
 .admin-layout.theme-dark .main :deep(.period-bar-label) {
@@ -2718,7 +2643,7 @@ a {
 
 .admin-layout.theme-dark .main :deep(.period-tab.active) {
   background: #2563eb !important;
-  color: #0f172a !important;
+  color: #ffffff !important;
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3) !important;
 }
 
@@ -3442,212 +3367,5 @@ a {
 
 .admin-layout.theme-dark .main :deep(.admin-profile-capsule .admin-status-text.offline) {
   color: #aeb8c6 !important;
-}
-
-/* Dark-mode foundation for legacy admin screens that still use hard-coded light colors. */
-.admin-layout.theme-dark .main {
-  --admin-page-bg: #0f1319;
-  --admin-panel-bg: #181d24;
-  --admin-panel-border: #343c48;
-  --admin-text: #eef2f7;
-  --admin-text-muted: #a8b2c1;
-  --admin-control-bg: #20262f;
-  --admin-control-hover: #29313c;
-  color: var(--admin-text);
-  background: var(--admin-page-bg) !important;
-}
-
-.admin-layout.theme-dark .admin-page-shell {
-  color: var(--admin-text);
-}
-
-.admin-layout.theme-dark .main :deep(.card),
-.admin-layout.theme-dark .main :deep(.panel),
-.admin-layout.theme-dark .main :deep(.table-card),
-.admin-layout.theme-dark .main :deep(.table-wrap),
-.admin-layout.theme-dark .main :deep(.table-container),
-.admin-layout.theme-dark .main :deep(.filter-bar),
-.admin-layout.theme-dark .main :deep(.filter-row),
-.admin-layout.theme-dark .main :deep(.toolbar),
-.admin-layout.theme-dark .main :deep(.form-section),
-.admin-layout.theme-dark .main :deep(.settings-section),
-.admin-layout.theme-dark .main :deep(.content-card),
-.admin-layout.theme-dark .main :deep(.chart-card),
-.admin-layout.theme-dark .main :deep(.summary-card),
-.admin-layout.theme-dark .main :deep(.history-card),
-.admin-layout.theme-dark .main :deep(.workbench-card),
-.admin-layout.theme-dark .main :deep(.dashboard-cluster),
-.admin-layout.theme-dark .main :deep(.employee-directory),
-.admin-layout.theme-dark .main :deep(.modal),
-.admin-layout.theme-dark .main :deep(.modal-content),
-.admin-layout.theme-dark .main :deep(.modal-card),
-.admin-layout.theme-dark .main :deep(.drawer),
-.admin-layout.theme-dark .main :deep(.drawer-content) {
-  background-color: var(--admin-panel-bg) !important;
-  border-color: var(--admin-panel-border) !important;
-  color: var(--admin-text) !important;
-}
-
-.admin-layout.theme-dark .main :deep(.modal-header),
-.admin-layout.theme-dark .main :deep(.modal-footer),
-.admin-layout.theme-dark .main :deep(.card-header),
-.admin-layout.theme-dark .main :deep(.card-footer),
-.admin-layout.theme-dark .main :deep(.table-footer) {
-  background-color: #171c23 !important;
-  border-color: var(--admin-panel-border) !important;
-}
-
-.admin-layout.theme-dark .main :deep(input:not([type='checkbox']):not([type='radio']):not([type='range'])),
-.admin-layout.theme-dark .main :deep(textarea),
-.admin-layout.theme-dark .main :deep(select),
-.admin-layout.theme-dark .main :deep(.form-input),
-.admin-layout.theme-dark .main :deep(.form-select),
-.admin-layout.theme-dark .main :deep(.input-group),
-.admin-layout.theme-dark .main :deep(.select-trigger) {
-  color: var(--admin-text) !important;
-  background-color: var(--admin-control-bg) !important;
-  border-color: #46515f !important;
-  color-scheme: dark;
-}
-
-.admin-layout.theme-dark .main :deep(input::placeholder),
-.admin-layout.theme-dark .main :deep(textarea::placeholder) {
-  color: #7f8b9c !important;
-  opacity: 1;
-}
-
-.admin-layout.theme-dark .main :deep(input:focus),
-.admin-layout.theme-dark .main :deep(textarea:focus),
-.admin-layout.theme-dark .main :deep(select:focus) {
-  border-color: #60a5fa !important;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18) !important;
-  outline: none;
-}
-
-.admin-layout.theme-dark .main :deep(option) {
-  color: var(--admin-text);
-  background: #20262f;
-}
-
-.admin-layout.theme-dark .main :deep(h1),
-.admin-layout.theme-dark .main :deep(h2),
-.admin-layout.theme-dark .main :deep(h3),
-.admin-layout.theme-dark .main :deep(h4),
-.admin-layout.theme-dark .main :deep(h5),
-.admin-layout.theme-dark .main :deep(h6),
-.admin-layout.theme-dark .main :deep(.title),
-.admin-layout.theme-dark .main :deep(.card-title),
-.admin-layout.theme-dark .main :deep(.section-title),
-.admin-layout.theme-dark .main :deep(.modal-title),
-.admin-layout.theme-dark .main :deep(label) {
-  color: var(--admin-text) !important;
-}
-
-.admin-layout.theme-dark .main :deep(.subtitle),
-.admin-layout.theme-dark .main :deep(.description),
-.admin-layout.theme-dark .main :deep(.helper-text),
-.admin-layout.theme-dark .main :deep(.form-hint),
-.admin-layout.theme-dark .main :deep(.muted),
-.admin-layout.theme-dark .main :deep(.text-muted),
-.admin-layout.theme-dark .main :deep(.empty-state p) {
-  color: var(--admin-text-muted) !important;
-}
-
-.admin-layout.theme-dark .main :deep(.btn-cancel),
-.admin-layout.theme-dark .main :deep(.btn-secondary),
-.admin-layout.theme-dark .main :deep(.ghost-btn),
-.admin-layout.theme-dark .main :deep(.modal-close),
-.admin-layout.theme-dark .main :deep(.icon-btn:not(.danger):not(.delete)) {
-  color: #dbe3ed !important;
-  background-color: var(--admin-control-bg) !important;
-  border-color: #46515f !important;
-}
-
-.admin-layout.theme-dark .main :deep(.btn-cancel:hover),
-.admin-layout.theme-dark .main :deep(.btn-secondary:hover),
-.admin-layout.theme-dark .main :deep(.ghost-btn:hover),
-.admin-layout.theme-dark .main :deep(.modal-close:hover),
-.admin-layout.theme-dark .main :deep(.icon-btn:not(.danger):not(.delete):hover) {
-  color: #ffffff !important;
-  background-color: var(--admin-control-hover) !important;
-  border-color: #64748b !important;
-}
-
-.admin-layout.theme-dark .main::-webkit-scrollbar,
-.admin-layout.theme-dark .main :deep(*::-webkit-scrollbar) {
-  width: 10px;
-  height: 10px;
-}
-
-.admin-layout.theme-dark .main::-webkit-scrollbar-thumb,
-.admin-layout.theme-dark .main :deep(*::-webkit-scrollbar-thumb) {
-  background: #46515f;
-  border: 2px solid #181d24;
-  border-radius: 999px;
-}
-
-.admin-layout.theme-dark .dropdown-name {
-  color: #f8fafc;
-}
-
-.admin-layout.theme-dark .dropdown-email {
-  color: #a8b2c1;
-}
-
-/* Scoped component rules load after global CSS; keep audited badges/buttons dark here. */
-.admin-layout.theme-dark .main :deep(.stat-card-btn),
-.admin-layout.theme-dark .main :deep(.stat-card.stat-card-gradient .stat-card-btn) {
-  border-color: rgba(255, 255, 255, 0.28) !important;
-  background: rgba(15, 23, 42, 0.42) !important;
-  color: #ffffff !important;
-}
-
-.admin-layout.theme-dark .main :deep(.badge:not(.badge-danger):not(.badge-warning)),
-.admin-layout.theme-dark .main :deep(.status-badge.active),
-.admin-layout.theme-dark .main :deep(.badge.badge-success) {
-  border-color: #286047 !important;
-  background: #153527 !important;
-  color: #75e3a8 !important;
-}
-
-.admin-layout.theme-dark .main :deep(td > .badge:not([class*='success']):not([class*='danger']):not([class*='warning'])) {
-  border-color: #355d96 !important;
-  background: #1b2d49 !important;
-  color: #93c5fd !important;
-}
-
-.admin-layout.theme-dark .main :deep(.profile-page .avatar) {
-  border-color: #355d96 !important;
-  background: #1b2d49 !important;
-  color: #bfdbfe !important;
-}
-
-.admin-layout.theme-dark .main :deep(.group-tag),
-.admin-layout.theme-dark .main :deep(.condition-badge) {
-  border-color: #5b477b !important;
-  background: #2c233a !important;
-  color: #d8b4fe !important;
-}
-
-.admin-layout.theme-dark .main :deep(.back-btn) {
-  border-color: #46515f !important;
-  background: #20262f !important;
-  color: #dbe3ed !important;
-}
-
-.admin-layout.theme-dark .main :deep(.img-preview-wrap),
-.admin-layout.theme-dark .main :deep(.multi-preview-item),
-.admin-layout.theme-dark .main :deep(.tree-select-static-container),
-.admin-layout.theme-dark .main :deep(.tree-search-wrapper) {
-  border-color: #46515f !important;
-  background: #20262f !important;
-  color: #dbe3ed !important;
-}
-
-.admin-layout.theme-dark .main :deep(.img-change-btn),
-.admin-layout.theme-dark .main :deep(.selected-category-badge.has-selected) {
-  border-color: #355d96 !important;
-  background: #1b2d49 !important;
-  color: #93c5fd !important;
 }
 </style>

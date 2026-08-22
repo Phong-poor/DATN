@@ -345,6 +345,9 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::delete('/bienthe-hinhanh/{id}', [BienTheHinhAnhController::class, 'destroy']);
         Route::get('/sanpham/export-inventory', [SanPhamController::class, 'exportInventory']);
         Route::post('/sanpham/import-stock', [SanPhamController::class, 'importStock']);
+        Route::get('/sanpham/suggest-images', [SanPhamController::class, 'suggestImages']);
+        Route::post('/sanpham/upload-excel-images', [SanPhamController::class, 'uploadExcelImages']);
+        Route::post('/sanpham/import-bulk', [SanPhamController::class, 'importBulk']);
         // ===== ADMIN ORDERS =====
         Route::get('/orders', [DatHangController::class, 'allOrders']);
         Route::get('/orders/employee-stats', [DatHangController::class, 'getEmployeeStats']);

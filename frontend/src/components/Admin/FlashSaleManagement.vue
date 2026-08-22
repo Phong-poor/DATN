@@ -149,13 +149,13 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><path d="M15 18l-6-6 6-6"/></svg>
           Quay lại danh sách
         </button>
-        <h1>{{ isEditSession ? '✏️ Chỉnh sửa đợt Flash Sale' : '➕ Tạo đợt Flash Sale mới' }}</h1>
+        <h1>{{ isEditSession ? 'Chỉnh sửa đợt Flash Sale' : 'Tạo đợt Flash Sale mới' }}</h1>
         <p>Thiết lập các thông số khung giờ vàng giảm giá cho cửa hàng</p>
       </div>
 
       <div class="inline-form-body">
         <div class="form-section-card">
-          <div class="form-section-title">📅 Thông tin đợt Flash Sale</div>
+          <div class="form-section-title">Thông tin đợt Flash Sale</div>
           
           <div class="form-group">
             <label class="form-label">Tên đợt khuyến mãi <span class="required">*</span></label>
@@ -198,14 +198,14 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><path d="M15 18l-6-6 6-6"/></svg>
           Quay lại danh sách
         </button>
-        <h1>➕ Thêm sản phẩm vào đợt: {{ selectedSession?.ten_dot }}</h1>
+        <h1>Thêm sản phẩm vào đợt: {{ selectedSession?.ten_dot }}</h1>
         <p>Chọn cấu hình chi tiết và thiết lập giá giảm riêng biệt cho từng biến thể</p>
       </div>
 
       <div class="inline-form-body">
         <!-- CHỌN SẢN PHẨM MẸ QUA CÂY THƯ MỤC -->
         <div class="form-section-card">
-          <div class="form-section-title">📦 Chọn sản phẩm muốn Flash Sale</div>
+          <div class="form-section-title">Chọn sản phẩm muốn Flash Sale</div>
           
           <div class="selection-layout">
             <!-- Cột trái: Cây thư mục danh mục -->
@@ -224,14 +224,14 @@
               <!-- Cây danh mục -->
               <div class="tree-list-container">
                 <div class="tree-all-node" :class="{ active: !selectedCategory }" @click="selectedCategory = null">
-                  📂 Tất cả sản phẩm
+                  Tất cả sản phẩm
                 </div>
                 
                 <div v-for="parent in filteredTreeCategories" :key="parent.id_danhmuc_cha" class="tree-parent-node">
                   <div class="parent-label-row" @click="toggleParentExpand(parent.id_danhmuc_cha)">
                     <span class="chevron-icon" :class="{ expanded: isParentExpanded(parent.id_danhmuc_cha) }">▸</span>
                     <span class="parent-label" :class="{ active: selectedCategory === 'parent_' + parent.id_danhmuc_cha }">
-                      💻 {{ parent.ten_danhmuc }}
+                      {{ parent.ten_danhmuc }}
                     </span>
                   </div>
                   <div class="child-nodes-list" v-if="isParentExpanded(parent.id_danhmuc_cha)">
@@ -331,7 +331,7 @@
 
         <!-- BẢNG BIẾN THỂ ĐỂ ADMIN CẤU HÌNH -->
         <div v-if="variants.length > 0" class="form-section-card">
-          <div class="form-section-title">⚙️ Cấu hình chi tiết biến thể Flash Sale</div>
+          <div class="form-section-title">Cấu hình chi tiết biến thể Flash Sale</div>
           <div class="variants-table-container">
             <table class="variants-table">
               <thead>
@@ -1155,12 +1155,10 @@ td {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-bottom: 8px;
-  background: white;
-  padding: 24px;
-  border-radius: 16px;
-  border: 1px solid #e8edf5;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.02);
+  margin-bottom: 24px;
+  background: transparent;
+  padding: 0 0 20px 0;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .inline-form-header h1 {
@@ -1181,20 +1179,25 @@ td {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: none;
-  border: none;
-  color: #2563eb;
-  font-size: 13.5px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  padding: 0;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   width: fit-content;
-  margin-bottom: 4px;
-  transition: color 0.15s;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .back-btn:hover {
-  color: #1d4ed8;
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #2563eb;
+  transform: translateX(-2px);
 }
 
 .inline-form-body {

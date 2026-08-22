@@ -1251,102 +1251,83 @@ async function exportExcel() {
                         <!-- Lý do hủy đơn hoặc hoàn trả -->
                         <div v-if="viewOrder.status === 'cancelled' || viewOrder.status.startsWith('refund')"
                             class="detail-section">
-                            <div class="section-title"
-                                :style="viewOrder.status === 'cancelled' ? 'color: #dc2626;' : 'color: #f97316;'">
+                            <div class="section-title" :class="viewOrder.status === 'cancelled' ? 'title-cancelled' : 'title-refund'">
                                 Lý do {{ viewOrder.status === 'cancelled' ? 'hủy đơn' : 'hoàn trả' }}
                             </div>
-                            <div class="cancel-reason-box"
-                                style="margin-bottom: 12px; background: #fff7ed; border: 1px dashed #f97316; padding: 12px 16px; border-radius: 8px; font-size: 14px; color: #c2410c; line-height: 1.5;">
+                            <div class="reason-text-box">
                                 {{ viewOrder.raw.lydo || 'Không có lý do cụ thể' }}
                             </div>
-                            <div class="cancel-reason-box"
-                                style="margin-top: 12px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 14px 16px; border-radius: 8px;">
-                                <div
-                                    style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
-                                    <strong style="color: #334155; font-size: 14px;">
+                            <div class="proof-container-box">
+                                <div class="proof-header">
+                                    <strong class="proof-title">
                                         📷 Bằng chứng ảnh / video hoàn trả
-                                        <span v-if="getRefundProofFiles(viewOrder.raw).length > 0"
-                                            style="color: #2563eb;">
+                                        <span v-if="getRefundProofFiles(viewOrder.raw).length > 0" class="proof-count">
                                             ({{ getRefundProofFiles(viewOrder.raw).length }} tệp)
                                         </span>
                                     </strong>
                                 </div>
 
-                                <div v-if="getRefundProofFiles(viewOrder).length > 0" class="proof-media-grid"
-                                    style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-top: 8px;">
-                                    <div v-for="(file, pIdx) in getRefundProofFiles(viewOrder)" :key="pIdx"
-                                        class="proof-media-item"
-                                        style="border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); position: relative;">
+                                <div v-if="getRefundProofFiles(viewOrder).length > 0" class="proof-media-grid">
+                                    <div v-for="(file, pIdx) in getRefundProofFiles(viewOrder)" :key="pIdx" class="proof-media-item">
                                         <template v-if="isImageFile(file)">
-                                            <a :href="getProofMediaUrl(file)" target="_blank"
-                                                title="Bấm để xem ảnh phóng to"
-                                                style="display: block; text-align: center; background: #f1f5f9;">
-                                                <img :src="getProofMediaUrl(file)"
-                                                    @error="$event.target.src = getProofProxyUrl(file)" alt="Bằng chứng"
-                                                    style="width: 100%; height: 140px; object-fit: cover; transition: transform 0.2s;" />
+                                            <a :href="getProofMediaUrl(file)" target="_blank" title="Bấm để xem ảnh phóng to" class="proof-img-link">
+                                                <img :src="getProofMediaUrl(file)" @error="$event.target.src = getProofProxyUrl(file)" alt="Bằng chứng" />
                                             </a>
                                         </template>
                                         <template v-else-if="isVideoFile(file)">
-                                            <video controls
-                                                style="width: 100%; height: 140px; object-fit: cover; background: #000; display: block;"
-                                                preload="metadata">
+                                            <video controls class="proof-video" preload="metadata">
                                                 <source :src="getProofMediaUrl(file)" />
                                                 <source :src="getProofProxyUrl(file)" />
                                                 Trình duyệt không hỗ trợ xem video.
                                             </video>
                                         </template>
                                         <template v-else>
-                                            <div style="padding: 20px 10px; text-align: center;">
-                                                <svg viewBox="0 0 24 24" width="32" height="32" fill="none"
-                                                    stroke="#2563eb" stroke-width="2" style="margin: 0 auto 8px;">
-                                                    <path
-                                                        d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z">
-                                                    </path>
+                                            <div class="proof-file-placeholder">
+                                                <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#2563eb" stroke-width="2" style="margin: 0 auto 8px;">
+                                                    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
                                                     <polyline points="13 2 13 9 20 9"></polyline>
                                                 </svg>
-                                                <a :href="getProofProxyUrl(file)" target="_blank"
-                                                    style="color: #2563eb; font-size: 12px; font-weight: 600; text-decoration: underline; word-break: break-all;">Tải
-                                                    file bằng chứng #{{ pIdx + 1 }}</a>
+                                                <a :href="getProofProxyUrl(file)" target="_blank" class="download-link">
+                                                    Tải file bằng chứng #{{ pIdx + 1 }}
+                                                </a>
                                             </div>
                                         </template>
-                                        <a :href="getProofProxyUrl(file)" target="_blank"
-                                            style="display: block; padding: 4px 6px; font-size: 11px; text-align: center; background: #f8fafc; color: #2563eb; font-weight: 600; text-decoration: underline; border-top: 1px solid #e2e8f0;">
+                                        <a :href="getProofProxyUrl(file)" target="_blank" class="proof-action-link">
                                             🔍 Mở tệp gốc / Tải về
                                         </a>
                                     </div>
                                 </div>
 
-                                <div v-else
-                                    style="padding: 14px; background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 6px; text-align: center; color: #64748b; font-size: 13px;">
+                                <div v-else class="proof-empty-box">
                                     ⚠️ Đơn hàng này chưa có tệp ảnh/video bằng chứng từ khách hàng.
                                 </div>
                             </div>
                         </div>
 
                         <!-- Quá trình hoàn trả (Chiều dọc - Vertical Timeline) -->
-                        <div class="refund-timeline-vertical" v-if="refundSteps" style="margin-top: 18px; margin-bottom: 22px;">
-                            <h3 class="section-title" style="color: #ea580c; font-size: 14px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 6px;">
+                        <div class="refund-timeline-vertical" v-if="refundSteps">
+                            <h3 class="section-title title-refund-head">
                                 <span>🔄</span> Quá trình hoàn trả
                             </h3>
-                            <div style="display: flex; flex-direction: column; gap: 0; padding-left: 8px;">
-                                <div v-for="(step, i) in refundSteps" :key="'rv'+i" style="display: flex; align-items: flex-start; gap: 14px; position: relative; padding-bottom: 18px;">
+                            <div class="rtv-list">
+                                <div v-for="(step, i) in refundSteps" :key="'rv'+i" class="rtv-item">
                                     <!-- Vertical line -->
-                                    <div v-if="i < refundSteps.length - 1" style="position: absolute; left: 13px; top: 26px; bottom: 0; width: 2px;" :style="step.done ? 'background: #f97316;' : 'background: #e2e8f0;'"></div>
+                                    <div v-if="i < refundSteps.length - 1" class="rtv-line" :class="{ done: step.done }"></div>
                                     
                                     <!-- Dot icon -->
-                                    <div style="width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; z-index: 2; transition: all 0.2s;" :style="step.done ? 'background: #f97316; color: #fff; box-shadow: 0 2px 6px rgba(249,115,22,0.35);' : 'background: #ffffff; border: 2px solid #cbd5e1; color: #94a3b8;'">
+                                    <div class="rtv-dot" :class="{ done: step.done }">
                                         <svg v-if="step.done" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                                             <polyline points="20 6 9 17 4 12"></polyline>
                                         </svg>
-                                        <span v-else style="font-size: 11px; font-weight: 700;">{{ i + 1 }}</span>
+                                        <span v-else>{{ i + 1 }}</span>
                                     </div>
 
                                     <!-- Label and Date -->
-                                    <div style="flex: 1; min-width: 0; padding-top: 3px;">
-                                        <div style="font-size: 13.5px; font-weight: 600; line-height: 1.3;" :style="step.done ? 'color: #c2410c;' : 'color: #64748b;'">
+                                    <div class="rtv-content">
+                                        <div class="rtv-label" :class="{ done: step.done }">
                                             {{ step.label }}
                                         </div>
-                                        <div style="font-size: 11.5px; margin-top: 2px;" :style="step.done ? 'color: #ea580c;' : 'color: #94a3b8;'">
+                                        <div class="rtv-date" :class="{ done: step.done }">
                                             {{ step.date || '—' }}
                                         </div>
                                     </div>
@@ -2116,13 +2097,14 @@ tbody td {
 }
 
 .section-title {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
-    color: #94a3b8;
-    letter-spacing: 0.1em;
+    color: #64748b;
+    letter-spacing: 0.05em;
     text-transform: capitalize;
-    padding-bottom: 4px;
-    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 8px;
+    margin-bottom: 14px;
+    border-bottom: 1px solid #e2e8f0;
 }
 
 .form-row {
@@ -2620,6 +2602,209 @@ tbody td {
     align-items: center;
     gap: 8px;
 }
+
+/* Reason & Proof Box Styles */
+.title-cancelled { color: #dc2626 !important; }
+.title-refund { color: #f97316 !important; }
+.title-refund-head { color: #ea580c; font-size: 14px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+
+.reason-text-box {
+    margin-bottom: 12px;
+    background: #fff7ed;
+    border: 1px dashed #f97316;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #c2410c;
+    line-height: 1.5;
+}
+
+.proof-container-box {
+    margin-top: 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    padding: 14px 16px;
+    border-radius: 8px;
+}
+
+.proof-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.proof-title {
+    color: #334155;
+    font-size: 14px;
+}
+
+.proof-count {
+    color: #2563eb;
+}
+
+.proof-media-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.proof-media-item {
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    position: relative;
+}
+
+.proof-img-link {
+    display: block;
+    text-align: center;
+    background: #f1f5f9;
+}
+
+.proof-img-link img {
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
+    transition: transform 0.2s;
+}
+
+.proof-video {
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
+    background: #000;
+    display: block;
+}
+
+.proof-file-placeholder {
+    padding: 20px 10px;
+    text-align: center;
+}
+
+.download-link {
+    color: #2563eb;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: underline;
+    word-break: break-all;
+}
+
+.proof-action-link {
+    display: block;
+    padding: 4px 6px;
+    font-size: 11px;
+    text-align: center;
+    background: #f8fafc;
+    color: #2563eb;
+    font-weight: 600;
+    text-decoration: underline;
+    border-top: 1px solid #e2e8f0;
+}
+
+.proof-empty-box {
+    padding: 14px;
+    background: #ffffff;
+    border: 1px dashed #cbd5e1;
+    border-radius: 6px;
+    text-align: center;
+    color: #64748b;
+    font-size: 13px;
+}
+
+/* Vertical Refund Timeline */
+.refund-timeline-vertical {
+    margin-top: 20px;
+    margin-bottom: 24px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 20px 24px;
+}
+
+.rtv-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding-left: 8px;
+}
+
+.rtv-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    position: relative;
+    padding-bottom: 18px;
+}
+
+.rtv-line {
+    position: absolute;
+    left: 13px;
+    top: 26px;
+    bottom: 0;
+    width: 2px;
+    background: #e2e8f0;
+}
+
+.rtv-line.done {
+    background: #f97316;
+}
+
+.rtv-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    z-index: 2;
+    transition: all 0.2s;
+    background: #ffffff;
+    border: 2px solid #cbd5e1;
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.rtv-dot.done {
+    background: #f97316;
+    border-color: #f97316;
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(249,115,22,0.35);
+}
+
+.rtv-content {
+    flex: 1;
+    min-width: 0;
+    padding-top: 3px;
+}
+
+.rtv-label {
+    font-size: 13.5px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: #64748b;
+}
+
+.rtv-label.done {
+    color: #c2410c;
+}
+
+.rtv-date {
+    font-size: 11.5px;
+    margin-top: 2px;
+    color: #94a3b8;
+}
+
+.rtv-date.done {
+    color: #ea580c;
+}
 </style>
 
 
@@ -2763,5 +2948,315 @@ tbody td {
 
 .refund-label {
     color: #c2410c;
+}
+
+/* Order Details Modal Dark Mode Overrides */
+:global(html[data-admin-theme='dark']) .detail-modal,
+:global(.admin-layout.theme-dark) .detail-modal,
+:global(.admin-layout.dark) .detail-modal,
+:global(.dark) .detail-modal {
+  background: #11161f !important;
+  border: 1px solid #28303d !important;
+  color: #f8fafc !important;
+}
+
+:global(html[data-admin-theme='dark']) .detail-modal .modal-header,
+:global(.admin-layout.theme-dark) .detail-modal .modal-header,
+:global(.admin-layout.dark) .detail-modal .modal-header,
+:global(.dark) .detail-modal .modal-header {
+  border-bottom-color: #28303d !important;
+}
+
+:global(html[data-admin-theme='dark']) .detail-modal .modal-footer,
+:global(.admin-layout.theme-dark) .detail-modal .modal-footer,
+:global(.admin-layout.dark) .detail-modal .modal-footer,
+:global(.dark) .detail-modal .modal-footer {
+  border-top-color: #28303d !important;
+  background: #11161f !important;
+}
+
+:global(html[data-admin-theme='dark']) .info-grid,
+:global(.admin-layout.theme-dark) .info-grid,
+:global(.admin-layout.dark) .info-grid,
+:global(.dark) .info-grid {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+}
+
+:global(html[data-admin-theme='dark']) .info-item,
+:global(.admin-layout.theme-dark) .info-item,
+:global(.admin-layout.dark) .info-item,
+:global(.dark) .info-item {
+  background: transparent !important;
+  border: none !important;
+}
+
+:global(html[data-admin-theme='dark']) .info-label,
+:global(.admin-layout.theme-dark) .info-label,
+:global(.admin-layout.dark) .info-label,
+:global(.dark) .info-label {
+  color: #94a3b8 !important;
+  background: transparent !important;
+}
+
+:global(html[data-admin-theme='dark']) .info-value,
+:global(.admin-layout.theme-dark) .info-value,
+:global(.admin-layout.dark) .info-value,
+:global(.dark) .info-value {
+  background: #11161f !important;
+  border: 1px solid #28303d !important;
+  color: #f8fafc !important;
+  box-shadow: none !important;
+}
+
+:global(html[data-admin-theme='dark']) .info-value select,
+:global(.admin-layout.theme-dark) .info-value select,
+:global(.admin-layout.dark) .info-value select,
+:global(.dark) .info-value select {
+  background-color: #11161f !important;
+  border-color: #28303d !important;
+  color: #f8fafc !important;
+}
+
+:global(html[data-admin-theme='dark']) .info-value select option,
+:global(.admin-layout.theme-dark) .info-value select option,
+:global(.admin-layout.dark) .info-value select option,
+:global(.dark) .info-value select option {
+  background-color: #181d24 !important;
+  color: #f8fafc !important;
+}
+
+:global(html[data-admin-theme='dark']) .proof-action-link,
+:global(.admin-layout.theme-dark) .proof-action-link,
+:global(.admin-layout.dark) .proof-action-link,
+:global(.dark) .proof-action-link {
+  background: #11161f !important;
+  border-top-color: #28303d !important;
+  color: #60a5fa !important;
+}
+
+:global(html[data-admin-theme='dark']) .refund-timeline-vertical,
+:global(.admin-layout.theme-dark) .refund-timeline-vertical,
+:global(.admin-layout.dark) .refund-timeline-vertical,
+:global(.dark) .refund-timeline-vertical {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  border-radius: 14px !important;
+  padding: 20px 24px !important;
+  color: #f8fafc !important;
+}
+
+:global(html[data-admin-theme='dark']) .shipment-card,
+:global(html[data-admin-theme='dark']) .shipment-empty,
+:global(.admin-layout.theme-dark) .shipment-card,
+:global(.admin-layout.theme-dark) .shipment-empty,
+:global(.admin-layout.dark) .shipment-card,
+:global(.admin-layout.dark) .shipment-empty,
+:global(.dark) .shipment-card,
+:global(.dark) .shipment-empty {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #cbd5e1 !important;
+}
+
+:global(html[data-admin-theme='dark']) .shipment-empty b,
+:global(.admin-layout.theme-dark) .shipment-empty b,
+:global(.admin-layout.dark) .shipment-empty b,
+:global(.dark) .shipment-empty b {
+  color: #f8fafc !important;
+}
+
+:global(html[data-admin-theme='dark']) .shipment-empty p,
+:global(.admin-layout.theme-dark) .shipment-empty p,
+:global(.admin-layout.dark) .shipment-empty p,
+:global(.dark) .shipment-empty p {
+  color: #94a3b8 !important;
+}
+
+:global(html[data-admin-theme='dark']) .shipment-head strong,
+:global(.admin-layout.theme-dark) .shipment-head strong,
+:global(.admin-layout.dark) .shipment-head strong,
+:global(.dark) .shipment-head strong {
+  color: #f8fafc !important;
+}
+
+:global(html[data-admin-theme='dark']) .shipment-grid>div,
+:global(.admin-layout.theme-dark) .shipment-grid>div,
+:global(.admin-layout.dark) .shipment-grid>div,
+:global(.dark) .shipment-grid>div {
+  background: #11161f !important;
+  border-color: #28303d !important;
+}
+
+:global(html[data-admin-theme='dark']) .shipment-grid span,
+:global(.admin-layout.theme-dark) .shipment-grid span,
+:global(.admin-layout.dark) .shipment-grid span,
+:global(.dark) .shipment-grid span {
+  color: #94a3b8 !important;
+}
+
+:global(html[data-admin-theme='dark']) .shipment-grid b,
+:global(.admin-layout.theme-dark) .shipment-grid b,
+:global(.admin-layout.dark) .shipment-grid b,
+:global(.dark) .shipment-grid b {
+  color: #f8fafc !important;
+}
+
+:global(html[data-admin-theme='dark']) .shipment-event b,
+:global(.admin-layout.theme-dark) .shipment-event b,
+:global(.admin-layout.dark) .shipment-event b,
+:global(.dark) .shipment-event b {
+  color: #f8fafc !important;
+}
+
+:global(html[data-admin-theme='dark']) .shipment-event p,
+:global(.admin-layout.theme-dark) .shipment-event p,
+:global(.admin-layout.dark) .shipment-event p,
+:global(.dark) .shipment-event p {
+  color: #cbd5e1 !important;
+}
+
+:global(html[data-admin-theme='dark']) .shipment-event small,
+:global(.admin-layout.theme-dark) .shipment-event small,
+:global(.admin-layout.dark) .shipment-event small,
+:global(.dark) .shipment-event small {
+  color: #94a3b8 !important;
+}
+
+:global(html[data-admin-theme='dark']) .reason-text-box,
+:global(.admin-layout.theme-dark) .reason-text-box,
+:global(.admin-layout.dark) .reason-text-box,
+:global(.dark) .reason-text-box {
+  background: rgba(249, 115, 22, 0.12) !important;
+  border-color: rgba(249, 115, 22, 0.3) !important;
+  color: #fdba74 !important;
+}
+
+:global(html[data-admin-theme='dark']) .proof-container-box,
+:global(.admin-layout.theme-dark) .proof-container-box,
+:global(.admin-layout.dark) .proof-container-box,
+:global(.dark) .proof-container-box {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #f8fafc !important;
+}
+
+:global(html[data-admin-theme='dark']) .proof-title,
+:global(.admin-layout.theme-dark) .proof-title,
+:global(.admin-layout.dark) .proof-title,
+:global(.dark) .proof-title {
+  color: #f8fafc !important;
+}
+
+:global(html[data-admin-theme='dark']) .proof-empty-box,
+:global(.admin-layout.theme-dark) .proof-empty-box,
+:global(.admin-layout.dark) .proof-empty-box,
+:global(.dark) .proof-empty-box {
+  background: #11161f !important;
+  border: 1px dashed #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+:global(html[data-admin-theme='dark']) .refund-timeline-vertical,
+:global(.admin-layout.theme-dark) .refund-timeline-vertical,
+:global(.admin-layout.dark) .refund-timeline-vertical,
+:global(.dark) .refund-timeline-vertical {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #f8fafc !important;
+}
+
+:global(html[data-admin-theme='dark']) .rtv-label,
+:global(.admin-layout.theme-dark) .rtv-label,
+:global(.admin-layout.dark) .rtv-label,
+:global(.dark) .rtv-label {
+  color: #94a3b8 !important;
+}
+
+:global(html[data-admin-theme='dark']) .rtv-label.done,
+:global(.admin-layout.theme-dark) .rtv-label.done,
+:global(.admin-layout.dark) .rtv-label.done,
+:global(.dark) .rtv-label.done {
+  color: #4ade80 !important;
+}
+
+:global(html[data-admin-theme='dark']) .rtv-date,
+:global(.admin-layout.theme-dark) .rtv-date,
+:global(.admin-layout.dark) .rtv-date,
+:global(.dark) .rtv-date {
+  color: #64748b !important;
+}
+
+:global(html[data-admin-theme='dark']) .rtv-date.done,
+:global(.admin-layout.theme-dark) .rtv-date.done,
+:global(.admin-layout.dark) .rtv-date.done,
+:global(.dark) .rtv-date.done {
+  color: #94a3b8 !important;
+}
+
+:global(html[data-admin-theme='dark']) .order-item,
+:global(.admin-layout.theme-dark) .order-item,
+:global(.admin-layout.dark) .order-item,
+:global(.dark) .order-item {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+}
+
+:global(html[data-admin-theme='dark']) .item-img,
+:global(.admin-layout.theme-dark) .item-img,
+:global(.admin-layout.dark) .item-img,
+:global(.dark) .item-img {
+  background: #ffffff !important;
+  border-color: #28303d !important;
+}
+
+:global(html[data-admin-theme='dark']) .item-name,
+:global(.admin-layout.theme-dark) .item-name,
+:global(.admin-layout.dark) .item-name,
+:global(.dark) .item-name {
+  color: #f8fafc !important;
+}
+
+:global(html[data-admin-theme='dark']) .item-variant,
+:global(.admin-layout.theme-dark) .item-variant,
+:global(.admin-layout.dark) .item-variant,
+:global(.dark) .item-variant {
+  color: #94a3b8 !important;
+}
+
+:global(html[data-admin-theme='dark']) .iq-price,
+:global(.admin-layout.theme-dark) .iq-price,
+:global(.admin-layout.dark) .iq-price,
+:global(.dark) .iq-price {
+  color: #60a5fa !important;
+}
+
+:global(html[data-admin-theme='dark']) .iq-qty,
+:global(.admin-layout.theme-dark) .iq-qty,
+:global(.admin-layout.dark) .iq-qty,
+:global(.dark) .iq-qty {
+  color: #94a3b8 !important;
+}
+
+:global(html[data-admin-theme='dark']) .order-summary-box,
+:global(.admin-layout.theme-dark) .order-summary-box,
+:global(.admin-layout.dark) .order-summary-box,
+:global(.dark) .order-summary-box {
+  background: linear-gradient(135deg, rgba(14, 116, 144, 0.25), rgba(3, 105, 161, 0.25)) !important;
+  border: 1px solid rgba(56, 189, 248, 0.35) !important;
+}
+
+:global(html[data-admin-theme='dark']) .sum-row span,
+:global(.admin-layout.theme-dark) .sum-row span,
+:global(.admin-layout.dark) .sum-row span,
+:global(.dark) .sum-row span {
+  color: #7dd3fc !important;
+}
+
+:global(html[data-admin-theme='dark']) .final-total,
+:global(.admin-layout.theme-dark) .final-total,
+:global(.admin-layout.dark) .final-total,
+:global(.dark) .final-total {
+  color: #38bdf8 !important;
 }
 </style>
