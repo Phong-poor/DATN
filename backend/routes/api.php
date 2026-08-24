@@ -27,6 +27,7 @@ use App\Http\Controllers\DiaChiController;
 use App\Http\Controllers\DiemDanhController;
 use App\Http\Controllers\FlashSaleController;
 use App\Http\Controllers\FlashSaleWebController;
+use App\Http\Controllers\FooterController;
 use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\GeocodeController;
 use App\Http\Controllers\GioHangController;
@@ -57,6 +58,7 @@ Route::get('/auth/google/callback', [AuthController::class, 'handleGoogle']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/auth/two-factor/challenge', [AuthController::class, 'verifyTwoFactorChallenge'])->middleware('throttle:5,1');
 Route::post('/register', [AuthController::class, 'register']);
+Route::get('/footer', [FooterController::class, 'index']);
 
 // ================= QUÊN MẬT KHẨU =================
 Route::get('/vnpay/return', [VnpayController::class, 'vnpayReturn']);
