@@ -10,7 +10,7 @@
       adminTheme === 'dark' && 'dark',
       sidebarCollapsed && 'sidebar-collapsed',
       adminIntroActive && 'intro-active',
-      adminHeaderHidden && 'admin-header-hidden',
+      { 'admin-header-hidden': adminHeaderHidden },
     ]"
     :style="adminVars"
   >
@@ -1365,6 +1365,11 @@ a {
   min-height: calc(100vh - 77px);
   padding: var(--admin-page-space) 0 40px;
   background: transparent;
+  transition: padding-top 0.28s cubic-bezier(.4, 0, .2, 1);
+}
+
+.admin-layout.admin-header-hidden .admin-page-shell {
+  padding-top: 0 !important;
 }
 
 /* Every routed admin screen receives spacing and body color from the shell. */

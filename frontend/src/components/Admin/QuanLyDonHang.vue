@@ -43,7 +43,7 @@ const closeDateDropdown = (e) => {
 
 // Pagination
 const currentPage = ref(1)
-const itemsPerPage = 5
+const itemsPerPage = 10
 
 const pageMode = ref('orders')
 
@@ -808,7 +808,7 @@ async function exportExcel() {
         </div>
 
         <!-- CATEGORY TABS -->
-        <div class="category-tabs" style="margin-bottom: 20px;">
+        <div class="category-tabs">
             <div class="category-tab-list">
                 <button :class="['cat-tab', { active: pageMode === 'orders' }]"
                     @click="pageMode = 'orders'; activeTab = 'Tất cả'">
@@ -1094,7 +1094,12 @@ async function exportExcel() {
                             <p class="modal-sub">Mã đơn: <b>{{ viewOrder.id }}</b></p>
                             <h3>Chi tiết đơn hàng</h3>
                         </div>
-                        <button class="modal-close" @click="closeViewModal">×</button>
+                        <button class="modal-close" @click="closeViewModal" title="Đóng" aria-label="Đóng">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
                     </div>
 
                     <div class="modal-body scrollable">
@@ -1484,13 +1489,9 @@ async function exportExcel() {
     gap: 14px;
     box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
     position: sticky;
-    top: 77px;
+    top: 56px;
     z-index: 7;
     transition: top 0.28s cubic-bezier(.4, 0, .2, 1);
-}
-
-:global(.admin-header-hidden) .filter-wrap {
-    top: 12px;
 }
 
 .search-row {
@@ -2075,18 +2076,42 @@ tbody td {
 }
 
 .modal-close {
-    background: none;
-    border: none;
-    font-size: 22px;
-    color: #94a3b8;
-    cursor: pointer;
-    padding: 0;
-    transition: color 0.2s;
-    line-height: 1;
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 8px !important;
+    border: 1px solid #e2e8f0 !important;
+    background: #f1f5f9 !important;
+    color: #64748b !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    padding: 0 !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: none !important;
+    transform: none !important;
+    flex-shrink: 0 !important;
 }
 
 .modal-close:hover {
-    color: #0f172a;
+    background: #ef4444 !important;
+    border-color: #dc2626 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3) !important;
+    transform: translateY(-1px) !important;
+}
+
+.modal-close svg {
+    width: 15px !important;
+    height: 15px !important;
+    stroke: #64748b !important;
+    transition: stroke 0.2s ease !important;
+}
+
+.modal-close:hover svg,
+.modal-close:hover svg line {
+    stroke: #ffffff !important;
+    color: #ffffff !important;
 }
 
 .modal-body {
@@ -2811,45 +2836,72 @@ tbody td {
 <style scoped>
 .category-tabs {
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     justify-content: space-between;
     gap: 20px;
-    margin-bottom: -4px;
+    margin: -24px -20px 20px -20px;
+    padding: 12px 20px;
     border-bottom: 2px solid #e2e8f0;
-    padding-bottom: 0;
+    position: sticky;
+    top: 0px !important;
+    z-index: 80;
+    background: #f5f7fb;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+    transition: all 0.28s cubic-bezier(.4, 0, .2, 1);
 }
 
 .category-tab-list {
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     gap: 12px;
 }
 
 .category-tabs>.btn-export {
     flex-shrink: 0;
-    margin-bottom: 8px;
+    margin-bottom: 0;
+    transition: all 0.2s;
+    background: white;
+    border: 1px solid #e2e8f0;
+    color: #334155;
+    padding: 9px 18px;
+    border-radius: 10px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.category-tabs>.btn-export:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #1e293b;
 }
 
 .cat-tab {
     background: transparent;
-    border: none;
-    padding: 12px 20px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    padding: 9px 20px;
     font-size: 14px;
     font-weight: 600;
     color: #64748b;
     cursor: pointer;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -2px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
     transition: all 0.2s;
 }
 
 .cat-tab:hover {
     color: #2563eb;
+    background: rgba(37, 99, 235, 0.06);
 }
 
 .cat-tab.active {
     color: #2563eb;
-    border-bottom-color: #2563eb;
+    background: white;
+    border-color: #e2e8f0;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
 }
 </style>
 
