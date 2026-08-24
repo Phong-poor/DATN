@@ -1,9 +1,70 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
+import api from '../../services/api'
 
-// 1. Live player/user counter simulator (WOW factor for tech sites)
-const liveUserCount = ref(1842)
-let counterInterval = null
+const liveUserCount = ref(0)
+const store = ref({
+  brand_name: 'NextGen',
+  slogan: 'Giải pháp công nghệ toàn diện cho học tập, làm việc và giải trí.',
+  support_email: 'support@nextgen.vn',
+  support_phone: '1800 9999',
+  business_address: 'TP. Hồ Chí Minh',
+  working_hours: '08:00 - 21:00'
+})
+const categories = ref([])
+const latestNews = ref([])
+const subscriberEmail = ref('')
+const subscribing = ref(false)
+const subscribeMessage = ref('')
+const subscribeError = ref(false)
+const currentYear = new Date().getFullYear()
+const hotlineHref = computed(() => `tel:${String(store.value.support_phone || '').replace(/[^+\d]/g, '')}`)
+const branchLocations = computed(() => {
+  const locations = [
+    store.value.business_address,
+    'Hà Nội',
+    'Đà Nẵng',
+    'Đắk Lắk',
+    'Cần Thơ'
+  ].filter(Boolean)
+
+  return [...new Set(locations)]
+})
+
+const loadFooterData = async () => {
+  try {
+    const { data } = await api.get('/footer')
+    const footer = data?.data || {}
+    store.value = { ...store.value, ...(footer.store || {}) }
+    liveUserCount.value = Number(footer.online_users || 0)
+    categories.value = Array.isArray(footer.categories) ? footer.categories : []
+    latestNews.value = Array.isArray(footer.news) ? footer.news : []
+  } catch (error) {
+    console.warn('Không thể tải dữ liệu footer:', error)
+  }
+}
+
+const subscribeNewsletter = async () => {
+  const email = subscriberEmail.value.trim()
+  subscribeMessage.value = ''
+  subscribeError.value = false
+  if (!/^\S+@\S+\.\S+$/.test(email)) {
+    subscribeError.value = true
+    subscribeMessage.value = 'Vui lòng nhập email hợp lệ.'
+    return
+  }
+  subscribing.value = true
+  try {
+    const { data } = await api.post('/news-subscribe', { email })
+    subscribeMessage.value = data?.message || 'Đăng ký nhận bản tin thành công.'
+    subscriberEmail.value = ''
+  } catch (error) {
+    subscribeError.value = true
+    subscribeMessage.value = error.response?.data?.message || 'Chưa thể đăng ký. Vui lòng thử lại.'
+  } finally {
+    subscribing.value = false
+  }
+}
 
 // 2. Back to top with scroll progress ring logic
 const showScrollTop = ref(false)
@@ -26,21 +87,12 @@ const scrollToTop = () => {
 }
 
 onMounted(() => {
-  // Live user counter fluctuation
-  counterInterval = setInterval(() => {
-    const delta = Math.floor(Math.random() * 5) - 2 // random between -2 and +2
-    const newValue = liveUserCount.value + delta
-    if (newValue >= 1810 && newValue <= 1890) {
-      liveUserCount.value = newValue
-    }
-  }, 4000)
-
+  loadFooterData()
   // Scroll listener
   window.addEventListener('scroll', handleScroll)
 })
 
 onUnmounted(() => {
-  if (counterInterval) clearInterval(counterInterval)
   window.removeEventListener('scroll', handleScroll)
 })
 </script>
@@ -63,7 +115,10 @@ onUnmounted(() => {
             <span class="cyber-badge-glow">TECH</span>
           </div>
           <p class="brand-slogan">
-            Đại lý công nghệ tiên phong. Chúng tôi cung cấp những cỗ máy hiệu năng mạnh mẽ, tối ưu cho gaming, sáng tạo nội dung và làm việc chuyên nghiệp.
+            {{ store.slogan }}
+          </p>
+          <p class="brand-description">
+            Chuyên laptop, MacBook và phụ kiện công nghệ chính hãng. Tư vấn đúng nhu cầu, hỗ trợ tận tâm và đồng hành cùng khách hàng trong suốt quá trình sử dụng.
           </p>
           
           <!-- Live server dashboard widget -->
@@ -73,27 +128,27 @@ onUnmounted(() => {
               <span class="live-label">CORE SERVER: <span class="green-text">ONLINE</span></span>
             </div>
             <div class="widget-details">
-              <span class="stat-item">Gamers trực tuyến: <strong>{{ liveUserCount }}</strong></span>
+              <span class="stat-item">Người dùng trực tuyến: <strong>{{ liveUserCount }}</strong></span>
               <span class="stat-divider">|</span>
-              <span class="stat-item">Ping: <strong class="cyan-text">14ms</strong></span>
+              <span class="stat-item"><strong class="cyan-text">Dữ liệu trực tiếp</strong></span>
             </div>
           </div>
 
-          <!-- Social media tray with high-tech glow on hover -->
+          <!-- Kênh mạng xã hội -->
           <div class="social-tray">
-            <a href="#" class="social-btn facebook" title="Facebook">
+            <a href="https://www.facebook.com" target="_blank" rel="noopener noreferrer" class="social-btn facebook" title="Facebook" aria-label="Facebook">
               <svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c4.56-.93 8-4.96 8-9.75z"/></svg>
             </a>
-            <a href="#" class="social-btn instagram" title="Instagram">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
-            </a>
-            <a href="#" class="social-btn youtube" title="YouTube">
+            <a href="https://www.youtube.com" target="_blank" rel="noopener noreferrer" class="social-btn youtube" title="YouTube" aria-label="YouTube">
               <svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.107C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.388.511a3.002 3.002 0 0 0-2.11 2.107C0 8.053 0 12 0 12s0 3.947.502 5.837a3.003 3.003 0 0 0 2.11 2.107C4.495 20.455 12 20.455 12 20.455s7.505 0 9.388-.511a3.003 3.003 0 0 0 2.11-2.107C24 15.947 24 12 24 12s0-3.947-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
             </a>
-            <a href="#" class="social-btn tiktok" title="TikTok">
+            <a href="https://www.tiktok.com" target="_blank" rel="noopener noreferrer" class="social-btn tiktok" title="TikTok" aria-label="TikTok">
               <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.525.02c1.31-.03 2.61-.01 3.91-.02.08 1.53.63 3.02 1.59 4.23.95.8 2.07 1.37 3.29 1.63v3.83c-1.84-.04-3.61-.75-5-2.02-.02 2.58.01 5.16-.01 7.74-.06 2.37-1.12 4.65-2.99 6.11-2.03 1.63-4.83 2.19-7.33 1.48-2.61-.75-4.75-2.79-5.46-5.44-.75-2.73-.01-5.78 1.95-7.79 1.83-1.92 4.61-2.63 7.15-1.83v4.03c-1.39-.46-2.97-.13-4.01.87-1.13 1.05-1.39 2.82-.57 4.13.73 1.25 2.19 1.93 3.61 1.7 1.48-.19 2.64-1.39 2.81-2.88.08-3.07.03-6.15.05-9.22z"/></svg>
             </a>
-            <a href="#" class="social-btn discord" title="Discord">
+            <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="social-btn github" title="GitHub" aria-label="GitHub">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .7a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2.23c-3.22.7-3.9-1.37-3.9-1.37-.52-1.34-1.28-1.7-1.28-1.7-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.71 1.26 3.37.96.1-.75.4-1.26.73-1.55-2.57-.29-5.27-1.28-5.27-5.69 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.16 1.18a10.9 10.9 0 0 1 5.76 0c2.19-1.49 3.16-1.18 3.16-1.18.63 1.59.23 2.76.11 3.05.74.8 1.19 1.83 1.19 3.09 0 4.42-2.71 5.39-5.29 5.68.42.36.79 1.07.79 2.16v3.2c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .7z"/></svg>
+            </a>
+            <a href="https://discord.com" target="_blank" rel="noopener noreferrer" class="social-btn discord" title="Discord" aria-label="Discord">
               <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.873-.894.077.077 0 0 1-.008-.128c.126-.093.252-.19.372-.287a.075.075 0 0 1 .077-.011c3.92 1.793 8.18 1.793 12.061 0a.073.073 0 0 1 .078.009c.12.099.246.195.373.289a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.156-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.156 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.156-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.156 2.418z"/></svg>
             </a>
           </div>
@@ -103,11 +158,10 @@ onUnmounted(() => {
         <div class="dir-col">
           <h4 class="col-title">Cửa Hàng Công Nghệ</h4>
           <ul class="footer-links">
-            <li><router-link to="/san-pham?category=gaming" class="link-item">Laptop Gaming AI (RTX 50-Series)</router-link></li>
-            <li><router-link to="/macbook" class="link-item">MacBook & Ultrabook Siêu Mỏng</router-link></li>
-            <li><router-link to="/san-pham?category=workstation" class="link-item">Workstation Đồ Họa & Render</router-link></li>
-            <li><router-link to="/san-pham?category=gear" class="link-item">Gaming Gear & Phụ Kiện High-End</router-link></li>
-            <li><router-link to="/san-pham?category=office" class="link-item">Laptop Văn Phòng AI Intel Ultra</router-link></li>
+            <li v-for="category in categories" :key="category.id_danhmuc">
+              <router-link :to="`/laptop?cat=${category.id_danhmuc}`" class="link-item">{{ category.ten_danhmuc }}</router-link>
+            </li>
+            <li v-if="!categories.length"><router-link to="/laptop" class="link-item">Xem tất cả sản phẩm</router-link></li>
           </ul>
         </div>
 
@@ -115,11 +169,10 @@ onUnmounted(() => {
         <div class="dir-col">
           <h4 class="col-title">Hệ Sinh Thái</h4>
           <ul class="footer-links">
-            <li><router-link to="/phong-thi-nghiem-tuong-tac" class="link-item">NextGen Interactive Labs</router-link></li>
-            <li><router-link to="/phong-thi-nghiem-tuong-tac" class="link-item">Đấu Trường Hiệu Năng VinaTech</router-link></li>
-            <li><router-link to="/tin-tuc" class="link-item">Tin Tức Công Nghệ AI & Review</router-link></li>
-            <li><router-link to="/san-pham" class="link-item">Góc Setup VIP Cộng Đồng</router-link></li>
-            <li><router-link to="/phong-thi-nghiem-tuong-tac" class="link-item">VIP Club & Esports Tournaments</router-link></li>
+            <li v-for="article in latestNews" :key="article.id">
+              <router-link :to="`/tin-tuc/${article.slug || article.id}`" class="link-item">{{ article.tieude }}</router-link>
+            </li>
+            <li v-if="!latestNews.length"><router-link to="/tin-tuc" class="link-item">Xem tin tức mới nhất</router-link></li>
           </ul>
         </div>
 
@@ -128,10 +181,10 @@ onUnmounted(() => {
           <h4 class="col-title">Hỗ Trợ Kỹ Thuật</h4>
           <ul class="footer-links">
             <li><router-link to="/lien-he" class="link-item">Liên Hệ & Gửi Yêu Cầu Hỗ Trợ</router-link></li>
-            <li><a href="#" class="link-item">Chính Sách Bảo Hành Ultimate Care</a></li>
-            <li><a href="#" class="link-item">Tra Cứu Bảo Hành Điện Tử VIP</a></li>
-            <li><a href="#" class="link-item">Tải Driver & Firmware Mới Nhất</a></li>
-            <li><a href="#" class="link-item">Chính Sách Đổi Trả 1-Đổi-1 30 Ngày</a></li>
+            <li><router-link to="/lien-he?topic=bao-hanh" class="link-item">Yêu Cầu Bảo Hành</router-link></li>
+            <li><router-link to="/don-hang" class="link-item">Theo Dõi Đơn Hàng</router-link></li>
+            <li><router-link to="/tin-tuc" class="link-item">Hướng Dẫn & Tin Công Nghệ</router-link></li>
+            <li><router-link to="/lien-he?topic=doi-tra" class="link-item">Yêu Cầu Đổi Trả</router-link></li>
           </ul>
         </div>
 
@@ -142,12 +195,13 @@ onUnmounted(() => {
           
           <div class="subscribe-box-glass">
             <span class="sub-mail-icon">@</span>
-            <input type="email" placeholder="Địa chỉ email của bạn..." class="subscribe-input" />
-            <button class="subscribe-btn">
-              <span>Đăng Ký</span>
+            <input v-model="subscriberEmail" type="email" placeholder="Email của bạn" class="subscribe-input" @keyup.enter="subscribeNewsletter" />
+            <button class="subscribe-btn" :disabled="subscribing" @click="subscribeNewsletter">
+              <span>{{ subscribing ? 'Đang gửi...' : 'Đăng ký' }}</span>
               <svg class="arrow-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
             </button>
           </div>
+          <p v-if="subscribeMessage" class="subscribe-message" :class="{ error: subscribeError }">{{ subscribeMessage }}</p>
 
           <!-- Hotline Soundwave card -->
           <div class="hotline-card">
@@ -156,7 +210,7 @@ onUnmounted(() => {
             </div>
             <div class="hotline-body">
               <div class="hotline-number">
-                <span>1800 9999</span>
+                <a :href="hotlineHref">{{ store.support_phone }}</a>
                 <!-- Soundwave dynamic animation bars -->
                 <div class="soundwave-container" title="Tổng đài trực tuyến hoạt động">
                   <div class="soundwave-bar"></div>
@@ -170,9 +224,11 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <div class="location-item">
-            <svg class="loc-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            <span>123 Đường Công Nghệ, Q. Liên Chiểu, Đà Nẵng</span>
+          <div class="location-list" aria-label="Hệ thống chi nhánh">
+            <div v-for="location in branchLocations" :key="location" class="location-item">
+              <svg class="loc-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              <span>{{ location }}</span>
+            </div>
           </div>
         </div>
 
@@ -183,36 +239,22 @@ onUnmounted(() => {
         <div class="bottom-inner">
           <div class="b-left">
             <p class="copyright">
-              © 2026 <strong>VinaTech NextGen</strong>. Thiết kế & phát triển với công nghệ tối ưu.
+              © {{ currentYear }} <strong>{{ store.brand_name }}</strong>. Mọi quyền được bảo lưu.
             </p>
             <div class="bottom-links">
-              <a href="#">Chính Sách Bảo Mật</a>
+              <router-link to="/lien-he">Chính Sách Bảo Mật</router-link>
               <span class="dot-separator"></span>
-              <a href="#">Điều Khoản Sử Dụng</a>
+              <router-link to="/lien-he">Điều Khoản Sử Dụng</router-link>
               <span class="dot-separator"></span>
-              <a href="#">Sơ Đồ Trang Website</a>
+              <router-link to="/">Trang Chủ</router-link>
             </div>
           </div>
 
           <div class="b-right">
             <!-- Payment gateway logos (Vivid glowing SVGs on hover) -->
             <div class="payment-suite" aria-label="Cổng thanh toán hỗ trợ">
-              <!-- VISA -->
-              <div class="pay-logo visa" title="Visa Card">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M13.9 15.2h2.2L18.4 8h-2.2l-2.3 7.2zm4.1-7.2h-2.1L12.5 15h2.1l1.4-4.5h4.1l-2.1 4.7zm-10.7 7.2L9.4 8H7.2L5.1 12.8 4.8 11.2l-.3-1.6c-.4-1.3-1.5-2.2-2.8-2.3v.3l2 4 2.2 4h2.2z"/>
-                </svg>
-              </div>
-              <!-- MASTERCARD -->
-              <div class="pay-logo mastercard" title="Mastercard">
-                <svg viewBox="0 0 24 24">
-                  <circle cx="9" cy="12" r="6" fill="#eb001b" opacity="0.95"/>
-                  <circle cx="15" cy="12" r="6" fill="#ff5f00" opacity="0.95"/>
-                </svg>
-              </div>
-              <!-- JCB -->
-              <div class="pay-logo jcb" title="JCB Payment">
-                <span class="jcb-text">JCB</span>
+              <div class="pay-logo jcb" title="Thanh toán SePay">
+                <span class="jcb-text">SePay</span>
               </div>
               <!-- MOMO -->
               <div class="pay-logo momo" title="Ví MoMo">
@@ -232,16 +274,23 @@ onUnmounted(() => {
                 <span>SSL SECURED</span>
               </div>
 
-              <!-- Ministry of Industry and Trade Badge -->
-              <a href="#" class="gov-bct-badge" title="Website đã thông báo với Bộ Công Thương Việt Nam">
+              <a
+                href="https://online.gov.vn/"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="gov-bct-badge"
+                title="Cổng thông tin quản lý hoạt động thương mại điện tử"
+                aria-label="Bộ Công Thương"
+              >
                 <div class="gov-content">
                   <span class="gov-small">ĐÃ THÔNG BÁO</span>
                   <span class="gov-bold">BỘ CÔNG THƯƠNG</span>
                 </div>
                 <div class="gov-check-icon">
-                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                 </div>
               </a>
+
             </div>
           </div>
         </div>
@@ -368,7 +417,14 @@ onUnmounted(() => {
   font-size: 13.5px;
   line-height: 1.7;
   color: var(--text-muted);
-  margin: 0 0 20px;
+  margin: 0 0 6px;
+}
+.brand-description {
+  max-width: 290px;
+  margin: 0 0 18px;
+  color: #74839a;
+  font-size: 12.5px;
+  line-height: 1.65;
 }
 
 /* Live status widget styling */
@@ -453,11 +509,11 @@ onUnmounted(() => {
   border: 1px solid #3b5998;
   box-shadow: 0 4px 10px rgba(59, 89, 152, 0.25);
 }
-.social-btn.instagram {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+.social-btn.github {
+  background: #24292f;
   color: #ffffff;
-  border: none;
-  box-shadow: 0 4px 10px rgba(220, 39, 67, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.32);
 }
 .social-btn.youtube {
   background: #ff0000;
@@ -483,7 +539,7 @@ onUnmounted(() => {
   filter: brightness(1.15);
 }
 .social-btn.facebook:hover { box-shadow: 0 8px 24px rgba(59, 89, 152, 0.45); }
-.social-btn.instagram:hover { box-shadow: 0 8px 24px rgba(220, 39, 67, 0.45); }
+.social-btn.github:hover { box-shadow: 0 8px 24px rgba(255, 255, 255, 0.18); }
 .social-btn.youtube:hover { box-shadow: 0 8px 24px rgba(37, 99, 235, 0.42); }
 .social-btn.tiktok:hover { box-shadow: 0 8px 24px rgba(255, 255, 255, 0.2); }
 .social-btn.discord:hover { box-shadow: 0 8px 24px rgba(88, 101, 242, 0.45); }
@@ -559,51 +615,69 @@ onUnmounted(() => {
 .subscribe-box-glass {
   display: flex;
   align-items: center;
-  gap: 10px;
-  background: rgba(255, 255, 255, 0.02);
-  padding: 5px 6px 5px 16px;
-  border-radius: 16px;
-  border: 1.5px solid rgba(255, 255, 255, 0.05);
+  width: 100%;
+  gap: 6px;
+  box-sizing: border-box;
+  background: rgba(5, 13, 29, 0.72);
+  padding: 5px;
+  border-radius: 13px;
+  border: 1px solid rgba(96, 165, 250, 0.22);
   transition: all 0.3s;
-  min-height: 52px;
-  margin-bottom: 20px;
+  min-height: 50px;
+  margin-bottom: 8px;
   backdrop-filter: blur(8px);
 }
 .subscribe-box-glass:focus-within {
-  border-color: var(--neon-cyan);
-  background: rgba(37, 99, 235, 0.04);
-  box-shadow: 0 0 15px rgba(37, 99, 235, 0.12);
+  border-color: rgba(96, 165, 250, 0.72);
+  background: rgba(8, 20, 43, 0.9);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1), 0 10px 28px rgba(0, 0, 0, 0.16);
 }
 .sub-mail-icon {
-  font-size: 16px;
-  color: #dbeafe;
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  place-items: center;
+  border-radius: 9px;
+  background: transparent;
+  color: #93c5fd;
+  font-size: 15px;
+  font-weight: 800;
 }
 .subscribe-input {
+  min-width: 0;
   flex: 1;
-  background: transparent;
-  border: none;
-  padding: 8px 0;
+  background: transparent !important;
+  border: none !important;
+  padding: 8px 4px;
   color: #f8fafc;
-  font-size: 13px;
-  font-weight: 700;
-  outline: none;
+  font-size: 12.5px;
+  font-weight: 600;
+  outline: none !important;
+  box-shadow: none !important;
+  appearance: none;
 }
 .subscribe-input::placeholder {
-  color: #cbd5e1;
-  opacity: 0.95;
+  color: #7f8da3;
+  opacity: 1;
 }
 .subscribe-btn {
   background: linear-gradient(135deg, var(--neon-cyan), #1d4ed8);
   color: #ffffff;
   border: none;
-  padding: 9px 16px;
-  border-radius: 12px;
+  min-width: 94px;
+  height: 40px;
+  flex: 0 0 auto;
+  justify-content: center;
+  padding: 0 12px;
+  border-radius: 9px;
   font-weight: 800;
-  font-size: 12px;
+  font-size: 11.5px;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
   text-shadow: 0 1px 8px rgba(2, 6, 23, 0.28);
@@ -620,6 +694,30 @@ onUnmounted(() => {
 }
 .subscribe-btn:hover .arrow-svg {
   transform: translateX(3px);
+}
+.subscribe-btn:disabled {
+  cursor: wait;
+  opacity: 0.7;
+  transform: none;
+}
+.subscribe-message {
+  min-height: 18px;
+  margin: 0 2px 12px;
+  color: #86efac;
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+.subscribe-message.error {
+  color: #fca5a5;
+}
+.contact-symbol {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+}
+.hotline-number a {
+  color: inherit;
+  text-decoration: none;
 }
 
 /* Hotline Card style */
@@ -701,6 +799,11 @@ onUnmounted(() => {
   100% { transform: scaleY(1); }
 }
 
+.location-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+}
 .location-item {
   display: flex;
   align-items: center;
@@ -708,6 +811,7 @@ onUnmounted(() => {
   color: var(--text-muted);
   font-size: 12.5px;
   line-height: 1.5;
+  min-width: 0;
 }
 .loc-svg {
   width: 15px;
