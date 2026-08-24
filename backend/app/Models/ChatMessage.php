@@ -14,6 +14,7 @@ class ChatMessage extends Model
     protected $fillable = [
         'id_cuoc_tro_chuyen',
         'id_nguoigui',
+        'nguoigui_type',
         'noidung',
         'daxem',
         'duongdan_dinhkem',
