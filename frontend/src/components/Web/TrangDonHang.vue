@@ -42,6 +42,8 @@ const refundSteps = computed(() => {
 const selectedOrder = ref(null)
 const orders = ref([])
 const isLoading = ref(true)
+const currentPage = ref(1)
+const ordersPerPage = 6
 
 const tabs_mua = [
     { key: 'all', label: 'Tất cả' },
@@ -72,6 +74,12 @@ const statusMap = {
     refunded: { label: 'Đã hoàn tiền', color: '#3b82f6', bg: '#ede9fe' },
     refund_rejected: { label: 'Từ chối hoàn trả', color: '#dc2626', bg: '#fee2e2' },
     cancelled: { label: 'Đã hủy', color: '#dc2626', bg: '#fee2e2' },
+}
+
+const getOrderStatusMeta = (status) => statusMap[String(status || '').toLowerCase()] || {
+    label: 'Đang cập nhật',
+    color: '#475569',
+    bg: '#e2e8f0',
 }
 
 // Cancellation state
@@ -332,7 +340,7 @@ const isRefundable = (order) => {
     if (!Number.isFinite(updated)) return false;
     const now = new Date().getTime();
     const diffDays = (now - updated) / (1000 * 60 * 60 * 24);
-    return diffDays <= 30;
+    return diffDays <= 7;
 }
 
 const handleReorder = async (order) => {
@@ -379,12 +387,33 @@ const formatPrice = (val) => {
 
 const filtered = computed(() => {
     if (pageMode.value === 'orders') {
-        if (activeTab.value === 'all') return orders.value.filter(o => !o.trangthai.startsWith('refund'))
+        if (activeTab.value === 'all') return orders.value.filter(o => !String(o.trangthai || '').startsWith('refund'))
         return orders.value.filter(o => o.trangthai === activeTab.value)
     } else {
-        if (activeTab.value === 'all_refund') return orders.value.filter(o => o.trangthai.startsWith('refund'))
+        if (activeTab.value === 'all_refund') return orders.value.filter(o => String(o.trangthai || '').startsWith('refund'))
         return orders.value.filter(o => o.trangthai === activeTab.value)
     }
+})
+
+const totalPages = computed(() => Math.max(1, Math.ceil(filtered.value.length / ordersPerPage)))
+const paginatedOrders = computed(() => {
+    const start = (currentPage.value - 1) * ordersPerPage
+    return filtered.value.slice(start, start + ordersPerPage)
+})
+const visiblePages = computed(() => {
+    const start = Math.max(1, Math.min(currentPage.value - 1, totalPages.value - 2))
+    const end = Math.min(totalPages.value, start + 2)
+    return Array.from({ length: end - start + 1 }, (_, index) => start + index)
+})
+
+const switchPageMode = (mode) => {
+    pageMode.value = mode
+    activeTab.value = mode === 'orders' ? 'all' : 'all_refund'
+}
+
+watch([activeTab, pageMode], () => { currentPage.value = 1 })
+watch(totalPages, (pages) => {
+    if (currentPage.value > pages) currentPage.value = pages
 })
 
 const openDetail = async (order) => {
@@ -632,7 +661,7 @@ onUnmounted(() => {
         <Teleport to="body">
             <transition name="fade">
             <div class="overlay" v-if="showRefundModal" @click.self="closeRefundModal">
-                <div class="modal mini-modal">
+                <div class="modal refund-modal">
                     <div class="modal-head">
                         <h2 class="modal-title">Yêu cầu hoàn trả</h2>
                         <button class="close-btn" no-guard @click="closeRefundModal">×</button>
@@ -641,20 +670,27 @@ onUnmounted(() => {
                         <div class="mb-3">
                             <label class="form-label" style="font-size: 13px; font-weight: 600;">Chọn sản phẩm hoàn trả</label>
                             <div class="refund-items-list" style="max-height: 200px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px;">
-                                <div v-for="item in (orderToRefund?.chi_tiets || orderToRefund?.chiTiets || [])" :key="item.id_bienthe" class="d-flex align-items-center gap-2 mb-2 pb-2" style="border-bottom: 1px solid #f1f5f9;">
-                                    <input type="checkbox" :id="'refund_item_' + item.id_bienthe" :value="item.id_bienthe" v-model="refundSelectedItems" style="width: 16px; height: 16px; cursor: pointer;">
-                                    <label :for="'refund_item_' + item.id_bienthe" class="d-flex align-items-center gap-2 m-0" style="cursor: pointer; flex: 1;">
-                                        <img :src="getProductImage(item)" style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px; border: 1px solid #e5e7eb;">
-                                        <div>
-                                            <div style="font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 2px;">{{ getFullProductName(item) }}</div>
-                                            <div style="font-size: 11px; color: #64748b;">Phân loại: {{ item.bien_the?.ten_bienthe || 'Mặc định' }} | SL: {{ item.soluong }}</div>
+                                <div v-for="item in (orderToRefund?.chi_tiets || orderToRefund?.chiTiets || [])" :key="item.id_bienthe" class="refund-item-option" :class="{ selected: refundSelectedItems.includes(item.id_bienthe) }">
+                                    <input class="refund-item-checkbox" type="checkbox" :id="'refund_item_' + item.id_bienthe" :value="item.id_bienthe" v-model="refundSelectedItems">
+                                    <label :for="'refund_item_' + item.id_bienthe" class="refund-item-label">
+                                        <img :src="getProductImage(item)" class="refund-item-image">
+                                        <div class="refund-item-copy">
+                                            <div class="refund-item-name">{{ getFullProductName(item) }}</div>
+                                            <div class="refund-item-meta">
+                                                <span>{{ item.bien_the?.ten_bienthe || 'Mặc định' }}</span>
+                                                <span>Số lượng: {{ item.soluong }}</span>
+                                            </div>
                                         </div>
                                     </label>
                                 </div>
                             </div>
                         </div>
 
-                        <textarea v-model="refundReason" class="cancel-textarea mb-3" rows="3" placeholder="Nhập lý do hoàn trả..."></textarea>
+                        <div class="refund-reason-field">
+                            <label class="form-label" for="refund-reason">Lý do hoàn trả</label>
+                            <textarea id="refund-reason" v-model="refundReason" class="cancel-textarea" rows="3" placeholder="Mô tả rõ tình trạng và lý do bạn muốn hoàn trả..."></textarea>
+                            <small>Thông tin cụ thể sẽ giúp yêu cầu được xử lý nhanh hơn.</small>
+                        </div>
                         
                         <!-- ===== Upload ảnh / video bằng chứng ===== -->
                         <div class="mb-3">
@@ -725,7 +761,7 @@ onUnmounted(() => {
                             </div>
                         </div>
 
-                        <div class="d-flex gap-2 justify-content-end mt-3">
+                        <div class="refund-modal-actions">
                             <button class="btn btn-secondary" no-guard @click="closeRefundModal">Đóng</button>
                             <button class="btn btn-warning" style="color: white; font-weight: bold;" @click="confirmRefund" :disabled="isSubmitting">
                                 {{ isSubmitting ? 'Đang gửi...' : 'Gửi yêu cầu' }}
@@ -741,7 +777,7 @@ onUnmounted(() => {
         <Teleport to="body">
             <transition name="fade">
             <div class="overlay" v-if="selectedOrder" @click.self="closeDetail">
-                <div class="modal">
+                <div class="modal detail-modal">
                     <div class="modal-head">
                         <div>
                             <h2 class="modal-title">Chi tiết đơn hàng</h2>
@@ -757,8 +793,8 @@ onUnmounted(() => {
                     <div class="modal-body">
                         <!-- Status badge -->
                         <div class="modal-status"
-                            :style="{ color: statusMap[selectedOrder.trangthai].color, background: statusMap[selectedOrder.trangthai].bg }">
-                            {{ statusMap[selectedOrder.trangthai].label }}
+                            :style="{ color: getOrderStatusMeta(selectedOrder.trangthai).color, background: getOrderStatusMeta(selectedOrder.trangthai).bg }">
+                            {{ getOrderStatusMeta(selectedOrder.trangthai).label }}
                         </div>
 
                         <!-- Cancellation info if cancelled or refund -->
@@ -909,36 +945,30 @@ onUnmounted(() => {
                 <p class="page-sub">Theo dõi và quản lý đơn hàng</p>
             </div>
 
-            <!-- Tabs Group -->
-            <div class="tabs-group-wrapper" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px;">
-              <div class="tabs-row" style="display: flex; align-items: center; gap: 10px;">
-                <div class="tabs-label" style="font-weight: 600; color: #1e293b; min-width: 100px; font-size: 14px;">
-                    Mua ({{ orders.filter(o => !o.trangthai.startsWith('refund')).length }}):
+            <!-- Main order type tabs + contextual status filters -->
+            <div class="tabs-group-wrapper">
+                <div class="order-type-tabs">
+                    <button type="button" class="order-type-tab purchase" :class="{ active: pageMode === 'orders' }"
+                        @click="switchPageMode('orders')">
+                        <span>Mua</span>
+                        <b>{{ orders.filter(o => !String(o.trangthai || '').startsWith('refund')).length }}</b>
+                    </button>
+                    <button type="button" class="order-type-tab refund" :class="{ active: pageMode === 'refund' }"
+                        @click="switchPageMode('refund')">
+                        <span>Hoàn trả</span>
+                        <b>{{ orders.filter(o => String(o.trangthai || '').startsWith('refund')).length }}</b>
+                    </button>
                 </div>
-                <div class="tabs" style="margin-bottom: 0;">
-                    <button v-for="tab in tabs_mua" :key="tab.key" class="tab" :class="{ active: activeTab === tab.key }"
-                        @click="activeTab = tab.key; pageMode = 'orders'">
+
+                <div class="tabs status-tabs" style="margin-bottom: 0;">
+                    <button v-for="tab in (pageMode === 'orders' ? tabs_mua : [{key: 'all_refund', label: 'Tất cả'}, ...tabs_hoantra])"
+                        :key="tab.key" class="tab" :class="{ active: activeTab === tab.key }" @click="activeTab = tab.key">
                         {{ tab.label }}
-                        <span class="tab-count" v-if="tab.key !== 'all'">
-                            {{orders.filter(o => o.trangthai === tab.key).length}}
+                        <span class="tab-count" v-if="!['all', 'all_refund'].includes(tab.key)">
+                            {{ orders.filter(o => o.trangthai === tab.key).length }}
                         </span>
                     </button>
                 </div>
-            </div>
-              <div class="tabs-row" style="display: flex; align-items: center; gap: 10px;">
-                <div class="tabs-label" style="font-weight: 600; color: #f97316; min-width: 100px; font-size: 14px;">
-                    Hoàn trả ({{ orders.filter(o => o.trangthai.startsWith('refund')).length }}):
-                </div>
-                <div class="tabs" style="margin-bottom: 0;">
-                    <button v-for="tab in [{key: 'all_refund', label: 'Tất cả'}, ...tabs_hoantra]" :key="tab.key" class="tab" :class="{ active: activeTab === tab.key }"
-                        @click="activeTab = tab.key; pageMode = 'refund'">
-                        {{ tab.label }}
-                        <span class="tab-count" v-if="tab.key !== 'all_refund'">
-                            {{orders.filter(o => o.trangthai === tab.key).length}}
-                        </span>
-                    </button>
-                </div>
-            </div>
             </div>
 
             <!-- Order list -->
@@ -956,15 +986,15 @@ onUnmounted(() => {
                     <p>Không có đơn hàng nào</p>
                 </div>
 
-                <div class="order-card" v-for="order in filtered" :key="order.id_dathang">
+                <div class="order-card" v-for="order in paginatedOrders" :key="order.id_dathang">
                     <div class="order-head">
                         <div class="order-meta">
                             <span class="order-id">#VT-2026-{{ String(order.id_dathang).padStart(3, '0') }}</span>
                             <span class="order-date">{{ new Date(order.created_at).toLocaleDateString('vi-VN') }}</span>
                         </div>
                         <span class="order-badge"
-                            :style="{ color: statusMap[order.trangthai].color, background: statusMap[order.trangthai].bg }">
-                            {{ statusMap[order.trangthai].label }}
+                            :style="{ color: getOrderStatusMeta(order.trangthai).color, background: getOrderStatusMeta(order.trangthai).bg }">
+                            {{ getOrderStatusMeta(order.trangthai).label }}
                         </span>
                     </div>
 
@@ -983,13 +1013,14 @@ onUnmounted(() => {
                         </div>
                     </div>
 
-                    <div class="order-foot" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; box-sizing:border-box;">
-                        <div class="order-info-coins" style="font-size:12px; text-align:left; display:flex; gap:15px; flex:1;">
+                    <div class="order-foot">
+                        <div class="order-info-coins">
                             <span v-if="order.xu_dung > 0" style="color:#f59e0b; display:inline-flex; align-items:center; gap:3px;">🪙 Đã dùng: -{{ order.xu_dung.toLocaleString('vi-VN') }} xu</span>
-
                         </div>
-                        <span class="order-total" style="white-space:nowrap; margin-left:auto;">Tổng: <strong>{{ formatPrice(order.tongtien) }}</strong></span>
-                        <div class="d-flex gap-2">
+                        <div class="order-checkout-summary">
+                            <span class="order-total">Tổng thanh toán <strong>{{ formatPrice(order.tongtien) }}</strong></span>
+                        </div>
+                        <div class="order-actions">
                             <button v-if="['pending', 'confirmed'].includes(order.trangthai)" 
                                 class="btn-cancel" @click="openCancelModal(order)">Hủy đơn</button>
                             
@@ -1006,6 +1037,23 @@ onUnmounted(() => {
                         <button class="btn-refund w-100" disabled style="opacity: 0.6; cursor: not-allowed; background: #e5e7eb; color: #9ca3af; border-color: #d1d5db; white-space: nowrap;">Bị từ chối</button>
                     </div>
                 </div>
+
+                <nav v-if="!isLoading && filtered.length > ordersPerPage" class="orders-pagination" aria-label="Phân trang đơn hàng">
+                    <div class="pagination-meta">
+                        <span class="pagination-summary">
+                            Hiển thị {{ (currentPage - 1) * ordersPerPage + 1 }}–{{ Math.min(currentPage * ordersPerPage, filtered.length) }} trong {{ filtered.length }} đơn
+                        </span>
+                        <small>Trang {{ currentPage }}/{{ totalPages }}</small>
+                    </div>
+                    <div class="pagination-buttons">
+                        <button type="button" :disabled="currentPage === 1" @click="currentPage--" aria-label="Trang trước">‹</button>
+                        <button v-for="pageNumber in visiblePages" :key="pageNumber" type="button"
+                            :class="{ active: currentPage === pageNumber }" @click="currentPage = pageNumber">
+                            {{ pageNumber }}
+                        </button>
+                        <button type="button" :disabled="currentPage === totalPages" @click="currentPage++" aria-label="Trang sau">›</button>
+                    </div>
+                </nav>
             </div>
         </div>
     </div>
@@ -1087,7 +1135,7 @@ onUnmounted(() => {
 
 .page {
     min-height: 100vh;
-    background: #0d1b2e;
+    background: #f5f7fb !important;
     padding-block-start: var(--section-padding-mobile);
     padding-block-end: var(--section-padding-mobile);
     padding-inline: var(--container-padding-desktop);
@@ -1105,13 +1153,13 @@ onUnmounted(() => {
 .page-title {
     font-size: 22px;
     font-weight: 700;
-    color: #f1f5f9;
+    color: #0f172a;
     margin: 0 0 4px;
 }
 
 .page-sub {
     font-size: 13px;
-    color: #64748b;
+    color: #475569;
     margin: 0;
 }
 
@@ -1119,8 +1167,8 @@ onUnmounted(() => {
 .tabs {
     display: flex;
     gap: var(--space-2);
-    background: #111f35;
-    border: 1px solid rgba(255,255,255,0.07);
+    background: #f8fafc;
+    border: 1px solid #dbe4f0;
     border-radius: var(--radius-md);
     padding: 6px;
     margin-bottom: var(--space-5);
@@ -1134,7 +1182,7 @@ onUnmounted(() => {
     background: transparent;
     font-size: 13px;
     font-weight: 500;
-    color: #64748b;
+    color: #334155;
     cursor: pointer;
     transition: all 0.15s;
     display: flex;
@@ -1143,8 +1191,8 @@ onUnmounted(() => {
 }
 
 .tab:hover {
-    background: #111f35;
-    color: #cbd5e1;
+    background: #e8eef8;
+    color: #1d4ed8;
 }
 
 .tab.active {
@@ -1161,8 +1209,8 @@ onUnmounted(() => {
 }
 
 .tab:not(.active) .tab-count {
-    background: #111f35;
-    color: #64748b;
+    background: #e2e8f0;
+    color: #334155;
 }
 
 /* ORDER CARDS */
@@ -1170,6 +1218,73 @@ onUnmounted(() => {
     display: flex;
     flex-direction: column;
     gap: 14px;
+}
+
+.orders-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-top: 2px;
+    padding: 12px 2px 2px;
+    border-top: 1px solid #dbe4f0;
+    background: transparent;
+}
+
+.pagination-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.pagination-summary {
+    color: #475569;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.pagination-meta small {
+    padding-left: 10px;
+    border-left: 1px solid #cbd5e1;
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.pagination-buttons {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px;
+    border: 1px solid #dbe4f0;
+    border-radius: 11px;
+    background: #ffffff;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+}
+
+.pagination-buttons button {
+    width: 32px;
+    height: 32px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: #334155;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.15s ease;
+}
+
+.pagination-buttons button:hover:not(:disabled),
+.pagination-buttons button.active {
+    border-color: #2563eb;
+    background: #2563eb;
+    color: #ffffff;
+}
+
+.pagination-buttons button:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
 }
 
 .empty {
@@ -1192,18 +1307,27 @@ onUnmounted(() => {
 }
 
 .order-card {
-    background: #111f35;
-    border-radius: var(--radius-lg);
-    border: 1px solid rgba(255,255,255,0.07);
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1px solid #dbe4f0;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
     overflow: hidden;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.order-card:hover {
+    transform: translateY(-2px);
+    border-color: #bfdbfe;
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.1);
 }
 
 .order-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: var(--space-3) var(--container-padding-desktop);
-    border-bottom: 1px solid rgba(255,255,255,0.07);
+    padding: 15px 20px;
+    border-bottom: 1px solid #e2e8f0;
+    background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
 }
 
 .order-meta {
@@ -1215,12 +1339,12 @@ onUnmounted(() => {
 .order-id {
     font-size: 13px;
     font-weight: 700;
-    color: #f1f5f9;
+    color: #0f172a;
 }
 
 .order-date {
     font-size: 12px;
-    color: #94a3b8;
+    color: #64748b;
 }
 
 .order-badge {
@@ -1231,14 +1355,18 @@ onUnmounted(() => {
 }
 
 .order-items {
-    padding: 12px 20px;
+    padding: 14px 20px;
 }
 
 .order-item {
     display: flex;
     align-items: center;
     gap: 14px;
-    padding: 8px 0;
+    padding: 12px 0;
+}
+
+.order-item + .order-item {
+    border-top: 1px dashed #e2e8f0;
 }
 
 .order-item img {
@@ -1258,19 +1386,24 @@ onUnmounted(() => {
 .order-item-name {
     font-size: 14px;
     font-weight: 700;
-    color: #e2e8f0;
+    color: #172033;
     margin: 0 0 2px;
+    line-height: 1.45;
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
 }
 
 .order-item-variant {
     font-size: 12px;
-    color: #64748b;
+    color: #475569;
     margin: 0 0 4px;
 }
 
 .order-item-qty {
     font-size: 12px;
-    color: #94a3b8;
+    color: #64748b;
     margin: 0;
 }
 
@@ -1282,36 +1415,78 @@ onUnmounted(() => {
 }
 
 .order-foot {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
     align-items: center;
-    justify-content: space-between;
-    padding: 12px 20px;
-    border-top: 1px solid rgba(255,255,255,0.07);
-    background: #0d1b2e;
+    gap: 14px;
+    min-height: 64px;
+    padding: 10px 16px;
+    border-top: 1px solid #e2e8f0;
+    background: #f8fafc;
+}
+
+.order-info-coins {
+    min-width: 0;
+    color: #b45309;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.order-checkout-summary {
+    padding-right: 14px;
+    border-right: 1px solid #dbe4f0;
 }
 
 .order-total {
-    font-size: 13px;
-    color: #64748b;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    color: #475569;
+    font-size: 11px;
+    white-space: nowrap;
 }
 
 .order-total strong {
-    color: #f1f5f9;
+    color: #0f172a;
     font-size: 15px;
+    letter-spacing: -0.2px;
 }
 
-.btn-detail, .btn-reorder, .btn-cancel {
-    padding: 8px 18px;
-    border-radius: var(--radius-sm);
-    font-size: 13px;
-    font-weight: 600;
+.order-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 7px;
+    flex-wrap: wrap;
+}
+
+.order-actions button,
+.btn-detail, .btn-reorder, .btn-cancel, .btn-refund {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 88px;
+    min-height: 36px;
+    padding: 8px 14px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
     cursor: pointer;
-    transition: all 0.15s;
-    border: 1.5px solid transparent;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.order-actions button {
+    height: 36px !important;
+    min-height: 36px !important;
+    padding-block: 0 !important;
 }
 
 .btn-detail {
-    background: #111f35;
+    background: #ffffff;
     border-color: #2563eb;
     color: #2563eb;
 }
@@ -1319,6 +1494,7 @@ onUnmounted(() => {
 .btn-detail:hover {
     background: #2563eb;
     color: #fff;
+    transform: translateY(-1px);
 }
 
 .btn-reorder {
@@ -1328,10 +1504,12 @@ onUnmounted(() => {
 
 .btn-reorder:hover {
     background: #1d4ed8;
+    box-shadow: 0 6px 14px rgba(37, 99, 235, 0.24);
+    transform: translateY(-1px);
 }
 
 .btn-cancel {
-    background: #111f35;
+    background: #ffffff;
     border-color: #dc2626;
     color: #dc2626;
 }
@@ -1339,6 +1517,7 @@ onUnmounted(() => {
 .btn-cancel:hover {
     background: #dc2626;
     color: #fff;
+    transform: translateY(-1px);
 }
 
 .btn-refund {
@@ -1351,6 +1530,16 @@ onUnmounted(() => {
 .btn-refund:hover {
     background: #f97316;
     color: #fff;
+    transform: translateY(-1px);
+}
+
+@media (max-width: 1100px) {
+  .order-foot {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .order-info-coins {
+    grid-column: 1 / -1;
+  }
 }
 
 /* MODAL */
@@ -1579,18 +1768,40 @@ onUnmounted(() => {
     margin-top: -24px;
   }
   .order-foot {
+    display: flex;
     flex-direction: column;
     align-items: stretch;
     gap: 12px;
     padding: 14px 16px;
   }
-  .order-foot .d-flex {
-    flex-direction: column;
-    width: 100%;
+  .order-checkout-summary {
+    padding: 0 0 12px;
+    border-right: 0;
+    border-bottom: 1px solid #dbe4f0;
   }
-  .btn-detail, .btn-reorder, .btn-cancel {
+  .order-total {
+    align-items: flex-start;
+  }
+  .order-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .order-actions button,
+  .btn-detail, .btn-reorder, .btn-cancel, .btn-refund {
     width: 100%;
     text-align: center;
+  }
+  .orders-pagination {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .pagination-meta {
+    justify-content: space-between;
+  }
+  .pagination-buttons {
+    width: fit-content;
+    align-self: center;
+    justify-content: center;
   }
 }
 
@@ -1667,5 +1878,469 @@ onUnmounted(() => {
 .cancel-textarea:focus {
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+/* Premium light order detail modal */
+.refund-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(680px, calc(100vw - 32px));
+  max-width: 680px;
+  max-height: min(88vh, 820px);
+  overflow: hidden;
+  border: 1px solid #dbe4f0;
+  border-radius: 20px;
+  background: #ffffff;
+  color: #172033;
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.25);
+}
+.refund-modal .modal-head {
+  position: relative;
+  z-index: 2;
+  align-items: center;
+  flex: 0 0 auto;
+  padding: 18px 22px;
+  border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(135deg, #ffffff 0%, #fff7ed 100%);
+}
+.refund-modal .modal-title {
+  color: #0f172a;
+  font-size: 19px;
+  letter-spacing: -0.3px;
+}
+.refund-modal .close-btn {
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px;
+  padding: 0 !important;
+  border: 1px solid #dbe4f0 !important;
+  border-radius: 50% !important;
+  background: #f8fafc !important;
+  color: #64748b !important;
+  box-shadow: none !important;
+  font-size: 18px;
+  line-height: 1;
+  transform: none !important;
+}
+.refund-modal .close-btn:hover {
+  border-color: #dc2626 !important;
+  background: #dc2626 !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 16px rgba(220, 38, 38, 0.38) !important;
+  transform: scale(1.06) !important;
+}
+.refund-modal .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 22px 0;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+.refund-modal .form-label {
+  display: block;
+  margin-bottom: 8px;
+  color: #334155 !important;
+  font-weight: 700 !important;
+}
+.refund-modal .refund-items-list {
+  max-height: 170px !important;
+  padding: 8px !important;
+  border-color: #dbe4f0 !important;
+  background: #f8fafc;
+}
+.refund-modal .refund-items-list > div {
+  margin-bottom: 0 !important;
+  padding: 8px !important;
+  border-bottom: 0 !important;
+  border-radius: 10px;
+  background: #ffffff;
+}
+.refund-modal .refund-items-list > div + div { margin-top: 6px !important; }
+.refund-modal .refund-item-option {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  border: 1px solid transparent;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+.refund-modal .refund-item-option:hover {
+  border-color: #bfdbfe;
+  background: #f8fbff;
+}
+.refund-modal .refund-item-option.selected {
+  border-color: #60a5fa;
+  background: #eff6ff;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.08);
+}
+.refund-item-checkbox {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: #2563eb;
+  cursor: pointer;
+}
+.refund-item-label {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  margin: 0;
+  cursor: pointer;
+}
+.refund-item-image {
+  width: 52px;
+  height: 52px;
+  object-fit: cover;
+  border: 1px solid #dbe4f0;
+  border-radius: 9px;
+  background: #ffffff;
+}
+.refund-item-copy { min-width: 0; }
+.refund-item-name {
+  overflow: hidden;
+  color: #172033;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.refund-item-meta {
+  display: flex;
+  gap: 8px;
+  margin-top: 5px;
+  color: #64748b;
+  font-size: 10.5px;
+}
+.refund-item-meta span + span {
+  padding-left: 8px;
+  border-left: 1px solid #cbd5e1;
+}
+.refund-reason-field { margin: 16px 0; }
+.refund-reason-field .cancel-textarea { margin-bottom: 0 !important; }
+.refund-reason-field small {
+  display: block;
+  margin-top: 6px;
+  color: #94a3b8;
+  font-size: 10.5px;
+}
+.refund-modal .cancel-textarea {
+  min-height: 88px;
+  margin-bottom: 16px !important;
+  border-color: #dbe4f0;
+  background: #ffffff;
+}
+.refund-modal .refund-dropzone {
+  padding: 16px;
+  border-color: #bfdbfe;
+  background: #f8fbff;
+}
+.refund-modal .dropzone-icon { margin-bottom: 4px; }
+.refund-modal .dropzone-text { color: #1e293b; }
+.refund-modal .refund-modal-actions {
+  position: sticky;
+  z-index: 3;
+  bottom: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: 18px -22px 0;
+  padding: 12px 22px;
+  border-top: 1px solid #e2e8f0;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(8px);
+}
+.refund-modal-actions .btn {
+  min-width: 108px;
+  min-height: 38px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+.refund-modal-actions .btn-warning {
+  background: #f97316;
+  color: #ffffff;
+}
+.refund-modal-actions .btn-warning:disabled {
+  background: #cbd5e1;
+  color: #ffffff;
+  cursor: not-allowed;
+}
+@media (max-width: 576px) {
+  .refund-modal { width: calc(100vw - 20px); max-height: 92vh; border-radius: 16px; }
+  .refund-modal .modal-head { padding: 15px 16px; }
+  .refund-modal .modal-body { padding: 15px 16px 0; }
+  .refund-modal .refund-modal-actions { margin-inline: -16px; padding: 11px 16px; }
+  .refund-modal-actions .btn { flex: 1; min-width: 0; }
+  .refund-item-label { grid-template-columns: 44px minmax(0, 1fr); gap: 9px; }
+  .refund-item-image { width: 44px; height: 44px; }
+  .refund-item-meta { flex-direction: column; gap: 2px; }
+  .refund-item-meta span + span { padding-left: 0; border-left: 0; }
+}
+
+.detail-modal {
+  max-width: 680px;
+  border: 1px solid #dbe4f0;
+  border-radius: 20px;
+  background: #ffffff;
+  color: #172033;
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.24);
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+.detail-modal .modal-head {
+  align-items: center;
+  padding: 20px 22px;
+  border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(135deg, #ffffff 0%, #f6f9ff 100%);
+}
+.detail-modal .modal-title {
+  color: #0f172a;
+  font-size: 19px;
+  letter-spacing: -0.3px;
+}
+.detail-modal .modal-id {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 12px;
+}
+.detail-modal .close-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid #dbe4f0;
+  background: #ffffff;
+  color: #475569;
+  transition: 0.15s ease;
+}
+.detail-modal .close-btn svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+.detail-modal .close-btn:hover {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #dc2626;
+  transform: rotate(4deg);
+}
+.detail-modal .modal-body { padding: 20px 22px 22px; }
+.detail-modal .modal-status {
+  margin-bottom: 16px;
+  padding: 6px 12px;
+  border: 1px solid rgba(37, 99, 235, 0.1);
+}
+.detail-modal .timeline {
+  margin-bottom: 20px;
+  padding: 18px 10px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #f8fafc;
+}
+.detail-modal .tl-label { color: #334155; }
+.detail-modal .tl-item.done .tl-label { color: #1d4ed8; }
+.detail-modal .tl-date { color: #64748b; }
+.detail-modal .section-title {
+  color: #334155;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.detail-modal .modal-item {
+  gap: 14px;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 13px;
+  background: #f8fafc;
+}
+.detail-modal .modal-item img {
+  width: 60px;
+  height: 60px;
+  border: 1px solid #dbe4f0;
+  border-radius: 10px;
+  background: #ffffff;
+}
+.detail-modal .modal-item-name {
+  color: #172033;
+  line-height: 1.4;
+}
+.detail-modal .modal-item-variant { color: #64748b; }
+.detail-modal .modal-item-qty { color: #475569; }
+.detail-modal .modal-item-price {
+  color: #1d4ed8;
+  white-space: nowrap;
+}
+.detail-modal .modal-breakdown { color: #475569 !important; }
+.detail-modal .modal-total {
+  margin-top: 6px;
+  padding: 16px !important;
+  border: 1px solid #dbeafe !important;
+  border-radius: 13px;
+  background: #eff6ff !important;
+  color: #475569;
+}
+.detail-modal .total-val { color: #1d4ed8; }
+.detail-modal .modal-foot {
+  justify-content: flex-end;
+  margin-top: 14px !important;
+  padding-top: 14px;
+  border-top: 1px solid #e2e8f0;
+}
+.detail-modal .modal-foot button { width: auto !important; min-width: 110px; }
+@media (max-width: 576px) {
+  .detail-modal { border-radius: 16px; }
+  .detail-modal .modal-head { padding: 16px; }
+  .detail-modal .modal-body { padding: 16px; }
+  .detail-modal .timeline { overflow-x: auto; }
+  .detail-modal .tl-content { min-width: 72px; padding: 0 4px; }
+  .detail-modal .modal-item {
+    display: grid;
+    grid-template-columns: 52px minmax(0, 1fr);
+  }
+  .detail-modal .modal-item img { width: 52px; height: 52px; }
+  .detail-modal .modal-item-price {
+    grid-column: 2;
+    align-self: auto;
+    margin-top: 0;
+  }
+  .detail-modal .modal-foot { display: grid !important; grid-template-columns: 1fr; }
+  .detail-modal .modal-foot button { width: 100% !important; }
+}
+
+/* Compact order status filters */
+.tabs-group-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px !important;
+  margin-bottom: 18px !important;
+}
+.order-type-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid #dbe4f0;
+  border-radius: 12px;
+  background: #f1f5f9;
+}
+.order-type-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 7px 13px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: 0.16s ease;
+}
+.order-type-tab b {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 10px;
+}
+.order-type-tab.purchase.active {
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 5px 12px rgba(37, 99, 235, 0.22);
+}
+.order-type-tab.purchase.active b {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+.order-type-tab.refund.active {
+  background: #f97316;
+  color: #ffffff;
+  box-shadow: 0 5px 12px rgba(249, 115, 22, 0.22);
+}
+.order-type-tab.refund.active b {
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+.status-tabs {
+  width: fit-content;
+  max-width: 100%;
+}
+.tabs-row { gap: 8px !important; }
+.tabs-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 78px !important;
+  min-height: 32px;
+  padding: 5px 7px 5px 10px;
+  border: 1px solid #dbe4f0;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #1e293b;
+  font-size: 12px !important;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.tabs-label b {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #e8eef8;
+  color: #334155;
+  font-size: 10px;
+}
+.purchase-label {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+.purchase-label b {
+  background: #2563eb;
+  color: #ffffff;
+}
+.refund-label-chip {
+  border-color: #fed7aa;
+  background: #fff7ed;
+  color: #c2410c;
+}
+.refund-label-chip b {
+  background: #ffedd5;
+  color: #c2410c;
+}
+.tabs {
+  gap: 4px;
+  padding: 4px;
+  border-radius: 11px;
+}
+.tab {
+  min-height: 32px;
+  padding: 6px 11px;
+  border-radius: 8px;
+  font-size: 12px;
+  gap: 5px;
+}
+.tab-count {
+  min-width: 20px;
+  padding: 0 6px;
+  font-size: 10px;
+  line-height: 18px;
+  text-align: center;
 }
 </style>

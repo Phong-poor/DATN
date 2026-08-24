@@ -35,21 +35,38 @@ const FALLBACK_IMAGE =
     </svg>
   `)
 
+const reloadAdminWithCacheBust = (reason = 'runtime') => {
+  if (!window.location.pathname.startsWith('/admin')) return
+
+  const key = `admin-recover-${reason}-once`
+  if (sessionStorage.getItem(key) === '1') return
+
+  sessionStorage.setItem(key, '1')
+  const url = new URL(window.location.href)
+  url.searchParams.set('_recover', String(Date.now()))
+  window.location.replace(url.toString())
+}
+
 const tryRecoverAdminRuntime = (event) => {
   if (!window.location.pathname.startsWith('/admin')) return
   if (event?.target && event.target !== window) return
 
   const msg = String(event?.reason?.message || event?.message || event?.reason || '')
-  if (!msg.includes('Loading chunk') && !msg.includes('ChunkLoadError') && !msg.includes('Failed to fetch dynamically imported module')) {
-    return
-  }
+  const shouldRecover = [
+    'Loading chunk',
+    'ChunkLoadError',
+    'Failed to fetch dynamically imported module',
+    'Importing a module script failed',
+    'Failed to load module script',
+    'error loading dynamically imported module',
+  ].some((text) => msg.includes(text))
 
-  const recovered = sessionStorage.getItem(ADMIN_RECOVERY_KEY)
-  if (recovered === '1') return
+  if (!shouldRecover) return
+
+  if (sessionStorage.getItem(ADMIN_RECOVERY_KEY) === '1') return
   sessionStorage.setItem(ADMIN_RECOVERY_KEY, '1')
-  window.location.reload()
+  reloadAdminWithCacheBust('chunk')
 }
-
 window.addEventListener('error', (event) => {
   const target = event.target
   if (!(target instanceof HTMLImageElement)) return
@@ -70,21 +87,18 @@ window.addEventListener('pageshow', () => {
 })
 window.addEventListener('pageshow', (event) => {
   if (!window.location.pathname.startsWith('/admin')) return
-  const appRoot = document.getElementById('app')
-  const isEmpty = !appRoot || appRoot.childElementCount === 0
-  if (event.persisted || isEmpty) {
-    const key = 'admin-bfcache-recover-once'
-    if (sessionStorage.getItem(key) === '1') {
-      sessionStorage.removeItem(key)
-      return
-    }
-    sessionStorage.setItem(key, '1')
-    window.location.reload()
-  } else {
-    sessionStorage.removeItem('admin-bfcache-recover-once')
-  }
-})
 
+  setTimeout(() => {
+    const appRoot = document.getElementById('app')
+    const isEmpty = !appRoot || appRoot.childElementCount === 0 || !appRoot.textContent.trim()
+
+    if (event.persisted || isEmpty) {
+      reloadAdminWithCacheBust('blank')
+    } else {
+      sessionStorage.removeItem('admin-recover-blank-once')
+    }
+  }, 900)
+})
 createApp(App)
   .use(router)
   .mount('#app')

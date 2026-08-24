@@ -394,10 +394,10 @@ class DatHangController extends Controller
         ];
     }
 
-    private function syncDueDemoShipments(): void
+    private function syncDueDemoShipments(bool $broadcastUpdates = true): void
     {
         try {
-            app(DemoShipmentService::class)->syncDueShipments();
+            app(DemoShipmentService::class)->syncDueShipments($broadcastUpdates);
         } catch (\Throwable $error) {
             // Shipment simulation is auxiliary. It must never prevent customers
             // from viewing their existing orders when the sync temporarily fails.
@@ -1287,7 +1287,9 @@ class DatHangController extends Controller
 
     public function orders()
     {
-        $this->syncDueDemoShipments();
+        // Keep demo shipment statuses current, but never make a read request wait
+        // for an unavailable realtime server.
+        $this->syncDueDemoShipments(false);
 
         $userId = Auth::id();
         $orders = DatHang::with(['chi_tiets.bienThe.sanPham'])
@@ -1353,10 +1355,11 @@ class DatHangController extends Controller
             ], 400);
         }
 
-        if ($order->updated_at && $order->updated_at->lt(now()->subDays(30))) {
+        $refundWindowDays = max(1, (int) config('orders.refund_window_days', 7));
+        if ($order->updated_at && $order->updated_at->lt(now()->subDays($refundWindowDays))) {
             return response()->json([
                 'success' => false,
-                'message' => 'Đơn hàng đã quá thời hạn yêu cầu hoàn trả 30 ngày.',
+                'message' => "Đơn hàng đã quá thời hạn yêu cầu hoàn trả {$refundWindowDays} ngày.",
             ], 422);
         }
 

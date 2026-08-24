@@ -136,6 +136,7 @@ class ChatController extends Controller
             $message = ChatMessage::create([
                 'id_cuoc_tro_chuyen' => $conversationId,
                 'id_nguoigui' => $user->id,
+                'nguoigui_type' => $user::class,
                 'noidung' => $text,
                 'daxem' => false,
                 'duongdan_dinhkem' => null,
@@ -172,6 +173,7 @@ class ChatController extends Controller
             $message = ChatMessage::create([
                 'id_cuoc_tro_chuyen' => $conversationId,
                 'id_nguoigui' => $user->id,
+                'nguoigui_type' => $user::class,
                 'noidung' => $index === 0 ? $text : '',
                 'daxem' => false,
                 'duongdan_dinhkem' => $attachmentPath,

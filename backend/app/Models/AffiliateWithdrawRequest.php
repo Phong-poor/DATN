@@ -18,6 +18,10 @@ class AffiliateWithdrawRequest extends Model
         'note',
         'approved_at',
         'paid_at',
+        'request_code',
+        'payout_provider',
+        'transaction_id',
+        'processing_at',
     ];
 
     protected $fillable = [
@@ -30,11 +34,18 @@ class AffiliateWithdrawRequest extends Model
         'ghichu',
         'duoc_duyet_luc',
         'duoc_thanh_toan_luc',
+        'ma_yeu_cau',
+        'nha_cung_cap',
+        'ma_giao_dich',
+        'du_lieu_chi_tra',
+        'bat_dau_xu_ly_luc',
     ];
 
     protected $casts = [
         'duoc_duyet_luc' => 'datetime',
         'duoc_thanh_toan_luc' => 'datetime',
+        'du_lieu_chi_tra' => 'array',
+        'bat_dau_xu_ly_luc' => 'datetime',
     ];
 
     public function affiliateUser()
@@ -106,4 +117,9 @@ class AffiliateWithdrawRequest extends Model
     {
         $this->attributes['duoc_thanh_toan_luc'] = $value;
     }
+
+    public function getRequestCodeAttribute() { return $this->ma_yeu_cau; }
+    public function getPayoutProviderAttribute() { return $this->nha_cung_cap; }
+    public function getTransactionIdAttribute() { return $this->ma_giao_dich; }
+    public function getProcessingAtAttribute() { return $this->bat_dau_xu_ly_luc; }
 }

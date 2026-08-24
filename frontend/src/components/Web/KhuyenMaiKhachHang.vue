@@ -908,8 +908,8 @@ const initScrollReveal = () => {
             NextGen Premium Hub
           </span>
           <h1>
-            TRUNG TÂM
-            <span class="gradient-text">ƯU ĐÃI CÔNG NGHỆ</span>
+            Trung tâm
+            <span class="gradient-text">ưu đãi công nghệ</span>
           </h1>
           <p class="hero-description">
             Khám phá hàng trăm ưu đãi đặc quyền dành cho Laptop Gaming, MacBook Pro và Workstation cấu hình cực khủng. Nâng tầm hiệu suất, tối ưu ngân sách.
@@ -922,7 +922,7 @@ const initScrollReveal = () => {
             </a>
             <a href="#flash-sale" class="btn btn-secondary-neon">
               <Flame class="btn-icon" />
-              Săn Flash Sale
+              Săn flash sale
             </a>
           </div>
         </div>
@@ -963,7 +963,7 @@ const initScrollReveal = () => {
           </div>
           <div class="stat-info">
             <h3>{{ displayedVouchersCount > 0 ? `${displayedVouchersCount}+` : '0+' }}</h3>
-            <p>Voucher Độc Quyền</p>
+            <p>Voucher độc quyền</p>
           </div>
         </div>
 
@@ -982,8 +982,8 @@ const initScrollReveal = () => {
             <Truck class="stat-icon" style="color: #2563eb;" />
           </div>
           <div class="stat-info">
-            <h3>Miễn Phí Ship</h3>
-            <p>Toàn quốc từ 15 Triệu</p>
+            <h3>Miễn phí ship</h3>
+            <p>Toàn quốc từ 15 triệu</p>
           </div>
         </div>
       </div>
@@ -995,9 +995,9 @@ const initScrollReveal = () => {
         <div class="section-header scroll-reveal reveal-fade-up">
           <span class="ambient-label">
             <SlidersHorizontal class="pill-icon" />
-            Danh Mục Khuyến Mãi
+            Danh mục khuyến mãi
           </span>
-          <h2>SĂN ƯU ĐÃI THEO NHU CẦU</h2>
+          <h2>Săn ưu đãi theo nhu cầu</h2>
           <p class="section-sub" style="color: #f1f5f9 !important; -webkit-text-fill-color: #f1f5f9 !important; opacity: 1 !important;">Những dòng laptop hiệu năng cao, linh kiện chất lượng nhất đang được áp dụng mức giá cực sốc.</p>
         </div>
 
@@ -1102,13 +1102,13 @@ const initScrollReveal = () => {
           <div class="flash-header-left">
             <span class="ambient-label flash-badge">
               <Flame class="pill-icon" />
-              Flash Sale Hôm Nay
+              Flash sale hôm nay
             </span>
-            <h2>CƠ HỘI CUỐI - CHỚP MẮT LÀ BỎ LỠ</h2>
+            <h2>Cơ hội cuối - chớp mắt là bỏ lỡ</h2>
           </div>
 
           <div class="countdown-clock">
-            <span class="clock-label">KẾT THÚC SAU:</span>
+            <span class="clock-label">Kết thúc sau:</span>
             <div class="timer-numbers">
               <span class="timer-segment">{{ fsDays }}</span>
               <span class="timer-colon">:</span>
@@ -1155,7 +1155,7 @@ const initScrollReveal = () => {
                 :disabled="!prod.inStock"
               >
                 <ShoppingBag class="cart-btn-icon" />
-                {{ prod.inStock ? 'Săn Ngay' : 'Hết Hàng' }}
+                {{ prod.inStock ? 'Săn ngay' : 'Hết hàng' }}
               </button>
             </div>
           </div>
@@ -1172,8 +1172,8 @@ const initScrollReveal = () => {
               <Tag class="pill-icon" />
               Voucher Center
             </span>
-            <h2>TRUNG TÂM MÃ GIẢM GIÁ</h2>
-            <p class="section-sub" style="color: #f1f5f9 !important; -webkit-text-fill-color: #f1f5f9 !important; opacity: 1 !important;">Nhấn <strong style="color: #ffffff !important; -webkit-text-fill-color: #ffffff !important;">Nhận Voucher</strong> để lưu mã vào tài khoản và áp dụng ở bước thanh toán để nhận thêm ưu đãi cực kỳ hấp dẫn.</p>
+            <h2>Trung tâm mã giảm giá</h2>
+            <p class="section-sub" style="color: #f1f5f9 !important; -webkit-text-fill-color: #f1f5f9 !important; opacity: 1 !important;">Nhấn <strong style="color: #ffffff !important; -webkit-text-fill-color: #ffffff !important;">Nhận voucher</strong> để lưu mã vào tài khoản và áp dụng ở bước thanh toán để nhận thêm ưu đãi cực kỳ hấp dẫn.</p>
           </div>
 
           <div class="voucher-toolbar-actions">
@@ -1279,7 +1279,7 @@ const initScrollReveal = () => {
                     </template>
                     <template v-else>
                       <Gift class="copy-icon" />
-                      Nhận Voucher
+                      Nhận voucher
                     </template>
                   </button>
                 </div>
@@ -1296,9 +1296,9 @@ const initScrollReveal = () => {
         <div class="section-header scroll-reveal reveal-fade-up">
           <span class="ambient-label">
             <Gift class="pill-icon" />
-            Combo Độc Quyền
+            Combo độc quyền
           </span>
-          <h2>MUA KÈM GIÁ SỐC - TIẾT KIỆM TỐI ĐA</h2>
+          <h2>Mua kèm giá sốc - tiết kiệm tối đa</h2>
           <p class="section-sub" style="color: #f1f5f9 !important; -webkit-text-fill-color: #f1f5f9 !important; opacity: 1 !important;">Sở hữu trọn bộ trang bị chuyên nghiệp cho lập trình viên và game thủ với mức chiết khấu cực sâu.</p>
         </div>
 
@@ -1314,17 +1314,17 @@ const initScrollReveal = () => {
                 
                 <div class="combo-pricing-group">
                   <div class="price-block">
-                    <span class="price-label">Giá Combo:</span>
+                    <span class="price-label">Giá combo:</span>
                     <span class="price-val">{{ formatCurrency(combo.giakhuyenmai) }}</span>
                   </div>
                   <div class="price-block old-price-block" v-if="getOriginalPrice(combo) > combo.giakhuyenmai">
-                    <span class="price-label">Tổng Giá gốc:</span>
+                    <span class="price-label">Tổng giá gốc:</span>
                     <span class="price-val-old">{{ formatCurrency(getOriginalPrice(combo)) }}</span>
                   </div>
                 </div>
 
                 <button type="button" class="btn btn-primary-glass combo-action-btn" @click="openCombo(combo)">
-                  Mua Trọn Bộ Combo
+                  Mua trọn bộ combo
                   <ChevronRight class="btn-chevron" />
                 </button>
               </div>
@@ -1356,19 +1356,19 @@ const initScrollReveal = () => {
         <div class="section-header scroll-reveal reveal-fade-up">
           <span class="ambient-label">
             <ShoppingBag class="pill-icon" />
-            Danh Sách Ưu Đãi
+            Danh sách ưu đãi
           </span>
-          <h2>SẢN PHẨM KHUYẾN MÃI NỔI BẬT</h2>
+          <h2>Sản phẩm khuyến mãi nổi bật</h2>
           <p class="section-sub" style="color: #f1f5f9 !important; -webkit-text-fill-color: #f1f5f9 !important; opacity: 1 !important;">Tất cả dòng máy chính hãng cao cấp từ ASUS, Apple, Dell, Lenovo và MSI đều đang sale chạm đáy.</p>
         </div>
 
         <div class="filter-bar-navigation scroll-reveal reveal-fade-up">
           <button
             v-for="tab in [
-              { id: 'all', label: 'Tất Cả', icon: ShoppingBag },
+              { id: 'all', label: 'Tất cả', icon: ShoppingBag },
               { id: 'gaming', label: 'Gaming Laptop', icon: Laptop },
               { id: 'macbook', label: 'MacBook Pro/Air', icon: AppleIcon },
-              { id: 'office', label: 'Văn Phòng', icon: Briefcase },
+              { id: 'office', label: 'Văn phòng', icon: Briefcase },
               { id: 'workstation', label: 'Workstation', icon: Monitor },
               { id: 'accessories', label: 'Accessories', icon: Gift }
             ]"
@@ -1455,7 +1455,7 @@ const initScrollReveal = () => {
             <Sparkles class="pill-icon" />
             Tech Insights Magazine
           </span>
-          <h2>TIN TỨC CÔNG NGHỆ</h2>
+          <h2>Tin tức công nghệ</h2>
           <p class="section-sub" style="color: #f1f5f9 !important; -webkit-text-fill-color: #f1f5f9 !important; opacity: 1 !important;">Những bài đánh giá chuyên sâu và cẩm nang bổ ích giúp bạn lựa chọn thiết bị phù hợp nhất.</p>
         </div>
 
@@ -2522,7 +2522,7 @@ const initScrollReveal = () => {
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.04em;
-  text-transform: uppercase;
+  text-transform: none;
   box-shadow: 0 6px 16px rgba(0, 28, 91, 0.22);
 }
 
@@ -2575,7 +2575,7 @@ const initScrollReveal = () => {
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.11em;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .voucher-code-caption::before,

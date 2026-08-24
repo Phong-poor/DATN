@@ -26,10 +26,16 @@ class VnpayPayoutController extends Controller
         }
 
         $row = AffiliateWithdrawRequest::findOrFail($withdrawId);
+        if ($row->trangthai === 'paid') {
+            return response()->json(['RspCode' => '00', 'Message' => 'Already processed', 'withdraw_id' => $row->id, 'status' => 'paid']);
+        }
         $responseCode = (string) ($payload['vnp_ResponseCode'] ?? $payload['responseCode'] ?? '');
         $isSuccess = in_array($responseCode, ['00', '0', 'success'], true);
         $isProcessing = in_array($responseCode, ['09', '10', 'processing'], true);
         $transactionNo = $payload['vnp_TransactionNo'] ?? $payload['transactionId'] ?? $payload['vnp_TxnRef'] ?? null;
+        $row->nha_cung_cap = 'vnpay';
+        $row->ma_giao_dich = $transactionNo;
+        $row->du_lieu_chi_tra = $payload;
 
         if ($isSuccess) {
             $row->status = 'paid';

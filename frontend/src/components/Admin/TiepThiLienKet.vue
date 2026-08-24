@@ -31,6 +31,7 @@ import swal from '@/services/swal'
 import { storageUrl } from '@/services/urls'
 
 const loading = ref(true)
+const isLoadingData = ref(false)
 const actionLoading = ref('')
 const activeTab = ref('publishers')
 const searchQuery = ref('')
@@ -39,7 +40,7 @@ const selectedProfile = ref(null)
 const currentPage = ref(1)
 const itemsPerPage = ref(5)
 const hoveredAdminVideoId = ref(null)
-const payload = ref({ profiles: [], commissions: [], withdraw_requests: [], affiliate_videos: [] })
+const payload = ref({ profiles: [], commissions: [], withdraw_requests: [], affiliate_videos: [], rules: {} })
 
 const playInlineVideo = (event, row = {}) => {
   hoveredAdminVideoId.value = row.id || null
@@ -129,6 +130,7 @@ const withdrawStatuses = [
   { value: 'all', label: 'Tất cả trạng thái' },
   { value: 'pending', label: 'Chờ duyệt' },
   { value: 'approved', label: 'Đã duyệt' },
+  { value: 'processing', label: 'Đang chuyển tiền' },
   { value: 'paid', label: 'Đã chi trả' },
   { value: 'rejected', label: 'Từ chối' },
 ]
@@ -147,6 +149,7 @@ const statusLabelMap = {
   suspended: 'Tạm khóa',
   rejected: 'Từ chối',
   approved: 'Đã duyệt',
+  processing: 'Đang chuyển tiền',
   paid: 'Đã thanh toán',
   cancelled: 'Đã hủy',
 }
@@ -197,17 +200,34 @@ const initials = (name = '') => {
 const normalize = (value) => String(value || '').toLowerCase().trim()
 
 const loadData = async () => {
+  if (isLoadingData.value) return
+
+  isLoadingData.value = true
   loading.value = true
+
   try {
-    const [{ data }, videoRes] = await Promise.all([
-      api.get('/admin/affiliates', { cache: false }),
-      api.get('/admin/affiliate-videos', { cache: false }),
+    const [affiliateResult, videoResult] = await Promise.allSettled([
+      api.get('/admin/affiliates', { cache: false, timeout: 10000 }),
+      api.get('/admin/affiliate-videos', { cache: false, timeout: 10000 }),
     ])
+
+    const affiliateData = affiliateResult.status === 'fulfilled'
+      ? affiliateResult.value.data
+      : null
+    const videoData = videoResult.status === 'fulfilled'
+      ? videoResult.value.data
+      : null
+
+    if (!affiliateData && !videoData) {
+      throw affiliateResult.reason || videoResult.reason
+    }
+
     payload.value = {
-      profiles: data.profiles || [],
-      commissions: data.commissions || [],
-      withdraw_requests: data.withdraw_requests || [],
-      affiliate_videos: videoRes.data || [],
+      profiles: affiliateData?.profiles || payload.value.profiles || [],
+      commissions: affiliateData?.commissions || payload.value.commissions || [],
+      withdraw_requests: affiliateData?.withdraw_requests || payload.value.withdraw_requests || [],
+      affiliate_videos: Array.isArray(videoData) ? videoData : (payload.value.affiliate_videos || []),
+      rules: affiliateData?.rules || payload.value.rules || {},
     }
 
     if (!selectedProfile.value && payload.value.profiles.length) {
@@ -215,19 +235,25 @@ const loadData = async () => {
     } else if (selectedProfile.value) {
       selectedProfile.value = payload.value.profiles.find(p => p.id === selectedProfile.value.id) || payload.value.profiles[0] || null
     }
+
+    if (!affiliateData || !videoData) {
+      swal.warning('Tải chưa đầy đủ', 'Một phần dữ liệu affiliate chưa phản hồi, hệ thống đã hiển thị dữ liệu còn lại trước.')
+    }
   } catch (err) {
+    payload.value = { profiles: [], commissions: [], withdraw_requests: [], affiliate_videos: [], rules: {} }
+    selectedProfile.value = null
     swal.error('Không tải được dữ liệu', err?.response?.data?.message || 'Vui lòng kiểm tra lại API affiliate admin.')
   } finally {
     loading.value = false
+    isLoadingData.value = false
   }
 }
-
 const stats = computed(() => {
   const pendingProfiles = profiles.value.filter(p => p.status === 'pending').length
   const activeProfiles = profiles.value.filter(p => p.status === 'active').length
   const pendingCommissions = commissions.value.filter(c => c.status === 'pending')
   const approvedCommissions = commissions.value.filter(c => c.status === 'approved')
-  const paidCommissions = commissions.value.filter(c => c.status === 'paid')
+  const paidWithdraws = withdraws.value.filter(w => w.status === 'paid')
   const pendingWithdraws = withdraws.value.filter(w => w.status === 'pending')
 
   return {
@@ -237,7 +263,7 @@ const stats = computed(() => {
     pendingCommissionCount: pendingCommissions.length,
     pendingCommissionAmount: pendingCommissions.reduce((sum, row) => sum + Number(row.amount || 0), 0),
     approvedAmount: approvedCommissions.reduce((sum, row) => sum + Number(row.amount || 0), 0),
-    paidAmount: paidCommissions.reduce((sum, row) => sum + Number(row.amount || 0), 0),
+    paidAmount: paidWithdraws.reduce((sum, row) => sum + Number(row.amount || 0), 0),
     pendingWithdrawCount: pendingWithdraws.length,
     pendingWithdrawAmount: pendingWithdraws.reduce((sum, row) => sum + Number(row.amount || 0), 0),
     conversionOrders: commissions.value.length,
@@ -389,8 +415,9 @@ const changeProfileStatus = async (profile, status) => {
 
 const updateRate = async (profile) => {
   const value = Number(profile.commission_rate)
-  if (Number.isNaN(value) || value < 0 || value > 100) {
-    swal.warning('Tỉ lệ không hợp lệ', 'Tỉ lệ hoa hồng phải nằm trong khoảng 0 - 100%.')
+  const maxRate = Number(payload.value.rules?.maximum_commission_rate || 30)
+  if (Number.isNaN(value) || value < 0 || value > maxRate) {
+    swal.warning('Tỉ lệ không hợp lệ', `Tỉ lệ hoa hồng phải nằm trong khoảng 0 - ${maxRate}%.`)
     return
   }
   await updateProfile(profile, { commission_rate: value }, 'Tỉ lệ hoa hồng đã được lưu.')
@@ -675,7 +702,7 @@ onMounted(loadData)
             <label class="field">
               <span>Tỉ lệ hoa hồng</span>
               <div class="rate-editor">
-                <input v-model="selectedProfile.commission_rate" type="number" min="0" max="100" step="0.1" />
+                <input v-model="selectedProfile.commission_rate" type="number" min="0" :max="payload.rules?.maximum_commission_rate || 30" step="0.1" />
                 <span class="rate-suffix">%</span>
                 <button type="button" @click="updateRate(selectedProfile)">Lưu</button>
               </div>
@@ -765,15 +792,13 @@ onMounted(loadData)
                 <td><span class="status-pill" :class="row.status">{{ statusLabelMap[row.status] || row.status }}</span></td>
                 <td>
                   <div class="row-actions">
-                    <button type="button" class="mini approve" :disabled="actionLoading === `commission-${row.id}`" @click="updateCommissionStatus(row, 'approved')">
+                    <button v-if="row.status === 'pending'" type="button" title="Duyệt hoa hồng" class="mini approve" :disabled="actionLoading === `commission-${row.id}`" @click="updateCommissionStatus(row, 'approved')">
                       <CheckCircle2 :size="16" />
                     </button>
-                    <button type="button" class="mini paid" :disabled="actionLoading === `commission-${row.id}`" @click="updateCommissionStatus(row, 'paid')">
-                      <ShieldCheck :size="16" />
-                    </button>
-                    <button type="button" class="mini danger" :disabled="actionLoading === `commission-${row.id}`" @click="updateCommissionStatus(row, 'cancelled')">
+                    <button v-if="['pending', 'approved'].includes(row.status)" type="button" title="Hủy hoa hồng" class="mini danger" :disabled="actionLoading === `commission-${row.id}`" @click="updateCommissionStatus(row, 'cancelled')">
                       <XCircle :size="16" />
                     </button>
+                    <span v-if="['paid', 'cancelled'].includes(row.status)">Đã chốt</span>
                   </div>
                 </td>
               </tr>
@@ -928,20 +953,34 @@ onMounted(loadData)
                 <dt>Thời gian</dt>
                 <dd>{{ formatDate(row.created_at) }}</dd>
               </div>
+              <div>
+                <dt>Mã yêu cầu</dt>
+                <dd>{{ row.request_code || `AFF-${row.id}` }}</dd>
+              </div>
+              <div v-if="row.transaction_id">
+                <dt>Mã giao dịch</dt>
+                <dd>{{ row.transaction_id }}</dd>
+              </div>
+              <div v-if="row.payout_provider">
+                <dt>Kênh chi trả</dt>
+                <dd>{{ String(row.payout_provider).toUpperCase() }}</dd>
+              </div>
             </dl>
             <div class="withdraw-actions">
-              <button type="button" class="action approve" :disabled="actionLoading === `withdraw-${row.id}`" @click="updateWithdrawStatus(row, 'approved')">
+              <button v-if="row.status === 'pending'" type="button" class="action approve" :disabled="actionLoading === `withdraw-${row.id}`" @click="updateWithdrawStatus(row, 'approved')">
                 <CheckCircle2 :size="17" />
                 Duyệt
               </button>
-              <button type="button" class="action paid" :disabled="actionLoading === `withdraw-${row.id}`" @click="updateWithdrawStatus(row, 'paid')">
+              <button v-if="row.status === 'approved'" type="button" class="action paid" :disabled="actionLoading === `withdraw-${row.id}`" @click="updateWithdrawStatus(row, 'paid')">
                 <Banknote :size="17" />
-                Đã chuyển
+                Gửi lệnh chi tiền
               </button>
-              <button type="button" class="action danger" :disabled="actionLoading === `withdraw-${row.id}`" @click="updateWithdrawStatus(row, 'rejected')">
+              <button v-if="['pending', 'approved'].includes(row.status)" type="button" class="action danger" :disabled="actionLoading === `withdraw-${row.id}`" @click="updateWithdrawStatus(row, 'rejected')">
                 <XCircle :size="17" />
                 Từ chối
               </button>
+              <span v-if="row.status === 'processing'">Đang chờ nhà cung cấp xác nhận</span>
+              <span v-if="['paid', 'rejected'].includes(row.status)">Yêu cầu đã chốt</span>
             </div>
           </article>
 
@@ -990,19 +1029,21 @@ onMounted(loadData)
 }
 
 .affiliate-toolbar-btn {
-  height: 42px;
-  min-width: 124px;
-  padding: 0 16px;
+  width: auto !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  min-width: 112px !important;
+  padding: 0 13px !important;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 9px;
+  gap: 6px;
   border: 1px solid #d7e0ec;
   border-radius: 10px;
   background: #ffffff;
   color: #1e293b;
   font: inherit;
-  font-size: 13px;
+  font-size: 11.5px;
   font-weight: 750;
   line-height: 1;
   cursor: pointer;
@@ -1011,9 +1052,9 @@ onMounted(loadData)
 }
 
 .affiliate-toolbar-btn svg {
-  width: 17px;
-  height: 17px;
-  flex: 0 0 17px;
+  width: 15px !important;
+  height: 15px !important;
+  flex: 0 0 15px;
   stroke-width: 2.1;
 }
 
@@ -1085,7 +1126,7 @@ onMounted(loadData)
 .btn {
   height: 44px;
   border-radius: 999px;
-  padding: 0 16px;
+  padding: 0 10px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -1175,7 +1216,7 @@ onMounted(loadData)
 
 .ttlk-icon-box {
   width: 42px;
-  height: 42px;
+  height: 28px;
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -1244,8 +1285,8 @@ onMounted(loadData)
   display: inline-flex;
   align-items: center;
   flex: 0 0 auto;
-  gap: 7px;
-  font-size: 13px;
+  gap: 6px;
+  font-size: 12px;
   font-weight: 700;
   color: #334155;
   border: 1px solid transparent;
@@ -1398,7 +1439,7 @@ onMounted(loadData)
 .card-title-row p {
   margin: 0;
   color: #64748b;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .publisher-list {
@@ -1438,7 +1479,7 @@ onMounted(loadData)
 .avatar,
 .person > span {
   width: 42px;
-  height: 42px;
+  height: 28px;
   border-radius: 999px;
   display: grid;
   place-items: center;
@@ -1461,7 +1502,7 @@ onMounted(loadData)
 .publisher-main span,
 .person small {
   color: #64748b;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .publisher-row code,
@@ -1537,7 +1578,7 @@ onMounted(loadData)
 .profile-head p {
   margin: 0;
   color: #64748b;
-  font-size: 13px;
+  font-size: 12px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1840,7 +1881,7 @@ td {
 .video-admin-body p {
   margin: 0;
   color: #475569;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -1955,7 +1996,7 @@ td {
 
 .pagination-info {
   color: #64748b;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
 }
 

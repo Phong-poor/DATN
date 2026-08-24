@@ -26,10 +26,16 @@ class MomoPayoutController extends Controller
         }
 
         $row = AffiliateWithdrawRequest::findOrFail($withdrawId);
+        if ($row->trangthai === 'paid') {
+            return response()->json(['message' => 'Already processed', 'withdraw_id' => $row->id, 'status' => 'paid']);
+        }
         $resultCode = (string) ($payload['resultCode'] ?? $payload['status'] ?? '');
         $isSuccess = in_array($resultCode, ['0', '9000', 'success'], true);
         $isProcessing = in_array($resultCode, ['1000', 'processing'], true);
         $transId = $payload['transId'] ?? $payload['transactionId'] ?? $payload['requestId'] ?? null;
+        $row->nha_cung_cap = 'momo';
+        $row->ma_giao_dich = $transId;
+        $row->du_lieu_chi_tra = $payload;
 
         if ($isSuccess) {
             $row->status = 'paid';
