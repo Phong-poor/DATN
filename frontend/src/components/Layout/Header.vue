@@ -988,7 +988,6 @@ const isAdminAccount = computed(() => {
   const role = getUserRole(user.value)
   return Boolean(role && role !== 'user')
 })
-const accountBadge = computed(() => isAdminAccount.value ? 'Quản trị hệ thống' : 'Predator Member')
 
 const avatarUrl = computed(() => {
   const avatarPath = user.value?.avatar || user.value?.anhdaidien
@@ -1384,7 +1383,6 @@ const openLuckyWheelMobile = () => {
                 <div class="user-card-info">
                   <p class="uc-name">{{ user?.name || 'Khách hàng' }}</p>
                   <p class="uc-email">{{ user?.email }}</p>
-                  <span class="uc-badge">{{ accountBadge }}</span>
                 </div>
               </div>
               <div class="user-menu">
@@ -3024,19 +3022,6 @@ const openLuckyWheelMobile = () => {
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 190px;
-}
-
-.uc-badge {
-  font-size: 8.5px;
-  font-weight: 900;
-  letter-spacing: 0.8px;
-  color: #dbeafe;
-  background: rgba(37, 99, 235, 0.38);
-  border: 1px solid rgba(96, 165, 250, 0.55);
-  padding: 3px 8px;
-  border-radius: 20px;
-  text-transform: capitalize;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 /* USER MENU */
