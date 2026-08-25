@@ -225,6 +225,10 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
 }
 .topbar-left {
   display: flex;

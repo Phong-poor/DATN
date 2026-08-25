@@ -2480,7 +2480,7 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
     justify-content: space-between;
     gap: 16px;
     width: calc(100% + 48px);
-    margin: 0 -24px;
+    margin: -24px -24px 0 -24px;
     padding: 10px 24px 12px;
     border-bottom: 1px solid rgba(226, 232, 240, 0.92);
     background: rgba(244, 247, 251, 0.94);
@@ -2516,7 +2516,7 @@ const periodLabel = computed(() => ({ all: 'Tất cả thời gian', week: 'Tu�
 }
 
 :global(.admin-layout:not(.admin-header-hidden)) .dashboard-controls {
-    top: 77px;
+    top: 59px;
 }
 
 :global(.admin-layout.theme-dark) .dashboard-controls {

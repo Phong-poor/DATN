@@ -4256,7 +4256,12 @@
         <div class="modal modal-wide">
           <div class="modal-header">
             <h3>Danh sách sản phẩm sắp hết hàng</h3>
-            <button class="modal-close" @click="closeLowStockModal">×</button>
+            <button class="modal-close" @click="closeLowStockModal" title="Đóng">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
           </div>
           <div class="modal-body">
             <div class="table-wrap">
@@ -4301,7 +4306,12 @@
         <div class="modal modal-wide" style="max-width: 720px;">
           <div class="modal-header">
             <h3>Biến thể sắp hết hàng - {{ selectedLowStockProduct?.name }}</h3>
-            <button class="modal-close" @click="closeLowStockVariantsModal">×</button>
+            <button class="modal-close" @click="closeLowStockVariantsModal" title="Đóng">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
           </div>
           <div class="modal-body">
             <div class="table-wrap">
@@ -5403,11 +5413,20 @@
 .tier-badge-pill {
   margin-left: auto;
   font-size: 12px;
+  font-weight: 500;
   color: #1e40af;
   background: #eff6ff;
   border: 1px solid #bfdbfe;
-  padding: 4px 12px;
+  padding: 4px 14px;
   border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tier-badge-pill b {
+  font-weight: 700;
+  color: #1d4ed8;
 }
 
 .tier-badge-pill.tier-full {
@@ -5416,29 +5435,56 @@
   border-color: #fde68a;
 }
 
+.tier-badge-pill.tier-full b {
+  color: #b45309;
+}
+
 :global(html[data-admin-theme='dark']) .tier-badge-pill,
+:global(html[data-theme='dark']) .tier-badge-pill,
+:global(body.dark) .tier-badge-pill,
 :global(.admin-layout.theme-dark) .tier-badge-pill,
 :global(.admin-layout.dark) .tier-badge-pill,
-:global(.dark) .tier-badge-pill {
-  background: rgba(30, 58, 138, 0.45) !important;
-  border-color: rgba(96, 165, 250, 0.5) !important;
+:global(.admin-layout.is-dark) .tier-badge-pill,
+:global(.dark) .tier-badge-pill,
+:global([data-admin-theme='dark']) .tier-badge-pill {
+  background: rgba(30, 58, 138, 0.4) !important;
+  border-color: rgba(96, 165, 250, 0.4) !important;
   color: #93c5fd !important;
 }
 
 :global(html[data-admin-theme='dark']) .tier-badge-pill b,
+:global(html[data-theme='dark']) .tier-badge-pill b,
+:global(body.dark) .tier-badge-pill b,
 :global(.admin-layout.theme-dark) .tier-badge-pill b,
 :global(.admin-layout.dark) .tier-badge-pill b,
-:global(.dark) .tier-badge-pill b {
+:global(.admin-layout.is-dark) .tier-badge-pill b,
+:global(.dark) .tier-badge-pill b,
+:global([data-admin-theme='dark']) .tier-badge-pill b {
   color: #ffffff !important;
 }
 
 :global(html[data-admin-theme='dark']) .tier-badge-pill.tier-full,
+:global(html[data-theme='dark']) .tier-badge-pill.tier-full,
+:global(body.dark) .tier-badge-pill.tier-full,
 :global(.admin-layout.theme-dark) .tier-badge-pill.tier-full,
 :global(.admin-layout.dark) .tier-badge-pill.tier-full,
-:global(.dark) .tier-badge-pill.tier-full {
-  background: rgba(180, 83, 9, 0.45) !important;
-  border-color: rgba(251, 191, 36, 0.5) !important;
+:global(.admin-layout.is-dark) .tier-badge-pill.tier-full,
+:global(.dark) .tier-badge-pill.tier-full,
+:global([data-admin-theme='dark']) .tier-badge-pill.tier-full {
+  background: rgba(180, 83, 9, 0.4) !important;
+  border-color: rgba(251, 191, 36, 0.4) !important;
   color: #fde047 !important;
+}
+
+:global(html[data-admin-theme='dark']) .tier-badge-pill.tier-full b,
+:global(html[data-theme='dark']) .tier-badge-pill.tier-full b,
+:global(body.dark) .tier-badge-pill.tier-full b,
+:global(.admin-layout.theme-dark) .tier-badge-pill.tier-full b,
+:global(.admin-layout.dark) .tier-badge-pill.tier-full b,
+:global(.admin-layout.is-dark) .tier-badge-pill.tier-full b,
+:global(.dark) .tier-badge-pill.tier-full b,
+:global([data-admin-theme='dark']) .tier-badge-pill.tier-full b {
+  color: #fef08a !important;
 }
 
 .guide-banner {

@@ -1,19 +1,16 @@
 <template>
-  <div
-    :class="[
-      'admin-layout',
-      `density-${appearance.density}`,
-      `width-${appearance.content_width}`,
-      `sidebar-${appearance.sidebar_style}`,
-      `anim-${appearance.animation_level}`,
-      `theme-${adminTheme}`,
-      adminTheme === 'dark' && 'dark',
-      sidebarCollapsed && 'sidebar-collapsed',
-      adminIntroActive && 'intro-active',
-      { 'admin-header-hidden': adminHeaderHidden },
-    ]"
-    :style="adminVars"
-  >
+  <div :class="[
+    'admin-layout',
+    `density-${appearance.density}`,
+    `width-${appearance.content_width}`,
+    `sidebar-${appearance.sidebar_style}`,
+    `anim-${appearance.animation_level}`,
+    `theme-${adminTheme}`,
+    adminTheme === 'dark' && 'dark',
+    sidebarCollapsed && 'sidebar-collapsed',
+    adminIntroActive && 'intro-active',
+    { 'admin-header-hidden': adminHeaderHidden },
+  ]" :style="adminVars">
     <aside class="sidebar">
       <button type="button" class="sidebar-collapse-btn"
         :aria-label="sidebarCollapsed ? 'Mở rộng thanh quản trị' : 'Thu gọn thanh quản trị'"
@@ -251,14 +248,35 @@ const adminMainRef = ref(null)
 const adminHeaderHidden = ref(false)
 let lastAdminScrollTop = 0
 
+const hasTemporaryHeader = computed(() => {
+  const p = route.path || ''
+  return (
+    p.includes('/bang-dieu-khien') ||
+    p.includes('/quan-ly-don-hang') ||
+    p.includes('/dashboard') ||
+    p.includes('/orders')
+  )
+})
+
 function handleAdminScroll(event) {
   const currentScrollTop = Math.max(0, event.currentTarget?.scrollTop || 0)
 
-  if (currentScrollTop <= 12) {
-    adminHeaderHidden.value = false
-  } else if (Math.abs(currentScrollTop - lastAdminScrollTop) >= 6) {
-    // Nội dung đi lên: ẩn header. Nội dung kéo xuống: hiện header.
-    adminHeaderHidden.value = currentScrollTop > lastAdminScrollTop
+  if (hasTemporaryHeader.value) {
+    // Với trang có Header tạm thời (Dashboard & Quản lý đơn hàng):
+    // Header chính CHỈ hiện lại khi scroll hẳn về đỉnh trang (currentScrollTop <= 12).
+    // Khi đang lướt giữa/cuối trang, Header chính luôn ẩn để không che Header tạm thời.
+    if (currentScrollTop <= 12) {
+      adminHeaderHidden.value = false
+    } else {
+      adminHeaderHidden.value = true
+    }
+  } else {
+    // Với các trang thông thường:
+    if (currentScrollTop <= 12) {
+      adminHeaderHidden.value = false
+    } else if (Math.abs(currentScrollTop - lastAdminScrollTop) >= 6) {
+      adminHeaderHidden.value = currentScrollTop > lastAdminScrollTop
+    }
   }
 
   lastAdminScrollTop = currentScrollTop
@@ -1441,36 +1459,41 @@ a {
 .admin-page-shell :deep(.filter-row) {
   border-color: var(--admin-panel-border);
 }
-.admin-topbar { 
-    position: sticky; 
-    top: 0; 
-    z-index: 8; 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    gap: 14px; 
-    margin: 0 -24px;
-    padding: 10px 24px;
-    width: calc(100% + 48px);
-    background: #0b0d12; 
-    border-bottom: 1px solid rgba(125, 211, 252, 0.14); 
-    border-radius: 0;
-    box-shadow: 0 12px 30px rgba(8, 43, 80, 0.18);
-    transform: translateY(0);
-    transition: transform 0.28s cubic-bezier(.4, 0, .2, 1), opacity 0.2s ease, box-shadow 0.28s ease, visibility 0s;
-    will-change: transform;
+
+.admin-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000 !important;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  margin: 0 -24px;
+  padding: 10px 24px;
+  width: calc(100% + 48px);
+  background: #0b0d12;
+  border-bottom: 1px solid rgba(125, 211, 252, 0.14);
+  border-radius: 0;
+  box-shadow: 0 12px 30px rgba(8, 43, 80, 0.18);
+  transform: translateY(0);
+  transition: transform 0.28s cubic-bezier(.4, 0, .2, 1), opacity 0.2s ease, box-shadow 0.28s ease, visibility 0s;
+  will-change: transform;
 }
+
 .admin-topbar.header-hidden {
-    transform: translateY(calc(-100% - 12px));
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    border-color: transparent;
-    box-shadow: none;
-    transition: transform 0.28s cubic-bezier(.4, 0, .2, 1), opacity 0.18s ease, box-shadow 0.28s ease, visibility 0s linear 0.28s;
+  transform: translateY(calc(-100% - 12px));
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  border-color: transparent;
+  box-shadow: none;
+  transition: transform 0.28s cubic-bezier(.4, 0, .2, 1), opacity 0.18s ease, box-shadow 0.28s ease, visibility 0s linear 0.28s;
 }
+
 @media (prefers-reduced-motion: reduce) {
-    .admin-topbar { transition: none; }
+  .admin-topbar {
+    transition: none;
+  }
 }
 
 .attendance-topbar-center {
@@ -1719,7 +1742,7 @@ a {
   background: #ffffff;
   box-shadow: 0 12px 30px rgba(15, 23, 42, .08);
   padding: 8px;
-  z-index: 20;
+  z-index: 9999 !important;
 }
 
 .apps-dropdown {
@@ -3422,7 +3445,7 @@ a {
 }
 
 .admin-layout.theme-light .topbar-user-btn .user-role,
-.admin-layout.theme-light .topbar-user-btn > svg {
+.admin-layout.theme-light .topbar-user-btn>svg {
   color: #64748b !important;
 }
 </style>

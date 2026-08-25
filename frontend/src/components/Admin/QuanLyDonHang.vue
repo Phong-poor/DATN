@@ -933,14 +933,17 @@ async function exportExcel() {
                         <td><b class="total">{{ o.total }}</b></td>
 
                         <td>
-                            <span v-if="o.nhan_vien" class="emp-name-badge" style="background: #f1f5f9; color: #475569; padding: 4px 8px; border-radius: 6px; font-weight: 600; font-size: 12px; white-space: nowrap; border: 1px solid #e2e8f0; display: inline-flex; align-items: center; gap: 4px;">
-                                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" style="color: #64748b;">
+                            <span v-if="o.nhan_vien" class="emp-name-badge"
+                                style="background: #f1f5f9; color: #475569; padding: 4px 8px; border-radius: 6px; font-weight: 600; font-size: 12px; white-space: nowrap; border: 1px solid #e2e8f0; display: inline-flex; align-items: center; gap: 4px;">
+                                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" style="color: #64748b;">
                                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                                     <circle cx="12" cy="7" r="4"></circle>
                                 </svg>
                                 {{ o.nhan_vien.name || o.nhan_vien.ten }}
                             </span>
-                            <span v-else style="color: #94a3b8; font-style: italic; font-size: 12px;">Chưa phân công</span>
+                            <span v-else style="color: #94a3b8; font-style: italic; font-size: 12px;">Chưa phân
+                                công</span>
                         </td>
 
                         <td>
@@ -1095,7 +1098,9 @@ async function exportExcel() {
                             <h3>Chi tiết đơn hàng</h3>
                         </div>
                         <button class="modal-close" @click="closeViewModal" title="Đóng" aria-label="Đóng">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                                stroke-linejoin="round">
                                 <line x1="18" y1="6" x2="6" y2="18"></line>
                                 <line x1="6" y1="6" x2="18" y2="18"></line>
                             </svg>
@@ -1148,21 +1153,21 @@ async function exportExcel() {
                                 </div>
                                 <div class="info-item" style="grid-column: span 2;">
                                     <span class="info-label">Nhân viên phụ trách</span>
-                                    <div class="info-value" style="display: flex; align-items: center; gap: 12px; min-height: 42px;">
-                                        <select :value="viewOrder.id_nhanvien || ''" 
-                                            :disabled="!!viewOrder.id_nhanvien"
+                                    <div class="info-value"
+                                        style="display: flex; align-items: center; gap: 12px; min-height: 42px;">
+                                        <select :value="viewOrder.id_nhanvien || ''" :disabled="!!viewOrder.id_nhanvien"
                                             @change="assignEmployee(viewOrder.id_backend, $event.target.value ? Number($event.target.value) : null)"
-                                            :style="{ 
-                                                padding: '8px 12px', 
-                                                borderRadius: '8px', 
-                                                border: '1px solid #cbd5e1', 
-                                                fontSize: '13px', 
-                                                fontWeight: '600', 
-                                                color: '#334155', 
-                                                outline: 'none', 
-                                                backgroundColor: viewOrder.id_nhanvien ? '#f1f5f9' : '#f8fafc', 
-                                                cursor: viewOrder.id_nhanvien ? 'not-allowed' : 'pointer', 
-                                                flex: 1, 
+                                            :style="{
+                                                padding: '8px 12px',
+                                                borderRadius: '8px',
+                                                border: '1px solid #cbd5e1',
+                                                fontSize: '13px',
+                                                fontWeight: '600',
+                                                color: '#334155',
+                                                outline: 'none',
+                                                backgroundColor: viewOrder.id_nhanvien ? '#f1f5f9' : '#f8fafc',
+                                                cursor: viewOrder.id_nhanvien ? 'not-allowed' : 'pointer',
+                                                flex: 1,
                                                 transition: 'border-color 0.2s',
                                                 opacity: viewOrder.id_nhanvien ? 0.85 : 1
                                             }">
@@ -1186,7 +1191,7 @@ async function exportExcel() {
                                     </div>
                                     <span class="status-pill" :style="getShipmentStatusStyle(viewOrder)">
                                         {{ getShipmentStatusLabel(getShipment(viewOrder).status,
-                                        getShipment(viewOrder).status_label) }}
+                                            getShipment(viewOrder).status_label) }}
                                     </span>
                                 </div>
                                 <div v-if="getShipment(viewOrder).status === 'delivery_failed'"
@@ -1256,7 +1261,8 @@ async function exportExcel() {
                         <!-- Lý do hủy đơn hoặc hoàn trả -->
                         <div v-if="viewOrder.status === 'cancelled' || viewOrder.status.startsWith('refund')"
                             class="detail-section">
-                            <div class="section-title" :class="viewOrder.status === 'cancelled' ? 'title-cancelled' : 'title-refund'">
+                            <div class="section-title"
+                                :class="viewOrder.status === 'cancelled' ? 'title-cancelled' : 'title-refund'">
                                 Lý do {{ viewOrder.status === 'cancelled' ? 'hủy đơn' : 'hoàn trả' }}
                             </div>
                             <div class="reason-text-box">
@@ -1273,10 +1279,14 @@ async function exportExcel() {
                                 </div>
 
                                 <div v-if="getRefundProofFiles(viewOrder).length > 0" class="proof-media-grid">
-                                    <div v-for="(file, pIdx) in getRefundProofFiles(viewOrder)" :key="pIdx" class="proof-media-item">
+                                    <div v-for="(file, pIdx) in getRefundProofFiles(viewOrder)" :key="pIdx"
+                                        class="proof-media-item">
                                         <template v-if="isImageFile(file)">
-                                            <a :href="getProofMediaUrl(file)" target="_blank" title="Bấm để xem ảnh phóng to" class="proof-img-link">
-                                                <img :src="getProofMediaUrl(file)" @error="$event.target.src = getProofProxyUrl(file)" alt="Bằng chứng" />
+                                            <a :href="getProofMediaUrl(file)" target="_blank"
+                                                title="Bấm để xem ảnh phóng to" class="proof-img-link">
+                                                <img :src="getProofMediaUrl(file)"
+                                                    @error="$event.target.src = getProofProxyUrl(file)"
+                                                    alt="Bằng chứng" />
                                             </a>
                                         </template>
                                         <template v-else-if="isVideoFile(file)">
@@ -1288,8 +1298,11 @@ async function exportExcel() {
                                         </template>
                                         <template v-else>
                                             <div class="proof-file-placeholder">
-                                                <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#2563eb" stroke-width="2" style="margin: 0 auto 8px;">
-                                                    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                                                <svg viewBox="0 0 24 24" width="32" height="32" fill="none"
+                                                    stroke="#2563eb" stroke-width="2" style="margin: 0 auto 8px;">
+                                                    <path
+                                                        d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z">
+                                                    </path>
                                                     <polyline points="13 2 13 9 20 9"></polyline>
                                                 </svg>
                                                 <a :href="getProofProxyUrl(file)" target="_blank" class="download-link">
@@ -1315,13 +1328,16 @@ async function exportExcel() {
                                 <span>🔄</span> Quá trình hoàn trả
                             </h3>
                             <div class="rtv-list">
-                                <div v-for="(step, i) in refundSteps" :key="'rv'+i" class="rtv-item">
+                                <div v-for="(step, i) in refundSteps" :key="'rv' + i" class="rtv-item">
                                     <!-- Vertical line -->
-                                    <div v-if="i < refundSteps.length - 1" class="rtv-line" :class="{ done: step.done }"></div>
-                                    
+                                    <div v-if="i < refundSteps.length - 1" class="rtv-line"
+                                        :class="{ done: step.done }"></div>
+
                                     <!-- Dot icon -->
                                     <div class="rtv-dot" :class="{ done: step.done }">
-                                        <svg v-if="step.done" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                        <svg v-if="step.done" viewBox="0 0 24 24" width="14" height="14" fill="none"
+                                            stroke="currentColor" stroke-width="3" stroke-linecap="round"
+                                            stroke-linejoin="round">
                                             <polyline points="20 6 9 17 4 12"></polyline>
                                         </svg>
                                         <span v-else>{{ i + 1 }}</span>
@@ -1489,7 +1505,7 @@ async function exportExcel() {
     gap: 14px;
     box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
     position: sticky;
-    top: 56px;
+    top: 65px;
     z-index: 7;
     transition: top 0.28s cubic-bezier(.4, 0, .2, 1);
 }
@@ -2629,9 +2645,23 @@ tbody td {
 }
 
 /* Reason & Proof Box Styles */
-.title-cancelled { color: #dc2626 !important; }
-.title-refund { color: #f97316 !important; }
-.title-refund-head { color: #ea580c; font-size: 14px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+.title-cancelled {
+    color: #dc2626 !important;
+}
+
+.title-refund {
+    color: #f97316 !important;
+}
+
+.title-refund-head {
+    color: #ea580c;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
 
 .reason-text-box {
     margin-bottom: 12px;
@@ -2682,7 +2712,7 @@ tbody td {
     border-radius: 8px;
     overflow: hidden;
     background: #fff;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     position: relative;
 }
 
@@ -2801,7 +2831,7 @@ tbody td {
     background: #f97316;
     border-color: #f97316;
     color: #fff;
-    box-shadow: 0 2px 6px rgba(249,115,22,0.35);
+    box-shadow: 0 2px 6px rgba(249, 115, 22, 0.35);
 }
 
 .rtv-content {
@@ -2843,12 +2873,13 @@ tbody td {
     padding: 12px 20px;
     border-bottom: 2px solid #e2e8f0;
     position: sticky;
-    top: 0px !important;
+    top: 0px;
     z-index: 80;
     background: #f5f7fb;
     box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
     transition: all 0.28s cubic-bezier(.4, 0, .2, 1);
 }
+
 
 .category-tab-list {
     display: flex;
@@ -2902,6 +2933,58 @@ tbody td {
     background: white;
     border-color: #e2e8f0;
     box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+}
+
+:global(html[data-admin-theme='dark']) .category-tabs,
+:global(html[data-theme='dark']) .category-tabs,
+:global(.admin-layout.dark) .category-tabs,
+:global(.admin-layout.theme-dark) .category-tabs {
+    background: #11161f !important;
+    border-bottom-color: #28303d !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3) !important;
+}
+
+:global(html[data-admin-theme='dark']) .cat-tab,
+:global(html[data-theme='dark']) .cat-tab,
+:global(.admin-layout.dark) .cat-tab,
+:global(.admin-layout.theme-dark) .cat-tab {
+    color: #94a3b8 !important;
+}
+
+:global(html[data-admin-theme='dark']) .cat-tab:hover,
+:global(html[data-theme='dark']) .cat-tab:hover,
+:global(.admin-layout.dark) .cat-tab:hover,
+:global(.admin-layout.theme-dark) .cat-tab:hover {
+    color: #60a5fa !important;
+    background: rgba(37, 99, 235, 0.15) !important;
+}
+
+:global(html[data-admin-theme='dark']) .cat-tab.active,
+:global(html[data-theme='dark']) .cat-tab.active,
+:global(.admin-layout.dark) .cat-tab.active,
+:global(.admin-layout.theme-dark) .cat-tab.active {
+    color: #60a5fa !important;
+    background: #181d24 !important;
+    border-color: #3b424b !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+:global(html[data-admin-theme='dark']) .category-tabs>.btn-export,
+:global(html[data-theme='dark']) .category-tabs>.btn-export,
+:global(.admin-layout.dark) .category-tabs>.btn-export,
+:global(.admin-layout.theme-dark) .category-tabs>.btn-export {
+    background: #181d24 !important;
+    border-color: #3b424b !important;
+    color: #e2e8f0 !important;
+}
+
+:global(html[data-admin-theme='dark']) .category-tabs>.btn-export:hover,
+:global(html[data-theme='dark']) .category-tabs>.btn-export:hover,
+:global(.admin-layout.dark) .category-tabs>.btn-export:hover,
+:global(.admin-layout.theme-dark) .category-tabs>.btn-export:hover {
+    background: #232932 !important;
+    border-color: #475569 !important;
+    color: #ffffff !important;
 }
 </style>
 
@@ -3007,95 +3090,84 @@ tbody td {
 :global(.admin-layout.theme-dark) .detail-modal,
 :global(.admin-layout.dark) .detail-modal,
 :global(.dark) .detail-modal {
-  background: #11161f !important;
-  border: 1px solid #28303d !important;
-  color: #f8fafc !important;
+    background: #11161f !important;
+    border: 1px solid #28303d !important;
+    color: #f8fafc !important;
 }
 
 :global(html[data-admin-theme='dark']) .detail-modal .modal-header,
 :global(.admin-layout.theme-dark) .detail-modal .modal-header,
 :global(.admin-layout.dark) .detail-modal .modal-header,
 :global(.dark) .detail-modal .modal-header {
-  border-bottom-color: #28303d !important;
+    border-bottom-color: #28303d !important;
 }
 
 :global(html[data-admin-theme='dark']) .detail-modal .modal-footer,
 :global(.admin-layout.theme-dark) .detail-modal .modal-footer,
 :global(.admin-layout.dark) .detail-modal .modal-footer,
 :global(.dark) .detail-modal .modal-footer {
-  border-top-color: #28303d !important;
-  background: #11161f !important;
+    border-top-color: #28303d !important;
+    background: #11161f !important;
 }
 
 :global(html[data-admin-theme='dark']) .info-grid,
 :global(.admin-layout.theme-dark) .info-grid,
 :global(.admin-layout.dark) .info-grid,
 :global(.dark) .info-grid {
-  background: #181d24 !important;
-  border: 1px solid #28303d !important;
+    background: #181d24 !important;
+    border: 1px solid #28303d !important;
 }
 
 :global(html[data-admin-theme='dark']) .info-item,
 :global(.admin-layout.theme-dark) .info-item,
 :global(.admin-layout.dark) .info-item,
 :global(.dark) .info-item {
-  background: transparent !important;
-  border: none !important;
+    background: transparent !important;
+    border: none !important;
 }
 
 :global(html[data-admin-theme='dark']) .info-label,
 :global(.admin-layout.theme-dark) .info-label,
 :global(.admin-layout.dark) .info-label,
 :global(.dark) .info-label {
-  color: #94a3b8 !important;
-  background: transparent !important;
+    color: #94a3b8 !important;
+    background: transparent !important;
 }
 
 :global(html[data-admin-theme='dark']) .info-value,
 :global(.admin-layout.theme-dark) .info-value,
 :global(.admin-layout.dark) .info-value,
 :global(.dark) .info-value {
-  background: #11161f !important;
-  border: 1px solid #28303d !important;
-  color: #f8fafc !important;
-  box-shadow: none !important;
+    background: #11161f !important;
+    border: 1px solid #28303d !important;
+    color: #f8fafc !important;
+    box-shadow: none !important;
 }
 
 :global(html[data-admin-theme='dark']) .info-value select,
 :global(.admin-layout.theme-dark) .info-value select,
 :global(.admin-layout.dark) .info-value select,
 :global(.dark) .info-value select {
-  background-color: #11161f !important;
-  border-color: #28303d !important;
-  color: #f8fafc !important;
+    background-color: #11161f !important;
+    border-color: #28303d !important;
+    color: #f8fafc !important;
 }
 
 :global(html[data-admin-theme='dark']) .info-value select option,
 :global(.admin-layout.theme-dark) .info-value select option,
 :global(.admin-layout.dark) .info-value select option,
 :global(.dark) .info-value select option {
-  background-color: #181d24 !important;
-  color: #f8fafc !important;
+    background-color: #181d24 !important;
+    color: #f8fafc !important;
 }
 
 :global(html[data-admin-theme='dark']) .proof-action-link,
 :global(.admin-layout.theme-dark) .proof-action-link,
 :global(.admin-layout.dark) .proof-action-link,
 :global(.dark) .proof-action-link {
-  background: #11161f !important;
-  border-top-color: #28303d !important;
-  color: #60a5fa !important;
-}
-
-:global(html[data-admin-theme='dark']) .refund-timeline-vertical,
-:global(.admin-layout.theme-dark) .refund-timeline-vertical,
-:global(.admin-layout.dark) .refund-timeline-vertical,
-:global(.dark) .refund-timeline-vertical {
-  background: #181d24 !important;
-  border: 1px solid #28303d !important;
-  border-radius: 14px !important;
-  padding: 20px 24px !important;
-  color: #f8fafc !important;
+    background: #11161f !important;
+    border-top-color: #28303d !important;
+    color: #60a5fa !important;
 }
 
 :global(html[data-admin-theme='dark']) .shipment-card,
@@ -3106,209 +3178,202 @@ tbody td {
 :global(.admin-layout.dark) .shipment-empty,
 :global(.dark) .shipment-card,
 :global(.dark) .shipment-empty {
-  background: #181d24 !important;
-  border-color: #28303d !important;
-  color: #cbd5e1 !important;
+    background: #181d24 !important;
+    border-color: #28303d !important;
+    color: #cbd5e1 !important;
 }
 
 :global(html[data-admin-theme='dark']) .shipment-empty b,
 :global(.admin-layout.theme-dark) .shipment-empty b,
 :global(.admin-layout.dark) .shipment-empty b,
 :global(.dark) .shipment-empty b {
-  color: #f8fafc !important;
+    color: #f8fafc !important;
 }
 
 :global(html[data-admin-theme='dark']) .shipment-empty p,
 :global(.admin-layout.theme-dark) .shipment-empty p,
 :global(.admin-layout.dark) .shipment-empty p,
 :global(.dark) .shipment-empty p {
-  color: #94a3b8 !important;
+    color: #94a3b8 !important;
 }
 
 :global(html[data-admin-theme='dark']) .shipment-head strong,
 :global(.admin-layout.theme-dark) .shipment-head strong,
 :global(.admin-layout.dark) .shipment-head strong,
 :global(.dark) .shipment-head strong {
-  color: #f8fafc !important;
+    color: #f8fafc !important;
 }
 
 :global(html[data-admin-theme='dark']) .shipment-grid>div,
 :global(.admin-layout.theme-dark) .shipment-grid>div,
 :global(.admin-layout.dark) .shipment-grid>div,
 :global(.dark) .shipment-grid>div {
-  background: #11161f !important;
-  border-color: #28303d !important;
+    background: #11161f !important;
+    border-color: #28303d !important;
 }
 
 :global(html[data-admin-theme='dark']) .shipment-grid span,
 :global(.admin-layout.theme-dark) .shipment-grid span,
 :global(.admin-layout.dark) .shipment-grid span,
 :global(.dark) .shipment-grid span {
-  color: #94a3b8 !important;
+    color: #94a3b8 !important;
 }
 
 :global(html[data-admin-theme='dark']) .shipment-grid b,
 :global(.admin-layout.theme-dark) .shipment-grid b,
 :global(.admin-layout.dark) .shipment-grid b,
 :global(.dark) .shipment-grid b {
-  color: #f8fafc !important;
+    color: #f8fafc !important;
 }
 
 :global(html[data-admin-theme='dark']) .shipment-event b,
 :global(.admin-layout.theme-dark) .shipment-event b,
 :global(.admin-layout.dark) .shipment-event b,
 :global(.dark) .shipment-event b {
-  color: #f8fafc !important;
+    color: #f8fafc !important;
 }
 
 :global(html[data-admin-theme='dark']) .shipment-event p,
 :global(.admin-layout.theme-dark) .shipment-event p,
 :global(.admin-layout.dark) .shipment-event p,
 :global(.dark) .shipment-event p {
-  color: #cbd5e1 !important;
+    color: #cbd5e1 !important;
 }
 
 :global(html[data-admin-theme='dark']) .shipment-event small,
 :global(.admin-layout.theme-dark) .shipment-event small,
 :global(.admin-layout.dark) .shipment-event small,
 :global(.dark) .shipment-event small {
-  color: #94a3b8 !important;
+    color: #94a3b8 !important;
 }
 
 :global(html[data-admin-theme='dark']) .reason-text-box,
 :global(.admin-layout.theme-dark) .reason-text-box,
 :global(.admin-layout.dark) .reason-text-box,
 :global(.dark) .reason-text-box {
-  background: rgba(249, 115, 22, 0.12) !important;
-  border-color: rgba(249, 115, 22, 0.3) !important;
-  color: #fdba74 !important;
+    background: rgba(249, 115, 22, 0.12) !important;
+    border-color: rgba(249, 115, 22, 0.3) !important;
+    color: #fdba74 !important;
 }
 
 :global(html[data-admin-theme='dark']) .proof-container-box,
 :global(.admin-layout.theme-dark) .proof-container-box,
 :global(.admin-layout.dark) .proof-container-box,
 :global(.dark) .proof-container-box {
-  background: #181d24 !important;
-  border-color: #28303d !important;
-  color: #f8fafc !important;
+    background: #181d24 !important;
+    border-color: #28303d !important;
+    color: #f8fafc !important;
 }
 
 :global(html[data-admin-theme='dark']) .proof-title,
 :global(.admin-layout.theme-dark) .proof-title,
 :global(.admin-layout.dark) .proof-title,
 :global(.dark) .proof-title {
-  color: #f8fafc !important;
+    color: #f8fafc !important;
 }
 
 :global(html[data-admin-theme='dark']) .proof-empty-box,
 :global(.admin-layout.theme-dark) .proof-empty-box,
 :global(.admin-layout.dark) .proof-empty-box,
 :global(.dark) .proof-empty-box {
-  background: #11161f !important;
-  border: 1px dashed #334155 !important;
-  color: #cbd5e1 !important;
+    background: #11161f !important;
+    border: 1px dashed #334155 !important;
+    color: #cbd5e1 !important;
 }
 
 :global(html[data-admin-theme='dark']) .refund-timeline-vertical,
 :global(.admin-layout.theme-dark) .refund-timeline-vertical,
 :global(.admin-layout.dark) .refund-timeline-vertical,
 :global(.dark) .refund-timeline-vertical {
-  background: #181d24 !important;
-  border-color: #28303d !important;
-  color: #f8fafc !important;
+    background: #181d24 !important;
+    border-color: #28303d !important;
+    color: #f8fafc !important;
 }
 
 :global(html[data-admin-theme='dark']) .rtv-label,
 :global(.admin-layout.theme-dark) .rtv-label,
 :global(.admin-layout.dark) .rtv-label,
 :global(.dark) .rtv-label {
-  color: #94a3b8 !important;
+    color: #94a3b8 !important;
 }
 
 :global(html[data-admin-theme='dark']) .rtv-label.done,
 :global(.admin-layout.theme-dark) .rtv-label.done,
 :global(.admin-layout.dark) .rtv-label.done,
 :global(.dark) .rtv-label.done {
-  color: #4ade80 !important;
+    color: #4ade80 !important;
 }
 
 :global(html[data-admin-theme='dark']) .rtv-date,
 :global(.admin-layout.theme-dark) .rtv-date,
 :global(.admin-layout.dark) .rtv-date,
 :global(.dark) .rtv-date {
-  color: #64748b !important;
+    color: #64748b !important;
 }
 
 :global(html[data-admin-theme='dark']) .rtv-date.done,
 :global(.admin-layout.theme-dark) .rtv-date.done,
 :global(.admin-layout.dark) .rtv-date.done,
 :global(.dark) .rtv-date.done {
-  color: #94a3b8 !important;
+    color: #94a3b8 !important;
 }
 
 :global(html[data-admin-theme='dark']) .order-item,
 :global(.admin-layout.theme-dark) .order-item,
 :global(.admin-layout.dark) .order-item,
 :global(.dark) .order-item {
-  background: #181d24 !important;
-  border-color: #28303d !important;
+    background: #181d24 !important;
+    border-color: #28303d !important;
 }
 
 :global(html[data-admin-theme='dark']) .item-img,
 :global(.admin-layout.theme-dark) .item-img,
 :global(.admin-layout.dark) .item-img,
 :global(.dark) .item-img {
-  background: #ffffff !important;
-  border-color: #28303d !important;
+    background: #ffffff !important;
+    border-color: #28303d !important;
 }
 
 :global(html[data-admin-theme='dark']) .item-name,
 :global(.admin-layout.theme-dark) .item-name,
 :global(.admin-layout.dark) .item-name,
 :global(.dark) .item-name {
-  color: #f8fafc !important;
+    color: #f8fafc !important;
 }
 
 :global(html[data-admin-theme='dark']) .item-variant,
 :global(.admin-layout.theme-dark) .item-variant,
 :global(.admin-layout.dark) .item-variant,
 :global(.dark) .item-variant {
-  color: #94a3b8 !important;
+    color: #94a3b8 !important;
 }
 
 :global(html[data-admin-theme='dark']) .iq-price,
 :global(.admin-layout.theme-dark) .iq-price,
 :global(.admin-layout.dark) .iq-price,
 :global(.dark) .iq-price {
-  color: #60a5fa !important;
+    color: #60a5fa !important;
 }
 
 :global(html[data-admin-theme='dark']) .iq-qty,
 :global(.admin-layout.theme-dark) .iq-qty,
 :global(.admin-layout.dark) .iq-qty,
 :global(.dark) .iq-qty {
-  color: #94a3b8 !important;
+    color: #94a3b8 !important;
 }
 
-:global(html[data-admin-theme='dark']) .order-summary-box,
-:global(.admin-layout.theme-dark) .order-summary-box,
-:global(.admin-layout.dark) .order-summary-box,
-:global(.dark) .order-summary-box {
-  background: linear-gradient(135deg, rgba(14, 116, 144, 0.25), rgba(3, 105, 161, 0.25)) !important;
-  border: 1px solid rgba(56, 189, 248, 0.35) !important;
-}
 
 :global(html[data-admin-theme='dark']) .sum-row span,
 :global(.admin-layout.theme-dark) .sum-row span,
 :global(.admin-layout.dark) .sum-row span,
 :global(.dark) .sum-row span {
-  color: #7dd3fc !important;
+    color: #7dd3fc !important;
 }
 
 :global(html[data-admin-theme='dark']) .final-total,
 :global(.admin-layout.theme-dark) .final-total,
 :global(.admin-layout.dark) .final-total,
 :global(.dark) .final-total {
-  color: #38bdf8 !important;
+    color: #38bdf8 !important;
 }
 </style>
