@@ -9,6 +9,7 @@
       `theme-${adminTheme}`,
       adminTheme === 'dark' && 'dark',
       sidebarCollapsed && 'sidebar-collapsed',
+      mobileSidebarOpen && 'mobile-sidebar-open',
       adminIntroActive && 'intro-active',
       adminHeaderHidden && 'admin-header-hidden',
     ]"
@@ -83,8 +84,27 @@
       </div>
     </aside>
 
+    <button
+      v-if="mobileSidebarOpen"
+      type="button"
+      class="mobile-sidebar-backdrop"
+      aria-label="Đóng menu quản trị"
+      @click="mobileSidebarOpen = false"
+    ></button>
+
     <main ref="adminMainRef" class="main" @scroll.passive="handleAdminScroll">
       <section class="admin-topbar" :class="{ 'header-hidden': adminHeaderHidden }">
+        <button
+          type="button"
+          class="mobile-menu-button"
+          aria-label="Mở menu quản trị"
+          :aria-expanded="mobileSidebarOpen"
+          @click="mobileSidebarOpen = !mobileSidebarOpen"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+            <path d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
         <div class="admin-topbar-title">
           <h2>{{ pageTitle }}</h2>
           <p>Quản lý nội dung và điều hành hệ thống</p>
@@ -211,6 +231,7 @@
 </template>
 
 <script setup>
+import '@/assets/styles/admin-pages.css'
 import { computed, nextTick, ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { clearAuth, getUser, normalizeAuthUser, updateUser } from '@/services/auth'
@@ -249,6 +270,7 @@ const refreshCounter = ref(0)
 const routeKey = computed(() => route.fullPath + '-' + refreshCounter.value)
 const adminMainRef = ref(null)
 const adminHeaderHidden = ref(false)
+const mobileSidebarOpen = ref(false)
 let lastAdminScrollTop = 0
 
 function handleAdminScroll(event) {
@@ -267,6 +289,7 @@ function handleAdminScroll(event) {
 watch(
   () => route.path,
   async () => {
+    mobileSidebarOpen.value = false
     await nextTick()
     adminMainRef.value?.scrollTo({ top: 0, left: 0, behavior: 'instant' })
     adminHeaderHidden.value = false
@@ -889,14 +912,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-:global(html),
-:global(body),
-:global(#app) {
-  height: 100% !important;
-  max-height: 100vh !important;
-  overflow: hidden !important;
-}
-
 * {
   box-sizing: border-box;
 }
@@ -925,6 +940,15 @@ onUnmounted(() => {
   flex-direction: column;
   border-right: 1px solid rgba(125, 211, 252, 0.14);
   transition: width 0.25s ease, min-width 0.25s ease, padding 0.25s ease;
+  caret-color: transparent;
+  user-select: none;
+}
+
+.sidebar input,
+.sidebar textarea,
+.sidebar [contenteditable="true"] {
+  caret-color: auto;
+  user-select: text;
 }
 
 .sidebar-collapse-btn {
@@ -1439,7 +1463,7 @@ a {
 .admin-topbar { 
     position: sticky; 
     top: 0; 
-    z-index: 8; 
+    z-index: 900;
     display: flex; 
     justify-content: space-between; 
     align-items: center; 
@@ -1714,7 +1738,7 @@ a {
   background: #ffffff;
   box-shadow: 0 12px 30px rgba(15, 23, 42, .08);
   padding: 8px;
-  z-index: 20;
+  z-index: 910;
 }
 
 .apps-dropdown {
@@ -1884,7 +1908,7 @@ a {
   background: #fff;
   border: 1px solid rgba(15, 23, 42, .08);
   box-shadow: 0 12px 30px rgba(15, 23, 42, .08);
-  z-index: 20;
+  z-index: 910;
 }
 
 .user-dropdown-header {
@@ -3386,6 +3410,289 @@ a {
   color: #64748b !important;
 }
 
+/* Mobile admin shell: sidebar becomes a drawer and routed pages use the full viewport. */
+.mobile-menu-button,
+.mobile-sidebar-backdrop {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .admin-layout {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .sidebar,
+  .admin-layout.sidebar-collapsed .sidebar {
+    position: fixed !important;
+    z-index: 1002 !important;
+    inset: 0 auto 0 0 !important;
+    width: min(86vw, 300px) !important;
+    min-width: min(86vw, 300px) !important;
+    height: 100dvh !important;
+    padding: 20px 14px !important;
+    transform: translateX(-105%);
+    transition: transform .24s cubic-bezier(.4, 0, .2, 1) !important;
+    box-shadow: 18px 0 45px rgba(2, 6, 23, .38);
+  }
+
+  .admin-layout.mobile-sidebar-open .sidebar {
+    transform: translateX(0);
+  }
+
+  .admin-layout.sidebar-collapsed .sidebar .menu-text,
+  .admin-layout.sidebar-collapsed .sidebar .submenu-text,
+  .admin-layout.sidebar-collapsed .sidebar .menu-label,
+  .admin-layout.sidebar-collapsed .sidebar .user-info,
+  .admin-layout.sidebar-collapsed .sidebar .chevron-icon {
+    display: initial !important;
+  }
+
+  .admin-layout.sidebar-collapsed .sidebar .item {
+    justify-content: flex-start !important;
+  }
+
+  .admin-layout.sidebar-collapsed .sidebar .sidebar-user {
+    justify-content: flex-start !important;
+  }
+
+  .sidebar-collapse-btn {
+    display: none !important;
+  }
+
+  .mobile-sidebar-backdrop {
+    display: block;
+    position: fixed;
+    z-index: 1001;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: rgba(2, 6, 23, .62);
+    backdrop-filter: blur(2px);
+  }
+
+  .main {
+    width: 100% !important;
+    height: 100dvh !important;
+    padding: 0 12px !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-topbar {
+    gap: 9px !important;
+    width: calc(100% + 24px) !important;
+    margin: 0 -12px !important;
+    padding: 9px 12px !important;
+  }
+
+  .mobile-menu-button {
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 38px;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border: 1px solid rgba(96, 165, 250, .34);
+    border-radius: 10px;
+    background: rgba(37, 99, 235, .14);
+    color: #bfdbfe;
+    cursor: pointer;
+  }
+
+  .mobile-menu-button svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .admin-topbar-title {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .admin-topbar-title h2 {
+    overflow: hidden;
+    font-size: 15px !important;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .admin-topbar-title p,
+  .topbar-home-link,
+  .topbar-divider,
+  .topbar-user-btn .user-meta,
+  .topbar-user-btn > svg,
+  .theme-toggle-button {
+    display: none !important;
+  }
+
+  .admin-topbar-actions,
+  .topbar-icon-group {
+    gap: 6px !important;
+  }
+
+  .topbar-user-btn {
+    min-width: 38px !important;
+    width: 38px !important;
+    height: 38px !important;
+    padding: 3px !important;
+  }
+
+  .topbar-dropdown,
+  .user-dropdown {
+    position: fixed !important;
+    top: 58px !important;
+    right: 10px !important;
+    left: 10px !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+
+  .admin-page-shell {
+    min-height: calc(100dvh - 58px) !important;
+    padding: 14px 0 28px !important;
+  }
+
+  .admin-page-shell > :deep(*) {
+    max-width: 100% !important;
+  }
+
+  .admin-page-shell {
+    font-size: 14px;
+    line-height: 1.5;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .admin-page-shell :deep(h1),
+  .admin-page-shell :deep(.page-title) {
+    font-size: clamp(20px, 6vw, 24px) !important;
+    line-height: 1.25 !important;
+    letter-spacing: -.025em !important;
+    overflow-wrap: anywhere;
+  }
+
+  .admin-page-shell :deep(h2),
+  .admin-page-shell :deep(.section-title),
+  .admin-page-shell :deep(.card-title) {
+    font-size: clamp(17px, 4.8vw, 20px) !important;
+    line-height: 1.32 !important;
+    letter-spacing: -.018em !important;
+    overflow-wrap: anywhere;
+  }
+
+  .admin-page-shell :deep(h3),
+  .admin-page-shell :deep(.chart-title) {
+    font-size: 16px !important;
+    line-height: 1.35 !important;
+    overflow-wrap: anywhere;
+  }
+
+  .admin-page-shell :deep(p),
+  .admin-page-shell :deep(.description),
+  .admin-page-shell :deep(.subtitle),
+  .admin-page-shell :deep(.text-muted) {
+    font-size: 13px !important;
+    line-height: 1.55 !important;
+    overflow-wrap: anywhere;
+  }
+
+  .admin-page-shell :deep(label),
+  .admin-page-shell :deep(.form-label),
+  .admin-page-shell :deep(.filter-label),
+  .admin-page-shell :deep(.stat-label) {
+    font-size: 12.5px !important;
+    line-height: 1.4 !important;
+  }
+
+  .admin-page-shell :deep(button),
+  .admin-page-shell :deep(.btn),
+  .admin-page-shell :deep(input),
+  .admin-page-shell :deep(select),
+  .admin-page-shell :deep(textarea) {
+    font-size: 14px !important;
+  }
+
+  .admin-page-shell :deep(button),
+  .admin-page-shell :deep(.btn) {
+    line-height: 1.25 !important;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .admin-page-shell :deep(input),
+  .admin-page-shell :deep(select),
+  .admin-page-shell :deep(textarea) {
+    line-height: 1.4 !important;
+  }
+
+  .admin-page-shell :deep(.stat-value),
+  .admin-page-shell :deep(.metric-value) {
+    font-size: clamp(22px, 7vw, 30px) !important;
+    line-height: 1.15 !important;
+    letter-spacing: -.025em !important;
+    overflow-wrap: anywhere;
+  }
+
+  .admin-page-shell :deep(.stats),
+  .admin-page-shell :deep(.stats-grid),
+  .admin-page-shell :deep(.dashboard-grid),
+  .admin-page-shell :deep(.cards-grid),
+  .admin-page-shell :deep(.summary-grid),
+  .admin-page-shell :deep(.bottom-grid),
+  .admin-page-shell :deep(.top-tables),
+  .admin-page-shell :deep(.main-layout) {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .admin-page-shell :deep(.table-wrap),
+  .admin-page-shell :deep(.table-responsive),
+  .admin-page-shell :deep(.data-table-wrapper),
+  .admin-page-shell :deep(.admin-table-wrap) {
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-page-shell :deep(table) {
+    min-width: 680px;
+    font-size: 13px !important;
+    line-height: 1.4 !important;
+  }
+
+  .admin-page-shell :deep(th) {
+    font-size: 11.5px !important;
+    line-height: 1.35 !important;
+    letter-spacing: .02em;
+  }
+
+  .admin-page-shell :deep(td) {
+    font-size: 13px !important;
+    line-height: 1.45 !important;
+  }
+
+  .admin-page-shell :deep(.modal),
+  .admin-page-shell :deep(.modal-content),
+  .admin-page-shell :deep(.dialog-card) {
+    max-width: calc(100vw - 24px) !important;
+    max-height: calc(100dvh - 24px) !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .main {
+    padding: 0 8px !important;
+  }
+
+  .admin-topbar {
+    width: calc(100% + 16px) !important;
+    margin: 0 -8px !important;
+    padding-inline: 8px !important;
+  }
+}
+
 .admin-layout.theme-light .attendance-topbar-clock strong {
   color: #0f172a !important;
   -webkit-text-fill-color: #0f172a !important;
@@ -3419,5 +3726,46 @@ a {
 .admin-layout.theme-light .topbar-user-btn .user-role,
 .admin-layout.theme-light .topbar-user-btn > svg {
   color: #64748b !important;
+}
+
+@media (max-width: 767px) {
+  .admin-layout.sidebar-collapsed .sidebar .admin-logo-img {
+    display: block !important;
+  }
+
+  .admin-layout.sidebar-collapsed .sidebar .menu-label,
+  .admin-layout.sidebar-collapsed .sidebar .user-info {
+    display: block !important;
+  }
+
+  .admin-layout.sidebar-collapsed .sidebar .chevron-icon,
+  .admin-layout.sidebar-collapsed .sidebar .sidebar-logout-btn {
+    display: grid !important;
+  }
+
+  .admin-layout.sidebar-collapsed .sidebar .submenu {
+    display: flex !important;
+  }
+
+  .admin-layout.sidebar-collapsed .sidebar .item {
+    gap: 10px !important;
+    padding: 11px 12px !important;
+  }
+
+  .admin-layout.sidebar-collapsed .sidebar .sidebar-user {
+    padding: 10px 12px !important;
+  }
+
+  .admin-layout.theme-light .mobile-menu-button {
+    border-color: #bfdbfe;
+    background: #eff6ff;
+    color: #1d4ed8;
+  }
+
+  .admin-layout.theme-light .mobile-menu-button:hover {
+    border-color: #60a5fa;
+    background: #dbeafe;
+    color: #1e40af;
+  }
 }
 </style>

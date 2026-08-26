@@ -26,17 +26,20 @@ html.admin-active-root:focus-within,
 body.admin-active-root:focus,
 body.admin-active-root:focus-visible,
 body.admin-active-root:focus-within,
-#app:focus,
-#app:focus-visible,
-#app:focus-within,
+#app:has(.admin-layout):focus,
+#app:has(.admin-layout):focus-visible,
+#app:has(.admin-layout):focus-within,
 .admin-layout:focus,
 .admin-layout:focus-visible,
 .admin-layout:focus-within,
 .admin-layout .main:focus,
 .admin-layout .main:focus-visible,
 .admin-layout .main:focus-within {
+  border: none !important;
+  border-radius: 0 !important;
   outline: none !important;
   outline-width: 0 !important;
+  outline-offset: 0 !important;
   box-shadow: none !important;
 }
 
@@ -55,9 +58,13 @@ body.admin-active-root:focus-within,
   margin: 0 !important;
   padding: 0 !important;
   border: none !important;
+  border-radius: 0 !important;
   outline: none !important;
   outline-width: 0 !important;
+  outline-offset: 0 !important;
   box-shadow: none !important;
+  background-clip: border-box !important;
+  -webkit-tap-highlight-color: transparent;
   overflow: hidden !important;
   --admin-bg: #f6f8fb;
 }
@@ -515,8 +522,16 @@ body.admin-active-root:focus-within,
 .admin-layout.theme-dark:focus-visible,
 .admin-layout.theme-dark:focus-within {
   border: 0 !important;
+  border-radius: 0 !important;
   outline: 0 !important;
+  outline-offset: 0 !important;
   box-shadow: none !important;
+}
+
+html[data-admin-theme="light"]:has(.admin-layout),
+html[data-admin-theme="light"]:has(.admin-layout) body,
+html[data-admin-theme="light"]:has(.admin-layout) #app {
+  background: #f6f8fb !important;
 }
 
 .admin-layout,
@@ -534,12 +549,18 @@ body.admin-active-root:focus-within,
 
 /* Override scrollbar mặc định cyan của hệ thống khi color-scheme: dark được kế thừa */
 .admin-layout .main {
+  border: none !important;
+  border-radius: 0 !important;
+  outline: none !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
   scrollbar-width: thin;
   scrollbar-color: rgba(100, 116, 139, 0.4) transparent;
 }
 
 .admin-layout .main::-webkit-scrollbar {
-  width: 100%;
+  width: 8px;
+  height: 8px;
 }
 
 .admin-layout .main::-webkit-scrollbar-track {
@@ -553,6 +574,10 @@ body.admin-active-root:focus-within,
 
 .admin-layout .main::-webkit-scrollbar-thumb:hover {
   background: rgba(100, 116, 139, 0.6);
+}
+
+.admin-layout .main::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 .admin-layout.theme-dark .main,
