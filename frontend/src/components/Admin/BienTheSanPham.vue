@@ -1513,19 +1513,6 @@ async function handleImportFile(e) {
           <input ref="importFileRef" type="file" accept=".xlsx,.xls" style="display:none" @change="handleImportFile" />
         </div>
       </div>
-
-      <div class="bottom-card dark-bottom">
-        <div class="bottom-icon white-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 8v4l3 3" />
-          </svg>
-        </div>
-        <div>
-          <h4>Thư viện màu</h4>
-          <p>Quản lý và mở rộng bộ màu sắc toàn bộ thị tác</p>
-        </div>
-      </div>
     </div>
 
     <!-- MODAL -->
@@ -2874,7 +2861,7 @@ tbody td {
 
 .bottom-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 14px;
   padding: 16px 32px 0;
 }
@@ -3564,9 +3551,16 @@ html[data-admin-theme='dark'] .color-input-wrap,
 html[data-admin-theme='dark'] .color-input-wrap input[type="text"],
 .admin-layout.theme-dark .color-input-wrap input[type="text"],
 .admin-layout.dark .color-input-wrap input[type="text"],
-.dark .color-input-wrap input[type="text"] {
+.dark .color-input-wrap input[type="text"],
+html[data-admin-theme='dark'] .color-input-wrap .native-color,
+.admin-layout.theme-dark .color-input-wrap .native-color,
+.admin-layout.dark .color-input-wrap .native-color,
+.dark .color-input-wrap .native-color {
   color: #f9fafb !important;
   background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 html[data-admin-theme='dark'] .preview-row,

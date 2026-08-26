@@ -91,7 +91,8 @@
                 <div class="stat-card">
                     <div class="card-icon purple">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                            <path
+                                d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
                             <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
                             <line x1="12" y1="22.08" x2="12" y2="12" />
                         </svg>
@@ -158,13 +159,13 @@
                             <div class="chart-bars">
                                 <div v-for="day in timeline" :key="day.date" class="chart-bar-col">
                                     <div class="chart-bar-container">
-                                        <div class="chart-bar-fill" 
-                                             :style="{ height: getBarHeight(day.items_count) + '%' }" 
-                                             :title="day.date + ': ' + day.items_count + ' sản phẩm, ' + formatMoney(day.revenue)">
-                                             <span class="bar-tooltip">
-                                                 <b>{{ day.items_count }} sản phẩm</b><br>
-                                                 {{ formatMoney(day.revenue) }}
-                                             </span>
+                                        <div class="chart-bar-fill"
+                                            :style="{ height: getBarHeight(day.items_count) + '%' }"
+                                            :title="day.date + ': ' + day.items_count + ' sản phẩm, ' + formatMoney(day.revenue)">
+                                            <span class="bar-tooltip">
+                                                <b>{{ day.items_count }} sản phẩm</b><br>
+                                                {{ formatMoney(day.revenue) }}
+                                            </span>
                                         </div>
                                     </div>
                                     <span class="chart-bar-label">{{ formatDateLabel(day.date) }}</span>
@@ -181,7 +182,7 @@
                     <h2>Danh sách sản phẩm bán được</h2>
                     <span class="panel-sub">Chi tiết số lượng và doanh số từng sản phẩm</span>
                 </div>
-                <div class="panel-body table-wrap" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;">
+                <div class="panel-body table-wrap" style="border-bottom-left-radius: 14px; border-bottom-right-radius: 14px;">
                     <table>
                         <thead>
                             <tr>
@@ -216,15 +217,12 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="pagination-footer" style="background: #ffffff; border-top: 1px solid #f1f5f9; border-bottom-left-radius: 14px; border-bottom-right-radius: 14px; padding: 10px 0;">
-                    <PhanTrangAdmin 
-                        v-model:currentPage="currentPage" 
-                        :totalPages="totalPages" 
-                        :totalItems="products.length"
-                        :pageSize="itemsPerPage"
-                        itemLabel="sản phẩm"
-                    />
-                </div>
+            </div>
+
+            <!-- PAGINATION OUTSIDE THE PANEL CARD -->
+            <div class="pagination-footer">
+                <PhanTrangAdmin v-model:currentPage="currentPage" :totalPages="totalPages"
+                    :totalItems="products.length" :pageSize="itemsPerPage" itemLabel="sản phẩm" />
             </div>
         </div>
     </div>
@@ -453,9 +451,27 @@ onMounted(() => {
     transition: all 0.2s;
 }
 
+:global(html[data-admin-theme='dark']) .btn-reset,
+:global(html[data-theme='dark']) .btn-reset,
+:global(.admin-layout.dark) .btn-reset,
+:global(.admin-layout.theme-dark) .btn-reset {
+    background: #1e2530 !important;
+    border-color: #3b424b !important;
+    color: #e2e8f0 !important;
+}
+
 .btn-reset:hover {
     background: #f1f5f9;
     color: #0f172a;
+}
+
+:global(html[data-admin-theme='dark']) .btn-reset:hover,
+:global(html[data-theme='dark']) .btn-reset:hover,
+:global(.admin-layout.dark) .btn-reset:hover,
+:global(.admin-layout.theme-dark) .btn-reset:hover {
+    background: #28303d !important;
+    border-color: #475569 !important;
+    color: #ffffff !important;
 }
 
 /* STATS CARDS */
@@ -738,7 +754,7 @@ onMounted(() => {
     border-radius: 6px;
     font-size: 11px;
     white-space: nowrap;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     z-index: 100;
     pointer-events: none;
     text-align: center;
@@ -873,7 +889,223 @@ tbody td.empty {
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* DARK MODE OVERRIDES FOR THONG KE NHAN VIEN */
+:global(html[data-admin-theme='dark']) .loading-state,
+:global(html[data-theme='dark']) .loading-state,
+:global(.admin-layout.dark) .loading-state,
+:global(.admin-layout.theme-dark) .loading-state {
+    background: #181d24 !important;
+    border-color: #28303d !important;
+    color: #94a3b8 !important;
+}
+
+:global(html[data-admin-theme='dark']) .spinner,
+:global(html[data-theme='dark']) .spinner,
+:global(.admin-layout.dark) .spinner,
+:global(.admin-layout.theme-dark) .spinner {
+    border-color: #28303d !important;
+    border-top-color: #3b82f6 !important;
+}
+
+:global(html[data-admin-theme='dark']) .filter-box,
+:global(html[data-theme='dark']) .filter-box,
+:global(.admin-layout.dark) .filter-box,
+:global(.admin-layout.theme-dark) .filter-box {
+    background: #181d24 !important;
+    border-color: #28303d !important;
+}
+
+:global(html[data-admin-theme='dark']) .filter-item label,
+:global(html[data-theme='dark']) .filter-item label,
+:global(.admin-layout.dark) .filter-item label,
+:global(.admin-layout.theme-dark) .filter-item label {
+    color: #94a3b8 !important;
+}
+
+:global(html[data-admin-theme='dark']) .filter-item select,
+:global(html[data-theme='dark']) .filter-item select,
+:global(html[data-admin-theme='dark']) .filter-item input,
+:global(html[data-theme='dark']) .filter-item input,
+:global(.admin-layout.dark) .filter-item select,
+:global(.admin-layout.dark) .filter-item input,
+:global(.admin-layout.theme-dark) .filter-item select,
+:global(.admin-layout.theme-dark) .filter-item input {
+    background: #1e2530 !important;
+    border-color: #3b424b !important;
+    color: #f8fafc !important;
+}
+
+:global(html[data-admin-theme='dark']) .btn-reset,
+:global(html[data-theme='dark']) .btn-reset,
+:global(.admin-layout.dark) .btn-reset,
+:global(.admin-layout.theme-dark) .btn-reset {
+    background: #1e2530 !important;
+    border-color: #3b424b !important;
+    color: #f8fafc !important;
+}
+
+:global(html[data-admin-theme='dark']) .btn-reset:hover,
+:global(html[data-theme='dark']) .btn-reset:hover,
+:global(.admin-layout.dark) .btn-reset:hover,
+:global(.admin-layout.theme-dark) .btn-reset:hover {
+    background: #28303d !important;
+    color: #ffffff !important;
+}
+
+:global(html[data-admin-theme='dark']) .stat-card,
+:global(html[data-theme='dark']) .stat-card,
+:global(.admin-layout.dark) .stat-card,
+:global(.admin-layout.theme-dark) .stat-card,
+:global(html[data-admin-theme='dark']) .panel,
+:global(html[data-theme='dark']) .panel,
+:global(.admin-layout.dark) .panel,
+:global(.admin-layout.theme-dark) .panel {
+    background: #181d24 !important;
+    border-color: #28303d !important;
+}
+
+.pagination-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 14px 0 4px;
+    background: transparent !important;
+}
+
+/* Remove top border radius on table header inside products panel */
+.products-panel .table-wrap,
+.products-panel table,
+.products-panel table thead,
+.products-panel table thead tr,
+.products-panel table thead th,
+.products-panel table thead th:first-child,
+.products-panel table thead th:last-child {
+    border-top-left-radius: 0 !important;
+    border-top-right-radius: 0 !important;
+}
+
+:global(html[data-admin-theme='dark']) .card-info h3,
+:global(html[data-theme='dark']) .card-info h3,
+:global(.admin-layout.dark) .card-info h3,
+:global(.admin-layout.theme-dark) .card-info h3,
+:global(html[data-admin-theme='dark']) .panel-header h2,
+:global(html[data-theme='dark']) .panel-header h2,
+:global(.admin-layout.dark) .panel-header h2,
+:global(.admin-layout.theme-dark) .panel-header h2,
+:global(html[data-admin-theme='dark']) .leader-details h4,
+:global(html[data-theme='dark']) .leader-details h4,
+:global(.admin-layout.dark) .leader-details h4,
+:global(.admin-layout.theme-dark) .leader-details h4,
+:global(html[data-admin-theme='dark']) .prod-name,
+:global(html[data-theme='dark']) .prod-name,
+:global(.admin-layout.dark) .prod-name,
+:global(.admin-layout.theme-dark) .prod-name,
+:global(html[data-admin-theme='dark']) .prod-qty,
+:global(html[data-theme='dark']) .prod-qty,
+:global(.admin-layout.dark) .prod-qty,
+:global(.admin-layout.theme-dark) .prod-qty {
+    color: #f8fafc !important;
+}
+
+:global(html[data-admin-theme='dark']) .card-info span,
+:global(html[data-theme='dark']) .card-info span,
+:global(.admin-layout.dark) .card-info span,
+:global(.admin-layout.theme-dark) .card-info span,
+:global(html[data-admin-theme='dark']) .panel-sub,
+:global(html[data-theme='dark']) .panel-sub,
+:global(.admin-layout.dark) .panel-sub,
+:global(.admin-layout.theme-dark) .panel-sub,
+:global(html[data-admin-theme='dark']) .leader-details span,
+:global(html[data-theme='dark']) .leader-details span,
+:global(.admin-layout.dark) .leader-details span,
+:global(.admin-layout.theme-dark) .leader-details span {
+    color: #94a3b8 !important;
+}
+
+:global(html[data-admin-theme='dark']) .panel-header,
+:global(html[data-theme='dark']) .panel-header,
+:global(.admin-layout.dark) .panel-header,
+:global(.admin-layout.theme-dark) .panel-header {
+    border-bottom-color: #28303d !important;
+}
+
+:global(html[data-admin-theme='dark']) .leader-row,
+:global(html[data-theme='dark']) .leader-row,
+:global(.admin-layout.dark) .leader-row,
+:global(.admin-layout.theme-dark) .leader-row {
+    background: #1e2530 !important;
+    border-color: #28303d !important;
+}
+
+:global(html[data-admin-theme='dark']) .leader-metrics b,
+:global(html[data-theme='dark']) .leader-metrics b,
+:global(.admin-layout.dark) .leader-metrics b,
+:global(.admin-layout.theme-dark) .leader-metrics b {
+    color: #cbd5e1 !important;
+}
+
+:global(html[data-admin-theme='dark']) .leader-metrics b.revenue-text,
+:global(html[data-theme='dark']) .leader-metrics b.revenue-text,
+:global(.admin-layout.dark) .leader-metrics b.revenue-text,
+:global(.admin-layout.theme-dark) .leader-metrics b.revenue-text,
+:global(html[data-admin-theme='dark']) .prod-revenue,
+:global(html[data-theme='dark']) .prod-revenue,
+:global(.admin-layout.dark) .prod-revenue,
+:global(.admin-layout.theme-dark) .prod-revenue {
+    color: #4ade80 !important;
+}
+
+:global(html[data-admin-theme='dark']) .chart-bar-container,
+:global(html[data-theme='dark']) .chart-bar-container,
+:global(.admin-layout.dark) .chart-bar-container,
+:global(.admin-layout.theme-dark) .chart-bar-container {
+    background: #1e2530 !important;
+}
+
+:global(html[data-admin-theme='dark']) thead th,
+:global(html[data-theme='dark']) thead th,
+:global(.admin-layout.dark) thead th,
+:global(.admin-layout.theme-dark) thead th {
+    background: #1e2530 !important;
+    color: #94a3b8 !important;
+    border-bottom-color: #28303d !important;
+}
+
+:global(html[data-admin-theme='dark']) tbody tr,
+:global(html[data-theme='dark']) tbody tr,
+:global(.admin-layout.dark) tbody tr,
+:global(.admin-layout.theme-dark) tbody tr {
+    border-bottom-color: #232932 !important;
+}
+
+:global(html[data-admin-theme='dark']) tbody tr:hover,
+:global(html[data-theme='dark']) tbody tr:hover,
+:global(.admin-layout.dark) tbody tr:hover,
+:global(.admin-layout.theme-dark) tbody tr:hover {
+    background: rgba(255, 255, 255, 0.04) !important;
+}
+
+:global(html[data-admin-theme='dark']) tbody td,
+:global(html[data-theme='dark']) tbody td,
+:global(.admin-layout.dark) tbody td,
+:global(.admin-layout.theme-dark) tbody td {
+    color: #cbd5e1 !important;
+}
+
+:global(html[data-admin-theme='dark']) .prod-variant,
+:global(html[data-theme='dark']) .prod-variant,
+:global(.admin-layout.dark) .prod-variant,
+:global(.admin-layout.theme-dark) .prod-variant {
+    background: #1e2530 !important;
+    color: #94a3b8 !important;
 }
 </style>

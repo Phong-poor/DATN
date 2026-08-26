@@ -3423,7 +3423,6 @@ onBeforeUnmount(() => {
 :global(.admin-layout.dark) .vip-banner-box,
 :global(.dark) .vip-banner-box {
   background: rgba(244, 63, 94, 0.15) !important;
-  border-left-color: #f43f5e !important;
   color: #fda4af !important;
 }
 </style>

@@ -42,7 +42,9 @@ defineEmits(['clear', 'delete-selected', 'delete-all'])
   padding: 14px 16px;
   background: #fff;
   border: 1px solid #e8edf5;
-  border-radius: 14px;
+  border-bottom: none !important;
+  border-radius: 14px 14px 0 0 !important;
+  margin-bottom: 0 !important;
   box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
 }
 

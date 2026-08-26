@@ -19,7 +19,8 @@
         <button :class="['cat-tab', { active: activeTab === 'sessions' }]" @click="activeTab = 'sessions'">
           Danh sách Đợt Flash Sale
         </button>
-        <button :class="['cat-tab', { active: activeTab === 'products' }]" @click="switchTabToProducts" :disabled="!selectedSession">
+        <button :class="['cat-tab', { active: activeTab === 'products' }]" @click="switchTabToProducts"
+          :disabled="!selectedSession">
           Sản phẩm trong đợt: {{ selectedSession ? selectedSession.ten_dot : 'Chưa chọn' }}
         </button>
       </div>
@@ -53,13 +54,24 @@
               <td>
                 <div class="actions">
                   <button class="action-btn select-btn" @click="manageSessionProducts(s)" title="Quản lý sản phẩm">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M5 20h.01M19 4H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zM9 9l3 3-3 3"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path
+                        d="M12 20h9M5 20h.01M19 4H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zM9 9l3 3-3 3" />
+                    </svg>
                   </button>
                   <button class="action-btn edit-btn" @click="openEditSession(s)" title="Chỉnh sửa đợt">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                    </svg>
                   </button>
                   <button class="action-btn action-delete delete-btn" @click="deleteSession(s)" title="Xóa đợt">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                      <path d="M10 11v6M14 11v6" />
+                      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                    </svg>
                   </button>
                 </div>
               </td>
@@ -77,7 +89,7 @@
           <div class="session-meta">
             <h3>Đợt Flash Sale: {{ selectedSession.ten_dot }}</h3>
             <p>
-              Thời gian: <b>{{ formatDateTime(selectedSession.thoi_gian_bat_dau) }}</b> đến 
+              Thời gian: <b>{{ formatDateTime(selectedSession.thoi_gian_bat_dau) }}</b> đến
               <b>{{ formatDateTime(selectedSession.thoi_gian_ket_thuc) }}</b>
             </p>
           </div>
@@ -102,11 +114,14 @@
             <tbody>
               <tr v-for="p in sessionProducts" :key="p.id_sanpham_flashsale">
                 <td class="prod-img-td">
-                  <img :src="p.bien_the?.hinhanh ? getStorageUrl(p.bien_the.hinhanh) : (p.bien_the?.san_pham?.hinhanh ? getStorageUrl(p.bien_the.san_pham.hinhanh) : 'https://placehold.co/100')" alt="" class="table-thumb" />
+                  <img
+                    :src="p.bien_the?.hinhanh ? getStorageUrl(p.bien_the.hinhanh) : (p.bien_the?.san_pham?.hinhanh ? getStorageUrl(p.bien_the.san_pham.hinhanh) : 'https://placehold.co/100')"
+                    alt="" class="table-thumb" />
                 </td>
                 <td>
                   <p class="cat-name">{{ p.bien_the?.san_pham?.tenSP || 'N/A' }}</p>
-                  <p style="font-size: 12px; color: #64748b;">Hãng: {{ p.bien_the?.san_pham?.thuong_hieu?.ten_thuonghieu || 'N/A' }}</p>
+                  <p style="font-size: 12px; color: #64748b;">Hãng: {{ p.bien_the?.san_pham?.thuong_hieu?.ten_thuonghieu
+                    || 'N/A' }}</p>
                 </td>
                 <td>
                   <span class="spec-tag">{{ p.bien_the?.ten_bienthe }}</span>
@@ -118,15 +133,22 @@
                 <td>
                   <div class="progress-wrap">
                     <div class="progress-bar">
-                      <div class="progress-fill" :style="{ width: Math.min((p.so_luong_da_ban / p.so_luong_gioi_han) * 100, 100) + '%' }"></div>
+                      <div class="progress-fill"
+                        :style="{ width: Math.min((p.so_luong_da_ban / p.so_luong_gioi_han) * 100, 100) + '%' }"></div>
                     </div>
                     <span class="progress-txt">{{ Math.round((p.so_luong_da_ban / p.so_luong_gioi_han) * 100) }}%</span>
                   </div>
                 </td>
                 <td>
                   <div class="actions">
-                    <button class="action-btn action-delete delete-btn" @click="removeProductFromSession(p)" title="Xóa khỏi đợt sale">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                    <button class="action-btn action-delete delete-btn" @click="removeProductFromSession(p)"
+                      title="Xóa khỏi đợt sale">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                        <path d="M10 11v6M14 11v6" />
+                        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                      </svg>
                     </button>
                   </div>
                 </td>
@@ -146,7 +168,9 @@
     <template v-else-if="currentView === 'session-form'">
       <div class="inline-form-header">
         <button class="back-btn" @click="closeSessionModal">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><path d="M15 18l-6-6 6-6"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
           Quay lại danh sách
         </button>
         <h1>{{ isEditSession ? 'Chỉnh sửa đợt Flash Sale' : 'Tạo đợt Flash Sale mới' }}</h1>
@@ -156,10 +180,11 @@
       <div class="inline-form-body">
         <div class="form-section-card">
           <div class="form-section-title">Thông tin đợt Flash Sale</div>
-          
+
           <div class="form-group">
             <label class="form-label">Tên đợt khuyến mãi <span class="required">*</span></label>
-            <input class="form-input" type="text" v-model="sessionForm.ten_dot" placeholder="VD: Sale Sập Sàn Đêm Trăng Tròn" />
+            <input class="form-input" type="text" v-model="sessionForm.ten_dot"
+              placeholder="VD: Sale Sập Sàn Đêm Trăng Tròn" />
           </div>
 
           <div class="form-grid-2">
@@ -195,7 +220,9 @@
     <template v-else-if="currentView === 'add-products'">
       <div class="inline-form-header">
         <button class="back-btn" @click="closeAddProductsModal">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><path d="M15 18l-6-6 6-6"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
           Quay lại danh sách
         </button>
         <h1>Thêm sản phẩm vào đợt: {{ selectedSession?.ten_dot }}</h1>
@@ -206,19 +233,15 @@
         <!-- CHỌN SẢN PHẨM MẸ QUA CÂY THƯ MỤC -->
         <div class="form-section-card">
           <div class="form-section-title">Chọn sản phẩm muốn Flash Sale</div>
-          
+
           <div class="selection-layout">
             <!-- Cột trái: Cây thư mục danh mục -->
             <div class="tree-sidebar">
               <div class="tree-title">Danh mục sản phẩm</div>
-              
+
               <!-- Ô tìm kiếm danh mục -->
               <div class="tree-search-wrapper">
-                <input 
-                  v-model="treeSearchQuery" 
-                  placeholder="Tìm kiếm danh mục..." 
-                  class="tree-search-input"
-                />
+                <input v-model="treeSearchQuery" placeholder="Tìm kiếm danh mục..." class="tree-search-input" />
               </div>
 
               <!-- Cây danh mục -->
@@ -226,22 +249,19 @@
                 <div class="tree-all-node" :class="{ active: !selectedCategory }" @click="selectedCategory = null">
                   Tất cả sản phẩm
                 </div>
-                
+
                 <div v-for="parent in filteredTreeCategories" :key="parent.id_danhmuc_cha" class="tree-parent-node">
                   <div class="parent-label-row" @click="toggleParentExpand(parent.id_danhmuc_cha)">
                     <span class="chevron-icon" :class="{ expanded: isParentExpanded(parent.id_danhmuc_cha) }">▸</span>
-                    <span class="parent-label" :class="{ active: selectedCategory === 'parent_' + parent.id_danhmuc_cha }">
+                    <span class="parent-label"
+                      :class="{ active: selectedCategory === 'parent_' + parent.id_danhmuc_cha }">
                       {{ parent.ten_danhmuc }}
                     </span>
                   </div>
                   <div class="child-nodes-list" v-if="isParentExpanded(parent.id_danhmuc_cha)">
-                    <div 
-                      v-for="child in parent.children" 
-                      :key="child.id_danhmuc" 
-                      class="child-node"
+                    <div v-for="child in parent.children" :key="child.id_danhmuc" class="child-node"
                       :class="{ active: selectedCategory === String(child.id_danhmuc) }"
-                      @click.stop="selectedCategory = String(child.id_danhmuc)"
-                    >
+                      @click.stop="selectedCategory = String(child.id_danhmuc)">
                       <span class="bullet-dot"></span>
                       {{ child.ten_danhmuc }}
                     </div>
@@ -254,7 +274,8 @@
             <div class="product-selection-list">
               <div class="prod-search-row">
                 <div class="search-input-wrapper">
-                  <input v-model="productSearchQuery" placeholder="Tìm sản phẩm theo tên, thương hiệu..." class="prod-search-input" />
+                  <input v-model="productSearchQuery" placeholder="Tìm sản phẩm theo tên, thương hiệu..."
+                    class="prod-search-input" />
                   <button v-if="productSearchQuery" @click="productSearchQuery = ''" class="clear-search-btn">✕</button>
                 </div>
                 <div class="selected-product-info" v-if="targetProduct">
@@ -266,13 +287,8 @@
                 <div v-if="filteredProductsToSelect.length === 0" class="empty-products-msg">
                   Không tìm thấy sản phẩm nào trong danh mục này.
                 </div>
-                <div 
-                  v-for="p in filteredProductsToSelect" 
-                  :key="p.id_sanpham" 
-                  class="product-item-card"
-                  :class="{ active: targetProductId === p.id_sanpham }"
-                  @click="selectTargetProduct(p)"
-                >
+                <div v-for="p in filteredProductsToSelect" :key="p.id_sanpham" class="product-item-card"
+                  :class="{ active: targetProductId === p.id_sanpham }" @click="selectTargetProduct(p)">
                   <div class="prod-card-img-box">
                     <img :src="p.hinhanh ? getStorageUrl(p.hinhanh) : 'https://placehold.co/100'" alt="" />
                   </div>
@@ -289,11 +305,15 @@
         <!-- CÔNG CỤ ÁP DỤNG HÀNG LOẠT (BULK APPLY) - CHỈ HIỆN KHI ĐÃ CHỌN SẢN PHẨM MẸ -->
         <div v-if="variants.length > 0" class="form-section-card bulk-apply-card">
           <div class="bulk-apply-title">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;margin-right:6px;display:inline-block;vertical-align:middle;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              style="width:16px;height:16px;margin-right:6px;display:inline-block;vertical-align:middle;">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
             Công Cụ Áp Dụng Hàng Loạt (Bulk Apply)
           </div>
           <p style="font-size: 12px; color: #475569; margin-bottom: 12px;">
-            Lọc theo các thuộc tính của các biến thể, nhập giá trị và nhấn nút để tự điền nhanh cho tất cả dòng khớp điều kiện lọc.
+            Lọc theo các thuộc tính của các biến thể, nhập giá trị và nhấn nút để tự điền nhanh cho tất cả dòng khớp
+            điều kiện lọc.
           </p>
           <div class="bulk-apply-row">
             <div class="bulk-field">
@@ -319,7 +339,8 @@
             </div>
             <div class="bulk-field">
               <label>Số tiền giảm (đ)</label>
-              <input type="text" :value="formatCurrency(bulkData.gia_flash_sale)" @input="bulkData.gia_flash_sale = parseCurrency($event.target.value)" placeholder="VD: 2.000.000" />
+              <input type="text" :value="formatCurrency(bulkData.gia_flash_sale)"
+                @input="bulkData.gia_flash_sale = parseCurrency($event.target.value)" placeholder="VD: 2.000.000" />
             </div>
             <div class="bulk-field">
               <label>Giới hạn kho</label>
@@ -339,8 +360,7 @@
                   <th class="select-col">
                     <input type="checkbox" :checked="isAllVariantsChecked" @change="toggleSelectAllVariants" />
                   </th>
-                  <th>Cấu hình biến thể</th>
-                  <th>Thuộc tính</th>
+                  <th>Cấu hình & Thuộc tính biến thể</th>
                   <th>Giá gốc</th>
                   <th>Tồn kho gốc</th>
                   <th>Giá Flash Sale (đ)</th>
@@ -352,9 +372,9 @@
                   <td class="select-col">
                     <input type="checkbox" v-model="v.selected" />
                   </td>
-                  <td class="variant-name-td"><b>{{ v.ten_bienthe }}</b></td>
-                  <td>
-                    <div class="attr-badges">
+                  <td class="variant-info-td">
+                    <div class="variant-name-text"><b>{{ v.ten_bienthe }}</b></div>
+                    <div class="attr-badges" style="margin-top: 6px;">
                       <span class="attr-badge r-badge" v-if="v.ram">RAM: {{ v.ram }}</span>
                       <span class="attr-badge c-badge" v-if="v.cpu">CPU: {{ v.cpu }}</span>
                       <span class="attr-badge m-badge" v-if="v.mausac">Màu: {{ v.mausac }}</span>
@@ -363,10 +383,13 @@
                   <td>{{ formatPrice(v.gia) }}</td>
                   <td>{{ v.soluong }} máy</td>
                   <td>
-                    <input type="text" :value="formatCurrency(v.gia_flash_sale)" @input="v.gia_flash_sale = parseCurrency($event.target.value)" class="table-input" placeholder="Nhập giá sale" />
+                    <input type="text" :value="formatCurrency(v.gia_flash_sale)"
+                      @input="v.gia_flash_sale = parseCurrency($event.target.value)" class="table-input"
+                      placeholder="Nhập giá sale" />
                   </td>
                   <td>
-                    <input type="number" v-model.number="v.so_luong_gioi_han" class="table-input" placeholder="Nhập kho sale" />
+                    <input type="number" v-model.number="v.so_luong_gioi_han" class="table-input"
+                      placeholder="Nhập kho sale" />
                   </td>
                 </tr>
               </tbody>
@@ -379,13 +402,13 @@
         </div>
 
         <div v-else class="form-section-card select-empty-box">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:48px;height:48px;color:#94a3b8;margin-bottom:12px;"><circle cx="12" cy="12" r="10"/><path d="m9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
           <p>Vui lòng chọn sản phẩm mẹ từ bảng ở trên để cấu hình các biến thể Flash Sale</p>
         </div>
 
         <div class="form-actions">
           <button class="btn-cancel" @click="closeAddProductsModal">Hủy bỏ</button>
-          <button class="btn-save" @click="saveProductsToSession" :disabled="variants.length === 0">Lưu sản phẩm sale</button>
+          <button class="btn-save" @click="saveProductsToSession" :disabled="variants.length === 0">Lưu sản phẩm
+            sale</button>
         </div>
       </div>
     </template>
@@ -691,7 +714,7 @@ const openCreateSession = () => {
 // Open Edit Session View
 const openEditSession = (session) => {
   isEditSession.value = true
-  
+
   // Format local datetimes for input type="datetime-local"
   const formatDateForInput = (dateStr) => {
     if (!dateStr) return ''
@@ -787,17 +810,17 @@ const onProductSelected = async () => {
   try {
     const res = await api.get(`/bienthe/sanpham/${targetProductId.value}`)
     const list = res.data || []
-    
+
     // Parse attributes for easy display/filtering
     variants.value = list.map(v => {
       let ram = ''
       let cpu = ''
       let mausac = ''
-      
+
       try {
-        const tt = typeof v.thuoc_tinh_json === 'string' 
-            ? JSON.parse(v.thuoc_tinh_json) 
-            : (v.thuoc_tinh_json || [])
+        const tt = typeof v.thuoc_tinh_json === 'string'
+          ? JSON.parse(v.thuoc_tinh_json)
+          : (v.thuoc_tinh_json || [])
         if (Array.isArray(tt)) {
           tt.forEach(attr => {
             const name = strtolower(attr.ten_thuoctinh || '')
@@ -806,7 +829,7 @@ const onProductSelected = async () => {
             if (name.includes('màu')) mausac = attr.giatri
           })
         }
-      } catch (err) {}
+      } catch (err) { }
 
       // Find if this variant is already sale configured in this session to pre-fill
       const existing = sessionProducts.value.find(sp => sp.id_bienthe === v.id_bienthe)
@@ -957,16 +980,20 @@ const removeProductFromSession = async (prod) => {
 </script>
 
 <style scoped>
-* { box-sizing: border-box; margin: 0; padding: 0; }
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
-.page { 
-  padding: 24px 28px; 
-  background: #f0f4ff; 
-  min-height: 100vh; 
-  font-family: 'Be Vietnam Pro', 'Segoe UI', sans-serif; 
-  display: flex; 
-  flex-direction: column; 
-  gap: 20px; 
+.page {
+  padding: 24px 28px;
+  background: #f0f4ff;
+  min-height: 100vh;
+  font-family: 'Be Vietnam Pro', 'Segoe UI', sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 .top {
@@ -1006,33 +1033,33 @@ const removeProductFromSession = async (prod) => {
 }
 
 /* Category Tabs */
-.category-tabs { 
-  display: flex; 
-  gap: 12px; 
-  border-bottom: 2px solid #e2e8f0; 
-  padding-bottom: 0; 
+.category-tabs {
+  display: flex;
+  gap: 12px;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 0;
 }
 
-.cat-tab { 
-  background: transparent; 
-  border: none; 
-  padding: 12px 20px; 
-  font-size: 14px; 
-  font-weight: 600; 
-  color: #64748b; 
-  cursor: pointer; 
-  border-bottom: 2px solid transparent; 
-  margin-bottom: -2px; 
-  transition: all 0.2s; 
+.cat-tab {
+  background: transparent;
+  border: none;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.2s;
 }
 
-.cat-tab:hover:not(:disabled) { 
-  color: #2563eb; 
+.cat-tab:hover:not(:disabled) {
+  color: #2563eb;
 }
 
-.cat-tab.active { 
-  color: #2563eb; 
-  border-bottom-color: #2563eb; 
+.cat-tab.active {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
 }
 
 .cat-tab:disabled {
@@ -1041,53 +1068,53 @@ const removeProductFromSession = async (prod) => {
 }
 
 /* Table Card */
-.table-card { 
-  background: #fff; 
-  border-radius: 16px; 
-  border: 1px solid #e8edf5; 
-  overflow: hidden; 
-  box-shadow: 0 2px 12px rgba(0,0,0,0.04); 
+.table-card {
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #e8edf5;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
-table { 
-  width: 100%; 
-  border-collapse: collapse; 
+table {
+  width: 100%;
+  border-collapse: collapse;
 }
 
-thead tr { 
-  background: #f8faff; 
-  border-bottom: 1px solid #e8edf5; 
+thead tr {
+  background: #f8faff;
+  border-bottom: 1px solid #e8edf5;
 }
 
-th { 
-  padding: 13px 20px; 
-  font-size: 11px; 
-  font-weight: 700; 
-  color: #94a3b8; 
-  letter-spacing: 0.6px; 
-  text-align: left; 
+th {
+  padding: 13px 20px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.6px;
+  text-align: left;
 }
 
-tbody tr { 
-  border-bottom: 1px solid #f1f5f9; 
-  transition: background 0.15s; 
+tbody tr {
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.15s;
 }
 
-tbody tr:hover { 
-  background: #fafbff; 
+tbody tr:hover {
+  background: #fafbff;
 }
 
-td { 
-  padding: 16px 20px; 
-  vertical-align: middle; 
+td {
+  padding: 16px 20px;
+  vertical-align: middle;
   font-size: 13.5px;
   color: #334155;
 }
 
-.cat-name { 
-  font-size: 14px; 
-  font-weight: 600; 
-  color: #1e293b; 
+.cat-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
 }
 
 /* Status Badges */
@@ -1105,50 +1132,111 @@ td {
   line-height: 1;
 }
 
-.status-active { color: #1d4ed8; background: #dcfce7; border: 1px solid #86efac; }
-.status-pending { color: #2563eb; background: #dbeafe; border: 1px solid #93c5fd; }
-.status-expired { color: #b45309; background: #fef3c7; border: 1px solid #fde68a; }
-.status-hidden { color: #64748b; background: #f1f5f9; border: 1px solid #cbd5e1; }
-
-.actions { display: flex; gap: 6px; }
-
-.action-btn { 
-  width: 32px; 
-  height: 32px; 
-  border-radius: 8px; 
-  border: 1px solid #e2e8f0; 
-  background: #fff; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
-  cursor: pointer; 
-  transition: all 0.15s; 
+.status-active {
+  color: #1d4ed8;
+  background: #dcfce7;
+  border: 1px solid #86efac;
 }
 
-.action-btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
-.action-btn svg { width: 14px; height: 14px; stroke: #64748b; stroke-width: 1.8; fill: none; }
+.status-pending {
+  color: #2563eb;
+  background: #dbeafe;
+  border: 1px solid #93c5fd;
+}
+
+.status-expired {
+  color: #b45309;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+}
+
+.status-hidden {
+  color: #64748b;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+}
+
+.actions {
+  display: flex;
+  gap: 6px;
+}
+
+.action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.action-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.action-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: #64748b;
+  stroke-width: 1.8;
+  fill: none;
+}
+
 .action-btn.edit-btn {
   background: #ffffff !important;
   color: #64748b !important;
   border-color: #e2e8f0 !important;
   box-shadow: none !important;
 }
+
 .action-btn.edit-btn:hover {
   background: #f8fafc !important;
   color: #475569 !important;
   border-color: #cbd5e1 !important;
 }
+
 .action-btn.edit-btn svg {
   stroke: currentColor !important;
 }
-.action-delete:hover { background: #fef2f2; border-color: #fca5a5; }
-.action-delete:hover svg { stroke: #ef4444; }
-.select-btn:hover { background: #eff6ff; border-color: #93c5fd; }
-.select-btn:hover svg { stroke: #2563eb; }
-.edit-btn:hover { background: #eff6ff; border-color: #93c5fd; }
-.edit-btn:hover svg { stroke: #2563eb; }
 
-.empty-row { text-align: center; color: #94a3b8; font-size: 13px; padding: 40px; }
+.action-delete:hover {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+
+.action-delete:hover svg {
+  stroke: #ef4444;
+}
+
+.select-btn:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+}
+
+.select-btn:hover svg {
+  stroke: #2563eb;
+}
+
+.edit-btn:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+}
+
+.edit-btn:hover svg {
+  stroke: #2563eb;
+}
+
+.empty-row {
+  text-align: center;
+  color: #94a3b8;
+  font-size: 13px;
+  padding: 40px;
+}
 
 /* Inline Forms styling */
 .inline-form-header {
@@ -1211,7 +1299,7 @@ td {
   border-radius: 16px;
   border: 1px solid #e8edf5;
   padding: 24px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.02);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.02);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -1238,36 +1326,36 @@ td {
   }
 }
 
-.form-group { 
-  display: flex; 
-  flex-direction: column; 
-  gap: 6px; 
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.form-label { 
-  font-size: 13px; 
-  font-weight: 600; 
-  color: #374151; 
+.form-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
 }
 
-.required { 
-  color: #ef4444; 
+.required {
+  color: #ef4444;
 }
 
-.form-input { 
-  padding: 11px 14px; 
-  border: 1.5px solid #e2e8f0; 
-  border-radius: 10px; 
-  font-size: 13.5px; 
-  color: #1e293b; 
-  width: 100%; 
-  outline: none; 
+.form-input {
+  padding: 11px 14px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 13.5px;
+  color: #1e293b;
+  width: 100%;
+  outline: none;
   transition: all 0.15s;
 }
 
-.form-input:focus { 
-  border-color: #2563eb; 
-  box-shadow: 0 0 0 3px rgba(37,99,235,0.1); 
+.form-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .form-actions {
@@ -1278,44 +1366,44 @@ td {
   padding: 16px 24px;
   border-radius: 16px;
   border: 1px solid #e8edf5;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.02);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.02);
 }
 
-.btn-cancel { 
-  padding: 11px 22px; 
-  border-radius: 10px; 
-  border: 1.5px solid #e2e8f0; 
-  background: #fff; 
-  font-size: 13px; 
-  font-weight: 600; 
+.btn-cancel {
+  padding: 11px 22px;
+  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
   color: #475569;
-  cursor: pointer; 
+  cursor: pointer;
   transition: background 0.15s;
 }
 
-.btn-cancel:hover { 
-  background: #f8fafc; 
+.btn-cancel:hover {
+  background: #f8fafc;
 }
 
-.btn-save { 
-  padding: 11px 24px; 
-  border-radius: 10px; 
-  border: none; 
-  background: linear-gradient(135deg, #2563eb, #2563eb); 
-  color: #fff; 
-  font-size: 13px; 
-  font-weight: 600; 
-  cursor: pointer; 
+.btn-save {
+  padding: 11px 24px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #2563eb, #2563eb);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
   transition: opacity .15s;
 }
 
-.btn-save:hover { 
-  opacity: 0.95; 
+.btn-save:hover {
+  opacity: 0.95;
 }
 
-.btn-save:disabled { 
-  opacity: 0.5; 
-  cursor: not-allowed; 
+.btn-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Layout 2 cột cho phần chọn sản phẩm */
@@ -1330,6 +1418,7 @@ td {
   .selection-layout {
     flex-direction: column;
   }
+
   .tree-sidebar {
     width: 100% !important;
     max-height: 250px;
@@ -1390,7 +1479,8 @@ td {
   margin-bottom: 6px;
 }
 
-.tree-all-node:hover, .tree-all-node.active {
+.tree-all-node:hover,
+.tree-all-node.active {
   background: #eff6ff;
   color: #2563eb;
 }
@@ -1625,53 +1715,53 @@ td {
 }
 
 /* Table Card */
-.table-card { 
-  background: #fff; 
-  border-radius: 16px; 
-  border: 1px solid #e8edf5; 
-  overflow: hidden; 
-  box-shadow: 0 2px 12px rgba(0,0,0,0.04); 
+.table-card {
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #e8edf5;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
-table { 
-  width: 100%; 
-  border-collapse: collapse; 
+table {
+  width: 100%;
+  border-collapse: collapse;
 }
 
-thead tr { 
-  background: #f8faff; 
-  border-bottom: 1px solid #e8edf5; 
+thead tr {
+  background: #f8faff;
+  border-bottom: 1px solid #e8edf5;
 }
 
-th { 
-  padding: 13px 20px; 
-  font-size: 11px; 
-  font-weight: 700; 
-  color: #94a3b8; 
-  letter-spacing: 0.6px; 
-  text-align: left; 
+th {
+  padding: 13px 20px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.6px;
+  text-align: left;
 }
 
-tbody tr { 
-  border-bottom: 1px solid #f1f5f9; 
-  transition: background 0.15s; 
+tbody tr {
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.15s;
 }
 
-tbody tr:hover { 
-  background: #fafbff; 
+tbody tr:hover {
+  background: #fafbff;
 }
 
-td { 
-  padding: 16px 20px; 
-  vertical-align: middle; 
+td {
+  padding: 16px 20px;
+  vertical-align: middle;
   font-size: 13.5px;
   color: #334155;
 }
 
-.cat-name { 
-  font-size: 14px; 
-  font-weight: 600; 
-  color: #1e293b; 
+.cat-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
 }
 
 /* Status Badges */
@@ -1689,34 +1779,85 @@ td {
   line-height: 1;
 }
 
-.status-active { color: #1d4ed8; background: #dcfce7; border: 1px solid #86efac; }
-.status-pending { color: #2563eb; background: #dbeafe; border: 1px solid #93c5fd; }
-.status-expired { color: #b45309; background: #fef3c7; border: 1px solid #fde68a; }
-.status-hidden { color: #64748b; background: #f1f5f9; border: 1px solid #cbd5e1; }
-
-.actions { display: flex; gap: 6px; }
-
-.action-btn { 
-  width: 32px; 
-  height: 32px; 
-  border-radius: 8px; 
-  border: 1px solid #e2e8f0; 
-  background: #fff; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
-  cursor: pointer; 
-  transition: all 0.15s; 
+.status-active {
+  color: #1d4ed8;
+  background: #dcfce7;
+  border: 1px solid #86efac;
 }
 
-.action-btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
-.action-btn svg { width: 14px; height: 14px; stroke: #64748b; stroke-width: 1.8; fill: none; }
-.action-delete:hover { background: #fef2f2; border-color: #fca5a5; }
-.action-delete:hover svg { stroke: #ef4444; }
-.select-btn:hover { background: #eff6ff; border-color: #93c5fd; }
-.select-btn:hover svg { stroke: #2563eb; }
+.status-pending {
+  color: #2563eb;
+  background: #dbeafe;
+  border: 1px solid #93c5fd;
+}
 
-.empty-row { text-align: center; color: #94a3b8; font-size: 13px; padding: 40px; }
+.status-expired {
+  color: #b45309;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+}
+
+.status-hidden {
+  color: #64748b;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+}
+
+.actions {
+  display: flex;
+  gap: 6px;
+}
+
+.action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.action-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.action-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: #64748b;
+  stroke-width: 1.8;
+  fill: none;
+}
+
+.action-delete:hover {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+
+.action-delete:hover svg {
+  stroke: #ef4444;
+}
+
+.select-btn:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+}
+
+.select-btn:hover svg {
+  stroke: #2563eb;
+}
+
+.empty-row {
+  text-align: center;
+  color: #94a3b8;
+  font-size: 13px;
+  padding: 40px;
+}
 
 /* Products Tab Content */
 .session-info-card {
@@ -1727,7 +1868,7 @@ td {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.02);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.02);
 }
 
 .session-meta h3 {
@@ -1874,7 +2015,7 @@ td {
 
 /* Variants Table styling */
 .variants-table-container {
-  border: 1px solid #cbd5e1;
+  border: none !important;
   border-radius: 12px;
   overflow: hidden;
   max-height: 400px;
@@ -1886,7 +2027,16 @@ td {
   border-collapse: collapse;
 }
 
+.variants-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
 .variants-table th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   background: #f8fafc;
   padding: 12px 16px;
   font-size: 11px;
@@ -1938,4 +2088,35 @@ td {
 .r-badge { background: #fef3c7; color: #d97706; }
 .c-badge { background: #e0f2fe; color: #0284c7; }
 .m-badge { background: #fce7f3; color: #db2777; }
+
+/* Unround inner meeting corners between all stacked form cards inside inline-form-body */
+.inline-form-body {
+  gap: 0 !important;
+}
+
+.inline-form-body > * {
+  border-radius: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.inline-form-body > *:first-child {
+  border-top-left-radius: 16px !important;
+  border-top-right-radius: 16px !important;
+}
+
+.inline-form-body > *:last-child {
+  border-bottom-left-radius: 16px !important;
+  border-bottom-right-radius: 16px !important;
+}
+
+.inline-form-body > *:not(:last-child) {
+  border-bottom: none !important;
+}
+
+.inline-form-body > *:not(:first-child) {
+  border-top: 1px solid #e8edf5 !important;
+}
+
+
 </style>
