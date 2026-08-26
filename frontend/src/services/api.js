@@ -1,7 +1,6 @@
 import axios from 'axios'
 import { clearAuth, getToken, updateUser } from './auth'
 import { apiBaseUrl } from './urls'
-import { initOfflineInterceptor, registerSyncSuccessCallback } from './offlineSync'
 
 const api = axios.create({
   baseURL: apiBaseUrl,
@@ -12,7 +11,24 @@ const api = axios.create({
   },
 })
 
-initOfflineInterceptor(api)
+// Offline support is non-critical for first paint. Install it during idle time
+// so it cannot compete with the initial route, CSS, fonts, or hero images.
+const installOfflineSupport = () => {
+  import('./offlineSync')
+    .then(({ initOfflineInterceptor, registerSyncSuccessCallback }) => {
+      initOfflineInterceptor(api)
+      registerSyncSuccessCallback(clearApiGetCache)
+    })
+    .catch(() => {
+      // Online requests keep working when the optional offline module cannot load.
+    })
+}
+
+if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+  window.requestIdleCallback(installOfflineSupport, { timeout: 1800 })
+} else if (typeof window !== 'undefined') {
+  window.setTimeout(installOfflineSupport, 600)
+}
 
 const GET_CACHE_TTL_MS = 5 * 60 * 1000
 const getCache = new Map()
@@ -248,7 +264,5 @@ export const stopSessionGuard = () => {
 }
 
 startSessionGuard()
-
-registerSyncSuccessCallback(clearApiGetCache)
 
 export default api

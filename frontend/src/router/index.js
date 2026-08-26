@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import swal from '@/services/swal'
 import { getUser, getToken } from '../services/auth'
 import { isFormDirty } from '../services/unsavedChanges'
 
@@ -156,12 +155,29 @@ const showRouteLoader = () => {
 
   window.dispatchEvent(
     new CustomEvent('global-loader-show', {
-      detail: { immediate: true, minDuration: 260 },
+      detail: { immediate: true, minDuration: 160 },
     })
   )
 }
 
+let routeLoaderTimer = null
+
+const scheduleRouteLoader = () => {
+  if (routeLoaderTimer) window.clearTimeout(routeLoaderTimer)
+  routeLoaderTimer = window.setTimeout(() => {
+    routeLoaderTimer = null
+    showRouteLoader()
+  }, 120)
+}
+
+const cancelScheduledRouteLoader = () => {
+  if (!routeLoaderTimer) return
+  window.clearTimeout(routeLoaderTimer)
+  routeLoaderTimer = null
+}
+
 router.afterEach(() => {
+  cancelScheduledRouteLoader()
   forceScrollTop()
   requestAnimationFrame(forceScrollTop)
 
@@ -181,7 +197,7 @@ router.beforeEach((to, from, next) => {
     !to.path.startsWith('/san-pham/')
 
   if (shouldShowRouteLoader && !isFormDirty.value) {
-    showRouteLoader()
+    scheduleRouteLoader()
   }
 
   forceScrollTop()
@@ -286,7 +302,10 @@ router.beforeEach((to, from, next) => {
           const permList = Array.isArray(requiredPerm) ? requiredPerm : [requiredPerm]
           const hasAccess = permList.some(p => userPerms.includes(p))
           if (!hasAccess) {
-            swal.error('Từ chối truy cập', 'Chức vụ của bạn không có quyền vào chức năng này!')
+            cancelScheduledRouteLoader()
+            import('@/services/swal')
+              .then(({ default: swal }) => swal.error('Từ chối truy cập', 'Chức vụ của bạn không có quyền vào chức năng này!'))
+              .catch(() => {})
             return next(false)
           }
         }
