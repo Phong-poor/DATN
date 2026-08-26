@@ -9,6 +9,7 @@ import AddressMapPicker from './TrinhChonBanDoDiaChi.vue'
 import { normalizeImageUrl } from '@/services/urls'
 import { fetchProvinces as fetchAddressProvinces, fetchWardsByProvince as fetchAddressWardsByProvince } from '@/services/addressService'
 import { isFormDirty } from '@/services/unsavedChanges'
+import { getAffiliateVideoId } from '@/services/affiliateAttribution'
 
 const isUserLoggedIn = computed(() => Boolean(getToken()))
 
@@ -873,7 +874,8 @@ const confirmOrder = async () => {
             selected_cart_items: buyNowCartItemId.value ? [buyNowCartItemId.value] : (route.query.selected ? route.query.selected.split(',') : undefined),
             selected_variants: !buyNowCartItemId.value && buyNowVariantId.value ? [buyNowVariantId.value] : undefined,
             dung_xu: dungXu.value,
-            so_xu_dung: dungXu.value ? xuMuonDung.value : 0
+            so_xu_dung: dungXu.value ? xuMuonDung.value : 0,
+            affiliate_video_id: getAffiliateVideoId()
         })
 
         if (response.data.success) {

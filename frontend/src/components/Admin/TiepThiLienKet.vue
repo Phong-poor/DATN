@@ -133,6 +133,7 @@ const withdrawStatuses = [
   { value: 'processing', label: 'Đang chuyển tiền' },
   { value: 'paid', label: 'Đã chi trả' },
   { value: 'rejected', label: 'Từ chối' },
+  { value: 'cancelled', label: 'Người dùng thu hồi' },
 ]
 
 const videoStatuses = [
@@ -264,9 +265,10 @@ const stats = computed(() => {
     pendingCommissionAmount: pendingCommissions.reduce((sum, row) => sum + Number(row.amount || 0), 0),
     approvedAmount: approvedCommissions.reduce((sum, row) => sum + Number(row.amount || 0), 0),
     paidAmount: paidWithdraws.reduce((sum, row) => sum + Number(row.amount || 0), 0),
+    paidWithdrawCount: paidWithdraws.length,
     pendingWithdrawCount: pendingWithdraws.length,
     pendingWithdrawAmount: pendingWithdraws.reduce((sum, row) => sum + Number(row.amount || 0), 0),
-    conversionOrders: commissions.value.length,
+    conversionOrders: commissions.value.filter(c => ['pending', 'approved', 'paid'].includes(c.status)).length,
   }
 })
 
@@ -584,7 +586,7 @@ onMounted(loadData)
             </div>
             <h2 class="ttlk-number">{{ formatMoney(stats.paidAmount) }}</h2>
           </div>
-          <span class="ttlk-badge success">{{ stats.conversionOrders }} Đơn hoa hồng</span>
+          <span class="ttlk-badge success">{{ stats.paidWithdrawCount }} Lượt chi trả</span>
         </div>
       </div>
     </section>
@@ -870,7 +872,7 @@ onMounted(loadData)
                 <span>Sản phẩm: <strong>{{ row.product?.tenSP || 'Chưa gắn' }}</strong></span>
                 <span>{{ row.views || 0 }} lượt xem · {{ row.clicks || 0 }} click</span>
               </div>
-              <textarea v-model="row.reject_reason" class="reject-input" placeholder="Lý do từ chối nếu cần..."></textarea>
+              <textarea v-if="row.status !== 'approved'" v-model="row.reject_reason" class="reject-input" placeholder="Lý do từ chối nếu cần..."></textarea>
               <div class="row-actions video-actions">
                 <button type="button" class="mini neutral" @click="openAdminVideoSource(row)">
                   <Video :size="16" />
@@ -884,7 +886,7 @@ onMounted(loadData)
                   <ShieldCheck :size="16" />
                   Ẩn
                 </button>
-                <button type="button" class="mini danger" :disabled="actionLoading === `video-${row.id}`" @click="updateVideoStatus(row, 'rejected', false)">
+                <button v-if="row.status !== 'approved'" type="button" class="mini danger" :disabled="actionLoading === `video-${row.id}`" @click="updateVideoStatus(row, 'rejected', false)">
                   <XCircle :size="16" />
                   Từ chối
                 </button>
