@@ -32,14 +32,11 @@ const activeTab = ref('Tất cả')
 const searchQuery = ref('')
 const showViewModal = ref(false)
 const viewOrder = ref(null)
-const selectedMonthYear = ref('Tất cả')
-const isOpenDateDropdown = ref(false)
+const filterDate = ref('') // 'YYYY-MM-DD' or ''
 
-const closeDateDropdown = (e) => {
-    if (!e.target.closest('.date-filter-dropdown')) {
-        isOpenDateDropdown.value = false
-    }
-}
+watch(filterDate, () => {
+    currentPage.value = 1
+})
 
 // Pagination
 const currentPage = ref(1)
@@ -488,7 +485,6 @@ onMounted(() => {
     autoRefreshTimer = window.setInterval(() => {
         fetchOrders()
     }, 4000)
-    document.addEventListener('click', closeDateDropdown)
     window.addEventListener('offline-sync-success', syncSuccessHandler)
 
     try {
@@ -514,7 +510,6 @@ onUnmounted(() => {
         autoRefreshTimer = null
     }
     echo.leaveChannel('admin-orders')
-    document.removeEventListener('click', closeDateDropdown)
     window.removeEventListener('offline-sync-success', syncSuccessHandler)
 })
 
@@ -562,9 +557,18 @@ const filteredOrders = computed(() => {
         const matchSearch = o.id.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
             o.name.toLowerCase().includes(searchQuery.value.toLowerCase())
 
-        const d = new Date(o.raw.created_at)
-        const my = `Tháng ${d.getMonth() + 1}, ${d.getFullYear()}`
-        const matchDate = selectedMonthYear.value === 'Tất cả' || my === selectedMonthYear.value
+        let matchDate = true
+        if (filterDate.value) {
+            const d = new Date(o.raw.created_at)
+            if (!isNaN(d.getTime())) {
+                const y = d.getFullYear()
+                const m = String(d.getMonth() + 1).padStart(2, '0')
+                const day = String(d.getDate()).padStart(2, '0')
+                matchDate = `${y}-${m}-${day}` === filterDate.value
+            } else {
+                matchDate = false
+            }
+        }
 
         return matchTab && matchSearch && matchDate
     })
@@ -850,31 +854,9 @@ async function exportExcel() {
                             getTabCount(tab) }}</span></button>
                 </div>
 
-                <div class="date-filter-wrap">
-                    <div class="custom-dropdown date-filter-dropdown">
-                        <div class="dropdown-trigger" @click.stop="isOpenDateDropdown = !isOpenDateDropdown">
-                            <svg class="calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round">
-                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                                <line x1="16" y1="2" x2="16" y2="6" />
-                                <line x1="8" y1="2" x2="8" y2="6" />
-                                <line x1="3" y1="10" x2="21" y2="10" />
-                            </svg>
-                            <span>{{ selectedMonthYear || 'Tất cả' }}</span>
-                            <svg class="chevron" :class="{ open: isOpenDateDropdown }" viewBox="0 0 24 24" fill="none"
-                                stroke="currentColor" stroke-width="2">
-                                <polyline points="6 9 12 15 18 9"></polyline>
-                            </svg>
-                        </div>
-                        <transition name="fade-slide">
-                            <ul v-if="isOpenDateDropdown" class="dropdown-menu">
-                                <li v-for="m in availableMonths" :key="m" :class="{ active: selectedMonthYear === m }"
-                                    @click="selectedMonthYear = m; currentPage = 1; isOpenDateDropdown = false">
-                                    {{ m }}
-                                </li>
-                            </ul>
-                        </transition>
-                    </div>
+                <div class="date-filter">
+                    <input type="date" v-model="filterDate" class="date-input" title="Lọc đơn hàng theo ngày" />
+                    <button v-if="filterDate" type="button" class="btn-clear-date" title="Xóa lọc ngày" @click="filterDate = ''">✕</button>
                 </div>
             </div>
         </div>
@@ -1679,6 +1661,68 @@ async function exportExcel() {
     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
     max-height: 240px;
     overflow-y: auto;
+}
+
+/* Date filter matching Admin Điểm Danh (QuanLyDiemDanh.vue) */
+.date-filter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.date-input {
+    padding: 8px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    font-size: 13.5px;
+    outline: none;
+    background: #ffffff;
+    color: #0f172a;
+    transition: all 0.2s ease;
+}
+
+.date-input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.btn-clear-date {
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    color: #64748b;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.btn-clear-date:hover {
+    background: #fee2e2;
+    border-color: #fca5a5;
+    color: #ef4444;
+}
+
+/* Dark theme overrides */
+:global(html[data-admin-theme='dark']) .date-input,
+:global(.admin-layout.dark) .date-input,
+:global(.dark) .date-input {
+    background: #0f172a !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+}
+
+:global(html[data-admin-theme='dark']) .btn-clear-date,
+:global(.admin-layout.dark) .btn-clear-date,
+:global(.dark) .btn-clear-date {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+    color: #cbd5e1 !important;
 }
 
 /* Custom Scrollbar for Dropdown Menu */
