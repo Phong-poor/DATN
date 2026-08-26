@@ -7,6 +7,7 @@ use App\Models\AffiliateProfile;
 use App\Models\AffiliateVideo;
 use App\Models\DatHang;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class AffiliateCommissionService
 {
@@ -144,6 +145,10 @@ class AffiliateCommissionService
 
     private function mergeOrderAffiliateData(DatHang $order, array $affiliateData): void
     {
+        if (!Schema::hasColumn($order->getTable(), 'du_lieu_thanh_toan')) {
+            return;
+        }
+
         $paymentData = $order->du_lieu_thanh_toan ?: [];
         if (is_string($paymentData)) {
             $paymentData = json_decode($paymentData, true) ?: [];

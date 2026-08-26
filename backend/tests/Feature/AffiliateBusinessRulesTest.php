@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\AffiliateBalanceService;
 use App\Services\AffiliateCommissionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class AffiliateBusinessRulesTest extends TestCase
@@ -68,5 +69,39 @@ class AffiliateBusinessRulesTest extends TestCase
         $this->assertSame(150000.0, $summary['reserved_withdrawal']);
         $this->assertSame(200000.0, $summary['paid_commission']);
         $this->assertSame(150000.0, $summary['available_balance']);
+    }
+
+    public function test_user_can_cancel_pending_withdrawal_within_fifteen_minutes(): void
+    {
+        $publisher = User::factory()->create();
+        Sanctum::actingAs($publisher);
+        AffiliateProfile::create([
+            'id_khachhang' => $publisher->id,
+            'ma_affiliate' => 'CANCEL15',
+            'ty_le_hoa_hong' => 5,
+            'trangthai' => 'active',
+        ]);
+        AffiliateCommission::create([
+            'id_affiliate_khachhang' => $publisher->id,
+            'so_tien' => 500000,
+            'trangthai' => 'approved',
+        ]);
+        $withdraw = AffiliateWithdrawRequest::create([
+            'id_affiliate_khachhang' => $publisher->id,
+            'so_tien' => 200000,
+            'ten_ngan_hang' => 'VCB',
+            'ten_chu_tai_khoan' => 'LE NGOC TAI',
+            'so_tai_khoan' => '0987654321',
+            'trangthai' => 'pending',
+        ]);
+
+        $this->assertSame(300000.0, app(AffiliateBalanceService::class)->summary($publisher->id)['available_balance']);
+
+        $this->patchJson("/api/affiliate/withdraws/{$withdraw->id}/cancel")
+            ->assertOk()
+            ->assertJsonPath('withdraw.status', 'cancelled');
+
+        $this->assertSame('cancelled', $withdraw->fresh()->trangthai);
+        $this->assertSame(500000.0, app(AffiliateBalanceService::class)->summary($publisher->id)['available_balance']);
     }
 }

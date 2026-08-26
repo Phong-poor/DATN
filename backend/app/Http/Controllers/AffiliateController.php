@@ -112,6 +112,39 @@ class AffiliateController extends Controller
         return response()->json(['message' => 'Đã gửi yêu cầu rút tiền và tạm giữ số dư tương ứng.', 'withdraw' => $row], 201);
     }
 
+    public function cancelWithdraw(Request $request, $id)
+    {
+        $row = DB::transaction(function () use ($request, $id) {
+            $withdraw = AffiliateWithdrawRequest::where('id_affiliate_khachhang', $request->user()->id)
+                ->lockForUpdate()
+                ->findOrFail($id);
+
+            if ($withdraw->trangthai !== 'pending') {
+                throw ValidationException::withMessages([
+                    'status' => 'Chỉ có thể thu hồi yêu cầu đang chờ duyệt.',
+                ]);
+            }
+
+            if (!$withdraw->created_at || $withdraw->created_at->lt(now()->subMinutes(15))) {
+                throw ValidationException::withMessages([
+                    'status' => 'Đã hết thời hạn 15 phút để tự thu hồi yêu cầu. Vui lòng liên hệ quản trị viên.',
+                ]);
+            }
+
+            $withdraw->status = 'cancelled';
+            $withdraw->note = trim(($withdraw->ghichu ? $withdraw->ghichu."\n" : '').'Người dùng tự thu hồi trong thời hạn 15 phút.');
+            $withdraw->save();
+            $this->balanceService->refreshProfileTotals((int) $request->user()->id);
+
+            return $withdraw->fresh();
+        });
+
+        return response()->json([
+            'message' => 'Đã thu hồi yêu cầu rút tiền. Khoản tạm giữ đã được trả lại số dư khả dụng.',
+            'withdraw' => $row,
+        ]);
+    }
+
     private function emptyStats(): array
     {
         return ['total_referrals' => 0, 'pending_commission' => 0, 'approved_commission' => 0, 'paid_commission' => 0, 'reserved_withdrawal' => 0, 'available_balance' => 0];
