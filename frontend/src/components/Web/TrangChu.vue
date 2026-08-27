@@ -8,6 +8,7 @@ import api from '../../services/api'
 import swal from '@/services/swal'
 import { handleImageFallback, imageFallbackUrl, normalizeImageUrl, productImageUrl, storageUrl } from '@/services/urls'
 import { prefetchProductsPage } from '@/services/productsPrefetch'
+import { rememberAffiliateVideo } from '@/services/affiliateAttribution'
 
 const router = useRouter()
 
@@ -392,6 +393,7 @@ const stopAffiliateVideoDrag = (event) => {
 
 const openAffiliateVideoProduct = async (video = {}) => {
     if (video.id) {
+        rememberAffiliateVideo(video.id)
         api.post(`/affiliate-videos/${video.id}/track`, { type: 'click' }).catch(() => {})
     }
 

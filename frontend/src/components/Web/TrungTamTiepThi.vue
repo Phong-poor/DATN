@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import api from '@/services/api'
 import swal from '@/services/swal'
 import { storageUrl } from '@/services/urls'
@@ -67,6 +67,9 @@ const thumbnailPreviewUrl = ref('')
 const videoSubmitting = ref(false)
 const editingAffiliateVideoId = ref(null)
 const withdrawLoading = ref(false)
+const cancellingWithdrawId = ref(null)
+const countdownNow = ref(Date.now())
+let withdrawCountdownTimer = null
 const bankDropdownOpen = ref(false)
 const bankSearch = ref('')
 const error = ref('')
@@ -546,6 +549,7 @@ const getWithdrawStatusClass = (status) => {
   if (status === 'pending') return 'status-warning'
   if (status === 'approved') return 'status-success'
   if (status === 'paid') return 'status-info'
+  if (status === 'cancelled' || status === 'rejected') return 'status-danger'
   return ''
 }
 
@@ -555,7 +559,42 @@ const getWithdrawStatusLabel = (status) => {
   if (status === 'processing') return 'Đang chuyển tiền'
   if (status === 'paid') return 'Đã chuyển tiền'
   if (status === 'rejected') return 'Đã từ chối'
+  if (status === 'cancelled') return 'Đã thu hồi'
   return status
+}
+
+const withdrawCancelSeconds = (withdraw) => {
+  if (withdraw?.status !== 'pending' || !withdraw?.created_at) return 0
+  const deadline = new Date(withdraw.created_at).getTime() + 15 * 60 * 1000
+  return Math.max(0, Math.ceil((deadline - countdownNow.value) / 1000))
+}
+
+const formatCountdown = (seconds) => {
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+  return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`
+}
+
+const cancelWithdraw = async (withdraw) => {
+  const seconds = withdrawCancelSeconds(withdraw)
+  if (!seconds || cancellingWithdrawId.value) return
+
+  const confirmed = await swal.confirm(
+    'Thu hồi yêu cầu rút tiền',
+    `Bạn muốn thu hồi yêu cầu ${formatMoney(withdraw.amount)}? Khoản tạm giữ sẽ được trả lại số dư khả dụng.`
+  )
+  if (!confirmed) return
+
+  cancellingWithdrawId.value = withdraw.id
+  try {
+    const response = await api.patch(`/affiliate/withdraws/${withdraw.id}/cancel`)
+    await loadAll()
+    swal.success('Đã thu hồi', response.data?.message || 'Yêu cầu rút tiền đã được thu hồi.')
+  } catch (error) {
+    swal.error('Không thể thu hồi', getApiErrorMessage(error, 'Vui lòng tải lại trang và thử lại.'))
+  } finally {
+    cancellingWithdrawId.value = null
+  }
 }
 
 const getVideoStatusClass = (status) => {
@@ -574,7 +613,16 @@ const getVideoStatusLabel = (status) => {
   return status || '-'
 }
 
-onMounted(loadAll)
+onMounted(() => {
+  loadAll()
+  withdrawCountdownTimer = window.setInterval(() => {
+    countdownNow.value = Date.now()
+  }, 1000)
+})
+
+onBeforeUnmount(() => {
+  if (withdrawCountdownTimer) window.clearInterval(withdrawCountdownTimer)
+})
 </script>
 
 <template>
@@ -1080,6 +1128,15 @@ onMounted(loadAll)
                             <span :class="['badge-status', getWithdrawStatusClass(w.status)]">
                               {{ getWithdrawStatusLabel(w.status) }}
                             </span>
+                            <div v-if="w.status === 'pending'" class="withdraw-cancel-window">
+                              <template v-if="withdrawCancelSeconds(w) > 0">
+                                <small>Có thể thu hồi trong {{ formatCountdown(withdrawCancelSeconds(w)) }}</small>
+                                <button type="button" :disabled="cancellingWithdrawId === w.id" @click="cancelWithdraw(w)">
+                                  {{ cancellingWithdrawId === w.id ? 'Đang thu hồi...' : 'Thu hồi yêu cầu' }}
+                                </button>
+                              </template>
+                              <small v-else>Đã chuyển sang hàng chờ xử lý</small>
+                            </div>
                             <small v-if="w.transaction_id" class="d-block">GD: {{ w.transaction_id }}</small>
                           </td>
                           <td>{{ new Date(w.created_at).toLocaleString('vi-VN') }}</td>
@@ -1973,6 +2030,37 @@ onMounted(loadAll)
 .status-danger {
   background: #fee2e2;
   color: #991b1b;
+}
+.withdraw-cancel-window {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+.withdraw-cancel-window small {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+}
+.withdraw-cancel-window button {
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fff;
+  color: #dc2626;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 750;
+  padding: 6px 9px;
+  transition: background .2s ease, border-color .2s ease;
+}
+.withdraw-cancel-window button:hover:not(:disabled) {
+  border-color: #f87171;
+  background: #fef2f2;
+}
+.withdraw-cancel-window button:disabled {
+  cursor: wait;
+  opacity: .6;
 }
 
 /* Withdraw Layout Panels */

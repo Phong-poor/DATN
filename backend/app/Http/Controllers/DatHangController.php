@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Models\UserVoucher;
 use App\Models\XuHistory;
 use App\Services\DemoShipmentService;
+use App\Services\AffiliateCommissionService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -31,6 +32,10 @@ use Illuminate\Support\Facades\Schema;
  */
 class DatHangController extends Controller
 {
+    public function __construct(private readonly AffiliateCommissionService $affiliateCommissionService)
+    {
+    }
+
     /** Lock every customer account sharing the same phone after repeated confirmed order bombing. */
     private function enforceBombRiskPolicy(?User $customer): bool
     {
@@ -564,6 +569,8 @@ class DatHangController extends Controller
             'selected_cart_items.*' => 'integer|exists:giohang,id_giohang',
             'selected_variants' => 'nullable|array',
             'selected_variants.*' => 'integer|exists:bienthe,id_bienthe',
+            // Attribution is best-effort: an expired/deleted video must never block checkout.
+            'affiliate_video_id' => 'nullable|integer|min:1',
         ]);
 
         $userId = Auth::id();
@@ -1016,6 +1023,11 @@ class DatHangController extends Controller
 
                 DatHangChiTiet::create($orderDetailData);
             }
+
+            $this->affiliateCommissionService->createPendingFromVideo(
+                $donHang->fresh(),
+                $request->input('affiliate_video_id')
+            );
 
             // Xóa giỏ hàng sau khi đặt hàng thành công (tất cả payment methods)
             $deleteQuery = GioHang::where('id_khachhang', $userId);

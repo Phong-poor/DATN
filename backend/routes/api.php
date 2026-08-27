@@ -226,6 +226,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/affiliate/commissions', [AffiliateController::class, 'commissions']);
     Route::get('/affiliate/withdraws', [AffiliateController::class, 'withdraws']);
     Route::post('/affiliate/withdraws', [AffiliateController::class, 'requestWithdraw']);
+    Route::patch('/affiliate/withdraws/{id}/cancel', [AffiliateController::class, 'cancelWithdraw']);
     Route::get('/affiliate/wallet', [AffiliateWalletController::class, 'show']);
     Route::get('/affiliate/withdrawals', [AffiliateWithdrawalController::class, 'index']);
     Route::post('/affiliate/withdrawals', [AffiliateWithdrawalController::class, 'store']);

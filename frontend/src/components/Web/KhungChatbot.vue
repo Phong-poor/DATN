@@ -509,6 +509,7 @@
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '@/services/api';
+import { getAffiliateVideoId } from '@/services/affiliateAttribution';
 import { productImageUrl, storageUrl } from '@/services/urls';
 import { getToken, getUser } from '@/services/auth';
 import { stopChatTitleNotice } from '@/utils/chatMessage';
@@ -812,6 +813,7 @@ const submitDirectOrder = async () => {
     // 2. Tiến hành gọi API thanh toán/đặt hàng
     checkoutForm.value.paymentMethod = 'bank';
     const response = await api.post('/checkout', {
+      affiliate_video_id: getAffiliateVideoId(),
         id_diachi: selectedAddressId.value || undefined,
         diachi: selectedAddressId.value ? undefined : shippingAddress,
         name: checkoutForm.value.name,

@@ -17,9 +17,8 @@
 import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import GlobalLoader from '@/components/Layout/TrinhTaiTrang.vue'
-import OfflineSyncManager from '@/components/Layout/OfflineSyncManager.vue'
-import { initGlobalDraftManager } from '@/services/offlineSync'
 const ChatbotWidget = defineAsyncComponent(() => import('@/components/Web/KhungChatbot.vue'))
+const OfflineSyncManager = defineAsyncComponent(() => import('@/components/Layout/OfflineSyncManager.vue'))
 const AdminChatWidget = defineAsyncComponent(() => import('@/components/Web/KhungChatAdmin.vue'))
 const ZaloWidget = defineAsyncComponent(() => import('@/components/Web/KhungZalo.vue'))
 const FloatingContactMenu = defineAsyncComponent(() => import('@/components/Web/TrinhMenuLienHeNoi.vue'))
@@ -52,7 +51,16 @@ const showLuckyWheel = computed(() => {
 })
 
 onMounted(() => {
-  initGlobalDraftManager(router)
+  const initDrafts = () => {
+    import('@/services/offlineSync')
+      .then(({ initGlobalDraftManager }) => initGlobalDraftManager(router))
+      .catch(() => {})
+  }
+  if ('requestIdleCallback' in window) {
+    window.requestIdleCallback(initDrafts, { timeout: 2200 })
+  } else {
+    window.setTimeout(initDrafts, 800)
+  }
   if ('scrollRestoration' in history) {
     history.scrollRestoration = 'manual'
   }

@@ -1,5 +1,6 @@
 import { ref } from 'vue'
-import swal from './swal'
+
+const getSwal = () => import('./swal').then((module) => module.default)
 
 export const isFormDirty = ref(false)
 
@@ -116,6 +117,7 @@ export const initUnsavedChangesGuard = (router) => {
       e.stopPropagation()
       e.preventDefault()
 
+      const swal = await getSwal()
       const confirmed = await swal.confirm(
         'Xác nhận quay lại',
         'Bạn đang có thay đổi chưa lưu trong form. Nếu quay lại, các dữ liệu đã nhập sẽ bị mất. Bạn vẫn muốn tiếp tục chứ?',
@@ -159,6 +161,7 @@ export const initUnsavedChangesGuard = (router) => {
       from.path.includes('/lien-he') ||
       from.path.includes('/contact')
     if ((isFromAdmin || isFromProfile) && isFormDirty.value) {
+      const swal = await getSwal()
       const confirmed = await swal.confirm(
         'Xác nhận rời trang',
         'Bạn đang có thay đổi chưa lưu trong form. Nếu rời đi, các dữ liệu đã nhập sẽ bị mất. Bạn vẫn muốn tiếp tục chứ?',

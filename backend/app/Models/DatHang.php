@@ -56,6 +56,12 @@ class DatHang extends Model
                 }
             }
         });
+
+        static::saved(function (DatHang $order) {
+            if ($order->wasChanged(['trangthai', 'trang_thai_thanh_toan'])) {
+                app(\App\Services\AffiliateCommissionService::class)->syncOrderStatus($order);
+            }
+        });
     }
 
     public function user()

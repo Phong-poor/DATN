@@ -24,6 +24,7 @@ import api from '../../services/api'
 import { getUser, clearAuth, getToken } from '@/services/auth'
 import { productImageUrl, storageUrl, withImageVersion } from '@/services/urls'
 import { prefetchProductsPage, getPrefetchedProductsData } from '@/services/productsPrefetch'
+import { preloadRoute } from '@/services/performanceWarmup'
 
 const router = useRouter()
 const route = useRoute()
@@ -962,13 +963,18 @@ const toggleUser = () => {
   const token = getToken()
   if (!token) { router.push('/login'); return }
   showUser.value = !showUser.value
-  if (showUser.value) showWishlist.value = false
+  if (showUser.value) {
+    showWishlist.value = false
+    if (isAdminAccount.value) warmAdmin()
+  }
 }
 
 const goAdmin = () => {
   showUser.value = false
   router.push('/admin')
 }
+
+const warmAdmin = () => preloadRoute('/admin')
 
 const handleOutside = (e) => {
   if (!e.target.closest('.dropdown-wrap') && !e.target.closest('.mega-nav-item')) {
@@ -1387,7 +1393,8 @@ const openLuckyWheelMobile = () => {
               </div>
               <div class="user-menu">
                 <template v-if="isAdminAccount">
-                  <button class="um-item admin" @click="goAdmin">
+                  <button class="um-item admin" @click="goAdmin" @pointerenter="warmAdmin" @focus="warmAdmin"
+                    @touchstart.passive="warmAdmin">
                     <span class="um-left">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3" />
@@ -3139,15 +3146,32 @@ const openLuckyWheelMobile = () => {
 }
 
 .um-item.admin {
-  background: rgba(99, 102, 241, 0.24);
-  border-color: rgba(129, 140, 248, 0.28);
-  color: #ede9fe;
+  min-height: 40px;
+  color: #dbeafe;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.34), rgba(79, 70, 229, 0.28));
+  border-color: rgba(96, 165, 250, 0.48);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 5px 14px rgba(30, 64, 175, 0.14);
+}
+
+.um-item.admin .um-left > svg {
+  color: #bfdbfe;
+  filter: drop-shadow(0 0 5px rgba(96, 165, 250, 0.32));
+}
+
+.um-item.admin > svg {
+  color: #bfdbfe;
 }
 
 .um-item.admin:hover {
-  background: rgba(99, 102, 241, 0.42);
-  border-color: rgba(167, 139, 250, 0.55);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.58), rgba(79, 70, 229, 0.48));
+  border-color: rgba(147, 197, 253, 0.78);
   color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 8px 18px rgba(30, 64, 175, 0.26);
 }
 
 .um-item.logout {
