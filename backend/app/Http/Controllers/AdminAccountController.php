@@ -318,7 +318,7 @@ class AdminAccountController extends Controller
             ->get()
             ->filter(function ($admin) {
                 $role = strtolower(trim((string)$admin->vaitro));
-                return in_array($role, ['admin', 'cskh']);
+                return $role !== 'user';
             })
             ->map(function ($admin) use ($onlineSince) {
                 // Xác định trạng thái online dựa trên thời gian hoạt động cuối (5 phút)

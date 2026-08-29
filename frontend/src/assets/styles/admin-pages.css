@@ -1103,12 +1103,18 @@ html[data-admin-theme='dark'] .ops-card:first-child .ops-copy>small {
 .admin-layout.theme-dark .empty-chat-pane,
 .admin-layout.theme-dark .left-card,
 .admin-layout.theme-dark .employee-registry,
-.admin-layout.theme-dark .payroll-panel,
-.admin-layout.theme-dark .dashboard-grid.verification-grid {
+.admin-layout.theme-dark .payroll-panel {
   border-color: var(--admin-border) !important;
   background: var(--admin-surface) !important;
   color: var(--admin-text) !important;
   box-shadow: var(--admin-shadow) !important;
+}
+
+.admin-layout.theme-dark .dashboard-grid.verification-grid {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
 }
 
 .admin-layout.theme-dark thead,
@@ -3426,11 +3432,11 @@ body.dark .generate-bar,
   body.theme-dark,
   body.dark,
   .dark) .category-tabs {
-  background: transparent !important;
-  border-bottom: 1px solid #1e293b !important;
-  box-shadow: none !important;
-  margin: -24px -20px 20px -20px !important;
+  background: #11161f !important;
+  border: 1px solid #28303d !important;
+  border-radius: 14px !important;
   padding: 12px 20px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3) !important;
 }
 
 :is(html[data-admin-theme='dark'],
@@ -3441,13 +3447,14 @@ body.dark .generate-bar,
   body.theme-dark,
   body.dark,
   .dark) .cat-tab {
-  background: transparent !important;
-  border: 1px solid transparent !important;
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
   color: #94a3b8 !important;
   border-radius: 10px !important;
-  padding: 9px 18px !important;
-  font-size: 13.5px !important;
+  padding: 9px 20px !important;
+  font-size: 14px !important;
   font-weight: 600 !important;
+  height: 40px !important;
   box-shadow: none !important;
   margin-bottom: 0 !important;
 }
@@ -3460,9 +3467,9 @@ body.dark .generate-bar,
   body.theme-dark,
   body.dark,
   .dark) .cat-tab:hover:not(:disabled) {
-  color: #60a5fa !important;
-  background: rgba(37, 99, 235, 0.12) !important;
-  border-color: transparent !important;
+  color: #f8fafc !important;
+  background: #1e2530 !important;
+  border-color: #3b424b !important;
 }
 
 :is(html[data-admin-theme='dark'],
@@ -3473,12 +3480,11 @@ body.dark .generate-bar,
   body.theme-dark,
   body.dark,
   .dark) .cat-tab.active {
-  color: #60a5fa !important;
-  background: #181d24 !important;
-  border: 1px solid #3b424b !important;
-  border-color: #3b424b !important;
+  color: #ffffff !important;
+  background: #2563eb !important;
+  border-color: #2563eb !important;
   font-weight: 700 !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35) !important;
 }
 
 :is(html[data-admin-theme='dark'],
@@ -4089,4 +4095,194 @@ body.dark .generate-bar,
   background: #181d24 !important;
   border-bottom-left-radius: 16px !important;
   border-bottom-right-radius: 16px !important;
+}
+
+/* ============================================================
+/* ============================================================
+   Category Tabs Bar (.category-tabs) - Styled like Kỳ Thống Kê
+   ============================================================ */
+.admin-layout .category-tabs {
+  position: sticky;
+  top: 0px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: calc(100% + 48px);
+  margin: -24px -24px 20px -24px;
+  padding: 10px 24px 12px 24px;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.92);
+  background: rgba(244, 247, 251, 0.94);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: top 0.28s cubic-bezier(.4, 0, .2, 1), background-color 0.28s ease, border-color 0.28s ease;
+  isolation: isolate;
+}
+
+:is(.admin-layout:not(.admin-header-hidden)) .category-tabs {
+  top: 59px;
+}
+
+.admin-layout .category-tab-list {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+.admin-layout .cat-tab {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 9px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  transition: all 0.2s ease;
+  box-shadow: none;
+}
+
+.admin-layout .cat-tab:hover {
+  color: #2563eb;
+  border-color: #2563eb;
+  background: rgba(37, 99, 235, 0.06);
+}
+
+.admin-layout .cat-tab.active {
+  color: #ffffff;
+  background: #2563eb;
+  border-color: #2563eb;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.admin-layout .category-tabs > .btn-export {
+  flex-shrink: 0;
+  margin-bottom: 0;
+  transition: all 0.2s ease;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  padding: 9px 18px;
+  border-radius: 10px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.admin-layout .category-tabs > .btn-export:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+/* Category Tabs Bar - Dark Mode Overrides */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .category-tabs {
+  background: rgba(11, 15, 25, 0.85) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3) !important;
+  border-radius: 0 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .category-tab-list {
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .cat-tab {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  color: #94a3b8 !important;
+  border-radius: 10px !important;
+  padding: 9px 20px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  height: 40px !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .cat-tab:hover {
+  color: #60a5fa !important;
+  background: #202732 !important;
+  border-color: #3b424b !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .cat-tab.active {
+  color: #ffffff !important;
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .category-tabs > .btn-export {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  color: #e2e8f0 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .category-tabs > .btn-export:hover {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  color: #ffffff !important;
 }
