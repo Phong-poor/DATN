@@ -1,5 +1,5 @@
 <template>
-    <div class="page">
+    <div class="page reviews-page">
         <div class="container">
 
             <!-- -- Top Header -- -->
@@ -1388,5 +1388,53 @@ td {
     opacity: 0;
     transform: translateY(30px);
 }
+/* Dark mode: keep review data readable against the admin table background. */
+:global(.admin-layout.theme-dark .reviews-page .table-title) {
+    color: #f8fafc;
+}
+
+:global(.admin-layout.theme-dark .reviews-page .table-header) {
+    border-bottom-color: #3b4656;
+}
+
+:global(.admin-layout.theme-dark .reviews-page .tab-btn) {
+    border-color: #526071;
+    background: #1c222b;
+    color: #dbe4ef;
+}
+
+:global(.admin-layout.theme-dark .reviews-page .tab-btn:hover),
+:global(.admin-layout.theme-dark .reviews-page .tab-btn.active) {
+    border-color: #60a5fa;
+    background: #1d4ed8;
+    color: #ffffff;
+}
+
+:global(.admin-layout.theme-dark .reviews-page th) {
+    color: #d7e0eb !important;
+}
+
+:global(.admin-layout.theme-dark .reviews-page .customer-name) {
+    color: #f8fafc !important;
+}
+
+:global(.admin-layout.theme-dark .reviews-page .customer-name.anonymous),
+:global(.admin-layout.theme-dark .reviews-page .customer-email) {
+    color: #b8c7d9 !important;
+}
+
+:global(.admin-layout.theme-dark .reviews-page .product-link) {
+    color: #bfdbfe !important;
+}
+
+:global(.admin-layout.theme-dark .reviews-page .review-text),
+:global(.admin-layout.theme-dark .reviews-page .date-text) {
+    color: #d1dbe8 !important;
+}
+
+:global(.admin-layout.theme-dark .reviews-page .star-icon.empty) {
+    color: #64748b;
+}
+
 </style>
 

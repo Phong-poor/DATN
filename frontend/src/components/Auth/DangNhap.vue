@@ -3,7 +3,7 @@ import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
 import api from '@/services/api'
-import { getUser, saveAuth } from '@/services/auth'
+import { getDeviceFingerprint, getUser, saveAuth } from '@/services/auth'
 import { formatAuthMessage } from '@/services/authMessages'
 import { validateEmail, normalizeEmail } from '@/services/authValidation'
 
@@ -96,6 +96,7 @@ const loginGoogle = () => {
   }
   const refCode = localStorage.getItem('affiliate_ref') || ''
   const params = new URLSearchParams({ frontend_url: window.location.origin })
+  params.set('device', getDeviceFingerprint())
   if (refCode) params.set('ref', refCode)
   const endpoint = `/auth/google?${params.toString()}`
   setTimeout(() => {

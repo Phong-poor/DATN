@@ -2,6 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api from '@/services/api'
+import { getDeviceFingerprint } from '@/services/auth'
 import { formatAuthMessage } from '@/services/authMessages'
 import {
   getPasswordRequirements,
@@ -217,6 +218,7 @@ const handleRegister = async () => {
 const loginGoogle = () => {
   const refCode = localStorage.getItem('affiliate_ref') || ''
   const params = new URLSearchParams({ frontend_url: window.location.origin })
+  params.set('device', getDeviceFingerprint())
   if (refCode) params.set('ref', refCode)
   const endpoint = `/auth/google?${params.toString()}`
   window.location.href = `${api.defaults.baseURL}${endpoint}`

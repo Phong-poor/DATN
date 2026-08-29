@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { clearAuth, getToken, updateUser } from './auth'
+import { clearAuth, getDeviceFingerprint, getToken, updateUser } from './auth'
 import { apiBaseUrl } from './urls'
 
 const api = axios.create({
@@ -84,6 +84,7 @@ const getCacheKey = (url, config = {}) => {
 }
 
 api.interceptors.request.use((config) => {
+  config.headers['X-Device-Fingerprint'] = getDeviceFingerprint()
   const method = config.method?.toLowerCase?.()
   if (method && method !== 'get' && config.invalidateCache !== false) {
     clearApiGetCache()

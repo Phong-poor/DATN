@@ -13,6 +13,37 @@ export function normalizeAuthUser(user) {
   }
 }
 
+function hashDeviceSeed(seed, offset) {
+  let hash = (0x811c9dc5 ^ offset) >>> 0
+  for (let index = 0; index < seed.length; index += 1) {
+    hash ^= seed.charCodeAt(index)
+    hash = Math.imul(hash, 0x01000193) >>> 0
+  }
+  return hash.toString(16).padStart(8, '0')
+}
+
+// Deliberately excludes the user-agent so Chrome, Cốc Cốc, Edge, etc. on the
+// same computer resolve to one machine slot.
+export function getDeviceFingerprint() {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+    return '0000000000000000'
+  }
+
+  const screenInfo = window.screen || {}
+  const seed = [
+    navigator.platform || 'unknown',
+    screenInfo.width || 0,
+    screenInfo.height || 0,
+    screenInfo.colorDepth || 0,
+    Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown',
+    navigator.hardwareConcurrency || 0,
+    navigator.deviceMemory || 0,
+    navigator.maxTouchPoints || 0,
+  ].join('|').toLowerCase()
+
+  return `${hashDeviceSeed(seed, 0)}${hashDeviceSeed(seed, 0x9e3779b9)}`
+}
+
 const disposableCachePrefixes = [
   'nextgen_product_detail_cache_',
   'nextgen_news_detail_cache_',

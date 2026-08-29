@@ -25,12 +25,42 @@ use Laravel\Socialite\Facades\Socialite;
 class AuthController extends Controller
 {
     private const TWO_FACTOR_CHALLENGE_TTL = 300;
+    private const MAX_DEVICE_SESSIONS = 3;
 
-    private function issueSingleSessionToken($user, string $tokenName = 'session_token'): string
+    private function deviceFingerprint(Request $request, ?string $provided = null): string
     {
-        $user->tokens()->delete();
+        $fingerprint = strtolower(trim((string) ($provided ?: $request->header('X-Device-Fingerprint', ''))));
+        if (preg_match('/^[a-f0-9]{16,64}$/', $fingerprint) === 1) {
+            return $fingerprint;
+        }
 
-        return $user->createToken($tokenName)->plainTextToken;
+        return hash('sha256', $request->ip().'|'.(string) $request->userAgent());
+    }
+
+    private function issueDeviceSessionToken(Request $request, $user, string $sessionType = 'session', ?string $providedFingerprint = null): string
+    {
+        $fingerprint = $this->deviceFingerprint($request, $providedFingerprint);
+        $devicePrefix = 'device:'.$fingerprint.':';
+
+        // Remove tokens from the old single-session scheme during migration.
+        $user->tokens()->where('name', 'not like', 'device:%')->delete();
+
+        // A machine owns only one browser session. A login from another browser
+        // with the same machine fingerprint replaces the previous browser token.
+        $user->tokens()->where('name', 'like', $devicePrefix.'%')->delete();
+
+        $deviceTokens = $user->tokens()
+            ->where('name', 'like', 'device:%')
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get();
+
+        while ($deviceTokens->count() >= self::MAX_DEVICE_SESSIONS) {
+            $oldest = $deviceTokens->shift();
+            $oldest?->delete();
+        }
+
+        return $user->createToken($devicePrefix.$sessionType)->plainTextToken;
     }
 
     private function frontendUrl(string $path, array $query = []): string
@@ -49,12 +79,13 @@ class AuthController extends Controller
         return $user->vaitro !== 'user' && $user->hasEnabledTwoFactorAuthentication();
     }
 
-    private function createTwoFactorChallenge($user, bool $remember = false): string
+    private function createTwoFactorChallenge($user, bool $remember = false, ?string $deviceFingerprint = null): string
     {
         $plainToken = Str::random(64);
         Cache::put('admin-2fa-challenge:'.hash('sha256', $plainToken), [
             'user_id' => $user->id,
             'remember' => $remember,
+            'device_fingerprint' => $deviceFingerprint,
             'attempts' => 0,
         ], now()->addSeconds(self::TWO_FACTOR_CHALLENGE_TTL));
 
@@ -109,7 +140,12 @@ class AuthController extends Controller
 
         Cache::forget($cacheKey);
         $remember = (bool) ($challenge['remember'] ?? false);
-        $token = $this->issueSingleSessionToken($user, $remember ? 'remember_token' : 'session_token');
+        $token = $this->issueDeviceSessionToken(
+            $request,
+            $user,
+            $remember ? 'remember' : 'session',
+            $challenge['device_fingerprint'] ?? null
+        );
 
         return response()->json([
             'message' => 'Xác thực hai lớp thành công.',
@@ -291,18 +327,22 @@ class AuthController extends Controller
             return response()->json([
                 'message' => 'Vui lòng nhập mã xác thực hai lớp.',
                 'two_factor_required' => true,
-                'challenge_token' => $this->createTwoFactorChallenge($user, (bool) ($validated['remember'] ?? false)),
+                'challenge_token' => $this->createTwoFactorChallenge(
+                    $user,
+                    (bool) ($validated['remember'] ?? false),
+                    $this->deviceFingerprint($request)
+                ),
                 'expires_in' => self::TWO_FACTOR_CHALLENGE_TTL,
             ]);
         }
 
-        $tokenName = 'remember_token';
-        $token = $this->issueSingleSessionToken($user, $tokenName);
+        $remember = (bool) ($validated['remember'] ?? false);
+        $token = $this->issueDeviceSessionToken($request, $user, $remember ? 'remember' : 'session');
 
         return response()->json([
             'message' => 'Đăng nhập thành công.',
             'token' => $token,
-            'remember' => true,
+            'remember' => $remember,
             'user' => $user,
         ]);
     }
@@ -366,8 +406,10 @@ class AuthController extends Controller
             }
             $encodedRedirect = rtrim(strtr(base64_encode($mobileRedirect), '+/', '-_'), '=');
             $driver->with(['state' => 'mobile|'.$encodedRedirect.'|'.strtoupper((string) $request->query('ref', ''))]);
-        } elseif ($request->has('ref')) {
-            $driver->with(['state' => $request->query('ref')]);
+        } else {
+            $device = $this->deviceFingerprint($request, (string) $request->query('device', ''));
+            $refCode = strtoupper((string) $request->query('ref', ''));
+            $driver->with(['state' => 'web|'.$device.'|'.$refCode]);
         }
 
         return $driver->redirect();
@@ -378,6 +420,10 @@ class AuthController extends Controller
         $oauthState = (string) $request->query('state', '');
         $isMobile = str_starts_with($oauthState, 'mobile|');
         $mobileState = $isMobile ? explode('|', $oauthState, 3) : [];
+        $isWeb = str_starts_with($oauthState, 'web|');
+        $webState = $isWeb ? explode('|', $oauthState, 3) : [];
+        $webDevice = $webState[1] ?? null;
+        $webRef = $webState[2] ?? ($isWeb ? '' : $oauthState);
         $encodedRedirect = $mobileState[1] ?? '';
         $mobileRedirect = $encodedRedirect
             ? base64_decode(strtr($encodedRedirect, '-_', '+/').str_repeat('=', (4 - strlen($encodedRedirect) % 4) % 4))
@@ -424,7 +470,7 @@ class AuthController extends Controller
                 ]);
 
                 // Record referral code if present in the state parameter
-                $refCode = $isMobile ? ($mobileState[2] ?? '') : $oauthState;
+                $refCode = $isMobile ? ($mobileState[2] ?? '') : $webRef;
                 if (! empty($refCode)) {
                     $refCode = strtoupper($refCode);
                     $profile = AffiliateProfile::where('ma_affiliate', $refCode)
@@ -460,7 +506,11 @@ class AuthController extends Controller
         }
 
         if ($this->requiresTwoFactor($user)) {
-            $challenge = $this->createTwoFactorChallenge($user);
+            $challenge = $this->createTwoFactorChallenge(
+                $user,
+                true,
+                $isMobile ? null : $this->deviceFingerprint($request, $webDevice)
+            );
             if ($isMobile) {
                 return redirect($mobileRedirect.'?'.http_build_query(['two_factor_required' => 1, 'challenge' => $challenge]));
             }
@@ -468,7 +518,12 @@ class AuthController extends Controller
             return redirect($this->frontendUrl('/xac-thuc-2fa', ['challenge' => $challenge]));
         }
 
-        $token = $this->issueSingleSessionToken($user, 'auth_token');
+        $token = $this->issueDeviceSessionToken(
+            $request,
+            $user,
+            'remember',
+            $isMobile ? null : $webDevice
+        );
         if ($isMobile) {
             return redirect($mobileRedirect.'?'.http_build_query(['token' => $token, 'provider' => 'google']));
         }

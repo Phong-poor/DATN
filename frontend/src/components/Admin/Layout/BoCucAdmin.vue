@@ -838,8 +838,13 @@ async function handleLogout() {
   )
   if (!isConfirmed) return
   userMenuOpen.value = false
-  api.post('/logout').catch((err) => console.log('Logout API lỗi (bỏ qua):', err))
-  clearAuth()
+  try {
+    await api.post('/logout', null, { timeout: 5000 })
+  } catch (err) {
+    console.warn('Không thể xác nhận thu hồi phiên admin với server:', err?.message)
+  } finally {
+    clearAuth()
+  }
   router.push('/dang-nhap')
 }
 
