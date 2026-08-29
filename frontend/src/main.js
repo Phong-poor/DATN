@@ -66,14 +66,88 @@ const tryRecoverAdminRuntime = (event) => {
   sessionStorage.setItem(ADMIN_RECOVERY_KEY, '1')
   reloadAdminWithCacheBust('chunk')
 }
+const IMAGE_RETRY_DELAYS = [180, 700]
+
+const appendImageRetryVersion = (source, attempt) => {
+  if (!source || source.startsWith('data:') || source.startsWith('blob:')) return source
+
+  try {
+    const url = new URL(source, window.location.href)
+    url.searchParams.set('_image_retry', `${attempt}-${Date.now()}`)
+    return url.href
+  } catch (_) {
+    return source
+  }
+}
+
+const wakeVisibleImages = (root = document) => {
+  const images = root instanceof HTMLImageElement
+    ? [root]
+    : [...(root.querySelectorAll?.('img') || [])]
+
+  images.forEach((image) => {
+    const rect = image.getBoundingClientRect()
+    const nearViewport = rect.bottom >= -window.innerHeight && rect.top <= window.innerHeight * 2
+    if (nearViewport && image.loading === 'lazy' && !image.complete) {
+      image.loading = 'eager'
+    }
+  })
+}
+
+window.addEventListener('load', (event) => {
+  const target = event.target
+  if (!(target instanceof HTMLImageElement)) return
+  if (target.src === FALLBACK_IMAGE) return
+
+  delete target.dataset.imageRetryCount
+  delete target.dataset.imageFailedSrc
+  delete target.dataset.fallbackApplied
+}, true)
+
 window.addEventListener('error', (event) => {
   const target = event.target
   if (!(target instanceof HTMLImageElement)) return
-  if (target.dataset.fallbackApplied === '1') return
 
+  const failedSrc = target.currentSrc || target.src
+  if (!failedSrc || failedSrc === FALLBACK_IMAGE || failedSrc.startsWith('data:') || failedSrc.startsWith('blob:')) {
+    return
+  }
+
+  const attempt = Number(target.dataset.imageRetryCount || 0)
+  target.dataset.imageFailedSrc = failedSrc
+
+  if (attempt < IMAGE_RETRY_DELAYS.length) {
+    target.dataset.imageRetryCount = String(attempt + 1)
+    window.setTimeout(() => {
+      if (!target.isConnected || target.complete && target.naturalWidth > 0) return
+
+      // A component may have supplied its own fallback while we waited.
+      const currentSrc = target.currentSrc || target.src
+      if (currentSrc !== failedSrc && !currentSrc.includes('_image_retry=')) return
+
+      target.src = appendImageRetryVersion(failedSrc, attempt + 1)
+      target.loading = 'eager'
+    }, IMAGE_RETRY_DELAYS[attempt])
+    return
+  }
+
+  if (target.dataset.fallbackApplied === '1') return
   target.dataset.fallbackApplied = '1'
   target.src = FALLBACK_IMAGE
 }, true)
+
+const imageObserver = new MutationObserver((entries) => {
+  entries.forEach((entry) => {
+    entry.addedNodes.forEach((node) => {
+      if (node instanceof HTMLElement) wakeVisibleImages(node)
+    })
+  })
+})
+
+imageObserver.observe(document.documentElement, { childList: true, subtree: true })
+window.addEventListener('DOMContentLoaded', () => wakeVisibleImages())
+window.addEventListener('pageshow', () => window.setTimeout(() => wakeVisibleImages(), 80))
+window.addEventListener('scroll', () => wakeVisibleImages(), { passive: true })
 
 window.addEventListener('error', tryRecoverAdminRuntime)
 window.addEventListener('unhandledrejection', tryRecoverAdminRuntime)
@@ -111,7 +185,9 @@ installI18n(router)
 
 // Đồng bộ đăng nhập/đăng xuất giữa các tab
 window.addEventListener('storage', (event) => {
-  if (event.key === 'logout-event') {
+  // setItem + removeItem emit two storage events. Process only the event that
+  // carries a payload so other tabs do not clear and redirect twice.
+  if (event.key === 'logout-event' && event.newValue) {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     sessionStorage.removeItem('token')

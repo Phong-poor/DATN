@@ -119,11 +119,11 @@ const laptopLines = [
 
 const accessoryLines = [
   { key: 'all', label: 'Tất cả phụ kiện', icon: Headphones, q: '' },
-  { key: 'mouse', label: 'Chuột', icon: Zap, q: 'chuot mouse' },
-  { key: 'keyboard', label: 'Bàn phím', icon: Monitor, q: 'ban phim keyboard' },
-  { key: 'headphone', label: 'Tai nghe', icon: Headphones, q: 'tai nghe headphone' },
-  { key: 'pad', label: 'Lót chuột', icon: ShieldCheck, q: 'lot chuot mousepad' },
-  { key: 'other', label: 'Phụ kiện khác', icon: SlidersHorizontal, q: 'o cung ram main nguon case hub cap ugreen' },
+  { key: 'mouse', label: 'Chuột', icon: Mouse, q: 'chuot mouse', image: '/elite_accessories.png' },
+  { key: 'keyboard', label: 'Bàn phím', icon: Keyboard, q: 'ban phim keyboard', image: '/hero_gaming_parts.png' },
+  { key: 'headphone', label: 'Tai nghe', icon: Headphones, q: 'tai nghe headphone', image: '/Gemini_Generated_Image_571jyz571jyz571j.png' },
+  { key: 'pad', label: 'Lót chuột', icon: Monitor, q: 'lot chuot mousepad', image: '/hero_macbook_setup.png' },
+  { key: 'other', label: 'Phụ kiện khác', icon: SlidersHorizontal, q: 'o cung ram main nguon case hub cap ugreen', image: '/elite_workspace.png' },
 ]
 
 const activeLinesList = computed(() => isAccessoryPage.value ? accessoryLines : laptopLines.filter(line => line.key !== 'accessory'))
@@ -508,6 +508,14 @@ const selectLine = (line) => {
   currentPage.value = 1
 }
 
+const selectAccessoryCategory = (line) => {
+  searchQuery.value = ''
+  selectedBrands.value = []
+  selectedCpus.value = []
+  selectLine(line.key)
+  scrollToCatalog()
+}
+
 const selectHeroCategory = (category) => {
   activeLine.value = category.line || 'all'
   searchQuery.value = category.q || ''
@@ -754,11 +762,18 @@ onMounted(() => {
         <div class="lp-hero-panel">
           <div class="hero-copy">
             <span class="hero-kicker">{{ isAccessoryPage ? 'Phụ kiện cao cấp' : 'Công nghệ gaming' }}</span>
-            <h1>{{ isAccessoryPage ? 'Trải nghiệm đỉnh cao Phụ kiện cực chất' : 'Hiệu năng đỉnh cao Chơi game cực chất' }}</h1>
-            <p>{{ isAccessoryPage ? 'Khám phá chuột, bàn phím, tai nghe chính hãng với chất lượng vượt trội.' : 'Khám phá các mẫu laptop gaming chính hãng với hiệu năng mạnh mẽ, màn hình tốc độ cao và thiết kế đậm chất game thủ.' }}</p>
-            <div class="hero-actions">
-              <button @click="isAccessoryPage ? selectLine('all') : selectLine('gaming')">Mua ngay</button>
+            <h1>{{ isAccessoryPage ? 'Nâng cấp góc máy. Bật chất riêng.' : 'Hiệu năng đỉnh cao Chơi game cực chất' }}</h1>
+            <p>{{ isAccessoryPage ? 'Tuyển chọn gear chính hãng cho một góc máy đồng bộ, tinh gọn và đúng phong cách của bạn.' : 'Khám phá các mẫu laptop gaming chính hãng với hiệu năng mạnh mẽ, màn hình tốc độ cao và thiết kế đậm chất game thủ.' }}</p>
+            <div v-if="!isAccessoryPage" class="hero-actions">
+              <button @click="selectLine('gaming')">Mua ngay</button>
               <button class="secondary" @click="router.push('/khuyen-mai')">Xem ưu đãi</button>
+            </div>
+            <div v-if="isAccessoryPage" class="hero-gear-notes" aria-label="Cam kết phụ kiện NextGen">
+              <span><strong>100%</strong> Chính hãng</span>
+              <i></i>
+              <span><strong>7 ngày</strong> Đổi trả</span>
+              <i></i>
+              <span><strong>1:1</strong> Tư vấn setup</span>
             </div>
           </div>
         </div>
@@ -772,6 +787,37 @@ onMounted(() => {
             </div>
           </article>
         </section>
+      </div>
+    </section>
+
+    <section v-if="isAccessoryPage" class="accessory-studio" aria-labelledby="accessory-studio-title">
+      <div class="accessory-studio-copy">
+        <span class="studio-eyebrow">BUILD YOUR DESK</span>
+        <h2 id="accessory-studio-title">Hoàn thiện góc máy theo chất riêng</h2>
+        <p>Chọn nhanh nhóm gear bạn cần, phối trọn bộ dễ hơn và tối ưu ngân sách cho từng phong cách setup.</p>
+        <button type="button" @click="selectLine('all')">
+          Khám phá tất cả phụ kiện
+          <ChevronRight />
+        </button>
+      </div>
+
+      <div class="accessory-category-grid">
+        <button
+          v-for="(line, index) in accessoryLines.slice(1)"
+          :key="line.key"
+          type="button"
+          class="accessory-category-card"
+          :class="`category-tone-${index + 1}`"
+          :style="{ '--category-image': `url('${line.image}')` }"
+          :aria-pressed="activeLine === line.key"
+          @click="selectAccessoryCategory(line)"
+        >
+          <span class="category-icon"><component :is="line.icon" /></span>
+          <span class="category-meta">0{{ index + 1 }} / GEAR</span>
+          <strong>{{ line.label }}</strong>
+          <small>{{ lineCount(line.key) }} sản phẩm</small>
+          <span class="category-arrow"><ChevronRight /></span>
+        </button>
       </div>
     </section>
 
@@ -1010,15 +1056,19 @@ onMounted(() => {
 
     <section v-if="isAccessoryPage" id="combos-section" class="lp-combos">
       <div class="combos-header">
-        <span class="ambient-label">🎁 Combo Độc Quyền</span>
-        <h2>MUA KÈM GIÁ SỐC - TIẾT KIỆM TỐI ĐA</h2>
-        <p class="section-sub">Sở hữu trọn bộ trang bị chuyên nghiệp cho lập trình viên và game thủ với mức chiết khấu cực sâu.</p>
+        <div class="combo-heading-mark">
+          <span class="ambient-label">NEXTGEN EXCLUSIVE</span>
+          <span class="combo-drop">COMBO DROP / 2026</span>
+        </div>
+        <h2>Gear hợp gu.<br />Giá tốt hơn khi đi cùng nhau.</h2>
+        <p class="section-sub">Những bộ phụ kiện được tuyển chọn để đồng bộ trải nghiệm, tối ưu hiệu suất và tiết kiệm hơn so với mua lẻ.</p>
       </div>
 
       <div class="combos-bento-layout" v-if="combos && combos.length">
         <div v-for="combo in combos" :key="combo.id_combo" class="combo-bento-card">
           <div class="combo-main-content">
             <div class="combo-details">
+              <span class="combo-card-label">CURATED SET · {{ combo.products?.length || 0 }} SẢN PHẨM</span>
               <span class="combo-discount-badge" v-if="getOriginalPrice(combo) > combo.giakhuyenmai">
                 Tiết kiệm {{ formatPrice(getOriginalPrice(combo) - combo.giakhuyenmai) }}
               </span>
@@ -1036,8 +1086,14 @@ onMounted(() => {
                 </div>
               </div>
 
+              <div class="combo-perks">
+                <span><BadgeCheck /> Chính hãng</span>
+                <span><Truck /> Giao nhanh</span>
+                <span><ShieldCheck /> Đổi trả 7 ngày</span>
+              </div>
+
               <button type="button" class="combo-action-btn" @click="openCombo(combo)">
-                Mua Trọn Bộ Combo
+                Xem và chọn cấu hình
                 <ChevronRight class="btn-chevron" />
               </button>
             </div>
@@ -1054,10 +1110,35 @@ onMounted(() => {
           </div>
         </div>
       </div>
-      <div v-else class="combo-empty-state">
-        <div class="combo-empty-icon">🎁</div>
-        <h3>Combo phụ kiện giá sốc đang được cập nhật</h3>
-        <p>Hiện chưa có gói combo nào trong hệ thống. Vui lòng thêm combo trong trang quản trị.</p>
+      <div v-else class="combo-empty-state combo-concept-state">
+        <div class="combo-concept-intro">
+          <span class="combo-index">NEXTGEN CURATED / 03 SETUPS</span>
+          <h3>Chọn phong cách, chúng tôi giúp bạn phối gear</h3>
+          <p>Các combo chính thức đang được cập nhật. Trong lúc chờ, hãy bắt đầu từ phong cách setup phù hợp nhất với bạn.</p>
+        </div>
+        <div class="combo-concept-grid">
+          <button type="button" class="concept-card concept-gaming" @click="selectLine('mouse')">
+            <span class="concept-no">01</span>
+            <span class="concept-icon"><Mouse /></span>
+            <strong>Competitive</strong>
+            <small>Phản hồi nhanh · RGB · Hiệu suất</small>
+            <span class="concept-link">Khám phá gear <ChevronRight /></span>
+          </button>
+          <button type="button" class="concept-card concept-work" @click="selectLine('keyboard')">
+            <span class="concept-no">02</span>
+            <span class="concept-icon"><Keyboard /></span>
+            <strong>Creator Desk</strong>
+            <small>Tối giản · Êm ái · Tập trung</small>
+            <span class="concept-link">Khám phá gear <ChevronRight /></span>
+          </button>
+          <button type="button" class="concept-card concept-mobile" @click="selectLine('other')">
+            <span class="concept-no">03</span>
+            <span class="concept-icon"><Headphones /></span>
+            <strong>Everyday Carry</strong>
+            <small>Gọn nhẹ · Linh hoạt · Kết nối</small>
+            <span class="concept-link">Khám phá gear <ChevronRight /></span>
+          </button>
+        </div>
       </div>
     </section>
 
@@ -4088,6 +4169,361 @@ onMounted(() => {
   margin-bottom: 12px;
 }
 
+/* Accessories experience: retain the page body color while giving the route
+   its own premium, setup-focused information hierarchy. */
+.laptop-page.is-accessory-page {
+  display: flex;
+  flex-direction: column;
+  background: #f4f7fb;
+}
+
+.is-accessory-page > .lp-hero { order: 1; }
+.is-accessory-page > .accessory-studio { order: 2; }
+.is-accessory-page > .lp-combos { order: 3; }
+.is-accessory-page > .lp-brands { order: 4; }
+.is-accessory-page > .lp-flagship { order: 5; }
+.is-accessory-page > .lp-catalog { order: 6; }
+
+.is-accessory-page .lp-hero {
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 16px;
+}
+
+.is-accessory-page .lp-sidebar {
+  border-color: #dbe5f2;
+  border-radius: 20px;
+  padding: 18px 16px;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(59, 130, 246, .09), transparent 34%),
+    #ffffff;
+}
+
+.is-accessory-page .lp-sidebar h3 {
+  color: #0f172a;
+  letter-spacing: .08em;
+  text-transform: uppercase !important;
+}
+
+.is-accessory-page .lp-hero .line-btn {
+  min-height: 48px;
+  height: 48px;
+  padding: 0 10px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.is-accessory-page .lp-hero .line-btn:hover,
+.is-accessory-page .lp-hero .line-btn.active {
+  background: #eaf2ff;
+  box-shadow: inset 3px 0 #2563eb;
+  transform: translateX(2px);
+}
+
+.is-accessory-page .lp-hero-panel {
+  border-radius: 22px;
+  background:
+    linear-gradient(90deg, rgba(2, 6, 23, .96) 0%, rgba(8, 15, 34, .82) 46%, rgba(15, 23, 42, .28) 76%),
+    url('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1600&q=85') center/cover;
+  box-shadow: 0 24px 54px rgba(15, 23, 42, .18);
+}
+
+.is-accessory-page .lp-hero-panel::before {
+  content: 'PERIPHERAL / 2026';
+  position: absolute;
+  top: 24px;
+  right: 26px;
+  z-index: 2;
+  color: rgba(255, 255, 255, .72);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .2em;
+}
+
+.is-accessory-page .lp-hero .hero-copy {
+  width: min(570px, 62%);
+  padding: 60px 48px 50px;
+}
+
+.is-accessory-page .lp-hero .hero-copy h1 {
+  max-width: 520px;
+  font-size: clamp(30px, 3.35vw, 48px);
+  line-height: 1.02;
+  letter-spacing: -.045em;
+}
+
+.is-accessory-page .lp-hero .hero-copy p {
+  max-width: 510px;
+  color: #dbeafe;
+  font-size: 13px;
+}
+
+.is-accessory-page .lp-hero .hero-actions button {
+  height: 44px;
+  padding-inline: 24px;
+  border-radius: 12px;
+}
+
+.is-accessory-page .lp-services article {
+  border-radius: 14px;
+  border-color: #dce6f3;
+}
+
+.accessory-studio {
+  width: 100%;
+  padding: clamp(38px, 5vw, 76px) clamp(28px, 5vw, 96px);
+  display: grid;
+  grid-template-columns: minmax(250px, .72fr) minmax(0, 1.8fr);
+  gap: clamp(28px, 4vw, 64px);
+  align-items: center;
+}
+
+.accessory-studio-copy .studio-eyebrow {
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .2em;
+}
+
+.accessory-studio-copy h2 {
+  margin: 12px 0 14px;
+  max-width: 390px;
+  color: #0f172a;
+  font-size: clamp(28px, 3.2vw, 46px) !important;
+  line-height: 1.05;
+  letter-spacing: -.04em;
+}
+
+.accessory-studio-copy p {
+  max-width: 400px;
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.accessory-studio-copy button {
+  margin-top: 24px;
+  border: 0;
+  background: transparent;
+  color: #0f172a;
+  padding: 0 0 6px;
+  border-bottom: 2px solid #2563eb;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.accessory-studio-copy button svg,
+.category-arrow svg {
+  width: 16px;
+  height: 16px;
+}
+
+.accessory-category-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.accessory-category-card {
+  min-height: 210px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #dbe5f2;
+  border-radius: 18px;
+  padding: 18px 16px;
+  background: #ffffff;
+  color: #0f172a;
+  text-align: left;
+  cursor: pointer;
+  transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+}
+
+.accessory-category-card::after {
+  content: '';
+  position: absolute;
+  width: 90px;
+  height: 90px;
+  right: -35px;
+  bottom: -38px;
+  border-radius: 50%;
+  background: var(--category-glow, #dbeafe);
+  opacity: .7;
+}
+
+.accessory-category-card:hover {
+  z-index: 2;
+  border-color: #93c5fd;
+  transform: translateY(-8px);
+  box-shadow: 0 22px 38px rgba(15, 23, 42, .12);
+}
+
+.category-tone-2 { --category-glow: #ede9fe; }
+.category-tone-3 { --category-glow: #cffafe; }
+.category-tone-4 { --category-glow: #ffedd5; }
+.category-tone-5 { --category-glow: #d1fae5; }
+
+.category-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: #edf4ff;
+  color: #2563eb;
+}
+
+.category-icon svg { width: 22px; height: 22px; }
+.category-meta {
+  display: block;
+  margin-top: 30px;
+  color: #94a3b8;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .14em;
+}
+.accessory-category-card strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 14px;
+}
+.accessory-category-card small { color: #64748b; font-size: 11px; }
+.category-arrow {
+  position: absolute;
+  right: 15px;
+  top: 18px;
+  color: #94a3b8;
+}
+
+.is-accessory-page .lp-combos {
+  width: calc(100% - clamp(56px, 10vw, 192px));
+  margin: 0 auto clamp(38px, 5vw, 72px);
+  padding: clamp(30px, 4vw, 58px);
+  border: 0;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 88% 0%, rgba(59, 130, 246, .28), transparent 28%),
+    linear-gradient(135deg, #07111f, #111f35 62%, #0c1728);
+  box-shadow: 0 28px 65px rgba(15, 23, 42, .2);
+}
+
+.is-accessory-page .combos-header {
+  max-width: 760px;
+  margin: 0 auto 34px;
+}
+
+.is-accessory-page .combos-header h2 {
+  color: #ffffff;
+  font-size: clamp(28px, 3.4vw, 44px) !important;
+  line-height: 1.05;
+  letter-spacing: -.035em;
+}
+
+.is-accessory-page .combos-header .section-sub { color: #aebed2; }
+.is-accessory-page .combos-header .ambient-label {
+  border: 1px solid rgba(147, 197, 253, .35);
+  background: rgba(37, 99, 235, .2);
+  color: #bfdbfe;
+  padding: 7px 14px;
+}
+
+.is-accessory-page .combos-bento-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.is-accessory-page .combo-bento-card {
+  padding: 22px;
+  border-color: rgba(148, 163, 184, .22);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, .96);
+}
+
+.is-accessory-page .combo-bento-card:hover {
+  border-color: #60a5fa;
+  transform: translateY(-5px);
+  box-shadow: 0 22px 44px rgba(0, 0, 0, .24);
+}
+
+.is-accessory-page .combo-main-content {
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+
+.is-accessory-page .combo-details h3 { font-size: 20px !important; }
+.is-accessory-page .combo-visual-connector {
+  order: -1;
+  min-height: 160px;
+  border: 0;
+  background: linear-gradient(145deg, #f7faff, #edf3fb);
+}
+.is-accessory-page .node-image-box {
+  width: 92px;
+  height: 92px;
+  border: 0;
+  background: #ffffff;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, .08);
+}
+.is-accessory-page .combo-action-btn {
+  min-height: 44px;
+  border-radius: 12px;
+  padding-inline: 18px;
+}
+
+.is-accessory-page .lp-brands {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.is-accessory-page .lp-flagship {
+  width: calc(100% - clamp(56px, 10vw, 192px));
+  padding: clamp(26px, 3.5vw, 46px);
+  border-radius: 26px;
+}
+
+.is-accessory-page .flag-card,
+.is-accessory-page .product-card {
+  border-radius: 18px;
+  border-color: #dce6f2;
+}
+
+.is-accessory-page .lp-catalog .catalog-title h2 {
+  font-size: clamp(26px, 3vw, 40px) !important;
+  letter-spacing: -.035em;
+}
+
+@media (max-width: 1180px) {
+  .accessory-category-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .accessory-category-card { min-height: 180px; }
+}
+
+@media (max-width: 900px) {
+  .is-accessory-page .lp-hero { grid-template-columns: 1fr; }
+  .is-accessory-page .lp-hero > .lp-sidebar { height: auto; min-height: 0; }
+  .is-accessory-page .lp-sidebar { display: grid; grid-template-columns: repeat(2, 1fr); }
+  .is-accessory-page .lp-sidebar h3 { grid-column: 1 / -1; }
+  .is-accessory-page .lp-hero-main { height: auto; }
+  .accessory-studio { grid-template-columns: 1fr; }
+  .is-accessory-page .combos-bento-layout { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+  .is-accessory-page .lp-hero .hero-copy { width: 100%; padding: 54px 24px; }
+  .is-accessory-page .lp-hero .hero-copy h1 { font-size: 30px; }
+  .is-accessory-page .lp-services { grid-template-columns: repeat(2, 1fr); }
+  .accessory-category-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .accessory-category-card { min-height: 170px; }
+  .is-accessory-page .lp-combos,
+  .is-accessory-page .lp-flagship { width: calc(100% - 28px); }
+  .is-accessory-page .lp-combos { padding: 24px 16px; border-radius: 22px; }
+  .is-accessory-page .combo-visual-connector { overflow-x: auto; justify-content: flex-start; }
+  .is-accessory-page .connector-node { min-width: 92px; }
+}
+
 /* Unified content typography: compact titles with readable descriptions. */
 .laptop-page h2,
 .laptop-page h3,
@@ -4269,5 +4705,633 @@ onMounted(() => {
 :global(.dark) .search-highlight,
 :global(html[data-theme='dark']) .search-highlight {
   color: #60a5fa;
+}
+
+/* Final premium layer for the accessory route. Kept at the end so the shared
+   laptop styles cannot flatten the route-specific art direction. */
+.is-accessory-page .lp-hero-panel {
+  background-image:
+    linear-gradient(90deg, rgba(2, 6, 23, .96) 0%, rgba(6, 14, 32, .8) 45%, rgba(15, 23, 42, .18) 78%),
+    url('https://images.unsplash.com/photo-1547394765-185e1e68f34e?auto=format&fit=crop&w=1800&q=88');
+  background-position: center;
+  background-size: cover;
+}
+
+.hero-gear-notes {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 25px;
+  color: rgba(226, 232, 240, .8);
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.hero-gear-notes span { display: grid; gap: 1px; }
+.hero-gear-notes strong {
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 850;
+}
+.hero-gear-notes i {
+  width: 1px;
+  height: 25px;
+  background: rgba(255, 255, 255, .22);
+}
+
+.is-accessory-page .accessory-category-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-rows: repeat(2, 118px);
+}
+
+.is-accessory-page .accessory-category-card {
+  min-height: 0;
+  padding: 16px;
+}
+
+.is-accessory-page .accessory-category-card:nth-child(1) {
+  grid-column: span 2;
+  grid-row: span 2;
+  color: #ffffff;
+  border-color: #172554;
+  background: linear-gradient(145deg, #0f172a, #172554);
+}
+
+.is-accessory-page .accessory-category-card:nth-child(2) {
+  grid-column: span 2;
+  grid-row: span 2;
+  background: linear-gradient(145deg, #ffffff, #eef4ff);
+}
+
+.is-accessory-page .accessory-category-card:nth-child(n + 3) {
+  grid-column: span 2;
+}
+
+.is-accessory-page .accessory-category-card:nth-child(n + 3) .category-icon {
+  width: 36px;
+  height: 36px;
+  float: left;
+  margin-right: 12px;
+}
+
+.is-accessory-page .accessory-category-card:nth-child(n + 3) .category-meta {
+  margin-top: 1px;
+}
+
+.is-accessory-page .accessory-category-card:nth-child(n + 3) strong {
+  margin-top: 3px;
+}
+
+.is-accessory-page .accessory-category-card:nth-child(1) .category-icon {
+  color: #bfdbfe;
+  background: rgba(59, 130, 246, .22);
+}
+.is-accessory-page .accessory-category-card:nth-child(1) .category-meta,
+.is-accessory-page .accessory-category-card:nth-child(1) small,
+.is-accessory-page .accessory-category-card:nth-child(1) .category-arrow {
+  color: #a9b9d2;
+}
+.is-accessory-page .accessory-category-card:nth-child(1)::after {
+  width: 150px;
+  height: 150px;
+  right: -45px;
+  bottom: -60px;
+  background: #2563eb;
+  filter: blur(8px);
+  opacity: .32;
+}
+
+.is-accessory-page .lp-combos {
+  background-color: #091425 !important;
+  background-image:
+    radial-gradient(circle at 88% 0%, rgba(59, 130, 246, .3), transparent 28%),
+    linear-gradient(135deg, #07111f, #111f35 62%, #0c1728) !important;
+  border: 1px solid rgba(96, 165, 250, .16) !important;
+}
+
+.is-accessory-page .combo-empty-state.combo-concept-state {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.combo-concept-intro {
+  max-width: 620px;
+  margin: 0 auto 24px;
+  color: #ffffff;
+  text-align: center;
+}
+
+.combo-concept-intro .combo-index {
+  color: #7da9ff;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .19em;
+}
+
+.combo-concept-intro h3 {
+  margin: 9px 0 8px;
+  color: #ffffff;
+  font-size: clamp(20px, 2vw, 28px) !important;
+  letter-spacing: -.025em;
+}
+
+.combo-concept-intro p {
+  margin: 0;
+  color: #9eafc5;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.combo-concept-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.concept-card {
+  min-height: 210px;
+  position: relative;
+  overflow: hidden;
+  padding: 22px;
+  border: 1px solid rgba(148, 163, 184, .2);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, .07);
+  color: #ffffff;
+  text-align: left;
+  cursor: pointer;
+  transition: .25s ease;
+  backdrop-filter: blur(12px);
+}
+
+.concept-card:hover {
+  border-color: rgba(96, 165, 250, .7);
+  background: rgba(255, 255, 255, .11);
+  transform: translateY(-6px);
+}
+
+.concept-card::after {
+  content: '';
+  position: absolute;
+  right: -35px;
+  bottom: -45px;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: var(--concept-accent, #2563eb);
+  filter: blur(18px);
+  opacity: .24;
+}
+
+.concept-work { --concept-accent: #8b5cf6; }
+.concept-mobile { --concept-accent: #06b6d4; }
+.concept-no {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  color: #6f829d;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+.concept-icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: rgba(59, 130, 246, .18);
+  color: #93c5fd;
+}
+.concept-icon svg { width: 23px; height: 23px; }
+.concept-card strong {
+  display: block;
+  margin-top: 26px;
+  font-size: 18px;
+}
+.concept-card small {
+  display: block;
+  margin-top: 5px;
+  color: #9eafc5;
+  font-size: 11px;
+}
+.concept-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 21px;
+  color: #dbeafe;
+  font-size: 11px;
+  font-weight: 800;
+}
+.concept-link svg { width: 14px; height: 14px; }
+
+@media (max-width: 1180px) {
+  .is-accessory-page .accessory-category-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-rows: auto;
+  }
+  .is-accessory-page .accessory-category-card,
+  .is-accessory-page .accessory-category-card:nth-child(n) {
+    grid-column: span 2;
+    grid-row: auto;
+    min-height: 165px;
+  }
+}
+
+@media (max-width: 700px) {
+  .hero-gear-notes { flex-wrap: wrap; }
+  .is-accessory-page .accessory-category-grid { grid-template-columns: 1fr 1fr; }
+  .is-accessory-page .accessory-category-card,
+  .is-accessory-page .accessory-category-card:nth-child(n) { grid-column: span 1; }
+  .combo-concept-grid { grid-template-columns: 1fr; }
+  .concept-card { min-height: 190px; }
+}
+
+/* Desktop: always present all five accessory groups in one clean row. */
+@media (min-width: 1181px) {
+  .is-accessory-page .accessory-studio {
+    grid-template-columns: minmax(280px, .78fr) minmax(0, 2.2fr);
+    gap: clamp(30px, 3.5vw, 58px);
+  }
+
+  .is-accessory-page .accessory-category-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-rows: 230px;
+    gap: 12px;
+  }
+
+  .is-accessory-page .accessory-category-card,
+  .is-accessory-page .accessory-category-card:nth-child(n) {
+    grid-column: auto;
+    grid-row: auto;
+    min-width: 0;
+    min-height: 230px;
+    padding: 18px 16px;
+  }
+
+  .is-accessory-page .accessory-category-card:nth-child(n + 3) .category-icon {
+    width: 46px;
+    height: 46px;
+    float: none;
+    margin: 0;
+  }
+
+  .is-accessory-page .accessory-category-card:nth-child(n + 3) .category-meta,
+  .is-accessory-page .accessory-category-card .category-meta {
+    margin-top: 34px;
+  }
+}
+
+/* Exclusive offers — editorial bundle builder inspired by premium gear stores. */
+.is-accessory-page .lp-combos {
+  padding: clamp(30px, 3.6vw, 52px) !important;
+  border: 1px solid #d9e4f2 !important;
+  border-radius: 30px;
+  background-color: #ffffff !important;
+  background-image:
+    radial-gradient(circle at 100% 0%, rgba(37, 99, 235, .09), transparent 28%),
+    linear-gradient(180deg, #ffffff, #f8fbff) !important;
+  box-shadow: 0 26px 70px rgba(15, 23, 42, .1);
+}
+
+.is-accessory-page .combos-header {
+  max-width: none;
+  margin: 0 0 clamp(24px, 3vw, 38px);
+  display: grid;
+  grid-template-columns: minmax(0, .9fr) minmax(320px, .7fr);
+  gap: 20px 70px;
+  align-items: end;
+  text-align: left;
+}
+
+.combo-heading-mark {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #dce6f2;
+}
+
+.is-accessory-page .combos-header .ambient-label {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #2563eb;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .2em;
+}
+
+.combo-drop {
+  color: #94a3b8;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .16em;
+}
+
+.is-accessory-page .combos-header h2,
+.laptop-page.is-accessory-page .combos-header h2 {
+  margin: 0;
+  color: #0f172a !important;
+  font-size: clamp(30px, 3.25vw, 48px) !important;
+  font-weight: 850;
+  line-height: .98;
+  letter-spacing: -.055em;
+  text-transform: none;
+}
+
+.is-accessory-page .combos-header .section-sub {
+  max-width: 520px;
+  margin: 0 0 5px;
+  color: #5f6f84;
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.is-accessory-page .combos-bento-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 22px;
+}
+
+.is-accessory-page .combo-bento-card {
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #dbe5f1;
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow: 0 14px 38px rgba(15, 23, 42, .07);
+}
+
+.is-accessory-page .combo-bento-card:hover {
+  border-color: #9fc2ff;
+  transform: translateY(-4px);
+  box-shadow: 0 24px 54px rgba(15, 23, 42, .13);
+}
+
+.is-accessory-page .combo-main-content {
+  min-height: 350px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(360px, .75fr);
+  gap: 0;
+  align-items: stretch;
+}
+
+.is-accessory-page .combo-visual-connector {
+  order: -1;
+  min-height: 350px;
+  padding: clamp(24px, 3vw, 42px);
+  border: 0;
+  border-radius: 0;
+  background:
+    radial-gradient(circle at 50% 38%, rgba(255, 255, 255, .95), transparent 36%),
+    linear-gradient(145deg, #edf4ff, #e5edf8);
+}
+
+.is-accessory-page .connector-node {
+  min-width: 0;
+  align-self: center;
+}
+
+.is-accessory-page .node-image-box {
+  width: min(240px, 19vw);
+  height: min(240px, 19vw);
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, .9);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, .82);
+  box-shadow: 0 24px 45px rgba(30, 64, 175, .12);
+}
+
+.is-accessory-page .node-image-box img {
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+
+.is-accessory-page .node-title {
+  width: min(285px, 22vw);
+  height: auto;
+  margin-top: 12px;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
+.is-accessory-page .node-plus-sign {
+  top: 98px;
+  right: -20px;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #d7e3f2;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #2563eb;
+  font-size: 22px;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, .1);
+}
+
+.is-accessory-page .combo-details {
+  min-width: 0;
+  padding: clamp(26px, 3vw, 40px);
+  justify-content: center;
+  background: #ffffff;
+}
+
+.combo-card-label {
+  margin-bottom: 12px;
+  color: #7b8ca4;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .16em;
+}
+
+.is-accessory-page .combo-discount-badge {
+  margin: 0 0 14px;
+  padding: 7px 11px;
+  border-radius: 8px;
+  background: #e9f2ff;
+  color: #1d4ed8;
+  font-size: 11px;
+}
+
+.is-accessory-page .combo-details h3 {
+  margin: 0 0 13px;
+  color: #0f172a;
+  font-size: clamp(20px, 1.65vw, 25px) !important;
+  line-height: 1.15;
+  letter-spacing: -.035em;
+}
+
+.is-accessory-page .combo-details > p {
+  display: -webkit-box;
+  margin: 0 0 22px;
+  overflow: hidden;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.65;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.is-accessory-page .combo-pricing-group {
+  margin: 0 0 16px;
+  padding: 18px 0 0;
+  border-top: 1px solid #e2e8f0;
+  gap: 28px;
+}
+
+.is-accessory-page .price-label {
+  color: #8391a5;
+  font-size: 9px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.is-accessory-page .price-val {
+  color: #e11d48;
+  font-size: clamp(25px, 2.3vw, 34px);
+}
+
+.is-accessory-page .price-val-old {
+  font-size: 15px;
+}
+
+.combo-perks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-bottom: 22px;
+}
+
+.combo-perks span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #526176;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.combo-perks svg {
+  width: 14px;
+  height: 14px;
+  color: #2563eb;
+}
+
+.is-accessory-page .combo-action-btn {
+  width: 100%;
+  min-height: 50px;
+  justify-content: center;
+  border-radius: 13px;
+  background: #0f172a;
+  box-shadow: 0 14px 28px rgba(15, 23, 42, .18);
+}
+
+.is-accessory-page .combo-action-btn:hover {
+  opacity: 1;
+  background: #2563eb;
+  transform: translateY(-2px);
+}
+
+@media (max-width: 980px) {
+  .is-accessory-page .combos-header { grid-template-columns: 1fr; }
+  .is-accessory-page .combo-main-content { grid-template-columns: 1fr; }
+  .is-accessory-page .combo-visual-connector { min-height: 340px; }
+  .is-accessory-page .node-image-box { width: 150px; height: 150px; }
+  .is-accessory-page .node-title { width: 170px; }
+}
+
+@media (max-width: 640px) {
+  .is-accessory-page .lp-combos { padding: 28px 16px !important; }
+  .combo-heading-mark { align-items: flex-start; gap: 10px; }
+  .is-accessory-page .combos-header h2 { font-size: 35px !important; }
+  .is-accessory-page .combo-visual-connector {
+    min-height: 280px;
+    padding: 24px 16px;
+    overflow-x: auto;
+  }
+  .is-accessory-page .connector-node { min-width: 140px; }
+  .is-accessory-page .node-image-box { width: 120px; height: 120px; }
+  .is-accessory-page .node-title { width: 135px; }
+  .is-accessory-page .node-plus-sign { top: 48px; right: -19px; }
+  .is-accessory-page .combo-details { padding: 28px 22px; }
+}
+
+/* Functional photographic category cards, using assets bundled with NextGen. */
+.is-accessory-page .accessory-category-card,
+.is-accessory-page .accessory-category-card:nth-child(n) {
+  isolation: isolate;
+  border-color: rgba(148, 163, 184, .34);
+  background-color: #101b31;
+  background-image:
+    linear-gradient(180deg, rgba(5, 12, 28, .08) 0%, rgba(5, 12, 28, .3) 42%, rgba(5, 12, 28, .94) 100%),
+    var(--category-image);
+  background-position: center;
+  background-size: cover;
+  color: #ffffff;
+  transition:
+    transform .35s cubic-bezier(.22, 1, .36, 1),
+    box-shadow .35s ease,
+    border-color .35s ease;
+}
+
+.is-accessory-page .accessory-category-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .12), transparent 36%);
+  pointer-events: none;
+}
+
+.is-accessory-page .accessory-category-card::after {
+  z-index: -1;
+  width: 120px;
+  height: 120px;
+  right: -42px;
+  bottom: -54px;
+  background: #2563eb;
+  filter: blur(18px);
+  opacity: .3;
+}
+
+.is-accessory-page .accessory-category-card:hover {
+  border-color: #93c5fd;
+  background-size: cover;
+  transform: translateY(-3px);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, .14);
+}
+
+.is-accessory-page .accessory-category-card[aria-pressed='true'] {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, .22), 0 22px 42px rgba(15, 23, 42, .2);
+}
+
+.is-accessory-page .accessory-category-card .category-icon,
+.is-accessory-page .accessory-category-card:nth-child(n) .category-icon {
+  color: #dbeafe;
+  background: rgba(30, 64, 175, .52);
+  border: 1px solid rgba(147, 197, 253, .3);
+  backdrop-filter: blur(10px);
+}
+
+.is-accessory-page .accessory-category-card .category-meta,
+.is-accessory-page .accessory-category-card small,
+.is-accessory-page .accessory-category-card .category-arrow,
+.is-accessory-page .accessory-category-card:nth-child(1) .category-meta,
+.is-accessory-page .accessory-category-card:nth-child(1) small,
+.is-accessory-page .accessory-category-card:nth-child(1) .category-arrow {
+  color: #cbd5e1;
+}
+
+.is-accessory-page .accessory-category-card strong {
+  color: #ffffff;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, .45);
 }
 </style>

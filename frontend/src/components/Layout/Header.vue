@@ -1021,8 +1021,13 @@ const handleLogout = async () => {
   const isConfirmed = await swal.confirm('Xác nhận đăng xuất', 'Bạn có chắc chắn muốn thoát khỏi hệ thống?')
   if (!isConfirmed) return
   showUser.value = false
-  api.post('/logout').catch((err) => console.log('Logout API lỗi (bỏ qua):', err))
-  clearAuth()
+  try {
+    await api.post('/logout', null, { timeout: 5000 })
+  } catch (err) {
+    console.warn('Không thể xác nhận thu hồi phiên với server:', err?.message)
+  } finally {
+    clearAuth()
+  }
   localStorage.removeItem('remember_email')
   cartCount.value = 0
   wishlistItems.value = []
