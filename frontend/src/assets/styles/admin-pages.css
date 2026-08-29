@@ -3427,9 +3427,10 @@ body.dark .generate-bar,
   body.dark,
   .dark) .category-tabs {
   background: transparent !important;
-  border-bottom: none !important;
+  border-bottom: 1px solid #1e293b !important;
   box-shadow: none !important;
-  padding: 0 !important;
+  margin: -24px -20px 20px -20px !important;
+  padding: 12px 20px !important;
 }
 
 :is(html[data-admin-theme='dark'],
@@ -3440,8 +3441,8 @@ body.dark .generate-bar,
   body.theme-dark,
   body.dark,
   .dark) .cat-tab {
-  background: #181d24 !important;
-  border: 1px solid #28303d !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
   color: #94a3b8 !important;
   border-radius: 10px !important;
   padding: 9px 18px !important;
@@ -3459,9 +3460,9 @@ body.dark .generate-bar,
   body.theme-dark,
   body.dark,
   .dark) .cat-tab:hover:not(:disabled) {
-  color: #f8fafc !important;
-  background: #1e2530 !important;
-  border-color: #3b424b !important;
+  color: #60a5fa !important;
+  background: rgba(37, 99, 235, 0.12) !important;
+  border-color: transparent !important;
 }
 
 :is(html[data-admin-theme='dark'],
@@ -3472,11 +3473,12 @@ body.dark .generate-bar,
   body.theme-dark,
   body.dark,
   .dark) .cat-tab.active {
-  color: #ffffff !important;
-  background: #2563eb !important;
-  border-color: #2563eb !important;
+  color: #60a5fa !important;
+  background: #181d24 !important;
+  border: 1px solid #3b424b !important;
+  border-color: #3b424b !important;
   font-weight: 700 !important;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
 }
 
 :is(html[data-admin-theme='dark'],
