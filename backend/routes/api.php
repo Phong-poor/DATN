@@ -139,6 +139,18 @@ Route::middleware('auth:sanctum')->group(function () {
             'online_window_seconds' => 300,
         ]);
     });
+    Route::match(['get', 'post'], '/user/offline', function (Request $request) {
+        $user = $request->user();
+        if ($user) {
+            $user->forceFill([
+                'hoat_dong_cuoi_luc' => now()->subMinutes(10),
+            ])->saveQuietly();
+        }
+        return response()->json([
+            'success' => true,
+            'message' => 'Marked offline',
+        ]);
+    });
     Route::put('/user/profile', [UserController::class, 'updateProfile']);
     Route::post('/user/avatar', [UserController::class, 'uploadAvatar']);
     Route::get('/user/change-password/captcha', [UserController::class, 'passwordCaptcha']);

@@ -1671,35 +1671,35 @@ onUnmounted(() => {
           <button type="button" @click="router.push({ name: 'admin-roles' })">Quản lý vai trò & quyền</button>
           <button type="button" @click="router.push('/admin/quan-ly-nguoi-dung')">Danh sách người dùng</button>
         </div>
-      </aside>
 
-      <div class="unified-submit-area">
-        <div>
-          <strong>{{ editingEmployee ? 'Cập nhật thông tin nhân viên' : (isEnrollmentMode ? 'Cập nhật sinh trắc học nhân viên' : 'Hoàn tất thiết lập nhân viên') }}</strong>
-          <span>
-            {{ editingEmployee
-              ? `Các thay đổi của ${editingEmployee.ten} sẽ được lưu trực tiếp vào hồ sơ.`
-              : isEnrollmentMode
-              ? `Lịch làm việc và khuôn mặt sẽ được cập nhật cho ${displayEmployee.name}.`
-              : 'Hệ thống sẽ kiểm tra dữ liệu, tạo hồ sơ, gán vai trò và lưu khuôn mặt trong một lần.' }}
-          </span>
+        <div class="unified-submit-area">
+          <div>
+            <strong>{{ editingEmployee ? 'Cập nhật thông tin nhân viên' : (isEnrollmentMode ? 'Cập nhật sinh trắc học nhân viên' : 'Hoàn tất thiết lập nhân viên') }}</strong>
+            <span>
+              {{ editingEmployee
+                ? `Các thay đổi của ${editingEmployee.ten} sẽ được lưu trực tiếp vào hồ sơ.`
+                : isEnrollmentMode
+                ? `Lịch làm việc và khuôn mặt sẽ được cập nhật cho ${displayEmployee.name}.`
+                : 'Hệ thống sẽ kiểm tra dữ liệu, tạo hồ sơ, gán vai trò và lưu khuôn mặt trong một lần.' }}
+            </span>
+          </div>
+          <button v-if="editingEmployee" type="button" class="cancel-edit-button" @click="cancelEditEmployee">Hủy sửa</button>
+          <button
+            type="submit"
+            form="employee-unified-form"
+            class="create-employee-button"
+            :disabled="creatingEmployee || savingEmployee || isRegisteringFace || (isEnrollmentMode && !enrollmentTarget) || (!editingEmployee && !isCameraActive)"
+          >
+            {{ savingEmployee
+              ? 'Đang lưu thay đổi...'
+              : creatingEmployee || isRegisteringFace
+              ? 'Đang xác thực và lưu dữ liệu...'
+              : editingEmployee
+                ? 'Lưu thay đổi'
+                : (isEnrollmentMode ? 'Lưu lịch & cập nhật khuôn mặt' : 'Tạo nhân viên & đăng ký khuôn mặt') }}
+          </button>
         </div>
-        <button v-if="editingEmployee" type="button" class="cancel-edit-button" @click="cancelEditEmployee">Hủy sửa</button>
-        <button
-          type="submit"
-          form="employee-unified-form"
-          class="create-employee-button"
-          :disabled="creatingEmployee || savingEmployee || isRegisteringFace || (isEnrollmentMode && !enrollmentTarget) || (!editingEmployee && !isCameraActive)"
-        >
-          {{ savingEmployee
-            ? 'Đang lưu thay đổi...'
-            : creatingEmployee || isRegisteringFace
-            ? 'Đang xác thực và lưu dữ liệu...'
-            : editingEmployee
-              ? 'Lưu thay đổi'
-              : (isEnrollmentMode ? 'Lưu lịch & cập nhật khuôn mặt' : 'Tạo nhân viên & đăng ký khuôn mặt') }}
-        </button>
-      </div>
+      </aside>
 
       <!-- CỘT BÊN PHẢI: XẾP HẠNG VÀ LỊCH LÀM VIỆC -->
       <div v-if="!verificationOnly" class="attendance-side-column">
@@ -2063,23 +2063,51 @@ onUnmounted(() => {
 .dashboard-grid.verification-grid {
   grid-template-columns: minmax(360px, .78fr) minmax(560px, 1.22fr);
   justify-content: center;
-  max-width: 1180px;
-  gap: 0;
-  padding: 14px;
-  border: 1px solid #dbe3ef;
-  border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, .07);
+  max-width: 1240px;
+  gap: 20px;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .dashboard-grid.verification-grid {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
 .verification-grid > .chamcong-card {
   align-self: start;
   position: sticky;
   top: 82px;
-  padding: 0 16px 0 0;
-  border: 0;
-  border-right: 1px solid #e2e8f0;
-  border-radius: 0;
-  box-shadow: none;
+  padding: 20px;
+  border: 1px solid #dbe3ef;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, .05);
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .verification-grid > .chamcong-card {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25) !important;
 }
 
 .verification-grid > .camera-card .camera-wrapper {
@@ -2092,11 +2120,24 @@ onUnmounted(() => {
 
 .employee-setup-card {
   align-self: start;
-  padding: 0 0 0 16px;
-  border: 0;
-  border-radius: 0;
-  background: #fff;
-  box-shadow: none;
+  padding: 20px;
+  border: 1px solid #dbe3ef;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, .05);
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .employee-setup-card {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25) !important;
 }
 .setup-heading { padding-bottom: 13px; border-bottom: 1px solid #e2e8f0; }
 .setup-heading > span { color: #2563eb; font-size: 10px; font-weight: 800; letter-spacing: .09em; }
