@@ -538,7 +538,7 @@ class ChamCongController extends Controller
             $lateMinutes = max(0, (int) $record->di_tre_phut);
             $penaltyBlocks = $lateMinutes > 0 ? (int) ceil($lateMinutes / 10) : 0;
             $grossSalary = (int) round($baseSalaryPerDay * $workUnits);
-            $penalty = min($grossSalary, $penaltyBlocks * $penaltyPerTenMinutes);
+            $penalty = $lateMinutes > 0 ? ($penaltyBlocks * $penaltyPerTenMinutes) : 0;
 
             $summary['work_days'] += $workUnits;
             $summary['on_time_days'] += $workUnits > 0 && $lateMinutes === 0 ? 1 : 0;
@@ -569,8 +569,8 @@ class ChamCongController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate((int) $request->query('per_page', 15));
 
-        $records->setCollection($records->getCollection()->map(function (ChamCong $record) use ($baseSalaryPerDay, $penaltyPerTenMinutes, $currentUser, $isSuperAdmin) {
-            if (! $isSuperAdmin && (int) $record->id_nhanvien !== (int) $currentUser->id) {
+        $records->setCollection($records->getCollection()->map(function (ChamCong $record) use ($baseSalaryPerDay, $penaltyPerTenMinutes, $currentUser, $isAdmin, $isSuperAdmin) {
+            if (! $isAdmin && ! $isSuperAdmin && (int) $record->id_nhanvien !== (int) $currentUser->id) {
                 return $record;
             }
 
@@ -579,7 +579,7 @@ class ChamCongController extends Controller
             $lateMinutes = max(0, (int) $record->di_tre_phut);
             $penaltyBlocks = $lateMinutes > 0 ? (int) ceil($lateMinutes / 10) : 0;
             $grossSalary = (int) round($baseSalaryPerDay * $workUnits);
-            $penalty = min($grossSalary, $penaltyBlocks * $penaltyPerTenMinutes);
+            $penalty = $lateMinutes > 0 ? ($penaltyBlocks * $penaltyPerTenMinutes) : 0;
 
             $record->setAttribute('luong_ngay', $grossSalary);
             $record->setAttribute('tien_phat', $penalty);
