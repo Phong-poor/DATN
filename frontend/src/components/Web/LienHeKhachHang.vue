@@ -264,7 +264,7 @@ const minAppointmentDate = computed(() => new Date().toISOString().slice(0, 10))
 const infos = computed(() => [
   { icon: `<svg class="cyber-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`, label: 'Địa chỉ', value: selectedShowroom.value.address, color: 'rgba(37, 99, 235, 0.15)' },
   { icon: `<svg class="cyber-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6.08 6.08l.95-.95a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`, label: 'Hotline', value: selectedShowroom.value.phone, bold: true, color: 'rgba(37, 99, 235, 0.15)' },
-  { icon: `<svg class="cyber-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>`, label: 'Email', value: 'support@vinatech.vn', color: 'rgba(139, 92, 246, 0.15)' },
+  { icon: `<svg class="cyber-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>`, label: 'Email', value: 'support@nextgenlaptop.vn', color: 'rgba(139, 92, 246, 0.15)' },
   { icon: `<svg class="cyber-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`, label: 'Giờ mở cửa', value: selectedShowroom.value.worktime, color: 'rgba(245, 158, 11, 0.15)' },
 ])
 
@@ -351,25 +351,25 @@ const experts = [
 const faqs = ref([
   {
     q: 'Tôi có thể đến trực tiếp showroom để xem hàng không?',
-    a: 'Hoàn toàn có thể! Hệ thống showroom VinaTech mở cửa phục vụ cả ngày. Bạn có thể đến bất kỳ chi nhánh nào gần nhất để trải nghiệm thực tế các dòng laptop cấu hình cao cùng sự hỗ trợ chuyên sâu của đội ngũ kỹ sư.',
+    a: 'Hoàn toàn có thể! Hệ thống showroom NextGen mở cửa phục vụ cả ngày. Bạn có thể đến bất kỳ chi nhánh nào gần nhất để trải nghiệm thực tế các dòng laptop cấu hình cao cùng sự hỗ trợ chuyên sâu của đội ngũ kỹ sư.',
     open: false,
     category: 'buying'
   },
   {
-    q: 'VinaTech có hỗ trợ giao hàng toàn quốc không?',
+    q: 'NextGen có hỗ trợ giao hàng toàn quốc không?',
     a: 'Có! Chúng tôi giao hàng toàn quốc 63 tỉnh thành. Các đơn hàng nội thành Hồ Chí Minh và Hà Nội được đóng gói niêm phong cực kỳ cẩn thận và bàn giao siêu tốc chỉ từ 2–4 giờ.',
     open: false,
     category: 'buying'
   },
   {
-    q: 'Chính sách bảo hành của VinaTech như thế nào?',
-    a: 'Tất cả sản phẩm tại VinaTech đều được bảo hành chính hãng từ 12–24 tháng. Chúng tôi còn cung cấp chính sách NextGen Care+ bảo hành thêm 12 tháng phần cứng cho các thiết bị mua mới.',
+    q: 'Chính sách bảo hành của NextGen như thế nào?',
+    a: 'Tất cả sản phẩm tại NextGen đều được bảo hành chính hãng từ 12–24 tháng. Chúng tôi còn cung cấp chính sách NextGen Care+ bảo hành thêm 12 tháng phần cứng cho các thiết bị mua mới.',
     open: false,
     category: 'warranty'
   },
   {
     q: 'Tôi muốn trả góp 0% lãi suất, cần điều kiện gì?',
-    a: 'VinaTech hỗ trợ trả góp 0% qua thẻ tín dụng của hơn 25 ngân hàng liên kết toàn quốc. Bạn chỉ cần thẻ tín dụng chính chủ còn hạn mức thanh toán. Thủ tục duyệt trực tuyến cực nhanh chỉ trong 10 phút.',
+    a: 'NextGen hỗ trợ trả góp 0% qua thẻ tín dụng của hơn 25 ngân hàng liên kết toàn quốc. Bạn chỉ cần thẻ tín dụng chính chủ còn hạn mức thanh toán. Thủ tục duyệt trực tuyến cực nhanh chỉ trong 10 phút.',
     open: false,
     category: 'buying'
   },
@@ -380,29 +380,24 @@ const faqs = ref([
     category: 'technical'
   },
   {
-    q: 'VinaTech có nhận đổi trả hàng không?',
+    q: 'NextGen có nhận đổi trả hàng không?',
     a: 'Đổi mới 1-1 miễn phí trong vòng 30 ngày nếu sản phẩm xuất hiện lỗi phần cứng từ nhà sản xuất. Hỗ trợ thu cũ đổi mới lên đời laptop cấu hình cao hơn cực ưu đãi cho khách hàng thân thiết.',
     open: false,
     category: 'warranty'
   },
 ])
 
-const faqSearchQuery = ref('')
 const selectedFaqCategory = ref('all')
 
 const filteredFaqs = computed(() => {
-  return faqs.value.filter(faq => {
-    const matchesCategory = selectedFaqCategory.value === 'all' || faq.category === selectedFaqCategory.value
-    const matchesSearch = faq.q.toLowerCase().includes(faqSearchQuery.value.toLowerCase()) || 
-                          faq.a.toLowerCase().includes(faqSearchQuery.value.toLowerCase())
-    return matchesCategory && matchesSearch
-  })
+  if (selectedFaqCategory.value === 'all') return faqs.value
+  return faqs.value.filter(faq => faq.category === selectedFaqCategory.value)
 })
 
-const toggleFaq = (index) => {
+const toggleFaq = (selectedFaq) => {
   // Toggle the clicked FAQ, close others
-  faqs.value.forEach((item, idx) => {
-    if (idx === index) {
+  faqs.value.forEach((item) => {
+    if (item === selectedFaq) {
       item.open = !item.open
     } else {
       item.open = false
@@ -869,27 +864,16 @@ const toggleFaq = (index) => {
             </button>
           </div>
 
-          <div class="faq-search-box">
-            <span class="search-icon">
-              <svg class="cyber-svg-icon faq-srch-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            </span>
-            <input 
-              v-model="faqSearchQuery"
-              type="text" 
-              placeholder="Tìm câu hỏi của bạn..." 
-              aria-label="Tìm kiếm câu hỏi"
-            />
-          </div>
         </div>
 
         <!-- FAQ Accordions List -->
         <div class="faq-accordions-grid">
           <div 
             v-for="(faq, idx) in filteredFaqs" 
-            :key="idx" 
+            :key="faq.q"
             class="faq-cyber-accordion"
             :class="{ open: faq.open }"
-            @click="toggleFaq(idx)"
+            @click="toggleFaq(faq)"
           >
             <div class="accordion-head">
               <span class="accordion-index">{{ String(idx + 1).padStart(2, '0') }}</span>
@@ -929,7 +913,6 @@ const toggleFaq = (index) => {
                 <svg class="cyber-svg-icon cta-call-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6.08 6.08l.95-.95a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
                 Gọi 1900 8888
               </a>
-              <a href="#guidedContactForm" class="cta-form-btn">Gửi Form Ngay</a>
             </div>
           </div>
         </div>
@@ -1244,18 +1227,12 @@ const toggleFaq = (index) => {
 }
 .highlight-text {
   display: inline-block;
-  color: var(--secondary);
-  background: linear-gradient(90deg, #38bdf8 0%, #60a5fa 42%, #a78bfa 72%, #38bdf8 100%);
-  background-size: 220% 100%;
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: #38bdf8;
+  -webkit-text-fill-color: currentColor;
   filter: drop-shadow(0 0 12px rgba(56, 189, 248, .24));
   white-space: nowrap;
-  will-change: clip-path, opacity, background-position;
-  animation:
-    technologyTextReveal 4.8s cubic-bezier(.22, .7, .25, 1) infinite,
-    technologyTextGlow 2.2s linear infinite;
+  will-change: clip-path, opacity;
+  animation: technologyTextReveal 4.8s cubic-bezier(.22, .7, .25, 1) infinite;
 }
 
 @keyframes technologyTextReveal {
@@ -1274,10 +1251,6 @@ const toggleFaq = (index) => {
     clip-path: inset(0 0 0 100%);
     transform: translateY(-4px);
   }
-}
-
-@keyframes technologyTextGlow {
-  to { background-position: -220% 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1303,10 +1276,24 @@ const toggleFaq = (index) => {
   margin-bottom: 56px;
 }
 
+.hero-actions .btn-glow-primary,
+.hero-actions .btn-glass {
+  width: 216px;
+  min-height: 56px;
+  padding: 0 22px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+}
+
 /* Premium Buttons */
 .btn-glow-primary {
   border: 0;
-  padding: 13px 26px;
+  padding: 0 22px;
   border-radius: 12px;
   background: linear-gradient(135deg, var(--primary) 0%, #1d4ed8 100%);
   color: white;
@@ -1323,7 +1310,7 @@ const toggleFaq = (index) => {
   box-shadow: 0 12px 30px rgba(37, 99, 235, 0.5);
 }
 .btn-glass {
-  padding: 13px 26px;
+  padding: 0 22px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -2631,36 +2618,6 @@ const toggleFaq = (index) => {
   box-shadow: 0 4px 10px var(--primary-glow);
 }
 
-.faq-search-box {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  border: 1.5px solid #e6eef6;
-  border-radius: 10px;
-  padding: 8px 14px;
-  background: var(--tn-surface);
-  width: 280px;
-  transition: var(--transition);
-}
-.search-icon {
-  font-size: 14px;
-  opacity: 0.6;
-}
-.faq-search-box input {
-  border: none;
-  background: transparent;
-  outline: none;
-  font-family: inherit;
-  font-size: 13px;
-  color: var(--text-primary);
-  width: 100%;
-}
-.faq-search-box:focus-within {
-  border-color: var(--primary);
-  background: var(--tn-surface);
-  box-shadow: 0 4px 12px rgba(37,99,235,0.06);
-}
-
 /* Accordions */
 .faq-accordions-grid {
   display: flex;
@@ -2872,24 +2829,6 @@ const toggleFaq = (index) => {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
 }
-.cta-form-btn {
-  padding: 12px 24px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #ffffff !important;
-  font-family: var(--font-heading);
-  font-size: 13px;
-  font-weight: 700;
-  text-decoration: none;
-  transition: var(--transition);
-}
-.cta-form-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.25);
-  transform: translateY(-2px);
-}
-
 /* Compact, consistent vertical rhythm across the contact page. */
 .support-hero {
   padding-top: 64px;
@@ -2977,9 +2916,6 @@ const toggleFaq = (index) => {
     flex-direction: column;
     align-items: stretch;
   }
-  .faq-search-box {
-    width: 100%;
-  }
 }
 
 @media (max-width: 768px) {
@@ -3005,7 +2941,8 @@ const toggleFaq = (index) => {
     gap: 10px;
     margin-bottom: 32px;
   }
-  .btn-glow-primary, .btn-glass {
+  .hero-actions .btn-glow-primary,
+  .hero-actions .btn-glass {
     width: 100%;
     text-align: center;
   }
@@ -3115,7 +3052,7 @@ const toggleFaq = (index) => {
   .support-footer-cta-card {
     padding: 20px;
   }
-  .cta-phone-btn, .cta-form-btn {
+  .cta-phone-btn {
     width: 100%;
     text-align: center;
   }

@@ -14,8 +14,6 @@ const currentPage = ref(1)
 const lastPage = ref(1)
 const loading = ref(false)
 const errorMessage = ref('')
-const searchQuery = ref('')
-const sortBy = ref('latest')
 const subscriberEmail = ref('')
 const subscribeMessage = ref('')
 
@@ -61,16 +59,16 @@ const applyListSeo = () => {
   const suffix = selectedCategory.value === 'Mới nhất' ? 'mới nhất' : selectedCategory.value.toLowerCase()
   setSeo({
     title: `Tin tức công nghệ ${suffix}`,
-    description: 'Cập nhật tin tức công nghệ, kinh nghiệm chọn laptop, đánh giá laptop gaming, laptop văn phòng và laptop đồ họa từ VinaTech.',
-    keywords: 'tin tức công nghệ, tư vấn laptop, laptop gaming, laptop văn phòng, laptop đồ họa, VinaTech',
+    description: 'Cập nhật tin tức công nghệ, kinh nghiệm chọn laptop, đánh giá laptop gaming, laptop văn phòng và laptop đồ họa từ NextGen.',
+    keywords: 'tin tức công nghệ, tư vấn laptop, laptop gaming, laptop văn phòng, laptop đồ họa, NextGen',
     url: '/tin-tuc',
     schema: {
       '@context': 'https://schema.org',
       '@type': 'CollectionPage',
-      name: 'Tin tức công nghệ VinaTech',
-      description: 'Cập nhật tin tức công nghệ, kinh nghiệm chọn laptop, đánh giá laptop gaming, laptop văn phòng và laptop đồ họa từ VinaTech.',
+      name: 'Tin tức công nghệ NextGen',
+      description: 'Cập nhật tin tức công nghệ, kinh nghiệm chọn laptop, đánh giá laptop gaming, laptop văn phòng và laptop đồ họa từ NextGen.',
       url: absoluteUrl('/tin-tuc'),
-      isPartOf: { '@type': 'WebSite', name: 'VinaTech', url: absoluteUrl('/') },
+      isPartOf: { '@type': 'WebSite', name: 'NextGen', url: absoluteUrl('/') },
     },
   })
 }
@@ -121,8 +119,6 @@ const fetchNews = async (page = 1) => {
   errorMessage.value = ''
   try {
     const params = { scope: 'public', per_page: 6, page }
-    if (searchQuery.value.trim()) params.q = searchQuery.value.trim()
-    params.sort = sortBy.value
     if (selectedCategory.value !== 'Mới nhất') params.danhmuc = selectedCategory.value
     const { data } = await api.get('/news', { params })
     const payload = paginationPayload(data)
@@ -259,7 +255,6 @@ onMounted(async () => {
             <span class="tab-indicator"></span>
           </button>
         </nav>
-        <form class="news-search-tools" @submit.prevent="fetchNews(1)"><input v-model="searchQuery" type="search" placeholder="Tìm theo tiêu đề, nội dung hoặc tác giả..." /><select v-model="sortBy" @change="fetchNews(1)"><option value="latest">Mới nhất</option><option value="popular">Đọc nhiều nhất</option></select><button type="submit">Tìm kiếm</button></form>
       </div>
     </div>
 
@@ -1725,7 +1720,6 @@ onMounted(async () => {
   flex-direction: column;
   gap: 12px;
 }
-.news-search-tools{display:flex;gap:10px;max-width:760px;margin:18px auto 0}.news-search-tools input{flex:1}.news-search-tools input,.news-search-tools select{border:1px solid #dbe3ee;border-radius:10px;padding:11px 13px;background:#fff}.news-search-tools button{border:0;border-radius:10px;padding:0 18px;background:#2563eb;color:#fff;font-weight:700;cursor:pointer}@media(max-width:580px){.news-search-tools{flex-direction:column}.news-search-tools button{padding:11px}}
 .trend-item {
   display: flex;
   align-items: center;

@@ -2711,9 +2711,9 @@ const initScrollReveal = () => {
 .btn-copy-code {
   width: 100%;
   min-height: 34px;
-  border: 1px solid rgba(133, 177, 255, 0.56);
+  border: 1px solid #ffb04a;
   border-radius: 12px;
-  background: linear-gradient(135deg, var(--ticket-accent), #244eea);
+  background: linear-gradient(135deg, #ff8a00, #f45d0b);
   color: #fff !important;
   padding: 6px 10px;
   font-size: 12px;
@@ -2723,14 +2723,14 @@ const initScrollReveal = () => {
   align-items: center;
   justify-content: center;
   gap: 9px;
-  box-shadow: 0 9px 24px rgba(var(--ticket-accent-rgb), 0.29), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  box-shadow: 0 10px 24px rgba(249, 115, 22, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.3);
   transition: all 0.22s ease;
 }
 
 .btn-copy-code:hover:not(:disabled) {
-  filter: brightness(1.1);
+  background: linear-gradient(135deg, #ff9f1c, #ff6b00);
   transform: translateY(-2px);
-  box-shadow: 0 12px 28px rgba(var(--ticket-accent-rgb), 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  box-shadow: 0 14px 30px rgba(249, 115, 22, 0.46), 0 0 0 2px rgba(255, 178, 71, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.34);
 }
 
 .btn-copy-code.copied {

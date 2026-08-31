@@ -2,6 +2,10 @@ export function normalizeAuthUser(user) {
   if (!user || typeof user !== 'object') return user
 
   const role = String(user.vaitro || user.role || '').toLowerCase()
+  const rawAvatar = user.avatar || user.anhdaidien || user.anh_dai_dien || ''
+  // Older profile code assigned this stock portrait to every account without
+  // an avatar. Never persist or display that unrelated person's photo.
+  const avatar = /randomuser\.me\//i.test(String(rawAvatar)) ? '' : rawAvatar
 
   return {
     ...user,
@@ -9,7 +13,7 @@ export function normalizeAuthUser(user) {
     name: user.name || user.ten || user.email || 'User',
     role: role || user.role,
     vaitro: role || user.vaitro,
-    avatar: user.avatar || user.anhdaidien || user.anh_dai_dien,
+    avatar,
   }
 }
 

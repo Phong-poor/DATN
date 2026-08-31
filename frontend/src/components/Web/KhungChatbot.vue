@@ -22,7 +22,7 @@
               </div>
               <div class="title-wrap">
                 <h4 class="title">Tư vấn trực tuyến</h4>
-                <p class="subtitle">Mia - Chuyên viên hỗ trợ VinaTech</p>
+                <p class="subtitle">Mia - Chuyên viên hỗ trợ NextGen</p>
               </div>
               <button class="mode-toggle-btn" @click="switchToAdmin" title="Nhắn cho Admin">
                 Nhắn Admin
@@ -631,7 +631,7 @@ const paymentQrAmount = computed(() => {
   const orderTotal = Number(createdOrder.value?.tongtien || createdOrder.value?.tong_tien || selectedProductPrice.value || 0);
   return Math.max(1000, depositAmount.value || Math.ceil(orderTotal * 0.5));
 });
-const paymentQrMemo = computed(() => `VINATECH ${createdOrder.value?.ma_dathang || createdOrder.value?.id_dathang || 'ORDER'}`);
+const paymentQrMemo = computed(() => `NEXTGEN ${createdOrder.value?.ma_dathang || createdOrder.value?.id_dathang || 'ORDER'}`);
 const paymentQrExpired = computed(() => paymentQrRemainingMs.value <= 0);
 const paymentQrRemainingText = computed(() => {
   const totalSeconds = Math.max(0, Math.ceil(paymentQrRemainingMs.value / 1000));
@@ -953,7 +953,7 @@ const getProductImage = (bt) => {
 const messages = ref([
   {
     role: 'bot',
-    content: "Xin chào anh/chị! Em là Mia, chuyên viên hỗ trợ của VinaTech. Rất vui được đồng hành cùng anh/chị. Anh/chị đang cần tìm kiếm dòng máy nào (văn phòng, đồ họa hay gaming) trong tầm giá bao nhiêu ạ? Em sẽ tư vấn chi tiết cho mình nhé!"
+    content: "Xin chào anh/chị! Em là Mia, chuyên viên hỗ trợ của NextGen. Rất vui được đồng hành cùng anh/chị. Anh/chị đang cần tìm kiếm dòng máy nào (văn phòng, đồ họa hay gaming) trong tầm giá bao nhiêu ạ? Em sẽ tư vấn chi tiết cho mình nhé!"
   }
 ]);
 

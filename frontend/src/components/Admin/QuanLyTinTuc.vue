@@ -681,7 +681,7 @@ onMounted(async () => {
     <PhanTrangAdmin v-model:currentPage="currentPage" :total-pages="lastPage" :total-items="totalPosts" :page-size="10"
       item-label="bài viết" @change-page="fetchPosts" />
 
-    <div class="page-footer">© 2026 VINATECH ECOSYSTEM • QUẢN LÝ NỘI DUNG</div>
+    <div class="page-footer">© 2026 NEXTGEN ECOSYSTEM • QUẢN LÝ NỘI DUNG</div>
 
     <Teleport to="body">
       <div v-if="showModal" class="modal-overlay">

@@ -67,7 +67,7 @@ const user = ref({
   phone: '',
   birthday: '',
   gender: '',
-  avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
+  avatar: '',
   memberSince: 'Thành viên',
   joinDate: '',
   xu: 0,
@@ -76,7 +76,9 @@ const user = ref({
 const tempAvatarUrl = ref('')
 
 const sidebarAvatarUrl = computed(() => {
-  if (!user.value.avatar) return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.value.name || 'User')
+  if (!user.value.avatar) {
+    return 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.value.name || 'User') + '&background=6366f1&color=fff&bold=true'
+  }
   if (user.value.avatar.startsWith('http')) return user.value.avatar
   return withImageVersion(normalizeImageUrl(user.value.avatar, ''), user.value.updated_at || user.value.updatedAt)
 })
@@ -87,6 +89,8 @@ const formAvatarUrl = computed(() => {
 })
 
 const updateUserData = (apiUser) => {
+  const apiAvatar = apiUser.avatar || apiUser.anhdaidien || apiUser.avatar_url || ''
+  const safeAvatar = /randomuser\.me\//i.test(String(apiAvatar)) ? '' : apiAvatar
   user.value = {
     ...user.value,
     ...apiUser,
@@ -94,7 +98,7 @@ const updateUserData = (apiUser) => {
     phone: apiUser.phone ?? apiUser.sodienthoai ?? '',
     birthday: apiUser.date_of_birth ?? apiUser.ngaysinh ?? '',
     gender: apiUser.gender ?? apiUser.gioitinh ?? '',
-    avatar: apiUser.avatar || apiUser.anhdaidien || apiUser.avatar_url || user.value.avatar,
+    avatar: safeAvatar || (/randomuser\.me\//i.test(String(user.value.avatar || '')) ? '' : user.value.avatar),
     updated_at: apiUser.updated_at || user.value.updated_at,
     xu: apiUser.xu !== undefined ? apiUser.xu : (user.value.xu || 0),
     memberSince: apiUser.role === 'admin' ? 'Quản trị viên' : 'Thành viên',
@@ -7446,6 +7450,15 @@ const promoStatusMap = {
     gap: 16px;
     align-items: stretch;
     text-align: center;
+  }
+}
+
+/* Keep the profile summary in normal document flow on tablet/mobile.
+   The shared account stylesheet otherwise makes it sticky again. */
+@media (max-width: 900px) {
+  .page .sidebar {
+    position: static !important;
+    top: auto !important;
   }
 }
 

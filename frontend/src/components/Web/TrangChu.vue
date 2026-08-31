@@ -20,7 +20,7 @@ const tickerIcons = [
 ]
 
 const tickerItems = [
-    '🚚 MIỄN PHÍ GIAO HÀNG HỎA TỐC CHO ĐƠN HÀNG TỪ 300K',
+    '🚚 PHÍ GIAO HÀNG TOÀN QUỐC 30.000Đ',
     '🛡️ BẢO HÀNH TOÀN DIỆN 24 THÁNG - 1 ĐỔI 1 TRONG 30 NGÀY',
     '🔄 THU CŨ ĐỔI MỚI - TRỢ GIÁ LÊN ĐẾN 2 TRIỆU ĐỒNG',
     '💳 TRẢ GÓP 0% LÃI SUẤT - DUYỆT HỒ SƠ CHỈ TRONG 5 PHÚT'
@@ -662,11 +662,13 @@ const themVaoYeuThich = async (product) => {
 
 const formatPrice = (p) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p)
 
-const themVaoGioHang = async (product) => {
+const themVaoGioHang = async (product, { buyNow = false } = {}) => {
     const token = getToken()
     if (!token) {
         swal.info('Yêu cầu đăng nhập', 'Vui lòng đăng nhập để tiến hành mua hàng!')
         localStorage.setItem('pendingCartItem', JSON.stringify({ id_bienthe: product.key_id, soluong: 1 }))
+        if (buyNow) localStorage.setItem('pendingBuyNow', '1')
+        else localStorage.removeItem('pendingBuyNow')
         router.push('/dang-nhap')
         return
     }
@@ -676,6 +678,10 @@ const themVaoGioHang = async (product) => {
             headers: { Authorization: `Bearer ${token}` }
         })
         window.dispatchEvent(new Event('cart-updated'))
+        if (!buyNow) {
+            swal.success('Đã thêm vào giỏ', `${product.name || 'Sản phẩm'} đã được thêm vào giỏ hàng.`)
+            return
+        }
         // Lấy id_giohang từ response để chỉ checkout 1 sản phẩm
         const cartItemId = res?.data?.id_giohang || res?.data?.item?.id_giohang || res?.data?.data?.id_giohang || ''
         if (cartItemId) {
@@ -871,20 +877,105 @@ const getHeroFullTitle = (product) => {
     return baseName
 }
 
-const handlePrimaryClick = (slide) => {
-    if (slide?.link) {
-        router.push(slide.link)
+const normalizeHeroActionLabel = (label = '') => String(label)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase()
+
+const navigateHeroTarget = (target) => {
+    if (!target) return
+    if (/^https?:\/\//i.test(target)) {
+        window.location.assign(target)
         return
     }
-    if (slide.primary === 'Khám phá ngay') {
-        router.push('/san-pham')
-    } else {
-        router.push('/san-pham')
+    router.push(target)
+}
+
+const activeProductRoute = (extraQuery = {}) => {
+    const product = activeHeroProduct.value
+    if (!product?.id) return null
+    return {
+        path: `/san-pham/${product.id}`,
+        query: {
+            ...(product.key_id ? { variant: product.key_id } : {}),
+            ...extraQuery,
+        },
     }
 }
 
+const discoveryRouteForSlide = (slide = {}) => {
+    const context = normalizeHeroActionLabel([
+        slide.eyebrow,
+        slide.title,
+        slide.highlight,
+        slide.desc,
+        slide.primary,
+        slide.secondary,
+    ].filter(Boolean).join(' '))
+
+    return /phu kien|accessor|gear|ban phim|chuot|tai nghe/.test(context)
+        ? '/phu-kien'
+        : '/laptop'
+}
+
+const handlePrimaryClick = (slide) => {
+    const label = normalizeHeroActionLabel(slide?.primary)
+    if (label.includes('mua ngay')) {
+        if (activeHeroProduct.value?.key_id) {
+            checkoutHeroProduct(activeHeroProduct.value)
+        } else {
+            navigateHeroTarget('/laptop')
+        }
+        return
+    }
+    if (label.includes('uu dai') || label.includes('khuyen mai')) {
+        navigateHeroTarget('/khuyen-mai')
+        return
+    }
+    if (label.includes('showroom')) {
+        navigateHeroTarget({ path: '/laptop', hash: '#showroom-section' })
+        return
+    }
+    if (label.includes('kham pha') || label.includes('bo suu tap') || label.includes('xem san pham')) {
+        navigateHeroTarget(discoveryRouteForSlide(slide))
+        return
+    }
+    if (slide?.link) {
+        navigateHeroTarget(slide.link)
+        return
+    }
+    navigateHeroTarget(discoveryRouteForSlide(slide))
+}
+
 const handleSecondaryClick = (slide) => {
-    router.push(slide?.link || '/san-pham')
+    const label = normalizeHeroActionLabel(slide?.secondary)
+    if (label.includes('tu van') || label.includes('lien he')) {
+        navigateHeroTarget({ path: '/lien-he', query: { topic: 'tu-van-cau-hinh' } })
+        return
+    }
+    if (label.includes('so sanh')) {
+        const compareRoute = activeProductRoute({ compare: '1' })
+        navigateHeroTarget(compareRoute || '/laptop')
+        return
+    }
+    if (label.includes('uu dai') || label.includes('khuyen mai')) {
+        navigateHeroTarget('/khuyen-mai')
+        return
+    }
+    if (label.includes('showroom')) {
+        navigateHeroTarget({ path: '/laptop', hash: '#showroom-section' })
+        return
+    }
+    if (label.includes('kham pha') || label.includes('bo suu tap') || label.includes('xem san pham')) {
+        navigateHeroTarget(discoveryRouteForSlide(slide))
+        return
+    }
+    if (slide?.link) {
+        navigateHeroTarget(slide.link)
+        return
+    }
+    navigateHeroTarget(discoveryRouteForSlide(slide))
 }
 
 const checkoutHeroProduct = (product) => {
@@ -892,7 +983,7 @@ const checkoutHeroProduct = (product) => {
         router.push(product?.id ? `/san-pham/${product.id}` : '/san-pham')
         return
     }
-    themVaoGioHang(product)
+    themVaoGioHang(product, { buyNow: true })
 }
 
 let interval = null
@@ -981,7 +1072,7 @@ onUnmounted(() => {
                             <div class="hero-trust-indicators">
                                 <div class="trust-pill">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                                    <span>Giao Hàng Miễn Phí</span>
+                                    <span>Phí Ship 30.000đ</span>
                                 </div>
                                 <div class="trust-pill">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
@@ -4109,28 +4200,72 @@ onUnmounted(() => {
     .section-header h2 { font-size: 28px; }
     .category-cards-grid,
     .premium-products-grid,
-    .reviews-editorial-grid,
-    .trust-bar-section .grid-container {
+    .reviews-editorial-grid {
         grid-template-columns: 1fr;
     }
+    .trust-bar-section .grid-container {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
     .affiliate-video-card {
-        flex-basis: min(78vw, 330px);
-        height: 400px;
+        flex-basis: min(100%, 280px);
+        height: 350px;
+        border-radius: 18px;
     }
     .affiliate-slider-nav {
-        width: 42px;
-        height: 42px;
+        display: none;
+    }
+    .affiliate-video-content {
+        left: 15px;
+        right: 15px;
+        bottom: 15px;
+    }
+    .affiliate-video-badge {
+        height: 21px;
+        padding: 0 8px;
+        margin-bottom: 8px;
+        font-size: 9px;
+    }
+    .affiliate-video-content h3 {
+        font-size: 18px;
+        line-height: 1.2;
+        margin-bottom: 6px;
+    }
+    .affiliate-video-content p {
+        min-height: 34px;
+        margin-bottom: 10px;
+        font-size: 12px;
+    }
+    .affiliate-creator-row {
+        gap: 8px;
+    }
+    .affiliate-creator-row span {
+        font-size: 10.5px;
+    }
+    .affiliate-creator-row button {
+        padding: 7px 9px;
+        font-size: 10.5px;
     }
     .values-section .values-cards-grid {
         grid-template-columns: 1fr !important;
     }
     .trust-card {
+        padding: 18px 8px;
         border-right: none !important;
-        border-bottom: 1px solid rgba(255,255,255,0.05) !important;
-        padding: 24px 16px;
-    }
-    .trust-card:last-child {
         border-bottom: none !important;
+    }
+    .trust-card:nth-child(odd) {
+        border-right: 1px solid rgba(255,255,255,0.08) !important;
+    }
+    .trust-card:nth-child(-n + 2) {
+        border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+    }
+    .trust-card h3 {
+        font-size: 27px;
+        margin-bottom: 3px;
+    }
+    .trust-card p {
+        font-size: 11px;
+        line-height: 1.35;
     }
     .bento-asymmetrical-grid {
         grid-template-columns: 1fr;
@@ -4599,6 +4734,43 @@ onUnmounted(() => {
     .premium-theme .section-header,
     .premium-theme .premium-tabs-strip {
         margin-bottom: 24px;
+    }
+}
+
+/* Zoom-out / viewport cực rộng: toàn bộ trang chủ dùng chung một trục nội dung. */
+@media (min-width: 2400px) {
+    .premium-theme > .hero-viewport,
+    .premium-theme > .trust-bar-section,
+    .premium-theme > .section,
+    .premium-theme > .cyber-newsletter-section {
+        width: 100%;
+        max-width: 1680px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .premium-theme > .hero-viewport {
+        height: 760px;
+        min-height: 0;
+        border-radius: 0;
+    }
+
+    .premium-theme > .trust-bar-section,
+    .premium-theme > .section,
+    .premium-theme > .cyber-newsletter-section {
+        border-left: 0 !important;
+        border-right: 0 !important;
+        box-shadow: none !important;
+    }
+
+    .premium-theme > .trust-bar-section > .grid-container,
+    .premium-theme > .section > .grid-container,
+    .premium-theme > .cyber-newsletter-section > .grid-container,
+    .premium-theme .hero-container {
+        width: 100%;
+        max-width: none;
+        margin-left: 0;
+        margin-right: 0;
     }
 }
 </style>

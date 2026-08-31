@@ -38,7 +38,7 @@ class FreshNewsSeeder extends Seeder
 
     private function articles(): array
     {
-        $common = ['tacgia' => 'VinaTech Editorial', 'workflow_status' => 'published', 'no_index' => false, 'share_count' => 0, 'luotxem' => 0];
+        $common = ['tacgia' => 'NextGen Editorial', 'workflow_status' => 'published', 'no_index' => false, 'share_count' => 0, 'luotxem' => 0];
 
         return [
             array_merge($common, [

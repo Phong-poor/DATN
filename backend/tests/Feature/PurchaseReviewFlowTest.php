@@ -51,7 +51,7 @@ class PurchaseReviewFlowTest extends TestCase
         ]);
 
         $this->brand = ThuongHieu::create([
-            'ten_thuonghieu' => 'VinaTech Test',
+            'ten_thuonghieu' => 'NextGen Test',
             'trangthai' => 1,
         ]);
 
@@ -82,8 +82,8 @@ class PurchaseReviewFlowTest extends TestCase
             ],
             [
                 'sku' => 'FLOW-POSITIVE',
-                'product' => 'PC Workstation VinaTech',
-                'variant' => 'PC Workstation VinaTech i7 32GB',
+                'product' => 'PC Workstation NextGen',
+                'variant' => 'PC Workstation NextGen i7 32GB',
                 'rating' => 5,
                 'comment' => 'Tot ok muot nhanh.',
                 'expected_status' => 'approved',

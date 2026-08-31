@@ -2528,21 +2528,52 @@ onBeforeUnmount(() => {
     max-height: 440px;
   }
   .heading-banner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 58px;
+    grid-template-rows: auto auto auto;
     align-items: flex-start;
-    padding: 30px 20px;
-    gap: 18px;
+    padding: 20px 16px;
+    column-gap: 10px;
+    row-gap: 0;
+    margin-bottom: 16px;
   }
   .heading-avatar {
-    width: 82px;
-    height: 82px;
-    border-radius: 18px;
-    font-size: 34px;
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    width: 58px;
+    height: 58px;
+    border-radius: 15px;
+    font-size: 27px;
+    border-width: 1.5px;
+  }
+  .heading-avatar img {
+    border-radius: 12px;
+  }
+  .heading-content {
+    display: contents;
+  }
+  .badge-tag {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start;
+    padding: 5px 12px;
+    margin-bottom: 10px;
+    font-size: 10px;
+    letter-spacing: 0.7px;
   }
   .heading-content h1 {
-    font-size: 28px;
+    grid-column: 1;
+    grid-row: 2;
+    font-size: 25px;
+    line-height: 1.15;
+    margin-bottom: 7px;
   }
   .heading-content p {
-    font-size: 14px;
+    grid-column: 1 / -1;
+    grid-row: 3;
+    margin-top: 10px;
+    font-size: 13px;
+    line-height: 1.45;
   }
   .dashboard-tabs {
     grid-template-columns: 1fr;

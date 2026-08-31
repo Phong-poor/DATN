@@ -262,7 +262,7 @@
               </div>
               <div class="form-group">
                 <label class="form-label">Tiêu đề <span class="req">*</span></label>
-                <input class="form-input" :class="{ err: emailErrors.subject }" v-model="emailForm.subject" placeholder="VD: [VinaTech] Phản hồi yêu cầu hỗ trợ của bạn" />
+                <input class="form-input" :class="{ err: emailErrors.subject }" v-model="emailForm.subject" placeholder="VD: [NextGen] Phản hồi yêu cầu hỗ trợ của bạn" />
                 <p class="err-msg" v-if="emailErrors.subject">{{ emailErrors.subject }}</p>
               </div>
               <div class="form-group">
@@ -274,8 +274,8 @@
                 <label class="form-label">Chữ ký</label>
                 <div class="signature-box">
                   <p>Trân trọng,</p>
-                  <p><strong>VinaTech Admin</strong> · Bộ phận Hỗ trợ Khách hàng</p>
-                  <p>📞 1800 9999 · 🌐 vinatech.vn</p>
+                  <p><strong>NextGen Admin</strong> · Bộ phận Hỗ trợ Khách hàng</p>
+                  <p>📞 1800 9999 · 🌐 nextgenlaptop.vn</p>
                 </div>
               </div>
             </div>
@@ -343,22 +343,22 @@ const statusOptions = [
 const templates = [
   {
     label: '✅ Xác nhận nhận yêu cầu',
-    subject: '[VinaTech] Xác nhận nhận yêu cầu hỗ trợ',
-    body: `Kính gửi Quý khách,\n\nChúng tôi đã nhận được yêu cầu hỗ trợ của bạn và sẽ phản hồi trong vòng 24 giờ làm việc.\n\nCảm ơn bạn đã tin tưởng sử dụng sản phẩm của VinaTech.\n\nNếu có bất kỳ câu hỏi nào khác, vui lòng liên hệ hotline 1800 9999.`,
+    subject: '[NextGen] Xác nhận nhận yêu cầu hỗ trợ',
+    body: `Kính gửi Quý khách,\n\nChúng tôi đã nhận được yêu cầu hỗ trợ của bạn và sẽ phản hồi trong vòng 24 giờ làm việc.\n\nCảm ơn bạn đã tin tưởng sử dụng sản phẩm của NextGen.\n\nNếu có bất kỳ câu hỏi nào khác, vui lòng liên hệ hotline 1800 9999.`,
   },
   {
     label: '🛠️ Hướng dẫn kỹ thuật',
-    subject: '[VinaTech] Hướng dẫn xử lý sự cố kỹ thuật',
+    subject: '[NextGen] Hướng dẫn xử lý sự cố kỹ thuật',
     body: `Kính gửi Quý khách,\n\nCảm ơn bạn đã liên hệ với chúng tôi. Dưới đây là hướng dẫn xử lý sự cố:\n\n1. Khởi động lại thiết bị và kiểm tra kết nối nguồn\n2. Cập nhật driver mới nhất từ trang web chính thức\n3. Nếu sự cố vẫn còn, vui lòng mang thiết bị đến trung tâm bảo hành gần nhất\n\nChúc bạn sử dụng thiết bị thuận lợi!`,
   },
   {
     label: '💰 Tư vấn sản phẩm',
-    subject: '[VinaTech] Tư vấn sản phẩm phù hợp cho bạn',
-    body: `Kính gửi Quý khách,\n\nDựa trên nhu cầu của bạn, chúng tôi xin tư vấn một số dòng sản phẩm phù hợp:\n\n• Laptop Gaming: Asus ROG, MSI, Lenovo Legion\n• Laptop Văn phòng: Dell XPS, HP Spectre, MacBook Air\n• Laptop Sinh viên: Asus VivoBook, Acer Aspire\n\nQuý khách có thể ghé showroom hoặc đặt hàng online tại vinatech.vn với chính sách trả góp 0% lãi suất.`,
+    subject: '[NextGen] Tư vấn sản phẩm phù hợp cho bạn',
+    body: `Kính gửi Quý khách,\n\nDựa trên nhu cầu của bạn, chúng tôi xin tư vấn một số dòng sản phẩm phù hợp:\n\n• Laptop Gaming: Asus ROG, MSI, Lenovo Legion\n• Laptop Văn phòng: Dell XPS, HP Spectre, MacBook Air\n• Laptop Sinh viên: Asus VivoBook, Acer Aspire\n\nQuý khách có thể ghé showroom hoặc đặt hàng online tại nextgenlaptop.vn với chính sách trả góp 0% lãi suất.`,
   },
   {
     label: '📦 Cập nhật đơn hàng',
-    subject: '[VinaTech] Cập nhật tình trạng đơn hàng của bạn',
+    subject: '[NextGen] Cập nhật tình trạng đơn hàng của bạn',
     body: `Kính gửi Quý khách,\n\nĐơn hàng của bạn đang được xử lý. Chúng tôi sẽ thông báo ngay khi hàng được giao cho đơn vị vận chuyển.\n\nThời gian dự kiến nhận hàng: 2-3 ngày làm việc.\n\nMọi thắc mắc xin liên hệ hotline 1800 9999 (miễn phí, 8:00 - 22:00 hàng ngày).`,
   },
 ]
