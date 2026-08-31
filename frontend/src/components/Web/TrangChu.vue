@@ -641,7 +641,7 @@ const themVaoYeuThich = async (product) => {
             await api.delete(`/yeu-thich/xoa/${existing.id}`)
             await fetchWishlistState()
             window.dispatchEvent(new Event('wishlist-updated'))
-            swal.success('Đã xóa yêu thích', 'Sản phẩm đã được bỏ khỏi danh sách yêu thích.')
+            swal.toast('Đã bỏ sản phẩm khỏi danh sách yêu thích', 'success')
             return
         }
 
@@ -654,7 +654,7 @@ const themVaoYeuThich = async (product) => {
         await api.post('/yeu-thich/them', { id_bienthe: variantId, soluong: 1 })
         await fetchWishlistState()
         window.dispatchEvent(new Event('wishlist-updated'))
-        swal.success('Thành công', `Đã thêm ${product.name} vào danh sách yêu thích! ❤️`)
+        swal.toast('Đã thêm vào sản phẩm yêu thích', 'success')
     } catch (err) {
         swal.error('Lỗi', err.response?.data?.message || 'Không thể thực hiện tác vụ.')
     }
@@ -679,7 +679,7 @@ const themVaoGioHang = async (product, { buyNow = false } = {}) => {
         })
         window.dispatchEvent(new Event('cart-updated'))
         if (!buyNow) {
-            swal.success('Đã thêm vào giỏ', `${product.name || 'Sản phẩm'} đã được thêm vào giỏ hàng.`)
+            swal.toast(`${product.name || 'Sản phẩm'} đã được thêm vào giỏ hàng`, 'success')
             return
         }
         // Lấy id_giohang từ response để chỉ checkout 1 sản phẩm

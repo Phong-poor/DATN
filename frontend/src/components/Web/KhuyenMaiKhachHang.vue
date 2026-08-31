@@ -735,7 +735,7 @@ const toggleWishlist = async (product) => {
       await api.delete(`/yeu-thich/xoa/${existing.id}`)
       await fetchWishlistState()
       window.dispatchEvent(new Event('wishlist-updated'))
-      swal.success('Đã xóa yêu thích', 'Sản phẩm đã được bỏ khỏi danh sách yêu thích.')
+      swal.toast('Đã bỏ sản phẩm khỏi danh sách yêu thích', 'success')
       return
     }
 
@@ -746,7 +746,7 @@ const toggleWishlist = async (product) => {
     })
     await fetchWishlistState()
     window.dispatchEvent(new Event('wishlist-updated'))
-    swal.success('Yêu thích', 'Đã thêm vào danh sách yêu thích!')
+    swal.toast('Đã thêm vào sản phẩm yêu thích', 'success')
   } catch (err) {
     console.error('Lỗi yêu thích:', err)
     swal.error('Thông báo', err.response?.data?.message || 'Đã xảy ra sự cố.')
