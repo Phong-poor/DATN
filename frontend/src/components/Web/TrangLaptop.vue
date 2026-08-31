@@ -600,7 +600,7 @@ const resolveVariantId = async (product) => {
   return variants[0]?.id_bienthe
 }
 
-const addToCart = async (product) => {
+const buyNow = async (product) => {
   const token = getToken()
   const swal = await getSwal()
   if (!token) {
@@ -627,6 +627,27 @@ const addToCart = async (product) => {
   }
 }
 
+const addToCart = async (product) => {
+  const token = getToken()
+  const swal = await getSwal()
+  if (!token) {
+    swal.info('Yêu cầu đăng nhập', 'Vui lòng đăng nhập trước khi thêm sản phẩm vào giỏ hàng!')
+    router.push({ path: '/dang-nhap', query: { redirect: route.fullPath } })
+    return
+  }
+
+  try {
+    const variantId = await resolveVariantId(product)
+    if (!variantId) throw new Error('Sản phẩm chưa có biến thể.')
+
+    await api.post('/gio-hang/them', { id_bienthe: variantId, soluong: 1 })
+    window.dispatchEvent(new Event('cart-updated'))
+    swal.toast('Đã thêm sản phẩm vào giỏ hàng', 'success')
+  } catch (error) {
+    swal.error('Lỗi giỏ hàng', error.response?.data?.message || error.message)
+  }
+}
+
 const addToWishlist = async (product) => {
   const token = getToken()
   const swal = await getSwal()
@@ -644,7 +665,7 @@ const addToWishlist = async (product) => {
       await api.delete(`/yeu-thich/xoa/${existing.id}`)
       await fetchWishlistState()
       window.dispatchEvent(new Event('wishlist-updated'))
-      swal.success('Đã xóa yêu thích', 'Sản phẩm đã được bỏ khỏi danh sách yêu thích.')
+      swal.toast('Đã bỏ sản phẩm khỏi danh sách yêu thích', 'success')
       return
     }
 
@@ -652,7 +673,7 @@ const addToWishlist = async (product) => {
     await api.post('/yeu-thich/them', { id_bienthe: variantId, soluong: 1 })
     await fetchWishlistState()
     window.dispatchEvent(new Event('wishlist-updated'))
-    swal.success('Đã thêm yêu thích', 'Sản phẩm đã được lưu vào danh sách yêu thích.')
+    swal.toast('Đã thêm vào sản phẩm yêu thích', 'success')
   } catch (error) {
     swal.error('Lỗi yêu thích', error.response?.data?.message || error.message)
   }
@@ -897,7 +918,7 @@ onMounted(() => {
               <SlidersHorizontal />
               <span>Cấu hình</span>
             </button>
-            <button class="buy" @click.stop="addToCart(product)">Mua ngay</button>
+            <button class="buy" @click.stop="buyNow(product)">Mua ngay</button>
           </div>
         </article>
       </div>
@@ -3209,6 +3230,24 @@ onMounted(() => {
   opacity: 1;
   pointer-events: auto;
   transform: translateY(0) scale(1);
+}
+
+/* Sản phẩm đã lưu phải luôn nhìn thấy, không phụ thuộc trạng thái hover. */
+.lp-catalog .wishlist-btn.is-wishlisted {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+  background: #ef4444 !important;
+  border-color: #ef4444 !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 24px rgba(239, 68, 68, 0.38) !important;
+}
+
+.lp-catalog .wishlist-btn.is-wishlisted svg,
+.lp-catalog .wishlist-btn.is-wishlisted .heart-svg-icon {
+  fill: #ffffff !important;
+  stroke: #ffffff !important;
+  color: #ffffff !important;
 }
 
 .hover-action-btn,
