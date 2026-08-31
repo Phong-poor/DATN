@@ -116,7 +116,7 @@ const handleAddToCart = async () => {
       const [, comboRes] = await Promise.all([laptopRequest, comboRequest])
 
       if (comboRes?.data?.success) {
-        swal.success('Đã thêm vào giỏ', 'Đã thêm Laptop + Quà Tặng VIP vào giỏ hàng!')
+        swal.toast('Đã thêm Laptop + Quà Tặng VIP vào giỏ hàng', 'success')
         emit('success')
         emit('close')
         window.dispatchEvent(new Event('cart-updated'))
@@ -125,7 +125,7 @@ const handleAddToCart = async () => {
       // Combo bán lẻ thông thường (không có triggerVariant)
       const res = await api.post('/gio-hang/them-combo', comboPayload)
       if (res.data && res.data.success) {
-        swal.success('Đã thêm vào giỏ', 'Combo ưu đãi đã được thêm thành công vào giỏ hàng của bạn!')
+        swal.toast('Combo ưu đãi đã được thêm vào giỏ hàng', 'success')
         emit('success')
         emit('close')
         window.dispatchEvent(new Event('cart-updated'))

@@ -741,7 +741,7 @@ const submitEdit = async () => {
                 </div>
                 <div class="bottom-text">
                     <h4>Yêu cầu đăng ký mới</h4>
-                    <p>Hiện có {{ pendingAffiliateRequests }} yêu cầu đăng ký đang chờ phê duyệt từ hệ thống VinaTech Partner.</p>
+                    <p>Hiện có {{ pendingAffiliateRequests }} yêu cầu đăng ký đang chờ phê duyệt từ hệ thống NextGen Partner.</p>
                     <div class="bottom-actions">
                         <button class="btn-primary-sm" @click="openAffiliateList">Xem danh sách</button>
                         <button class="btn-ghost-sm" @click="dismissAffiliateCard">Để sau</button>

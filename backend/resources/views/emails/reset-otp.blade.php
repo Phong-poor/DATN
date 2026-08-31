@@ -75,7 +75,7 @@
                     <tr>
                         <td align="center" style="padding-top:20px;">
                             <p style="margin:0; font-size:11px; color:#94a3b8;">
-                                © 2026 VinaTech Premium. Bảo mật tuyệt đối.
+                                © 2026 NextGen Premium. Bảo mật tuyệt đối.
                             </p>
                         </td>
                     </tr>

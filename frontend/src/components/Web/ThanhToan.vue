@@ -653,6 +653,40 @@ const groupedCart = computed(() => {
     return list
 })
 
+const removingCheckoutItem = ref('')
+
+const removeCheckoutEntry = async (entry) => {
+    const removeKey = entry.isCombo
+        ? `combo-${entry.id_nhom_combo}`
+        : `item-${entry.id_giohang}`
+    if (removingCheckoutItem.value) return
+
+    const itemLabel = entry.isCombo ? `combo “${entry.ten_combo}”` : `“${entry.name}”`
+    const confirmed = await swal.confirm(
+        'Bỏ khỏi đơn hàng?',
+        `Bạn có chắc muốn bỏ ${itemLabel} khỏi đơn hàng đang thanh toán?`
+    )
+    if (!confirmed) return
+
+    removingCheckoutItem.value = removeKey
+    try {
+        if (entry.isCombo) {
+            await api.delete(`/gio-hang/xoa-combo/${entry.id_nhom_combo}`)
+            cart.value = cart.value.filter(item => String(item.id_nhom_combo) !== String(entry.id_nhom_combo))
+        } else {
+            await api.delete(`/gio-hang/xoa/${entry.id_giohang}`)
+            cart.value = cart.value.filter(item => String(item.id_giohang) !== String(entry.id_giohang))
+        }
+        window.dispatchEvent(new Event('cart-updated'))
+        swal.success('Đã cập nhật', 'Sản phẩm đã được bỏ khỏi đơn hàng.')
+    } catch (error) {
+        swal.error('Không thể xóa', error.response?.data?.message || 'Vui lòng thử lại sau.')
+        await fetchCart()
+    } finally {
+        removingCheckoutItem.value = ''
+    }
+}
+
 // ===================== VOUCHER / PROMOTION =====================
 const allPromos = ref([])
 const appliedPromo = ref(null)
@@ -871,7 +905,9 @@ const confirmOrder = async () => {
             PTTT: paymentMethodMap[payment.value] || 'COD',
             promo_code: promoCode.value,
             freeship_code: freeshipCode.value,
-            selected_cart_items: buyNowCartItemId.value ? [buyNowCartItemId.value] : (route.query.selected ? route.query.selected.split(',') : undefined),
+            selected_cart_items: buyNowCartItemId.value
+                ? cart.value.map(item => String(item.id_giohang))
+                : (route.query.selected ? cart.value.map(item => String(item.id_giohang)) : undefined),
             selected_variants: !buyNowCartItemId.value && buyNowVariantId.value ? [buyNowVariantId.value] : undefined,
             dung_xu: dungXu.value,
             so_xu_dung: dungXu.value ? xuMuonDung.value : 0,
@@ -1029,7 +1065,7 @@ const confirmOrder = async () => {
         <div class="summary">
           <h3>Tóm tắt đơn hàng</h3>
 
-          <div v-for="(entry, index) in groupedCart" :key="entry.isCombo ? entry.id_nhom_combo : index">
+          <div v-for="entry in groupedCart" :key="entry.isCombo ? `combo-${entry.id_nhom_combo}` : `item-${entry.id_giohang}`">
             <!-- Standalone Item -->
             <div class="item" v-if="!entry.isCombo">
               <img :src="entry.img" />
@@ -1038,9 +1074,21 @@ const confirmOrder = async () => {
                 <span style="font-size: 11px; color: #64748b; display: block; margin-top: 2px;">{{ entry.desc }}</span>
                 <span class="qty-badge" style="display: inline-block; font-size: 11px; color: #2563eb; background: #eff6ff; padding: 2px 6px; border-radius: 4px; margin-top: 4px; font-weight: 700;">x{{ entry.qty }}</span>
               </div>
-              <div style="text-align: right; min-width: 75px;">
-                <b style="font-size: 14px; color: #1e293b;">{{ format(entry.price * entry.qty) }}</b>
-                <span style="display: block; font-size: 10px; color: #94a3b8; margin-top: 2px;" v-if="entry.qty > 1">{{ format(entry.price) }}/sp</span>
+              <div class="checkout-item-actions">
+                <div class="checkout-item-price">
+                  <b>{{ format(entry.price * entry.qty) }}</b>
+                  <span v-if="entry.qty > 1">{{ format(entry.price) }}/sp</span>
+                </div>
+                <button
+                  type="button"
+                  class="checkout-remove-btn"
+                  :disabled="removingCheckoutItem === `item-${entry.id_giohang}`"
+                  title="Bỏ sản phẩm khỏi đơn hàng"
+                  @click="removeCheckoutEntry(entry)"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>
+                  {{ removingCheckoutItem === `item-${entry.id_giohang}` ? 'Đang xóa' : 'Xóa' }}
+                </button>
               </div>
             </div>
 
@@ -1050,6 +1098,16 @@ const confirmOrder = async () => {
                 <span class="checkout-badge-tag">🎁 Combo</span>
                 <h4>{{ entry.ten_combo }}</h4>
                 <span class="checkout-combo-qty">x{{ entry.qty }}</span>
+                <button
+                  type="button"
+                  class="checkout-remove-btn combo-remove"
+                  :disabled="removingCheckoutItem === `combo-${entry.id_nhom_combo}`"
+                  title="Bỏ combo khỏi đơn hàng"
+                  @click="removeCheckoutEntry(entry)"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>
+                  Xóa
+                </button>
               </div>
               <div class="checkout-combo-child-list">
                 <div class="checkout-child-item" v-for="child in entry.items" :key="child.id_giohang">
@@ -1068,6 +1126,10 @@ const confirmOrder = async () => {
                 <b>{{ format(entry.gia_combo * entry.qty) }}</b>
               </div>
             </div>
+          </div>
+
+          <div v-if="groupedCart.length === 0" class="checkout-empty-summary">
+            Đơn hàng chưa có sản phẩm. Hãy quay lại giỏ hàng để chọn sản phẩm phù hợp.
           </div>
 
           <div class="line"></div>
@@ -1937,6 +1999,80 @@ textarea {
   width: 50px;
   height: 50px;
   object-fit: cover;
+}
+
+.checkout-item-actions {
+  min-width: 92px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 7px;
+}
+
+.checkout-item-price {
+  text-align: right;
+}
+
+.checkout-item-price b {
+  display: block;
+  color: #1e293b;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.checkout-item-price span {
+  display: block;
+  margin-top: 2px;
+  color: #94a3b8;
+  font-size: 10px;
+}
+
+.checkout-remove-btn {
+  min-height: 28px;
+  padding: 4px 9px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fff7f7;
+  color: #dc2626;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.checkout-remove-btn svg {
+  width: 13px;
+  height: 13px;
+}
+
+.checkout-remove-btn:hover:not(:disabled) {
+  border-color: #f87171;
+  background: #fee2e2;
+  transform: translateY(-1px);
+}
+
+.checkout-remove-btn:disabled {
+  cursor: wait;
+  opacity: 0.58;
+}
+
+.checkout-remove-btn.combo-remove {
+  flex: 0 0 auto;
+}
+
+.checkout-empty-summary {
+  padding: 14px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
 }
 
 .line {

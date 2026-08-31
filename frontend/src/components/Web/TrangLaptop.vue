@@ -137,7 +137,7 @@ const tabs = [
 ]
 
 const serviceCards = [
-  { icon: Truck, title: 'Miễn phí vận chuyển', desc: 'Cho đơn hàng từ 499.000đ' },
+  { icon: Truck, title: 'Phí vận chuyển 30.000đ', desc: 'Áp dụng giao hàng toàn quốc' },
   { icon: ShieldCheck, title: 'Đổi trả dễ dàng', desc: 'Đổi trả trong 7 ngày' },
   { icon: BadgeCheck, title: 'Thanh toán an toàn', desc: 'Nhiều phương thức thanh toán' },
   { icon: Headphones, title: 'Hỗ trợ 24/7', desc: 'Hotline: 1900 1234' },
@@ -149,14 +149,10 @@ const heroCategories = [
   { label: 'Laptop Gaming RTX 4070', icon: Laptop, line: 'gaming', q: 'rtx 4070' },
   { label: 'Laptop Gaming RTX 4080', icon: Laptop, line: 'gaming', q: 'rtx 4080' },
   { label: 'Laptop Gaming RTX 4090', icon: Laptop, line: 'gaming', q: 'rtx 4090' },
-  { label: 'ASUS ROG / TUF', icon: ShieldCheck, line: 'gaming', q: 'asus rog tuf' },
-  { label: 'MSI Gaming', icon: Flame, line: 'gaming', q: 'msi gaming' },
-  { label: 'Acer NextGen', icon: BadgeCheck, line: 'gaming', q: 'acer predator' },
-  { label: 'Lenovo Legion', icon: Zap, line: 'gaming', q: 'lenovo legion' },
-  { label: 'Bàn phím cơ Gaming', icon: Keyboard, line: 'accessory', q: 'ban phim gaming' },
-  { label: 'Chuột Gaming', icon: Mouse, line: 'accessory', q: 'chuot gaming' },
-  { label: 'Tai nghe Gaming', icon: Headphones, line: 'accessory', q: 'tai nghe gaming' },
-  { label: 'Lót chuột Gaming', icon: Monitor, line: 'accessory', q: 'lot chuot gaming' },
+  { label: 'ASUS ROG / TUF', icon: ShieldCheck, line: 'gaming', q: 'asus' },
+  { label: 'MSI Gaming', icon: Flame, line: 'gaming', q: 'msi' },
+  { label: 'Acer NextGen', icon: BadgeCheck, line: 'gaming', q: 'acer' },
+  { label: 'Lenovo Legion', icon: Zap, line: 'gaming', q: 'lenovo' },
 ]
 
 const heroAccessoryCategories = [
@@ -261,6 +257,7 @@ const normalizeVariant = (p, variant) => {
     gia: price,
     oldPrice: Math.floor(price * 1.13),
     specs: specs.slice(0, 5).length ? specs.slice(0, 5) : ['16GB RAM', '512GB SSD', 'FHD IPS'],
+    searchSpecs: specs,
     cpu: cpuSpec,
     ram: ramSpec,
     image: productImageUrl(p, variant, 'https://placehold.co/600x420?text=NextGen+Laptop'),
@@ -384,7 +381,7 @@ const canonicalText = (value) => String(value || '')
   .replace(/đ/g, 'd')
 
 const lineMatcher = (product, line = activeLine.value) => {
-  const text = canonicalText(`${product.tenSP} ${product.brand} ${product.category} ${product.specs.join(' ')}`)
+  const text = canonicalText(`${product.tenSP} ${product.brand} ${product.category} ${(product.searchSpecs || product.specs).join(' ')}`)
   if (line === 'all') return true
   
   if (isAccessoryPage.value) {
@@ -428,7 +425,7 @@ const filteredProducts = computed(() => {
     : products.value.filter(isProductLaptop)
     
   let list = sourceProducts.filter(product => {
-    const text = canonicalText(`${product.tenSP} ${product.brand} ${product.category} ${product.specs.join(' ')}`)
+    const text = canonicalText(`${product.tenSP} ${product.brand} ${product.category} ${(product.searchSpecs || product.specs).join(' ')}`)
     const matchLine = lineMatcher(product)
     const matchBrand = selectedBrands.value.length === 0 || selectedBrands.value.includes(product.brand)
     const matchPrice = Number(product.gia || 0) <= Number(maxPrice.value || 200000000)
@@ -518,9 +515,48 @@ const selectAccessoryCategory = (line) => {
 }
 
 const selectHeroCategory = (category) => {
+  if (!isAccessoryPage.value && category.line === 'accessory') {
+    router.push({
+      name: 'phu-kien',
+      query: { line: category.accessoryLine || 'all', scroll: 'catalog' }
+    })
+    return
+  }
+
+  selectedBrands.value = []
+  selectedCpus.value = []
+  maxPrice.value = isAccessoryPage.value ? 15000000 : 200000000
   activeLine.value = category.line || 'all'
   searchQuery.value = category.q || ''
   currentPage.value = 1
+  scrollToCatalog()
+}
+
+const isHeroCategoryActive = (category) => {
+  if (!isAccessoryPage.value && category.line === 'accessory') return false
+  return isAccessoryPage.value
+    ? activeLine.value === category.line
+    : searchQuery.value === (category.q || '')
+}
+
+const selectShowcaseBrand = (brand) => {
+  const matchedBrand = brandOptions.value.find(
+    option => canonicalText(option) === canonicalText(brand.name)
+  )
+
+  activeLine.value = 'all'
+  selectedCpus.value = []
+  maxPrice.value = isAccessoryPage.value ? 15000000 : 200000000
+  selectedBrands.value = matchedBrand ? [matchedBrand] : []
+  searchQuery.value = matchedBrand ? '' : brand.name
+  currentPage.value = 1
+  scrollToCatalog()
+}
+
+const isShowcaseBrandActive = (brand) => {
+  return selectedBrands.value.some(
+    selected => canonicalText(selected) === canonicalText(brand.name)
+  ) || canonicalText(searchQuery.value) === canonicalText(brand.name)
 }
 
 const toggleBrand = (brand) => {
@@ -564,7 +600,7 @@ const resolveVariantId = async (product) => {
   return variants[0]?.id_bienthe
 }
 
-const addToCart = async (product) => {
+const buyNow = async (product) => {
   const token = getToken()
   const swal = await getSwal()
   if (!token) {
@@ -591,6 +627,27 @@ const addToCart = async (product) => {
   }
 }
 
+const addToCart = async (product) => {
+  const token = getToken()
+  const swal = await getSwal()
+  if (!token) {
+    swal.info('Yêu cầu đăng nhập', 'Vui lòng đăng nhập trước khi thêm sản phẩm vào giỏ hàng!')
+    router.push({ path: '/dang-nhap', query: { redirect: route.fullPath } })
+    return
+  }
+
+  try {
+    const variantId = await resolveVariantId(product)
+    if (!variantId) throw new Error('Sản phẩm chưa có biến thể.')
+
+    await api.post('/gio-hang/them', { id_bienthe: variantId, soluong: 1 })
+    window.dispatchEvent(new Event('cart-updated'))
+    swal.toast('Đã thêm sản phẩm vào giỏ hàng', 'success')
+  } catch (error) {
+    swal.error('Lỗi giỏ hàng', error.response?.data?.message || error.message)
+  }
+}
+
 const addToWishlist = async (product) => {
   const token = getToken()
   const swal = await getSwal()
@@ -608,7 +665,7 @@ const addToWishlist = async (product) => {
       await api.delete(`/yeu-thich/xoa/${existing.id}`)
       await fetchWishlistState()
       window.dispatchEvent(new Event('wishlist-updated'))
-      swal.success('Đã xóa yêu thích', 'Sản phẩm đã được bỏ khỏi danh sách yêu thích.')
+      swal.toast('Đã bỏ sản phẩm khỏi danh sách yêu thích', 'success')
       return
     }
 
@@ -616,7 +673,7 @@ const addToWishlist = async (product) => {
     await api.post('/yeu-thich/them', { id_bienthe: variantId, soluong: 1 })
     await fetchWishlistState()
     window.dispatchEvent(new Event('wishlist-updated'))
-    swal.success('Đã thêm yêu thích', 'Sản phẩm đã được lưu vào danh sách yêu thích.')
+    swal.toast('Đã thêm vào sản phẩm yêu thích', 'success')
   } catch (error) {
     swal.error('Lỗi yêu thích', error.response?.data?.message || error.message)
   }
@@ -747,7 +804,7 @@ onMounted(() => {
           v-for="category in heroCategoriesToDisplay"
           :key="category.label"
           class="line-btn"
-          :class="{ active: searchQuery === category.q }"
+          :class="{ active: isHeroCategoryActive(category) }"
           @click="selectHeroCategory(category)"
         >
           <component :is="category.icon" />
@@ -765,10 +822,6 @@ onMounted(() => {
             <span class="hero-kicker">{{ isAccessoryPage ? 'Phụ kiện cao cấp' : 'Công nghệ gaming' }}</span>
             <h1>{{ isAccessoryPage ? 'Nâng cấp góc máy. Bật chất riêng.' : 'Hiệu năng đỉnh cao Chơi game cực chất' }}</h1>
             <p>{{ isAccessoryPage ? 'Tuyển chọn gear chính hãng cho một góc máy đồng bộ, tinh gọn và đúng phong cách của bạn.' : 'Khám phá các mẫu laptop gaming chính hãng với hiệu năng mạnh mẽ, màn hình tốc độ cao và thiết kế đậm chất game thủ.' }}</p>
-            <div v-if="!isAccessoryPage" class="hero-actions">
-              <button @click="selectLine('gaming')">Mua ngay</button>
-              <button class="secondary" @click="router.push('/khuyen-mai')">Xem ưu đãi</button>
-            </div>
             <div v-if="isAccessoryPage" class="hero-gear-notes" aria-label="Cam kết phụ kiện NextGen">
               <span><strong>100%</strong> Chính hãng</span>
               <i></i>
@@ -832,7 +885,9 @@ onMounted(() => {
               v-for="brand in brandShowcase"
               :key="`${brand.name}-${sequence}`"
               class="brand-logo-card"
-              @click="searchQuery = brand.query"
+              :class="{ active: isShowcaseBrandActive(brand) }"
+              :title="`Xem sản phẩm ${brand.name}`"
+              @click="selectShowcaseBrand(brand)"
             >
               <img :src="brand.logo" :alt="brand.name" loading="lazy" @error="$event.currentTarget.classList.add('is-broken')" />
               <span>{{ brand.name }}</span>
@@ -859,8 +914,11 @@ onMounted(() => {
           </div>
           <strong class="product-price">{{ formatPrice(product.gia) }}</strong>
           <div class="flag-actions">
-            <button @click.stop="viewDetail(product)">Cấu hình</button>
-            <button class="buy" @click.stop="addToCart(product)">Mua ngay</button>
+            <button class="config" @click.stop="viewDetail(product)">
+              <SlidersHorizontal />
+              <span>Cấu hình</span>
+            </button>
+            <button class="buy" @click.stop="buyNow(product)">Mua ngay</button>
           </div>
         </article>
       </div>
@@ -985,7 +1043,7 @@ onMounted(() => {
               <del>{{ formatPrice(product.oldPrice) }}</del>
               <div class="mini-badges">
                 <span>✓ Chính hãng</span>
-                <span>Freeship 2H</span>
+                <span>Ship 2H · 30K</span>
                 <span>BH 24T</span>
               </div>
               <button
@@ -2379,6 +2437,8 @@ onMounted(() => {
 
 .lp-flagship .flag-actions {
   gap: 8px;
+  grid-template-columns: repeat(2, minmax(96px, 124px));
+  justify-content: end;
 }
 
 .lp-flagship .flag-actions button {
@@ -3023,6 +3083,39 @@ onMounted(() => {
     --lp-catalog-sticky-top: 118px;
   }
 
+  /* Đồng bộ toàn bộ khối nội dung khi người dùng zoom-out trên màn hình lớn. */
+  .lp-hero,
+  .lp-services,
+  .lp-featured-head,
+  .lp-brands,
+  .lp-flagship,
+  .lp-accessories,
+  .lp-showroom,
+  .lp-catalog {
+    max-width: 1680px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .lp-flagship,
+  .lp-catalog {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  /* Giữ kích thước card ổn định, không kéo giãn theo viewport cực rộng. */
+  .lp-flagship .flagship-row,
+  .lp-catalog .catalog-layout {
+    width: 100%;
+    max-width: 1680px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
   .lp-catalog {
     padding-bottom: 42px;
   }
@@ -3139,6 +3232,24 @@ onMounted(() => {
   transform: translateY(0) scale(1);
 }
 
+/* Sản phẩm đã lưu phải luôn nhìn thấy, không phụ thuộc trạng thái hover. */
+.lp-catalog .wishlist-btn.is-wishlisted {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+  background: #ef4444 !important;
+  border-color: #ef4444 !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 24px rgba(239, 68, 68, 0.38) !important;
+}
+
+.lp-catalog .wishlist-btn.is-wishlisted svg,
+.lp-catalog .wishlist-btn.is-wishlisted .heart-svg-icon {
+  fill: #ffffff !important;
+  stroke: #ffffff !important;
+  color: #ffffff !important;
+}
+
 .hover-action-btn,
 .product-actions .cart-btn {
   position: static;
@@ -3193,7 +3304,7 @@ onMounted(() => {
 .lp-catalog .product-card {
   display: flex;
   flex-direction: column;
-  min-height: 348px;
+  min-height: 322px;
   padding: 14px;
   border-radius: 16px;
   background: linear-gradient(180deg, #ffffff, #f9fbff);
@@ -3253,13 +3364,16 @@ onMounted(() => {
 }
 
 .lp-catalog .mini-badges {
-  min-height: 46px;
-  margin-top: 10px;
+  min-height: 22px;
+  margin-top: 6px;
   padding-right: 42px;
+  align-items: flex-start;
 }
 
 .lp-catalog .mini-badges span {
-  background: #edf6ff;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
 }
 
 .lp-catalog .discount {
@@ -3398,67 +3512,122 @@ onMounted(() => {
 
 .lp-hero .lp-sidebar {
   min-height: 384px;
-  padding: 14px 16px;
-  border-radius: 14px;
-  gap: 2px;
-  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
+  padding: 16px;
+  border-radius: 16px;
+  gap: 5px;
+  border-color: #dbe4f0;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.07);
+}
+
+.lp-flagship .flag-actions .config {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  background: #0f2747;
+  color: #ffffff;
+  border: 1px solid #1e3a5f;
+  box-shadow: 0 7px 16px rgba(15, 39, 71, 0.2);
+}
+
+.lp-flagship .flag-actions .config svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 15px;
+  stroke-width: 2.2;
+}
+
+.lp-flagship .flag-actions .config:hover {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+  box-shadow: 0 9px 20px rgba(37, 99, 235, 0.28);
+}
+
+@media (max-width: 768px) {
+  .lp-flagship .flag-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-content: stretch;
+  }
 }
 
 .lp-hero .lp-sidebar h3 {
-  font-size: 12px;
-  margin-bottom: 10px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #edf2f7;
+  font-size: 14px;
+  margin-bottom: 7px;
+  padding: 0 2px 11px;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .lp-hero .line-btn {
-  min-height: 27px;
-  height: 27px;
-  border-radius: 8px;
-  padding: 0 4px;
-  gap: 8px;
-  font-size: 10.5px;
+  min-height: 32px;
+  height: 32px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 0 9px;
+  gap: 9px;
+  font-size: 11.5px;
   font-weight: 700;
-  background: transparent;
+  background: #f8fafc;
+  color: #475569;
+  box-shadow: none;
+}
+
+.lp-hero .lp-sidebar .line-btn {
+  font-size: 12px;
 }
 
 .lp-hero .line-btn svg {
-  width: 17px;
-  height: 17px;
-  min-width: 17px;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  padding: 4px;
+  box-sizing: border-box;
+  border-radius: 7px;
   stroke-width: 2.2;
-  color: #3b82f6;
-}
-
-.lp-hero .line-btn:nth-of-type(3n + 2) svg {
-  color: #8b5cf6;
-}
-
-.lp-hero .line-btn:nth-of-type(3n) svg {
-  color: #06b6d4;
-}
-
-.lp-hero .line-btn:nth-of-type(5n) svg {
-  color: #f59e0b;
+  color: #2563eb;
+  background: #eaf2ff;
 }
 
 .lp-hero .line-btn.promo svg {
-  width: 18px;
-  height: 18px;
-  color: #ef4444;
+  color: #ea580c;
+  background: #ffedd5;
 }
 
-.lp-hero .line-btn:hover,
-.lp-hero .line-btn.active {
-  background: #f1f6ff;
+.lp-hero .line-btn:hover {
+  background: #eff6ff;
+  border-color: #bfdbfe;
   color: #2563eb;
+  transform: translateX(2px);
+}
+
+.lp-hero .line-btn.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.2);
+  transform: none;
+}
+
+.lp-hero .line-btn.active svg {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .lp-hero .line-btn.promo {
-  min-height: 36px;
-  margin-top: 6px;
-  padding-top: 10px;
-  color: #ef4444;
+  min-height: 34px;
+  height: 34px;
+  margin-top: 7px;
+  padding: 0 9px;
+  border: 1px solid #fed7aa;
+  border-radius: 10px;
+  color: #ea580c;
+  background: #fff7ed;
+}
+
+.lp-hero .line-btn.promo:hover {
+  color: #c2410c;
+  border-color: #fdba74;
+  background: #ffedd5;
 }
 
 .lp-hero-panel {
@@ -3579,11 +3748,20 @@ onMounted(() => {
 }
 
 .lp-hero .lp-services article {
-  min-height: 58px;
+  min-height: 68px;
   border-radius: 10px;
   padding: 10px 12px;
   gap: 10px;
+  overflow: hidden;
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.07);
+}
+
+.lp-hero .lp-services article > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
 }
 
 .lp-hero .lp-services svg {
@@ -3614,10 +3792,14 @@ onMounted(() => {
 
 .lp-hero .lp-services strong {
   font-size: 11px;
+  line-height: 1.25;
+  margin: 0;
 }
 
 .lp-hero .lp-services span {
   font-size: 10px;
+  line-height: 1.35;
+  margin: 0;
 }
 
 .lp-catalog .product-card .product-price {
@@ -3679,7 +3861,7 @@ onMounted(() => {
 }
 
 .laptop-page .lp-catalog .product-card img {
-  height: 190px;
+  height: 176px;
   border-radius: 14px;
 }
 
@@ -3790,6 +3972,17 @@ onMounted(() => {
   border-radius: 0;
   box-shadow: none;
   overflow: visible;
+}
+
+@media (min-width: 1101px) {
+  .laptop-page .lp-catalog {
+    width: calc(100% - clamp(48px, 8vw, 160px));
+    max-width: 1680px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 0;
+    padding-right: 0;
+  }
 }
 
 .laptop-page .lp-catalog .catalog-layout {
@@ -4170,6 +4363,11 @@ onMounted(() => {
   margin-bottom: 12px;
 }
 
+.brand-logo-card.active {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.14), 0 6px 16px rgba(37, 99, 235, 0.12);
+}
+
 /* Accessories experience: retain the page body color while giving the route
    its own premium, setup-focused information hierarchy. */
 .laptop-page.is-accessory-page {
@@ -4180,7 +4378,7 @@ onMounted(() => {
 
 .is-accessory-page > .lp-hero { order: 1; }
 .is-accessory-page > .accessory-studio { order: 2; }
-.is-accessory-page > .lp-combos { order: 3; }
+.is-accessory-page > .lp-combos { order: 7; }
 .is-accessory-page > .lp-brands { order: 4; }
 .is-accessory-page > .lp-flagship { order: 5; }
 .is-accessory-page > .lp-catalog { order: 6; }
@@ -5334,5 +5532,127 @@ onMounted(() => {
 .is-accessory-page .accessory-category-card strong {
   color: #ffffff;
   text-shadow: 0 2px 12px rgba(0, 0, 0, .45);
+}
+
+/* Desktop/zoom-out: một trục nội dung duy nhất, không dùng card bọc ngoài. */
+@media (min-width: 1101px) {
+  .laptop-page .lp-hero,
+  .laptop-page .lp-services,
+  .laptop-page .lp-featured-head,
+  .laptop-page .lp-brands,
+  .laptop-page .lp-flagship,
+  .laptop-page .lp-accessories,
+  .laptop-page .lp-showroom,
+  .laptop-page .lp-catalog {
+    width: calc(100% - clamp(48px, 8vw, 160px));
+    max-width: 1680px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .laptop-page .lp-brands,
+  .laptop-page .lp-flagship,
+  .laptop-page .lp-accessories,
+  .laptop-page .lp-showroom,
+  .laptop-page .lp-catalog {
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .laptop-page .lp-flagship .flagship-row,
+  .laptop-page .lp-catalog .catalog-layout {
+    width: 100%;
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .laptop-page.is-accessory-page .accessory-studio,
+  .laptop-page.is-accessory-page .lp-combos {
+    width: calc(100% - clamp(48px, 8vw, 160px));
+    max-width: 1680px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .laptop-page.is-accessory-page .lp-combos {
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+}
+
+/* Sidebar phụ kiện trên desktop dùng cùng hệ giao diện với sidebar laptop. */
+@media (min-width: 901px) {
+  .laptop-page.is-accessory-page .lp-sidebar {
+    padding: 16px;
+    border-radius: 14px;
+    background: #ffffff;
+  }
+
+  .laptop-page.is-accessory-page .lp-sidebar h3 {
+    margin-bottom: 7px;
+    color: #0f172a;
+    letter-spacing: normal;
+    text-transform: capitalize !important;
+  }
+
+  .laptop-page.is-accessory-page .lp-hero .line-btn {
+    min-height: 32px;
+    height: 32px;
+    padding: 0 9px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: #f8fafc;
+    color: #475569;
+    font-size: 11.5px;
+    gap: 9px;
+    box-shadow: none;
+  }
+
+  .laptop-page.is-accessory-page .lp-hero .line-btn:hover {
+    border-color: #bfdbfe;
+    background: #eff6ff;
+    color: #2563eb;
+    box-shadow: none;
+    transform: translateX(2px);
+  }
+
+  .laptop-page.is-accessory-page .lp-hero .line-btn.active {
+    border-color: #2563eb;
+    background: #2563eb;
+    color: #ffffff;
+    box-shadow: 0 6px 14px rgba(37, 99, 235, 0.2);
+    transform: none;
+  }
+
+  .laptop-page.is-accessory-page .lp-hero .line-btn.active svg {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.18);
+  }
+
+  .laptop-page.is-accessory-page .lp-hero .line-btn.promo {
+    min-height: 34px;
+    height: 34px;
+    margin-top: 7px;
+    border-color: #fed7aa;
+    background: #fff7ed;
+    color: #ea580c;
+  }
+
+  .laptop-page.is-accessory-page .lp-hero .line-btn.promo:hover {
+    border-color: #fdba74;
+    background: #ffedd5;
+    color: #c2410c;
+    box-shadow: none;
+    transform: translateX(2px);
+  }
 }
 </style>

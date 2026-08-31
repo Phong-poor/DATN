@@ -158,7 +158,7 @@ class ChatbotController extends Controller
                 }
 
                 return response()->json([
-                    'reply' => "Dạ hiện tại VinaTech có một vài mã giảm giá nhỏ đang áp dụng công khai. Anh/chị có thể nhập mã khi chốt đơn trực tuyến nha:\n\n".trim($promoList),
+                    'reply' => "Dạ hiện tại NextGen có một vài mã giảm giá nhỏ đang áp dụng công khai. Anh/chị có thể nhập mã khi chốt đơn trực tuyến nha:\n\n".trim($promoList),
                     'products' => [],
                 ]);
 
@@ -173,7 +173,7 @@ class ChatbotController extends Controller
         // Địa chỉ / Liên hệ / Hotline / Showroom
         if ($this->containsAny($userMessage, ['địa chỉ', 'dia chi', 'cửa hàng', 'cua hang', 'showroom', 'ở đâu', 'o dau', 'vị trí', 'vi tri', 'đường đi', 'bản đồ', 'sđt', 'hotline', 'liên hệ', 'sdt', 'điện thoại'])) {
             return response()->json([
-                'reply' => "Dạ, anh/chị có thể ghé thăm showroom hoặc liên hệ với VinaTech theo thông tin dưới đây ạ:\n\n📍 **Địa chỉ showroom**: Tòa nhà VinaTech, 123 Đường 3/2, Phường 11, Quận 10, TP. Hồ Chí Minh.\n📞 **Hotline hỗ trợ trực tuyến**: 1900 8080 (Miễn phí cuộc gọi, hoạt động từ 8:00 - 21:30 hàng ngày)\n📧 **Email hỗ trợ**: support@vinatech.com.vn\n💬 Anh/chị có thể chat trực tiếp tại đây hoặc nhấn nút **'Nhắn Admin'** ở phía trên để gặp nhân viên hỗ trợ trực tiếp nha!",
+                'reply' => "Dạ, anh/chị có thể ghé thăm showroom hoặc liên hệ với NextGen theo thông tin dưới đây ạ:\n\n📍 **Địa chỉ showroom**: Tòa nhà NextGen, 123 Đường 3/2, Phường 11, Quận 10, TP. Hồ Chí Minh.\n📞 **Hotline hỗ trợ trực tuyến**: 1900 8080 (Miễn phí cuộc gọi, hoạt động từ 8:00 - 21:30 hàng ngày)\n📧 **Email hỗ trợ**: support@nextgenlaptop.vn\n💬 Anh/chị có thể chat trực tiếp tại đây hoặc nhấn nút **'Nhắn Admin'** ở phía trên để gặp nhân viên hỗ trợ trực tiếp nha!",
                 'products' => [],
             ]);
         }
@@ -181,7 +181,7 @@ class ChatbotController extends Controller
         // Chính sách bảo hành / Đổi trả
         if ($this->containsAny($userMessage, ['bảo hành', 'bao hanh', 'đổi trả', 'doi tra', 'lỗi', 'hỏng', 'trả máy', 'đổi máy', 'chính sách bảo hành'])) {
             return response()->json([
-                'reply' => "Dạ, VinaTech luôn đặt quyền lợi của khách hàng lên hàng đầu với chính sách bảo hành cực kỳ an tâm:\n\n🛡️ **Chính sách đổi trả**: 1-đổi-1 trong vòng **30 ngày đầu tiên** nếu máy phát sinh lỗi phần cứng từ nhà sản xuất.\n🛠️ **Chính sách bảo hành**: Bảo hành chính hãng từ **12 đến 24 tháng** tùy dòng máy. VinaTech hỗ trợ gửi máy bảo hành về hãng hoàn toàn miễn phí.\n💻 **Hỗ trợ phần mềm**: Hỗ trợ cài đặt hệ điều hành, phần mềm văn phòng, đồ họa và vệ sinh máy định kỳ **trọn đời hoàn toàn miễn phí** tại cửa hàng.",
+                'reply' => "Dạ, NextGen luôn đặt quyền lợi của khách hàng lên hàng đầu với chính sách bảo hành cực kỳ an tâm:\n\n🛡️ **Chính sách đổi trả**: 1-đổi-1 trong vòng **30 ngày đầu tiên** nếu máy phát sinh lỗi phần cứng từ nhà sản xuất.\n🛠️ **Chính sách bảo hành**: Bảo hành chính hãng từ **12 đến 24 tháng** tùy dòng máy. NextGen hỗ trợ gửi máy bảo hành về hãng hoàn toàn miễn phí.\n💻 **Hỗ trợ phần mềm**: Hỗ trợ cài đặt hệ điều hành, phần mềm văn phòng, đồ họa và vệ sinh máy định kỳ **trọn đời hoàn toàn miễn phí** tại cửa hàng.",
                 'products' => [],
             ]);
         }
@@ -189,7 +189,7 @@ class ChatbotController extends Controller
         // Chính sách giao hàng / Ship hàng
         if ($this->containsAny($userMessage, ['ship', 'phí ship', 'phi ship', 'vận chuyển', 'giao hàng', 'bao lâu nhận', 'nhận hàng', 'giao hỏa tốc', 'giao hoatoc'])) {
             return response()->json([
-                'reply' => "Dạ về vận chuyển, VinaTech hỗ trợ giao hàng tận nơi siêu nhanh chóng:\n\n🚀 **Giao hỏa tốc 2 giờ**: Áp dụng trong nội thành TP. Hồ Chí Minh.\n🚚 **Giao hàng tiêu chuẩn toàn quốc**: Hoàn toàn **Miễn Phí Vận Chuyển** đối với các đơn hàng laptop.\n⏱️ **Thời gian nhận hàng**: Các tỉnh lân cận từ 1 - 2 ngày, khu vực miền Trung/Bắc từ 3 - 4 ngày làm việc. Quý khách được phép mở hộp kiểm tra máy trước khi thanh toán (COD) ạ.",
+                'reply' => "Dạ về vận chuyển, NextGen hỗ trợ giao hàng tận nơi siêu nhanh chóng:\n\n🚀 **Giao hỏa tốc 2 giờ**: Áp dụng trong nội thành TP. Hồ Chí Minh.\n🚚 **Giao hàng tiêu chuẩn toàn quốc**: Phí ship đồng giá **30.000đ** cho mỗi đơn hàng.\n⏱️ **Thời gian nhận hàng**: Các tỉnh lân cận từ 1 - 2 ngày, khu vực miền Trung/Bắc từ 3 - 4 ngày làm việc. Quý khách được phép mở hộp kiểm tra máy trước khi thanh toán (COD) ạ.",
                 'products' => [],
             ]);
         }
@@ -197,7 +197,7 @@ class ChatbotController extends Controller
         // Trả góp
         if ($this->containsAny($userMessage, ['trả góp', 'tra gop', 'lãi suất', 'lai suat', 'góp', 'thẻ tín dụng'])) {
             return response()->json([
-                'reply' => "Dạ, VinaTech hỗ trợ mua laptop trả góp với 2 hình thức cực kỳ đơn giản:\n\n1️⃣ **Trả góp 0% lãi suất qua thẻ tín dụng**: Áp dụng cho thẻ Visa, Mastercard, JCB của hơn 25 ngân hàng liên kết. Kỳ hạn linh hoạt từ 3, 6, 9 đến 12 tháng.\n2️⃣ **Trả góp qua công ty tài chính (HD Saison, Home Credit, MCredit)**: Chỉ cần CCCD gắn chip (từ 18 tuổi trở lên). Không cần chứng minh thu nhập, duyệt hồ sơ nhanh trong 15 phút, trả trước chỉ từ 10% giá trị máy.\n\nAnh/chị quan tâm dòng máy nào, nhắn em để em tính trước số tiền trả góp mỗi tháng cho mình tham khảo nhé!",
+                'reply' => "Dạ, NextGen hỗ trợ mua laptop trả góp với 2 hình thức cực kỳ đơn giản:\n\n1️⃣ **Trả góp 0% lãi suất qua thẻ tín dụng**: Áp dụng cho thẻ Visa, Mastercard, JCB của hơn 25 ngân hàng liên kết. Kỳ hạn linh hoạt từ 3, 6, 9 đến 12 tháng.\n2️⃣ **Trả góp qua công ty tài chính (HD Saison, Home Credit, MCredit)**: Chỉ cần CCCD gắn chip (từ 18 tuổi trở lên). Không cần chứng minh thu nhập, duyệt hồ sơ nhanh trong 15 phút, trả trước chỉ từ 10% giá trị máy.\n\nAnh/chị quan tâm dòng máy nào, nhắn em để em tính trước số tiền trả góp mỗi tháng cho mình tham khảo nhé!",
                 'products' => [],
             ]);
         }
@@ -570,9 +570,9 @@ class ChatbotController extends Controller
                 $reply = "Dạ gửi khách yêu các dòng laptop **{$specDesc}** bên em đang có sẵn và rất hot ạ. Anh/chị nhắn thêm tầm giá mong muốn để em lọc sát ngân sách hơn nha!";
             } else {
                 if ($this->containsAny($userMessage, ['xin chào', 'chào', 'hello', 'hi'])) {
-                    $reply = 'Dạ em chào anh/chị ạ! Em là Mia, trợ lý tư vấn VinaTech. Anh/chị cần tìm máy tầm giá bao nhiêu hoặc phục vụ nhu cầu học tập, làm việc gì để em tìm cấu hình phù hợp nhất ạ?';
+                    $reply = 'Dạ em chào anh/chị ạ! Em là Mia, trợ lý tư vấn NextGen. Anh/chị cần tìm máy tầm giá bao nhiêu hoặc phục vụ nhu cầu học tập, làm việc gì để em tìm cấu hình phù hợp nhất ạ?';
                 } else {
-                    $reply = 'Dạ em gửi anh/chị một số cấu hình laptop bán chạy và được ưa chuộng nhất hiện nay tại VinaTech ạ. Anh/chị có thể cho em biết thêm khoảng giá hoặc thương hiệu yêu thích để em hỗ trợ tốt nhất nhé! 😊';
+                    $reply = 'Dạ em gửi anh/chị một số cấu hình laptop bán chạy và được ưa chuộng nhất hiện nay tại NextGen ạ. Anh/chị có thể cho em biết thêm khoảng giá hoặc thương hiệu yêu thích để em hỗ trợ tốt nhất nhé! 😊';
                 }
             }
         } else {

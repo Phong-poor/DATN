@@ -182,7 +182,7 @@ class DatHangController extends Controller
         $shipment = [
             'provider' => 'NextGen Express',
             'tracking_code' => $trackingCode,
-            'fee' => 30000,
+            'fee' => 0,
             'cod_amount' => $isCod ? (int) $order->tongtien : 0,
             'service_area' => $plan['service_area'],
             'service_level' => $plan['service_level'],
@@ -563,7 +563,8 @@ class DatHangController extends Controller
             'id_diachi' => 'nullable|integer',
             'diachi' => 'required_without:id_diachi|string|min:8|max:500',
             'PTTT' => 'required|string|in:COD,VNPay,VNPAY,vnpay,MoMo,MOMO,momo,SePay,SEPAY,sepay,Chuyển khoản,Chuyen khoản,bank,Bank',
-            'name' => ['required', 'string', 'min:2', 'max:100', 'regex:/^[\pL\pM\s.\'-]+$/u'],
+            // Accept common school/company prefixes in a recipient name, e.g. "(FPOLY HCM) ...".
+            'name' => ['required', 'string', 'min:2', 'max:100', 'regex:/^[\pL\pM\s.\'()\-]+$/u'],
             'phone' => ['required', 'string', 'regex:/^0(3|5|7|8|9)[0-9]{8}$/'],
             'selected_cart_items' => 'nullable|array',
             'selected_cart_items.*' => 'integer|exists:giohang,id_giohang',

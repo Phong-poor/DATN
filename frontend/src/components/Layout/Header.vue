@@ -3268,43 +3268,59 @@ const openLuckyWheelMobile = () => {
   top: 0;
   right: 0;
   bottom: 0;
-  width: min(320px, 90vw);
+  width: min(290px, 82vw);
   background: #0d1b2e;
   z-index: 9998;
   display: flex;
   flex-direction: column;
   box-shadow: -16px 0 48px rgba(0, 0, 0, 0.5);
   overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.mob-drawer::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .mob-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 20px 16px;
+  padding: 14px 16px 12px;
   border-bottom: 1px solid #f1f5f9;
   flex-shrink: 0;
+  gap: 12px;
+}
+
+.mob-logo {
+  min-width: 0;
+  flex: 1;
 }
 
 .mob-logo img {
-  width: 285px;
-  max-width: 76vw;
-  height: 66px;
+  width: 180px;
+  max-width: 100%;
+  height: 54px;
   object-fit: contain;
   object-position: left center;
 }
 
 .mob-close {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
   border: 1.5px solid #e2e8f0;
   background: #0d1b2e;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #475569;
+  color: #e2e8f0;
+  flex: 0 0 32px;
   transition: all 0.2s;
 }
 
@@ -3323,18 +3339,18 @@ const openLuckyWheelMobile = () => {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 16px 20px;
-  background: #f1f5f9;
+  margin: 14px 16px 10px;
+  background: #ffffff;
   border: 1.5px solid #e2e8f0;
   border-radius: 12px;
-  padding: 10px 14px;
+  padding: 9px 12px;
   flex-shrink: 0;
 }
 
 .mob-search svg {
   width: 15px;
   height: 15px;
-  color: #94a3b8;
+  color: #64748b;
   flex-shrink: 0;
 }
 
@@ -3344,12 +3360,15 @@ const openLuckyWheelMobile = () => {
   outline: none;
   font-size: 14px;
   flex: 1;
-  color: #e2e8f0;
+  color: #0f172a;
   font-family: 'Inter', sans-serif;
 }
 
 .mob-search input::placeholder {
-  color: #475569;
+  color: #475569 !important;
+  -webkit-text-fill-color: #475569 !important;
+  opacity: 1 !important;
+  font-weight: 500 !important;
 }
 
 .mob-nav {
@@ -3370,7 +3389,7 @@ const openLuckyWheelMobile = () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 11px 12px;
+  padding: 9px 10px;
   border-radius: 12px;
   font-family: 'Outfit', sans-serif;
   font-size: 14px;
@@ -3540,28 +3559,154 @@ const openLuckyWheelMobile = () => {
   }
 
   .header-inner {
-    width: calc(100% - 32px);
+    width: calc(100% - 24px);
     padding: 0;
     height: 64px;
   }
 
   .logo-wrap {
-    width: 176px;
-    min-width: 176px;
-    height: 56px;
+    width: 132px;
+    min-width: 132px;
+    height: 48px;
+    margin-left: 0;
   }
-}
 
-@media (max-width: 400px) {
+  .logo-img {
+    transform: scale(1.08);
+  }
+
+  .header-actions {
+    gap: 5px;
+    margin-right: 0;
+    min-width: 0;
+  }
+
   .icon-action {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+  }
+
+  .icon-action svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  .user-avatar {
+    width: 30px;
+    min-width: 30px;
+    height: 30px;
+    border-radius: 8px;
+  }
+
+  .hdr-dropdown,
+  .wishlist-drop,
+  .cart-drop,
+  .user-drop {
+    position: fixed;
+    top: 68px;
+    right: 8px;
+    width: min(270px, calc(100vw - 24px));
+    min-width: 0;
+    border-radius: 14px;
+  }
+
+  .hdr-dropdown::before {
+    display: none;
+  }
+
+  .drop-head {
+    padding: 9px 12px 8px;
+  }
+
+  .drop-body {
+    max-height: 220px;
+    padding: 6px;
+  }
+
+  .drop-empty {
+    padding: 18px 0;
+  }
+
+  .user-card {
+    gap: 9px;
+    padding: 10px;
+  }
+
+  .user-card-avatar {
     width: 36px;
     height: 36px;
     border-radius: 10px;
   }
 
-  .icon-action svg {
-    width: 18px;
+  .uc-name {
+    font-size: 13.5px;
+  }
+
+  .uc-email {
+    max-width: 190px;
+    font-size: 10.5px;
+  }
+
+  .user-menu {
+    padding: 6px;
+    gap: 1px;
+  }
+
+  .um-item {
+    min-height: 42px;
+    padding: 4px 7px;
+    font-size: 12.5px;
+  }
+
+  .um-icon-box {
+    width: 28px;
+    height: 28px;
+    flex-basis: 28px;
+  }
+
+  .um-copy strong {
+    font-size: 11.5px;
+  }
+
+  .um-copy small {
+    font-size: 9px;
+  }
+
+  .hamburger {
+    width: 24px;
     height: 18px;
+    margin-left: 2px;
+  }
+
+  .hamburger span {
+    background: #e2e8f0;
+  }
+}
+
+@media (max-width: 400px) {
+  .icon-action {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+  }
+
+  .icon-action svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .header-actions {
+    gap: 4px;
+  }
+
+  .logo-wrap {
+    width: 116px;
+    min-width: 116px;
+  }
+
+  .hamburger {
+    margin-left: 0;
   }
 }
 </style>

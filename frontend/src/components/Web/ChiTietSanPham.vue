@@ -474,6 +474,7 @@ const themVaoGioHang = async () => {
     if (!token) {
         hienThiThongBao('error', 'Vui lòng đăng nhập trước!')
         if (selectedVariant.value) {
+            localStorage.removeItem('pendingBuyNow')
             localStorage.setItem('pendingCartItem', JSON.stringify({
                 id_bienthe: variantForApi.id_bienthe,
                 soluong: soLuongMua.value,
@@ -532,6 +533,7 @@ const muaNgay = async () => {
     if (!token) {
         hienThiThongBao('error', 'Vui lòng đăng nhập để tiến hành mua ngay!')
         if (selectedVariant.value) {
+            localStorage.setItem('pendingBuyNow', '1')
             localStorage.setItem('pendingCartItem', JSON.stringify({
                 id_bienthe: variantForApi.id_bienthe,
                 soluong: soLuongMua.value,
@@ -1417,6 +1419,12 @@ const openCompareModal = () => {
     showCompareModal.value = true
 }
 
+onMounted(() => {
+    if (String(route.query.compare || '') === '1') {
+        window.setTimeout(openCompareModal, 0)
+    }
+})
+
 const closeCompareModal = () => { showCompareModal.value = false; compareSelection.value = [] }
 
 const compareProducts = computed(() => {
@@ -1661,7 +1669,7 @@ const handleSelectVariantById = (idBienThe) => {
                             </div>
                             <div class="price-badges-row">
                                 <span class="premium-badge-check">✓ Trả góp 0%</span>
-                                <span class="premium-badge-check">✓ Miễn phí giao hàng</span>
+                                <span class="premium-badge-check">✓ Phí giao hàng 30.000đ</span>
                             </div>
                         </div>
 
@@ -1879,7 +1887,7 @@ const handleSelectVariantById = (idBienThe) => {
                                             <circle cx="18.5" cy="18.5" r="2.5"/>
                                         </svg>
                                     </span>
-                                    <span class="benefit-text">Miễn phí giao hàng toàn quốc hoặc <b>Giao nhanh Hỏa Tốc trong vòng 2H</b>.</span>
+                                    <span class="benefit-text">Phí giao hàng toàn quốc 30.000đ hoặc <b>Giao nhanh Hỏa Tốc trong vòng 2H</b>.</span>
                                 </li>
                             </ul>
                         </div>

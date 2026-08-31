@@ -202,7 +202,7 @@
                 <path d="M8 9h8M8 13h5" />
               </svg>
             </div>
-            <h2>Hộp thư VinaTech</h2>
+            <h2>Hộp thư NextGen</h2>
             <p>Chọn một cuộc hội thoại từ danh sách bên trái để bắt đầu tư vấn cho khách hàng.</p>
           </div>
         </div>

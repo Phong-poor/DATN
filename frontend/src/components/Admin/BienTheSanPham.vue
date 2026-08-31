@@ -1068,7 +1068,7 @@ async function handleImportFile(e) {
     <div class="page-header">
       <div>
         <h1>Quản lý biến thể &amp; Màu sắc</h1>
-        <p>Cấu hình các thuộc tính kỹ thuật và dải màu sắc dành cho dòng sản phẩm cao cấp VinaTech 2026.</p>
+        <p>Cấu hình các thuộc tính kỹ thuật và dải màu sắc dành cho dòng sản phẩm cao cấp NextGen 2026.</p>
       </div>
     </div>
 

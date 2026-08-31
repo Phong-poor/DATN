@@ -165,7 +165,7 @@ onUnmounted(() => {
           </ul>
         </div>
 
-        <!-- COLUMN 3: HE SINH THAI VINATECH -->
+        <!-- COLUMN 3: HE SINH THAI NEXTGEN -->
         <div class="dir-col">
           <h4 class="col-title">Hệ Sinh Thái</h4>
           <ul class="footer-links">
@@ -1210,6 +1210,26 @@ onUnmounted(() => {
   .compliance-suite {
     width: 100%;
     justify-content: space-between;
+  }
+}
+
+/* Zoom-out / viewport cực rộng: footer thẳng cùng trục nội dung website. */
+@media (min-width: 2400px) {
+  .footer {
+    width: 100%;
+    max-width: 1680px;
+    margin-left: auto;
+    margin-right: auto;
+    border-left: 0;
+    border-right: 0;
+    box-shadow: none;
+  }
+
+  .footer > .container {
+    width: 100%;
+    max-width: none;
+    padding-left: 0;
+    padding-right: 0;
   }
 }
 </style>

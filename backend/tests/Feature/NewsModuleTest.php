@@ -54,7 +54,7 @@ class NewsModuleTest extends TestCase
     {
         return array_merge([
             'tieude' => 'Bài viết thử nghiệm', 'slug' => 'bai-viet-thu-nghiem', 'danhmuc' => 'Công nghệ',
-            'tacgia' => 'VinaTech', 'trangthai' => 'draft', 'workflow_status' => 'draft',
+            'tacgia' => 'NextGen', 'trangthai' => 'draft', 'workflow_status' => 'draft',
             'tomtat' => 'Nội dung tóm tắt', 'noidung' => 'Nội dung chi tiết của bài viết.',
         ], $overrides);
     }

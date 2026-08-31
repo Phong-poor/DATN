@@ -224,17 +224,30 @@ const redirectAfterLogin = async (user, token) => {
   if (pendingItemStr) {
     try {
       const pendingItem = JSON.parse(pendingItemStr)
-      await api.post('/gio-hang/them', pendingItem, {
+      const pendingCartResponse = await api.post('/gio-hang/them', pendingItem, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       })
 
+      const shouldBuyNow = localStorage.getItem('pendingBuyNow') === '1'
+      const pendingCartItemId = pendingCartResponse?.data?.id_giohang
+        || pendingCartResponse?.data?.item?.id_giohang
+        || pendingCartResponse?.data?.data?.id_giohang
+        || ''
       localStorage.removeItem('pendingCartItem')
+      localStorage.removeItem('pendingBuyNow')
       window.dispatchEvent(new Event('cart-updated'))
       await playWebOpening()
       sessionStorage.setItem('web_intro_animation', '1')
-      await router.replace('/gio-hang')
+      if (shouldBuyNow) {
+        const checkoutTarget = pendingCartItemId
+          ? `/thanh-toan?buy_now=1&cart_item=${pendingCartItemId}`
+          : `/thanh-toan?buy_now=1&variant=${pendingItem.id_bienthe}`
+        await router.replace(checkoutTarget)
+      } else {
+        await router.replace('/gio-hang')
+      }
       return
     } catch (err) {
       console.error('Lỗi thêm pending item:', err)
@@ -465,7 +478,7 @@ const handleLogin = async () => {
                 </svg>
               </span>
               <input v-model="email" type="email" name="username" autocomplete="username"
-                placeholder="Example@vinatech.vn" />
+                placeholder="Example@nextgenlaptop.vn" />
             </div>
           </div>
 
