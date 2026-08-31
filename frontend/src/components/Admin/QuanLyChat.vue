@@ -386,6 +386,7 @@ const subscribeToConversation = (id) => {
 
   bindChatChannel(echo, `chat.${id}`, messagesRef, authUserId.value, (msg) => {
     scrollToBottom();
+    api.post(`/admin/chat/conversations/${id}/read`).catch(() => {});
     // Update online status
     if (selectedConversation.value && Number(msg.id_nguoigui) === Number(selectedConversation.value.user.id)) {
       selectedConversation.value.user.online = true;
@@ -593,16 +594,17 @@ onUnmounted(() => {
 
 <style scoped>
 .admin-chat-page-container {
-  padding: 16px 24px;
-  height: calc(100vh - 90px);
+  padding: 0;
+  height: calc(100vh - 70px);
+  width: 100%;
 }
 
 .chat-layout-card {
   display: flex;
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
   height: 100%;
   overflow: hidden;
 }
@@ -1047,6 +1049,32 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+.chat-messages-body :deep(.msg-bubble) {
+  padding: 10px 14px;
+  border-radius: 18px;
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 500;
+  max-width: 100%;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+.chat-messages-body :deep(.msg-bubble.admin) {
+  background: #2563eb;
+  color: #ffffff;
+  border-bottom-right-radius: 4px;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+}
+
+.chat-messages-body :deep(.msg-bubble.user) {
+  background: #ffffff;
+  color: #0f172a;
+  border-bottom-left-radius: 4px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
 }
 
 .loading-state-messages {
