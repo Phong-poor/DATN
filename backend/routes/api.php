@@ -251,6 +251,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ===== CHAT (USER) =====
     Route::get('/chat/me', [ChatController::class, 'getUserConversation']);
     Route::post('/chat/send', [ChatController::class, 'sendMessage']);
+    Route::post('/chat/read', [ChatController::class, 'markUserRead']);
     Route::put('/chat/messages/{id}', [ChatController::class, 'updateMessage']);
     Route::delete('/chat/messages/{id}', [ChatController::class, 'destroyMessage']);
 
@@ -468,6 +469,7 @@ Route::middleware(['auth:sanctum', 'admin'])
         // ===== ADMIN CHAT =====
         Route::get('/chat/conversations', [ChatController::class, 'getConversations']);
         Route::get('/chat/conversations/{id}/messages', [ChatController::class, 'getMessages']);
+        Route::post('/chat/conversations/{id}/read', [ChatController::class, 'markRead']);
         Route::delete('/chat/conversations', [ChatController::class, 'destroyConversations']);
         Route::post('/chat/send', [ChatController::class, 'sendMessage']);
         Route::put('/chat/messages/{id}', [ChatController::class, 'updateMessage']);

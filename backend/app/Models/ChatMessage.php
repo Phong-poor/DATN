@@ -25,6 +25,10 @@ class ChatMessage extends Model
         'duongdan_dinhkem_url',
     ];
 
+    protected $casts = [
+        'daxem' => 'boolean',
+    ];
+
     public function getDuongdanDinhkemUrlAttribute()
     {
         if (!$this->duongdan_dinhkem) {

@@ -236,7 +236,11 @@ const subscribeToChannel = () => {
     authUserId.value,
     () => {
       scrollToBottom();
-      if (!isOpen.value || document.hidden) startChatTitleNotice();
+      if (!isOpen.value || document.hidden) {
+        startChatTitleNotice();
+      } else {
+        api.post('/chat/read').catch(() => {});
+      }
     }
   );
 };
@@ -318,6 +322,7 @@ const handleToggleAdminChat = () => {
   if (isOpen.value) stopChatTitleNotice();
   window.dispatchEvent(new CustomEvent('admin-chat-state', { detail: { open: isOpen.value } }));
   if (isOpen.value && getToken() && currentUser.value) {
+    api.post('/chat/read').catch(() => {});
     if (messages.value.length === 0) loadMessages();
     else scrollToBottom();
   }

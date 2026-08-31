@@ -144,23 +144,23 @@ const serviceCards = [
 ]
 
 const heroCategories = [
-  { label: 'Laptop Gaming RTX 4050', icon: Laptop, line: 'gaming', q: 'rtx 4050' },
-  { label: 'Laptop Gaming RTX 4060', icon: Laptop, line: 'gaming', q: 'rtx 4060' },
-  { label: 'Laptop Gaming RTX 4070', icon: Laptop, line: 'gaming', q: 'rtx 4070' },
-  { label: 'Laptop Gaming RTX 4080', icon: Laptop, line: 'gaming', q: 'rtx 4080' },
-  { label: 'Laptop Gaming RTX 4090', icon: Laptop, line: 'gaming', q: 'rtx 4090' },
+  { label: 'Laptop Gaming RTX 4060', icon: Laptop, line: 'gaming', q: '4060' },
+  { label: 'Laptop Gaming RTX 4080 / 4090', icon: Laptop, line: 'gaming', q: '4080' },
+  { label: 'AMD Ryzen Gaming Series', icon: Zap, line: 'gaming', q: 'ryzen' },
+  { label: 'MacBook Apple M Series', icon: Laptop, line: 'all', q: 'macbook' },
   { label: 'ASUS ROG / TUF', icon: ShieldCheck, line: 'gaming', q: 'asus' },
   { label: 'MSI Gaming', icon: Flame, line: 'gaming', q: 'msi' },
   { label: 'Acer NextGen', icon: BadgeCheck, line: 'gaming', q: 'acer' },
   { label: 'Lenovo Legion', icon: Zap, line: 'gaming', q: 'lenovo' },
+  { label: 'Laptop Văn Phòng - Học Sinh', icon: Laptop, line: 'all', q: '' },
 ]
 
 const heroAccessoryCategories = [
-  { label: 'Chuột Gaming Logitech', icon: Mouse, line: 'mouse', q: 'logitech mouse' },
-  { label: 'Bàn phím cơ Akko', icon: Keyboard, line: 'keyboard', q: 'akko keyboard' },
-  { label: 'Tai nghe chụp tai Razer', icon: Headphones, line: 'headphone', q: 'razer headphone' },
-  { label: 'Lót chuột cỡ lớn', icon: Monitor, line: 'pad', q: 'lot chuot pad' },
-  { label: 'Ugreen Hub & cáp sạc', icon: BadgeCheck, line: 'other', q: 'ugreen hub cap' },
+  { label: 'Chuột Gaming Logitech', icon: Mouse, line: 'mouse', q: 'chuot' },
+  { label: 'Bàn phím cơ Akko', icon: Keyboard, line: 'keyboard', q: 'ban phim' },
+  { label: 'Tai nghe chụp tai Razer', icon: Headphones, line: 'headphone', q: 'tai nghe' },
+  { label: 'Lót chuột cỡ lớn', icon: Monitor, line: 'pad', q: 'lot chuot' },
+  { label: 'Ugreen Hub & cáp sạc', icon: BadgeCheck, line: 'hub', q: 'hub' },
 ]
 
 const heroCategoriesToDisplay = computed(() => isAccessoryPage.value ? heroAccessoryCategories : heroCategories)
@@ -389,6 +389,7 @@ const lineMatcher = (product, line = activeLine.value) => {
     if (line === 'keyboard') return text.includes('ban phim') || text.includes('keyboard')
     if (line === 'headphone') return text.includes('tai nghe') || text.includes('headphone') || text.includes('tai-nghe')
     if (line === 'pad') return text.includes('lot chuot') || text.includes('mousepad') || text.includes('pad')
+    if (line === 'hub') return text.includes('hub') || text.includes('cap') || text.includes('sac') || text.includes('ugreen')
     if (line === 'other') return !['chuot', 'mouse', 'ban phim', 'keyboard', 'tai nghe', 'headphone', 'lot chuot', 'mousepad'].some(k => text.includes(k))
     return true
   }
@@ -534,9 +535,13 @@ const selectHeroCategory = (category) => {
 
 const isHeroCategoryActive = (category) => {
   if (!isAccessoryPage.value && category.line === 'accessory') return false
-  return isAccessoryPage.value
-    ? activeLine.value === category.line
-    : searchQuery.value === (category.q || '')
+  if (category.q !== undefined && category.q !== '') {
+    return searchQuery.value === category.q
+  }
+  if (!category.q && !searchQuery.value) {
+    return activeLine.value === (category.line || 'all')
+  }
+  return searchQuery.value === (category.q || '')
 }
 
 const selectShowcaseBrand = (brand) => {
