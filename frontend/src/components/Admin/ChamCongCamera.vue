@@ -304,16 +304,65 @@ const employeeErrors = ref({})
 const employeeTouched = ref({})
 const employees = ref([])
 const employeeSearch = ref('')
+const selectedRoleFilter = ref('all')
+const selectedFaceFilter = ref('all')
+const selectedScheduleFilter = ref('all')
+const selectedStatusFilter = ref('all')
+
+const hasActiveEmployeeFilters = computed(() =>
+  employeeSearch.value.trim() !== '' ||
+  selectedRoleFilter.value !== 'all' ||
+  selectedFaceFilter.value !== 'all' ||
+  selectedScheduleFilter.value !== 'all' ||
+  selectedStatusFilter.value !== 'all'
+)
+
+function resetEmployeeFilters() {
+  employeeSearch.value = ''
+  selectedRoleFilter.value = 'all'
+  selectedFaceFilter.value = 'all'
+  selectedScheduleFilter.value = 'all'
+  selectedStatusFilter.value = 'all'
+}
+
 const employeesLoading = ref(false)
 const editingEmployee = ref(null)
 const savingEmployee = ref(false)
 const filteredEmployees = computed(() => {
   const keyword = employeeSearch.value.trim().toLocaleLowerCase('vi')
-  if (!keyword) return employees.value
-  return employees.value.filter(employee =>
-    [employee.ten, employee.email, employee.sodienthoai, employee.ten_vaitro]
-      .some(value => String(value || '').toLocaleLowerCase('vi').includes(keyword))
-  )
+
+  return employees.value.filter(employee => {
+    if (keyword) {
+      const matchSearch = [employee.ten, employee.email, employee.sodienthoai, employee.ten_vaitro, employee.vaitro]
+        .some(value => String(value || '').toLocaleLowerCase('vi').includes(keyword))
+      if (!matchSearch) return false
+    }
+
+    if (selectedRoleFilter.value !== 'all') {
+      const empRole = employee.ma_vaitro || employee.vaitro || ''
+      if (empRole !== selectedRoleFilter.value) return false
+    }
+
+    if (selectedFaceFilter.value !== 'all') {
+      const isRegistered = Boolean(employee.face_registered)
+      if (selectedFaceFilter.value === 'registered' && !isRegistered) return false
+      if (selectedFaceFilter.value === 'unregistered' && isRegistered) return false
+    }
+
+    if (selectedScheduleFilter.value !== 'all') {
+      const hasSchedule = Boolean(employee.schedule_registered)
+      if (selectedScheduleFilter.value === 'assigned' && !hasSchedule) return false
+      if (selectedScheduleFilter.value === 'unassigned' && hasSchedule) return false
+    }
+
+    if (selectedStatusFilter.value !== 'all') {
+      const status = employee.trangthai || 'active'
+      if (selectedStatusFilter.value === 'active' && status !== 'active') return false
+      if (selectedStatusFilter.value === 'locked' && status === 'active') return false
+    }
+
+    return true
+  })
 })
 const hasEmployeeDraft = computed(() =>
   ['ten', 'email', 'sodienthoai', 'matkhau'].some(field => String(employeeForm.value[field] || '').trim())
@@ -1671,35 +1720,35 @@ onUnmounted(() => {
           <button type="button" @click="router.push({ name: 'admin-roles' })">Quản lý vai trò & quyền</button>
           <button type="button" @click="router.push('/admin/quan-ly-nguoi-dung')">Danh sách người dùng</button>
         </div>
-      </aside>
 
-      <div class="unified-submit-area">
-        <div>
-          <strong>{{ editingEmployee ? 'Cập nhật thông tin nhân viên' : (isEnrollmentMode ? 'Cập nhật sinh trắc học nhân viên' : 'Hoàn tất thiết lập nhân viên') }}</strong>
-          <span>
-            {{ editingEmployee
-              ? `Các thay đổi của ${editingEmployee.ten} sẽ được lưu trực tiếp vào hồ sơ.`
-              : isEnrollmentMode
-              ? `Lịch làm việc và khuôn mặt sẽ được cập nhật cho ${displayEmployee.name}.`
-              : 'Hệ thống sẽ kiểm tra dữ liệu, tạo hồ sơ, gán vai trò và lưu khuôn mặt trong một lần.' }}
-          </span>
+        <div class="unified-submit-area">
+          <div>
+            <strong>{{ editingEmployee ? 'Cập nhật thông tin nhân viên' : (isEnrollmentMode ? 'Cập nhật sinh trắc học nhân viên' : 'Hoàn tất thiết lập nhân viên') }}</strong>
+            <span>
+              {{ editingEmployee
+                ? `Các thay đổi của ${editingEmployee.ten} sẽ được lưu trực tiếp vào hồ sơ.`
+                : isEnrollmentMode
+                ? `Lịch làm việc và khuôn mặt sẽ được cập nhật cho ${displayEmployee.name}.`
+                : 'Hệ thống sẽ kiểm tra dữ liệu, tạo hồ sơ, gán vai trò và lưu khuôn mặt trong một lần.' }}
+            </span>
+          </div>
+          <button v-if="editingEmployee" type="button" class="cancel-edit-button" @click="cancelEditEmployee">Hủy sửa</button>
+          <button
+            type="submit"
+            form="employee-unified-form"
+            class="create-employee-button"
+            :disabled="creatingEmployee || savingEmployee || isRegisteringFace || (isEnrollmentMode && !enrollmentTarget) || (!editingEmployee && !isCameraActive)"
+          >
+            {{ savingEmployee
+              ? 'Đang lưu thay đổi...'
+              : creatingEmployee || isRegisteringFace
+              ? 'Đang xác thực và lưu dữ liệu...'
+              : editingEmployee
+                ? 'Lưu thay đổi'
+                : (isEnrollmentMode ? 'Lưu lịch & cập nhật khuôn mặt' : 'Tạo nhân viên & đăng ký khuôn mặt') }}
+          </button>
         </div>
-        <button v-if="editingEmployee" type="button" class="cancel-edit-button" @click="cancelEditEmployee">Hủy sửa</button>
-        <button
-          type="submit"
-          form="employee-unified-form"
-          class="create-employee-button"
-          :disabled="creatingEmployee || savingEmployee || isRegisteringFace || (isEnrollmentMode && !enrollmentTarget) || (!editingEmployee && !isCameraActive)"
-        >
-          {{ savingEmployee
-            ? 'Đang lưu thay đổi...'
-            : creatingEmployee || isRegisteringFace
-            ? 'Đang xác thực và lưu dữ liệu...'
-            : editingEmployee
-              ? 'Lưu thay đổi'
-              : (isEnrollmentMode ? 'Lưu lịch & cập nhật khuôn mặt' : 'Tạo nhân viên & đăng ký khuôn mặt') }}
-        </button>
-      </div>
+      </aside>
 
       <!-- CỘT BÊN PHẢI: XẾP HẠNG VÀ LỊCH LÀM VIỆC -->
       <div v-if="!verificationOnly" class="attendance-side-column">
@@ -1770,28 +1819,70 @@ onUnmounted(() => {
           <h3>Danh sách nhân viên</h3>
           <p>Sửa hồ sơ, đổi vai trò hoặc quản lý dữ liệu khuôn mặt tại một nơi.</p>
         </div>
-        <div class="employee-search" role="search">
-          <svg class="employee-search-icon" viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="11" cy="11" r="6.5" />
-            <path d="m16 16 4 4" />
-          </svg>
-          <input
-            v-model="employeeSearch"
-            type="search"
-            aria-label="Tìm kiếm nhân viên"
-            placeholder="Tìm theo tên, email, số điện thoại..."
-          />
-          <button
-            v-if="employeeSearch"
-            type="button"
-            class="employee-search-clear"
-            aria-label="Xóa nội dung tìm kiếm"
-            @click="employeeSearch = ''"
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="m7 7 10 10M17 7 7 17" />
+        <div class="employee-filters-bar">
+          <div class="employee-search" role="search">
+            <svg class="employee-search-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="11" cy="11" r="6.5" />
+              <path d="m16 16 4 4" />
             </svg>
-          </button>
+            <input
+              v-model="employeeSearch"
+              type="search"
+              aria-label="Tìm kiếm nhân viên"
+              placeholder="Tìm theo tên, email, số điện thoại..."
+            />
+            <button
+              v-if="employeeSearch"
+              type="button"
+              class="employee-search-clear"
+              aria-label="Xóa nội dung tìm kiếm"
+              @click="employeeSearch = ''"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m7 7 10 10M17 7 7 17" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="employee-filter-selects">
+            <select v-model="selectedRoleFilter" class="filter-select" aria-label="Lọc theo vai trò">
+              <option value="all">Tất cả vai trò</option>
+              <option v-for="role in roles" :key="role.ma_vaitro" :value="role.ma_vaitro">
+                {{ role.ten_vaitro }}
+              </option>
+            </select>
+
+            <select v-model="selectedFaceFilter" class="filter-select" aria-label="Lọc theo dữ liệu khuôn mặt">
+              <option value="all">Khuôn mặt: Tất cả</option>
+              <option value="registered">Đã đăng ký</option>
+              <option value="unregistered">Chưa đăng ký</option>
+            </select>
+
+            <select v-model="selectedScheduleFilter" class="filter-select" aria-label="Lọc theo lịch làm">
+              <option value="all">Lịch làm: Tất cả</option>
+              <option value="assigned">Đã gán lịch</option>
+              <option value="unassigned">Chưa gán lịch</option>
+            </select>
+
+            <select v-model="selectedStatusFilter" class="filter-select" aria-label="Lọc theo trạng thái">
+              <option value="all">Trạng thái: Tất cả</option>
+              <option value="active">Đang làm việc</option>
+              <option value="locked">Đã khóa</option>
+            </select>
+
+            <button
+              v-if="hasActiveEmployeeFilters"
+              type="button"
+              class="btn-reset-filters"
+              title="Xóa tất cả bộ lọc"
+              @click="resetEmployeeFilters"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 6 6 18M6 6l12 12" />
+              </svg>
+              Xóa lọc
+            </button>
+          </div>
         </div>
       </div>
 
@@ -2063,23 +2154,51 @@ onUnmounted(() => {
 .dashboard-grid.verification-grid {
   grid-template-columns: minmax(360px, .78fr) minmax(560px, 1.22fr);
   justify-content: center;
-  max-width: 1180px;
-  gap: 0;
-  padding: 14px;
-  border: 1px solid #dbe3ef;
-  border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, .07);
+  max-width: 1240px;
+  gap: 20px;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .dashboard-grid.verification-grid {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
 .verification-grid > .chamcong-card {
   align-self: start;
   position: sticky;
   top: 82px;
-  padding: 0 16px 0 0;
-  border: 0;
-  border-right: 1px solid #e2e8f0;
-  border-radius: 0;
-  box-shadow: none;
+  padding: 20px;
+  border: 1px solid #dbe3ef;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, .05);
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .verification-grid > .chamcong-card {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25) !important;
 }
 
 .verification-grid > .camera-card .camera-wrapper {
@@ -2092,11 +2211,24 @@ onUnmounted(() => {
 
 .employee-setup-card {
   align-self: start;
-  padding: 0 0 0 16px;
-  border: 0;
-  border-radius: 0;
-  background: #fff;
-  box-shadow: none;
+  padding: 20px;
+  border: 1px solid #dbe3ef;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, .05);
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .employee-setup-card {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25) !important;
 }
 .setup-heading { padding-bottom: 13px; border-bottom: 1px solid #e2e8f0; }
 .setup-heading > span { color: #2563eb; font-size: 10px; font-weight: 800; letter-spacing: .09em; }
@@ -3477,5 +3609,86 @@ onUnmounted(() => {
 .form-select option {
   background: #ffffff;
   color: #1e293b;
+}
+
+/* === EMPLOYEE FILTERS BAR === */
+.employee-filters-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 680px;
+}
+
+.employee-filter-selects {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-select {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  color: #334155;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.filter-select:hover {
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+
+.filter-select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.btn-reset-filters {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+  border-radius: 10px;
+  padding: 7px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-reset-filters:hover {
+  background: #fecaca;
+  color: #b91c1c;
+}
+
+.btn-reset-filters svg {
+  width: 14px;
+  height: 14px;
+}
+
+@media (max-width: 768px) {
+  .employee-filters-bar {
+    max-width: 100%;
+  }
+
+  .employee-filter-selects {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .btn-reset-filters {
+    grid-column: span 2;
+    justify-content: center;
+  }
 }
 </style>

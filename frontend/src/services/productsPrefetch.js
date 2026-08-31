@@ -18,21 +18,23 @@ const normalizeList = (payload) => {
   return []
 }
 
+export const clearPrefetchCache = () => {
+  cache = null
+  try {
+    localStorage.removeItem(STORAGE_KEY)
+  } catch {}
+}
+
 export const prefetchProductsPage = async ({ forceRefresh = false } = {}) => {
-  if (cache && Date.now() - cache.fetchedAt < TTL_MS) {
+  if (!forceRefresh && cache && Array.isArray(cache.productsRaw) && cache.productsRaw.length >= 15 && Date.now() - cache.fetchedAt < TTL_MS) {
     warmProductImages(cache.productsRaw)
     return cache
   }
 
   const stored = getPrefetchedProductsData()
-  if (stored && !forceRefresh) {
+  if (!forceRefresh && stored && Array.isArray(stored.productsRaw) && stored.productsRaw.length >= 15 && Date.now() - stored.fetchedAt < TTL_MS) {
     warmProductImages(stored.productsRaw)
-    if (Date.now() - stored.fetchedAt < TTL_MS) return stored
-    if (!inFlight) {
-      inFlight = fetchProductsBundle().finally(() => {
-        inFlight = null
-      })
-    }
+    cache = stored
     return stored
   }
 

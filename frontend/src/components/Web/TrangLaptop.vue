@@ -1,4 +1,4 @@
-<script setup>
+ <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
@@ -341,7 +341,7 @@ const interleaveVariants = (groups) => {
 
 const loadProducts = async () => {
   const warmCache = getPrefetchedProductsData()
-  if (warmCache?.productsRaw?.length) {
+  if (warmCache?.productsRaw?.length >= 15) {
     rawProductsList.value = warmCache.productsRaw
     isLoading.value = false
   } else {
@@ -349,7 +349,8 @@ const loadProducts = async () => {
   }
 
   try {
-    const cache = await prefetchProductsPage()
+    const shouldForce = !warmCache?.productsRaw?.length || warmCache.productsRaw.length < 15
+    const cache = await prefetchProductsPage({ forceRefresh: shouldForce })
     if (cache?.productsRaw?.length) {
       rawProductsList.value = cache.productsRaw
     } else {

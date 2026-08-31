@@ -256,9 +256,9 @@ class VongQuayController extends Controller
     /**
      * Tự động nhận 1 lượt quay miễn phí cho user nếu hôm nay chưa nhận.
      */
-    public static function autoGrantDailyTicketIfNeeded(User $user)
+    public static function autoGrantDailyTicketIfNeeded($user)
     {
-        if (!$user || !$user->id) return;
+        if (!$user || !($user instanceof User) || !$user->id) return;
         try {
             $todayClaim = LichSuQuay::where('id_khachhang', $user->id)
                 ->where('loai_qua', 'claim')

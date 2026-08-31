@@ -234,11 +234,28 @@
 import '@/assets/styles/admin-pages.css'
 import { computed, nextTick, ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { clearAuth, getUser, normalizeAuthUser, updateUser } from '@/services/auth'
+import { clearAuth, getUser, normalizeAuthUser, updateUser, getToken } from '@/services/auth'
 import ChamCongNhanhModal from '@/components/Admin/Layout/ChamCongNhanhModal.vue'
-import { storageUrl } from '@/services/urls'
+import { storageUrl, backendBaseUrl } from '@/services/urls'
+import echo from '@/services/echo'
 import api from '@/services/api'
 import swal from '@/services/swal'
+
+let adminPresenceChannel = null
+
+const handleAdminUnload = () => {
+  const token = getToken()
+  if (token) {
+    try {
+      const url = `${backendBaseUrl}/api/user/offline?token=${encodeURIComponent(token)}`
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(url)
+      } else {
+        fetch(url, { method: 'POST', keepalive: true }).catch(() => {})
+      }
+    } catch (_) {}
+  }
+}
 import {
   LayoutDashboard,
   Package,
@@ -898,6 +915,8 @@ onMounted(async () => {
     }, 520)
   }
 
+  window.addEventListener('beforeunload', handleAdminUnload)
+  window.addEventListener('pagehide', handleAdminUnload)
   document.addEventListener('mousedown', handleClickOutside)
   document.addEventListener('pointerdown', unlockNotificationAudio, { once: true })
   document.addEventListener('keydown', unlockNotificationAudio, { once: true })
@@ -906,6 +925,15 @@ onMounted(async () => {
   window.addEventListener('offline-sync-success', handleSyncSuccess)
   document.documentElement.lang = 'vi'
   hydrateNotifications()
+
+  if (echo) {
+    try {
+      adminPresenceChannel = echo.join('admin-presence')
+    } catch (e) {
+      console.warn('Admin presence join error:', e)
+    }
+  }
+
   await Promise.allSettled([
     loadAppearanceSettings(),
     loadNotifications(),
@@ -915,6 +943,13 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  window.removeEventListener('beforeunload', handleAdminUnload)
+  window.removeEventListener('pagehide', handleAdminUnload)
+  if (echo && adminPresenceChannel) {
+    try {
+      echo.leave('admin-presence')
+    } catch (_) {}
+  }
   delete document.documentElement.dataset.adminTheme
   document.documentElement.style.colorScheme = ''
   if (adminClockTimer) window.clearInterval(adminClockTimer)
