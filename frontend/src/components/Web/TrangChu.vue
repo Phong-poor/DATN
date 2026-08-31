@@ -4773,4 +4773,243 @@ onUnmounted(() => {
         margin-right: 0;
     }
 }
+/* Complete mobile layout for the storefront home page. */
+@media (max-width: 640px) {
+    .home-wrapper,
+    .premium-theme {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: clip;
+    }
+
+    .premium-theme .grid-container,
+    .premium-theme .hero-container {
+        width: 100%;
+        max-width: none;
+        padding-left: 12px;
+        padding-right: 12px;
+        box-sizing: border-box;
+    }
+
+    .premium-theme .hero-viewport {
+        min-height: 720px;
+        height: auto;
+    }
+
+    .premium-theme .hero-content {
+        width: 100%;
+        min-width: 0;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 22px;
+        padding-top: 34px;
+        padding-bottom: 28px;
+    }
+
+    .premium-theme .hero-text-block,
+    .premium-theme .hero-device-wrapper,
+    .premium-theme .device-showcase-card {
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+    }
+
+    .premium-theme .hero-title {
+        font-size: clamp(36px, 11vw, 48px);
+        line-height: 1.02;
+    }
+
+    .premium-theme .hero-buttons {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .premium-theme .hero-buttons .btn {
+        min-width: 0;
+        padding: 13px 10px;
+        font-size: 12px;
+    }
+
+    .premium-theme .hero-trust-indicators {
+        flex-wrap: wrap;
+        gap: 8px 12px;
+    }
+
+    .premium-theme .hero-product-card {
+        transform: none;
+    }
+
+    .premium-theme .trust-bar-section .grid-container {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1px;
+    }
+
+    .premium-theme .trust-card {
+        min-width: 0;
+        padding: 18px 8px;
+    }
+
+    .premium-theme .section-header {
+        align-items: flex-start;
+        gap: 14px;
+    }
+
+    .premium-theme .section-header h2 {
+        font-size: clamp(27px, 9vw, 36px);
+    }
+
+    .premium-theme .affiliate-video-showcase-grid,
+    .premium-theme .flash-cyber-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .premium-theme .affiliate-video-card,
+    .premium-theme .flash-cyber-card {
+        min-width: 0;
+    }
+
+    .premium-theme .flash-card-body {
+        padding: 12px;
+    }
+
+    .premium-theme .flash-product-name {
+        min-height: 34px;
+        font-size: 12px;
+        line-height: 1.35;
+        overflow: hidden;
+    }
+
+    .premium-theme .flash-bottom-row {
+        align-items: end;
+        gap: 6px;
+    }
+
+    .premium-theme .countdown-clock {
+        flex-wrap: wrap;
+    }
+
+    .premium-theme .cyber-newsletter-section,
+    .premium-theme .combos-section {
+        width: 100%;
+        overflow: hidden;
+    }
+}
+
+@media (max-width: 330px) {
+    .premium-theme .hero-buttons {
+        grid-template-columns: 1fr;
+    }
+
+    .premium-theme .affiliate-video-showcase-grid,
+    .premium-theme .flash-cyber-grid {
+        gap: 7px;
+    }
+}
+
+/* Match the two-column product language used by the Laptop page. */
+@media (max-width: 640px) {
+    .premium-theme .premium-products-grid {
+        width: calc(100vw - 40px);
+        margin-left: calc(50% - 50vw + 20px);
+        margin-right: 0;
+        padding: 0;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 10px !important;
+    }
+
+    .premium-theme .premium-product-card {
+        min-width: 0;
+        min-height: 360px;
+        height: 360px;
+        border: 1px solid #dbe4ef;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 5px 14px rgba(15, 23, 42, .06);
+    }
+
+    .premium-theme .premium-product-card .product-visuals {
+        height: 128px;
+        min-height: 128px;
+        padding: 8px;
+        border-radius: 14px 14px 0 0;
+        background: #f5f8fc;
+    }
+
+    .premium-theme .premium-product-card .product-main-img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+
+    .premium-theme .premium-product-card .product-metadata {
+        min-height: 230px;
+        height: 230px;
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .premium-theme .premium-product-card .brand-sub {
+        font-size: 8px;
+    }
+
+    .premium-theme .premium-product-card .product-item-title {
+        min-height: 38px;
+        margin: 4px 0;
+        font-size: 11px;
+        line-height: 1.2;
+        display: -webkit-box;
+        overflow: hidden;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 3;
+    }
+
+    .premium-theme .premium-product-card .rating-strip {
+        width: 100%;
+        gap: 3px;
+        font-size: 9px;
+    }
+
+    .premium-theme .premium-product-card .card-indicators-row,
+    .premium-theme .premium-product-card .specs-pill-box {
+        width: 100%;
+        max-height: 31px;
+        overflow: hidden;
+        font-size: 8px;
+    }
+
+    .premium-theme .premium-product-card .product-pricing-strip {
+        width: 100%;
+        margin-top: auto;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .premium-theme .premium-product-card .current-price {
+        font-size: 14px;
+        letter-spacing: -.02em;
+        white-space: nowrap;
+    }
+
+    .premium-theme .premium-product-card .buy-button {
+        width: auto;
+        min-width: 0;
+        min-height: 36px;
+        padding: 8px 9px;
+        font-size: 9px;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 330px) {
+    .premium-theme .premium-products-grid { gap: 7px !important; }
+    .premium-theme .premium-product-card { height: 344px; min-height: 344px; }
+    .premium-theme .premium-product-card .product-visuals { height: 116px; min-height: 116px; }
+    .premium-theme .premium-product-card .product-metadata { height: 226px; min-height: 226px; padding: 8px; }
+    .premium-theme .premium-product-card .current-price { font-size: 12px; }
+    .premium-theme .premium-product-card .buy-button { padding: 7px; font-size: 8px; }
+}
 </style>

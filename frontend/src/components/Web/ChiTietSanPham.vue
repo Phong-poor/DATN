@@ -6548,4 +6548,172 @@ const handleSelectVariantById = (idBienThe) => {
     justify-content: center;
     box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4);
 }
+/* Complete mobile layout for product detail. */
+@media (max-width: 640px) {
+    .product-detail-wrapper,
+    .product-detail-wrapper .page,
+    .product-detail-wrapper .premium-hero-container {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: clip;
+    }
+
+    .product-detail-wrapper .container {
+        width: 100% !important;
+        max-width: none !important;
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+        box-sizing: border-box;
+    }
+
+    .product-detail-wrapper .detail-hero-grid {
+        width: 100%;
+        grid-template-columns: minmax(0, 1fr) !important;
+        gap: 18px;
+    }
+
+    .product-detail-wrapper .gallery-column,
+    .product-detail-wrapper .purchase-column,
+    .product-detail-wrapper .main-image-viewport,
+    .product-detail-wrapper .premium-thumbs-container {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        box-sizing: border-box;
+    }
+
+    .product-detail-wrapper .main-image-viewport {
+        min-height: 285px;
+        padding: 16px;
+    }
+
+    .product-detail-wrapper .main-showcase-image {
+        width: 100%;
+        max-width: 250px;
+        height: 220px;
+        object-fit: contain;
+    }
+
+    .product-detail-wrapper .gallery-nav-arrow {
+        width: 38px;
+        height: 38px;
+    }
+
+    .product-detail-wrapper .arrow-left { left: 8px; }
+    .product-detail-wrapper .arrow-right { right: 8px; }
+
+    .product-detail-wrapper .premium-thumbs-container {
+        padding: 8px;
+        gap: 5px;
+    }
+
+    .product-detail-wrapper .premium-thumbs-scroll {
+        min-width: 0;
+        overflow-x: auto;
+    }
+
+    .product-detail-wrapper .tech-spec-badges,
+    .product-detail-wrapper .price-badges-row,
+    .product-detail-wrapper .color-swatch-flex {
+        flex-wrap: wrap;
+    }
+
+    .product-detail-wrapper .premium-product-title {
+        font-size: clamp(24px, 8vw, 32px);
+        line-height: 1.12;
+        overflow-wrap: anywhere;
+    }
+
+    .product-detail-wrapper .premium-price-container,
+    .product-detail-wrapper .premium-selectors-wrapper,
+    .product-detail-wrapper .purchase-actions-box {
+        width: 100%;
+        box-sizing: border-box;
+        padding-left: 14px;
+        padding-right: 14px;
+    }
+
+    .product-detail-wrapper .price-value-glow {
+        font-size: clamp(27px, 9vw, 38px);
+        overflow-wrap: anywhere;
+    }
+
+    .product-detail-wrapper .spec-card-grid {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    .product-detail-wrapper .actions-grid {
+        grid-template-columns: minmax(0, 1fr) !important;
+        gap: 9px;
+    }
+
+    .product-detail-wrapper .sticky-buy-bar .container,
+    .product-detail-wrapper .sticky-bar-flex {
+        gap: 8px;
+    }
+
+    .product-detail-wrapper .sticky-info-left,
+    .product-detail-wrapper .sticky-meta {
+        min-width: 0;
+    }
+
+    .product-detail-wrapper .sticky-title {
+        max-width: 110px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .product-detail-wrapper .sticky-thumb,
+    .product-detail-wrapper .sticky-variant-name {
+        display: none;
+    }
+
+    .product-detail-wrapper .sticky-actions-right {
+        gap: 6px;
+    }
+
+    .product-detail-wrapper .sticky-price-glow {
+        font-size: 14px;
+    }
+
+    .product-detail-wrapper .premium-specs-section,
+    .product-detail-wrapper .premium-highlights-section,
+    .product-detail-wrapper .premium-reviews-section,
+    .product-detail-wrapper .premium-related-products-section {
+        width: 100%;
+        overflow: hidden;
+    }
+}
+
+@media (max-width: 330px) {
+    .product-detail-wrapper .main-image-viewport {
+        min-height: 255px;
+    }
+
+    .product-detail-wrapper .main-showcase-image {
+        height: 190px;
+    }
+}
+
+/* Related products follow the same two-card mobile grid as /laptop. */
+@media (max-width: 640px) {
+    .product-detail-wrapper .related-products-grid {
+        width: 100%;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 10px !important;
+    }
+
+    .product-detail-wrapper .related-product-card {
+        min-width: 0;
+        border-radius: 16px;
+        overflow: hidden;
+    }
+
+    .product-detail-wrapper .related-product-card img {
+        width: 100%;
+        height: 120px;
+        object-fit: contain;
+    }
+}
 </style>

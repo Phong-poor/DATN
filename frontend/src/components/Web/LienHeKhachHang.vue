@@ -3057,4 +3057,204 @@ const toggleFaq = (selectedFaq) => {
     text-align: center;
   }
 }
+/* Complete mobile layout for contact and guided support. */
+@media (max-width: 640px) {
+  .contact-page {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  .contact-page .hero-container,
+  .contact-page .form-wrapper-max,
+  .contact-page .guided-grid-layout,
+  .contact-page .guided-form-glass-card,
+  .contact-page .experts-grid,
+  .contact-page .faq-controls-row,
+  .contact-page .accordion-list {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .contact-page .support-hero {
+    min-height: 620px;
+    padding: 44px 12px 38px;
+    overflow: hidden;
+  }
+
+  .contact-page .support-hero h1 {
+    width: 100%;
+    font-size: clamp(27px, 9vw, 36px);
+    line-height: 1.08;
+    overflow-wrap: anywhere;
+  }
+
+  .contact-page .highlight-text {
+    display: inline;
+    overflow-wrap: anywhere;
+  }
+
+  .contact-page .hero-desc {
+    width: 100%;
+    max-width: 340px;
+  }
+
+  .contact-page .hero-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .contact-page .hero-actions .btn-glow-primary,
+  .contact-page .hero-actions .btn-glass {
+    width: 100%;
+    min-height: 52px;
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+  }
+
+  .contact-page .stats-grid {
+    width: 100%;
+    max-width: 350px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 8px;
+  }
+
+  .contact-page .form-section-container,
+  .contact-page .experts-section-wrapper,
+  .contact-page .faq-knowledge-center,
+  .contact-page .tech-trust-banner {
+    padding-left: 12px;
+    padding-right: 12px;
+    overflow: hidden;
+  }
+
+  .contact-page .section-magazine-title h2 {
+    font-size: clamp(27px, 9vw, 36px);
+    line-height: 1.08;
+  }
+
+  .contact-page .guided-form-glass-card {
+    padding: 18px 14px;
+  }
+
+  .contact-page .guided-categories-grid,
+  .contact-page .guided-inputs-wrapper,
+  .contact-page .experts-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .contact-page .guided-category-card,
+  .contact-page .floating-input-field,
+  .contact-page .guided-textarea-field {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .contact-page .step-actions-footer {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .contact-page .step-actions-footer > :only-child,
+  .contact-page .btn-step-submit {
+    grid-column: 1 / -1;
+  }
+
+  .contact-page .human-captcha-box {
+    width: 100%;
+  }
+
+  .contact-page .faq-controls-row {
+    gap: 10px;
+  }
+
+  .contact-page .faq-category-tabs {
+    width: 100%;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+  }
+
+  .contact-page .faq-category-tabs::-webkit-scrollbar { display: none; }
+
+  .contact-page .faq-category-tabs button {
+    flex: 0 0 auto;
+  }
+
+  .contact-page .partners-marquee {
+    width: 100%;
+    overflow: hidden;
+  }
+}
+
+@media (max-width: 330px) {
+  .contact-page .guided-form-glass-card {
+    padding: 16px 10px;
+  }
+
+  .contact-page .step-label {
+    display: none;
+  }
+}
+
+/* Secondary cards share Laptop's two-column mobile grid and 12px rail. */
+@media (max-width: 640px) {
+  .contact-page .experts-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px;
+    grid-auto-rows: 280px;
+  }
+
+  .contact-page .expert-card {
+    min-width: 0;
+    min-height: 0 !important;
+    height: 280px !important;
+    padding: 14px 10px;
+    border-radius: 16px;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+
+  .contact-page .expert-card img,
+  .contact-page .expert-avatar {
+    width: 72px;
+    height: 72px;
+  }
+
+  .contact-page .expert-card h3,
+  .contact-page .expert-card h4 {
+    font-size: 13px;
+    overflow-wrap: anywhere;
+  }
+
+  .contact-page .expert-card p {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: 11px;
+    line-height: 1.5;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+  }
+
+  .contact-page .expert-card .expert-role,
+  .contact-page .expert-card small {
+    font-size: 9px;
+    line-height: 1.35;
+  }
+
+  .contact-page .showroom-cyber-list {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .contact-page .showroom-cyber-card {
+    width: 100%;
+    min-width: 0;
+  }
+}
 </style>

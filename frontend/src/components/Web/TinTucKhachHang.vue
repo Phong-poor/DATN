@@ -312,7 +312,7 @@ onMounted(async () => {
                    <div class="hero-author-row">
                      <div class="author-avatar">NG</div>
                      <div class="author-info">
-                       <span class="author-name">{{ randomPost.tacgia || 'NextGen Staff' }}</span>
+                       <span class="author-name">{{ /vinatech/i.test(randomPost.tacgia || '') ? 'NextGen Editorial' : (randomPost.tacgia || 'NextGen Staff') }}</span>
                        <span class="published-date">{{ formatDate(randomPost.dang_luc || randomPost.created_at) }}</span>
                      </div>
                    </div>
@@ -415,7 +415,7 @@ onMounted(async () => {
                       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                       <circle cx="12" cy="7" r="4"/>
                     </svg>
-                    {{ post.tacgia || 'NextGen staff' }}
+                    {{ /vinatech/i.test(post.tacgia || '') ? 'NextGen Editorial' : (post.tacgia || 'NextGen Staff') }}
                   </span>
                   <span class="card-read-more-link">Khám phá <span class="arrow">→</span></span>
                 </div>
@@ -1803,5 +1803,191 @@ onMounted(async () => {
     padding-top: 22px;
     padding-bottom: 28px;
   }
+}
+/* Complete mobile layout for the news magazine. */
+@media (max-width: 640px) {
+  .news-page {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  .news-page .news-header-inner,
+  .news-page .news-body,
+  .news-page .news-main,
+  .news-page .editorial-hero-showcase,
+  .news-page .hero-link-wrapper,
+  .news-page .hero-split-grid,
+  .news-page .tech-radar-section,
+  .news-page .magazine-section-title,
+  .news-page .magazine-grid,
+  .news-page .magazine-card,
+  .news-page .magazine-sidebar {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box;
+  }
+
+  .news-page .news-header-inner,
+  .news-page .news-body {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .news-page .news-header h1 {
+    font-size: clamp(31px, 10vw, 42px);
+    line-height: 1.04;
+    overflow-wrap: anywhere;
+  }
+
+  .news-page .tabs {
+    width: 100%;
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+    scroll-snap-type: x proximity;
+  }
+
+  .news-page .tabs::-webkit-scrollbar { display: none; }
+
+  .news-page .tabs button {
+    flex: 0 0 auto;
+    min-width: 82px;
+    scroll-snap-align: start;
+  }
+
+  .news-page .news-body,
+  .news-page .hero-split-grid,
+  .news-page .radar-grid,
+  .news-page .magazine-grid,
+  .news-page .magazine-sidebar {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .news-page .news-body,
+  .news-page .news-main {
+    gap: 22px;
+  }
+
+  .news-page .hero-media-side {
+    min-height: 205px;
+    aspect-ratio: 16 / 10;
+  }
+
+  .news-page .hero-content-side {
+    min-width: 0;
+    padding: 20px 16px;
+  }
+
+  .news-page .hero-headline {
+    font-size: 25px;
+    line-height: 1.12;
+    overflow-wrap: anywhere;
+  }
+
+  .news-page .radar-grid {
+    display: grid;
+    gap: 10px;
+  }
+
+  .news-page .radar-card {
+    min-width: 0;
+    min-height: 0;
+    padding: 16px;
+  }
+
+  .news-page .magazine-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .news-page .card-media-viewport {
+    aspect-ratio: 16 / 9;
+  }
+
+  .news-page .card-editorial-body,
+  .news-page .sidebar-magazine-widget {
+    min-width: 0;
+    padding: 16px;
+  }
+
+  .news-page .magazine-section-title {
+    gap: 10px;
+  }
+
+  .news-page .line-decorator {
+    min-width: 20px;
+  }
+}
+
+/* Compact article cards use the same two-column rhythm as product cards. */
+@media (max-width: 640px) {
+  .news-page .magazine-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px;
+  }
+
+  .news-page .magazine-card {
+    min-width: 0;
+    height: 300px;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 5px 14px rgba(15, 23, 42, .06);
+  }
+
+  .news-page .card-media-viewport {
+    height: 120px;
+    aspect-ratio: auto;
+  }
+
+  .news-page .card-editorial-body {
+    min-height: 180px;
+    height: 180px;
+    padding: 11px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .news-page .card-meta-line {
+    gap: 3px;
+    font-size: 8px;
+  }
+
+  .news-page .card-headline {
+    min-height: 48px;
+    font-size: 13px;
+    line-height: 1.25;
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  .news-page .card-excerpt {
+    display: none;
+  }
+
+  .news-page .card-bottom-row {
+    width: 100%;
+    gap: 5px;
+    font-size: 9px;
+    margin-top: auto;
+    padding-top: 9px;
+    border-top: 1px solid #edf1f6;
+  }
+
+  .news-page .card-author-name,
+  .news-page .card-read-more-link {
+    min-width: 0;
+    max-width: 50%;
+  }
+}
+
+@media (max-width: 330px) {
+  .news-page .magazine-grid { gap: 7px; }
+  .news-page .card-media-viewport { height: 104px; }
+  .news-page .magazine-card { height: 276px; }
+  .news-page .card-editorial-body { height: 172px; min-height: 172px; padding: 9px; }
 }
 </style>
