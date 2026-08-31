@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import api from '@/services/api'
 import { getUser, updateUser, getToken } from '@/services/auth'
@@ -12,10 +12,22 @@ import { normalizeImageUrl, productImageUrl, storageUrl, withImageVersion, backe
 import { searchSuggestions, geocodeArea, geocodeWithFallback } from '@/services/geocode'
 import { fetchProvinces as fetchAddressProvinces, fetchWardsByProvince as fetchAddressWardsByProvince } from '@/services/addressService'
 
-// â”€â”€ Active tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Active tab ──────────────────────────────────────────────
 const route = useRoute()
+const router = useRouter()
 const activeTab = ref(route.query.tab && ['profile', 'orders', 'address', 'promotions', 'password'].includes(route.query.tab) ? route.query.tab : 'profile')
 const handledRefundOrderId = ref(null)
+
+const handleStatClick = (s) => {
+  if (!s) return
+  if (s.icon === 'orders' || s.label === 'Đơn hàng') {
+    changeTab('orders')
+  } else if (s.icon === 'heart' || s.label === 'Yêu thích') {
+    router.push('/danh-sach-yeu-thich')
+  } else if (s.icon === 'star' || s.label === 'Xu') {
+    router.push('/khuyen-mai-khach-hang')
+  }
+}
 
 watch(() => route.query.tab, (newTab) => {
   if (newTab && ['profile', 'orders', 'address', 'promotions', 'password'].includes(newTab)) {
@@ -2961,7 +2973,7 @@ const promoStatusMap = {
         </div>
 
         <div class="stat-grid">
-          <div class="stat-card" v-for="s in stats" :key="s.label">
+          <div class="stat-card" v-for="s in stats" :key="s.label" @click="handleStatClick(s)">
             <svg v-if="s.icon === 'orders'" viewBox="0 0 24 24" fill="none">
               <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
               <rect x="9" y="3" width="6" height="4" rx="1" />

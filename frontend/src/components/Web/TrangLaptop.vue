@@ -144,23 +144,23 @@ const serviceCards = [
 ]
 
 const heroCategories = [
-  { label: 'Laptop Gaming RTX 4050', icon: Laptop, line: 'gaming', q: 'rtx 4050' },
-  { label: 'Laptop Gaming RTX 4060', icon: Laptop, line: 'gaming', q: 'rtx 4060' },
-  { label: 'Laptop Gaming RTX 4070', icon: Laptop, line: 'gaming', q: 'rtx 4070' },
-  { label: 'Laptop Gaming RTX 4080', icon: Laptop, line: 'gaming', q: 'rtx 4080' },
-  { label: 'Laptop Gaming RTX 4090', icon: Laptop, line: 'gaming', q: 'rtx 4090' },
+  { label: 'Laptop Gaming RTX 4060', icon: Laptop, line: 'gaming', q: '4060' },
+  { label: 'Laptop Gaming RTX 4080 / 4090', icon: Laptop, line: 'gaming', q: '4080' },
+  { label: 'AMD Ryzen Gaming Series', icon: Zap, line: 'gaming', q: 'ryzen' },
+  { label: 'MacBook Apple M Series', icon: Laptop, line: 'all', q: 'macbook' },
   { label: 'ASUS ROG / TUF', icon: ShieldCheck, line: 'gaming', q: 'asus' },
   { label: 'MSI Gaming', icon: Flame, line: 'gaming', q: 'msi' },
   { label: 'Acer NextGen', icon: BadgeCheck, line: 'gaming', q: 'acer' },
   { label: 'Lenovo Legion', icon: Zap, line: 'gaming', q: 'lenovo' },
+  { label: 'Laptop Văn Phòng - Học Sinh', icon: Laptop, line: 'all', q: '' },
 ]
 
 const heroAccessoryCategories = [
-  { label: 'Chuột Gaming Logitech', icon: Mouse, line: 'mouse', q: 'logitech mouse' },
-  { label: 'Bàn phím cơ Akko', icon: Keyboard, line: 'keyboard', q: 'akko keyboard' },
-  { label: 'Tai nghe chụp tai Razer', icon: Headphones, line: 'headphone', q: 'razer headphone' },
-  { label: 'Lót chuột cỡ lớn', icon: Monitor, line: 'pad', q: 'lot chuot pad' },
-  { label: 'Ugreen Hub & cáp sạc', icon: BadgeCheck, line: 'other', q: 'ugreen hub cap' },
+  { label: 'Chuột Gaming Logitech', icon: Mouse, line: 'mouse', q: 'chuot' },
+  { label: 'Bàn phím cơ Akko', icon: Keyboard, line: 'keyboard', q: 'ban phim' },
+  { label: 'Tai nghe chụp tai Razer', icon: Headphones, line: 'headphone', q: 'tai nghe' },
+  { label: 'Lót chuột cỡ lớn', icon: Monitor, line: 'pad', q: 'lot chuot' },
+  { label: 'Ugreen Hub & cáp sạc', icon: BadgeCheck, line: 'hub', q: 'hub' },
 ]
 
 const heroCategoriesToDisplay = computed(() => isAccessoryPage.value ? heroAccessoryCategories : heroCategories)
@@ -389,6 +389,7 @@ const lineMatcher = (product, line = activeLine.value) => {
     if (line === 'keyboard') return text.includes('ban phim') || text.includes('keyboard')
     if (line === 'headphone') return text.includes('tai nghe') || text.includes('headphone') || text.includes('tai-nghe')
     if (line === 'pad') return text.includes('lot chuot') || text.includes('mousepad') || text.includes('pad')
+    if (line === 'hub') return text.includes('hub') || text.includes('cap') || text.includes('sac') || text.includes('ugreen')
     if (line === 'other') return !['chuot', 'mouse', 'ban phim', 'keyboard', 'tai nghe', 'headphone', 'lot chuot', 'mousepad'].some(k => text.includes(k))
     return true
   }
@@ -534,9 +535,13 @@ const selectHeroCategory = (category) => {
 
 const isHeroCategoryActive = (category) => {
   if (!isAccessoryPage.value && category.line === 'accessory') return false
-  return isAccessoryPage.value
-    ? activeLine.value === category.line
-    : searchQuery.value === (category.q || '')
+  if (category.q !== undefined && category.q !== '') {
+    return searchQuery.value === category.q
+  }
+  if (!category.q && !searchQuery.value) {
+    return activeLine.value === (category.line || 'all')
+  }
+  return searchQuery.value === (category.q || '')
 }
 
 const selectShowcaseBrand = (brand) => {
@@ -5300,22 +5305,22 @@ onMounted(() => {
 
 /* Exclusive offers — editorial bundle builder inspired by premium gear stores. */
 .is-accessory-page .lp-combos {
-  padding: clamp(30px, 3.6vw, 52px) !important;
+  padding: 24px 28px !important;
   border: 1px solid #d9e4f2 !important;
-  border-radius: 30px;
+  border-radius: 20px;
   background-color: #ffffff !important;
   background-image:
     radial-gradient(circle at 100% 0%, rgba(37, 99, 235, .09), transparent 28%),
     linear-gradient(180deg, #ffffff, #f8fbff) !important;
-  box-shadow: 0 26px 70px rgba(15, 23, 42, .1);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, .06);
 }
 
 .is-accessory-page .combos-header {
   max-width: none;
-  margin: 0 0 clamp(24px, 3vw, 38px);
+  margin: 0 0 20px;
   display: grid;
   grid-template-columns: minmax(0, .9fr) minmax(320px, .7fr);
-  gap: 20px 70px;
+  gap: 12px 40px;
   align-items: end;
   text-align: left;
 }
@@ -5325,7 +5330,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 15px;
+  padding-bottom: 10px;
   border-bottom: 1px solid #dce6f2;
 }
 
@@ -5350,54 +5355,54 @@ onMounted(() => {
 .laptop-page.is-accessory-page .combos-header h2 {
   margin: 0;
   color: #0f172a !important;
-  font-size: clamp(30px, 3.25vw, 48px) !important;
+  font-size: clamp(22px, 2.2vw, 32px) !important;
   font-weight: 850;
-  line-height: .98;
-  letter-spacing: -.055em;
+  line-height: 1.1;
+  letter-spacing: -.03em;
   text-transform: none;
 }
 
 .is-accessory-page .combos-header .section-sub {
   max-width: 520px;
-  margin: 0 0 5px;
+  margin: 0 0 2px;
   color: #5f6f84;
-  font-size: 14px;
-  line-height: 1.75;
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .is-accessory-page .combos-bento-layout {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 22px;
+  gap: 16px;
 }
 
 .is-accessory-page .combo-bento-card {
   padding: 0;
   overflow: hidden;
   border: 1px solid #dbe5f1;
-  border-radius: 24px;
+  border-radius: 18px;
   background: #ffffff;
-  box-shadow: 0 14px 38px rgba(15, 23, 42, .07);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, .05);
 }
 
 .is-accessory-page .combo-bento-card:hover {
   border-color: #9fc2ff;
-  transform: translateY(-4px);
-  box-shadow: 0 24px 54px rgba(15, 23, 42, .13);
+  transform: translateY(-2px);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, .09);
 }
 
 .is-accessory-page .combo-main-content {
-  min-height: 350px;
+  min-height: 220px;
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(360px, .75fr);
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, .8fr);
   gap: 0;
   align-items: stretch;
 }
 
 .is-accessory-page .combo-visual-connector {
   order: -1;
-  min-height: 350px;
-  padding: clamp(24px, 3vw, 42px);
+  min-height: 220px;
+  padding: 20px 28px;
   border: 0;
   border-radius: 0;
   background:
@@ -5411,13 +5416,13 @@ onMounted(() => {
 }
 
 .is-accessory-page .node-image-box {
-  width: min(240px, 19vw);
-  height: min(240px, 19vw);
-  padding: 20px;
+  width: 140px;
+  height: 140px;
+  padding: 12px;
   border: 1px solid rgba(255, 255, 255, .9);
-  border-radius: 22px;
-  background: rgba(255, 255, 255, .82);
-  box-shadow: 0 24px 45px rgba(30, 64, 175, .12);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .88);
+  box-shadow: 0 14px 28px rgba(30, 64, 175, .09);
 }
 
 .is-accessory-page .node-image-box img {
@@ -5426,39 +5431,39 @@ onMounted(() => {
 }
 
 .is-accessory-page .node-title {
-  width: min(285px, 22vw);
+  width: 150px;
   height: auto;
-  margin-top: 12px;
+  margin-top: 8px;
   color: #334155;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 750;
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 .is-accessory-page .node-plus-sign {
-  top: 98px;
-  right: -20px;
-  width: 42px;
-  height: 42px;
+  top: 54px;
+  right: -16px;
+  width: 32px;
+  height: 32px;
   display: grid;
   place-items: center;
   border: 1px solid #d7e3f2;
   border-radius: 50%;
   background: #ffffff;
   color: #2563eb;
-  font-size: 22px;
-  box-shadow: 0 10px 25px rgba(15, 23, 42, .1);
+  font-size: 16px;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, .08);
 }
 
 .is-accessory-page .combo-details {
   min-width: 0;
-  padding: clamp(26px, 3vw, 40px);
+  padding: 20px 24px !important;
   justify-content: center;
   background: #ffffff;
 }
 
 .combo-card-label {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   color: #7b8ca4;
   font-size: 9px;
   font-weight: 900;
@@ -5466,29 +5471,29 @@ onMounted(() => {
 }
 
 .is-accessory-page .combo-discount-badge {
-  margin: 0 0 14px;
-  padding: 7px 11px;
-  border-radius: 8px;
+  margin: 0 0 10px;
+  padding: 5px 9px;
+  border-radius: 6px;
   background: #e9f2ff;
   color: #1d4ed8;
   font-size: 11px;
 }
 
 .is-accessory-page .combo-details h3 {
-  margin: 0 0 13px;
+  margin: 0 0 8px;
   color: #0f172a;
-  font-size: clamp(20px, 1.65vw, 25px) !important;
-  line-height: 1.15;
-  letter-spacing: -.035em;
+  font-size: 18px !important;
+  line-height: 1.2;
+  letter-spacing: -.02em;
 }
 
 .is-accessory-page .combo-details > p {
   display: -webkit-box;
-  margin: 0 0 22px;
+  margin: 0 0 14px;
   overflow: hidden;
   color: #64748b;
-  font-size: 13px;
-  line-height: 1.65;
+  font-size: 12.5px;
+  line-height: 1.5;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
 }
@@ -5653,7 +5658,6 @@ onMounted(() => {
 /* Desktop/zoom-out: một trục nội dung duy nhất, không dùng card bọc ngoài. */
 @media (min-width: 1101px) {
   .laptop-page .lp-hero,
-  .laptop-page .lp-services,
   .laptop-page .lp-featured-head,
   .laptop-page .lp-brands,
   .laptop-page .lp-flagship,
@@ -5771,6 +5775,25 @@ onMounted(() => {
     transform: translateX(2px);
   }
 }
+.lp-hero-main .lp-services,
+.is-accessory-page .lp-hero-main .lp-services {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+  box-sizing: border-box !important;
+}
+
+.lp-hero-main .lp-services article,
+.is-accessory-page .lp-hero-main .lp-services article {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
 /* ============================================================
    COMPLETE MOBILE LAYOUT - LAPTOP PAGE
    ============================================================ */
