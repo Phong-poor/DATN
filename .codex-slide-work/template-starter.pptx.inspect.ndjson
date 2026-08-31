@@ -1,0 +1,963 @@
+{"kind":"deck","id":"pr/v98ii3","name":"Deck"}
+{"kind":"layout","layoutId":"/ppt/slideMasters/slideMaster1.xml","name":"","type":"master","placeholders":[{"name":"title","type":"title","textPreview":"Click to edit Master title style"},{"name":"body","type":"body","textPreview":"Click to edit Master text styles | Second level | Third level | Fourth level | Fifth level"},{"name":"dateTime","type":"dateTime","textPreview":"8/29/2026"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout1.xml","name":"Title Slide","type":"title","placeholders":[{"name":"title","type":"title","textPreview":"Click to edit Master title style"},{"name":"subtitle","type":"subtitle","textPreview":"Click to edit Master subtitle style"},{"name":"dateTime","type":"dateTime","textPreview":"8/29/2026"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout2.xml","name":"Title and Content","type":"obj","placeholders":[{"name":"title","type":"title","textPreview":"Click to edit Master title style"},{"name":"content placeholder 2","textPreview":"Click to edit Master text styles | Second level | Third level | Fourth level | Fifth level"},{"name":"dateTime","type":"dateTime","textPreview":"8/29/2026"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout3.xml","name":"Section Header","type":"secHead","placeholders":[{"name":"title","type":"title","textPreview":"Click to edit Master title style"},{"name":"body","type":"body","textPreview":"Click to edit Master text styles"},{"name":"dateTime","type":"dateTime","textPreview":"8/29/2026"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout4.xml","name":"Two Content","type":"twoObj","placeholders":[{"name":"title","type":"title","textPreview":"Click to edit Master title style"},{"name":"content placeholder 2","textPreview":"Click to edit Master text styles | Second level | Third level | Fourth level | Fifth level"},{"name":"content placeholder 3","textPreview":"Click to edit Master text styles | Second level | Third level | Fourth level | Fifth level"},{"name":"dateTime","type":"dateTime","textPreview":"8/29/2026"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout5.xml","name":"Comparison","type":"twoTxTwoObj","placeholders":[{"name":"title","type":"title","textPreview":"Click to edit Master title style"},{"name":"body","type":"body","textPreview":"Click to edit Master text styles"},{"name":"content placeholder 3","textPreview":"Click to edit Master text styles | Second level | Third level | Fourth level | Fifth level"},{"name":"body","type":"body","textPreview":"Click to edit Master text styles"},{"name":"content placeholder 5","textPreview":"Click to edit Master text styles | Second level | Third level | Fourth level | Fifth level"},{"name":"dateTime","type":"dateTime","textPreview":"8/29/2026"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout6.xml","name":"Title Only","type":"titleOnly","placeholders":[{"name":"title","type":"title","textPreview":"Click to edit Master title style"},{"name":"dateTime","type":"dateTime","textPreview":"8/29/2026"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout7.xml","name":"Blank","type":"blank","placeholders":[{"name":"dateTime","type":"dateTime","textPreview":"8/29/2026"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout8.xml","name":"Content with Caption","type":"objTx","placeholders":[{"name":"title","type":"title","textPreview":"Click to edit Master title style"},{"name":"content placeholder 2","textPreview":"Click to edit Master text styles | Second level | Third level | Fourth level | Fifth level"},{"name":"body","type":"body","textPreview":"Click to edit Master text styles"},{"name":"dateTime","type":"dateTime","textPreview":"8/29/2026"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout9.xml","name":"Picture with Caption","type":"picTx","placeholders":[{"name":"title","type":"title","textPreview":"Click to edit Master title style"},{"name":"picture","type":"picture"},{"name":"body","type":"body","textPreview":"Click to edit Master text styles"},{"name":"dateTime","type":"dateTime","textPreview":"8/29/2026"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout10.xml","name":"Title and Vertical Text","type":"vertTx","placeholders":[{"name":"title","type":"title","textPreview":"Click to edit Master title style"},{"name":"body","type":"body","textPreview":"Click to edit Master text styles | Second level | Third level | Fourth level | Fifth level"},{"name":"dateTime","type":"dateTime","textPreview":"8/29/2026"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout11.xml","name":"Vertical Title and Text","type":"vertTitleAndTx","placeholders":[{"name":"title","type":"title","textPreview":"Click to edit Master title style"},{"name":"body","type":"body","textPreview":"Click to edit Master text styles | Second level | Third level | Fourth level | Fifth level"},{"name":"dateTime","type":"dateTime","textPreview":"8/29/2026"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"slide","id":"sl/jbobbm","slide":1,"title":"ĐỒ ÁN / PROJECT","textShapes":8}
+{"kind":"shape","id":"sh/hs3up4f6","slide":1,"name":"Oval 1","bbox":[-17.32,62.73,691.2,614.4]}
+{"kind":"shape","id":"sh/721cjax4","slide":1,"name":"Rectangle 3","bbox":[100.8,558.72,480,11.52]}
+{"kind":"shape","id":"sh/61sbapwj","slide":1,"name":"Rectangle 4","bbox":[148.8,568.32,13.44,86.4]}
+{"kind":"shape","id":"sh/tojulkfu","slide":1,"name":"Rectangle 5","bbox":[523.2,568.32,13.44,86.4]}
+{"kind":"shape","id":"sh/2pwnuhsz","slide":1,"name":"Oval 37","bbox":[66.24,83.52,24.96,24.96]}
+{"kind":"shape","id":"sh/3q54nmtk","slide":1,"name":"Oval 38","bbox":[72.96,90.24,11.52,11.52]}
+{"kind":"shape","id":"sh/ni10jyx0","slide":1,"name":"Connector 39","bbox":[91.2,96,76.8,17.28]}
+{"kind":"shape","id":"sh/mhsjatwf","slide":1,"name":"Oval 40","bbox":[175.68,110.4,13.44,13.44]}
+{"kind":"shape","id":"sh/9k3ilof6","slide":1,"name":"Oval 41","bbox":[991.68,60.48,23.04,23.04]}
+{"kind":"shape","id":"sh/8ju1cjel","slide":1,"name":"Oval 42","bbox":[997.92,66.72,10.56,10.56]}
+{"kind":"shape","id":"sh/ze10fex4","slide":1,"name":"Connector 43","bbox":[1014.72,59.52,108.48,12.48]}
+{"kind":"shape","id":"sh/edsj69wj","slide":1,"name":"Oval 44","bbox":[1124.16,47.04,21.12,21.12]}
+{"kind":"shape","id":"sh/1gjihofu","slide":1,"name":"Connector 45","bbox":[1142.4,65.28,62.4,57.6]}
+{"kind":"shape","id":"sh/0fa18je9","slide":1,"name":"Oval 46","bbox":[1188.48,106.56,65.28,65.28]}
+{"kind":"shape","id":"sh/jalkrid8","slide":1,"name":"Oval 47","bbox":[1201.92,120,38.4,38.4]}
+{"kind":"shape","id":"sh/i9cjidwn","slide":1,"name":"Oval 48","bbox":[1212.48,130.56,17.28,17.28]}
+{"kind":"textbox","id":"sh/gv6xcfu5","slide":1,"name":"TextBox 49","text":"ĐỒ ÁN / PROJECT","textPreview":"ĐỒ ÁN / PROJECT","textChars":15,"textLines":1,"bbox":[678.02,140.42,499.2,33.6]}
+{"kind":"textbox","id":"sh/hwfyl0vq","slide":1,"name":"TextBox 50","text":"Xây dựng website bán máy tính NextGen","textPreview":"Xây dựng website bán máy tính NextGen","textChars":37,"textLines":1,"bbox":[673.92,232.28,555.84,106.63]}
+{"kind":"shape","id":"sh/utofa5cz","slide":1,"name":"Rectangle 51","bbox":[676.8,412.8,120,5.76]}
+{"kind":"textbox","id":"sh/fuxgjadk","slide":1,"name":"TextBox 52","text":"Thiết kế website thương mại điện tử","textPreview":"Thiết kế website thương mại điện tử","textChars":35,"textLines":1,"bbox":[676.8,430.08,499.2,43.2]}
+{"kind":"shape","id":"sh/4j6xgfu1","slide":1,"name":"Rounded Rectangle 53","bbox":[672.27,495.91,225.6,74.88]}
+{"kind":"shape","id":"sh/pkzypkvm","slide":1,"name":"Oval 54","bbox":[696.96,516.48,30.72,30.72]}
+{"kind":"textbox","id":"sh/2hofe5cb","slide":1,"name":"TextBox 55","text":"NHÓM","textPreview":"NHÓM","textChars":4,"textLines":1,"bbox":[741.12,505.92,139.2,21.12]}
+{"kind":"textbox","id":"sh/3ixgnadw","slide":1,"name":"TextBox 56","text":"Predator group","textPreview":"Predator group","textChars":14,"textLines":1,"bbox":[741.12,524.17,156.75,30.7]}
+{"kind":"shape","id":"sh/cnqhkzud","slide":1,"name":"Rounded Rectangle 57","bbox":[919.68,494.4,288,74.88]}
+{"kind":"shape","id":"sh/dozytkvy","slide":1,"name":"Oval 58","bbox":[939.84,516.48,30.72,30.72]}
+{"kind":"textbox","id":"sh/1sb6h0zq","slide":1,"name":"TextBox 59","text":"GV HƯỚNG DẪN","textPreview":"GV HƯỚNG DẪN","textChars":12,"textLines":1,"bbox":[984,505.92,196.8,21.12]}
+{"kind":"textbox","id":"sh/0r2povi5","slide":1,"name":"TextBox 60","text":"Lê Hồng Sơn","textPreview":"Lê Hồng Sơn","textChars":11,"textLines":1,"bbox":[984,526.08,196.8,26.88]}
+{"kind":"shape","id":"sh/z6tofqhk","slide":1,"name":"Rectangle 61","bbox":[676.8,628.8,532.8,3.84]}
+{"kind":"textbox","id":"sh/e5k7ml0z","slide":1,"name":"TextBox 62","text":"WEBSITE LAPTOP & ACCESSORIES","textPreview":"WEBSITE LAPTOP & ACCESSORIES","textChars":28,"textLines":1,"bbox":[676.8,640.32,528,28.8]}
+{"kind":"image","id":"im/u58nexk3","slide":1,"name":"Picture 64","bbox":[-153.08,51.83,987.77,658.51]}
+{"kind":"image","id":"im/v61on21o","slide":1,"name":"Picture 67","bbox":[1131.48,-9.31,122.28,122.28]}
+{"kind":"notes","id":"nt/jbobbm","slide":1,"text":""}
+{"kind":"slide","id":"sl/t9h01n","slide":2,"title":"THÀNH VIÊN NHÓM","textShapes":23}
+{"kind":"shape","id":"sh/hkradkfy","slide":2,"name":"Oval 1","bbox":[12.67,12.67,3.46,3.46]}
+{"kind":"shape","id":"sh/gji9kfed","slide":2,"name":"Oval 2","bbox":[25.15,12.67,3.46,3.46]}
+{"kind":"shape","id":"sh/7e9s7qxw","slide":2,"name":"Oval 3","bbox":[37.63,12.67,3.46,3.46]}
+{"kind":"shape","id":"sh/6dgre5gb","slide":2,"name":"Oval 4","bbox":[50.11,12.67,3.46,3.46]}
+{"kind":"shape","id":"sh/tgra90fm","slide":2,"name":"Oval 5","bbox":[62.59,12.67,3.46,3.46]}
+{"kind":"shape","id":"sh/8fi9gveh","slide":2,"name":"Oval 6","bbox":[75.07,12.67,3.46,3.46]}
+{"kind":"shape","id":"sh/jqps3qxk","slide":2,"name":"Oval 7","bbox":[87.55,12.67,3.46,3.46]}
+{"kind":"shape","id":"sh/ypgralgz","slide":2,"name":"Oval 8","bbox":[100.03,12.67,3.46,3.46]}
+{"kind":"shape","id":"sh/grq5o7ad","slide":2,"name":"Oval 9","bbox":[112.51,12.67,3.46,3.46]}
+{"kind":"shape","id":"sh/hsj6xcry","slide":2,"name":"Oval 10","bbox":[124.99,12.67,3.46,3.46]}
+{"kind":"shape","id":"sh/u58nmxsn","slide":2,"name":"Oval 11","bbox":[137.47,12.67,3.46,3.46]}
+{"kind":"shape","id":"sh/vqhov298","slide":2,"name":"Oval 12","bbox":[149.95,12.67,3.46,3.46]}
+{"kind":"shape","id":"sh/83q5knah","slide":2,"name":"Oval 13","bbox":[12.67,25.15,3.46,3.46]}
+{"kind":"shape","id":"sh/94zmtsr2","slide":2,"name":"Oval 14","bbox":[25.15,25.15,3.46,3.46]}
+{"kind":"shape","id":"sh/m18nixsb","slide":2,"name":"Oval 15","bbox":[37.63,25.15,3.46,3.46]}
+{"kind":"shape","id":"sh/72h4ri9w","slide":2,"name":"Oval 16","bbox":[50.11,25.15,3.46,3.46]}
+{"kind":"shape","id":"sh/szu5wral","slide":2,"name":"Oval 17","bbox":[62.59,25.15,3.46,3.46]}
+{"kind":"shape","id":"sh/d0365wr6","slide":2,"name":"Oval 18","bbox":[75.07,25.15,3.46,3.46]}
+{"kind":"shape","id":"sh/1gz69wja","slide":2,"name":"Oval 19","bbox":[87.55,25.15,3.46,3.46]}
+{"kind":"shape","id":"sh/0fq5gr2p","slide":2,"name":"Oval 20","bbox":[100.03,25.15,3.46,3.46]}
+{"kind":"shape","id":"sh/zeh47m1k","slide":2,"name":"Oval 21","bbox":[112.51,25.15,3.46,3.46]}
+{"kind":"shape","id":"sh/edonehkz","slide":2,"name":"Oval 22","bbox":[124.99,25.15,3.46,3.46]}
+{"kind":"shape","id":"sh/dcfm5cje","slide":2,"name":"Oval 23","bbox":[137.47,25.15,3.46,3.46]}
+{"kind":"shape","id":"sh/cb65c72t","slide":2,"name":"Oval 24","bbox":[149.95,25.15,3.46,3.46]}
+{"kind":"shape","id":"sh/rqx43218","slide":2,"name":"Oval 25","bbox":[12.67,37.63,3.46,3.46]}
+{"kind":"shape","id":"sh/qponaxkn","slide":2,"name":"Oval 26","bbox":[25.15,37.63,3.46,3.46]}
+{"kind":"shape","id":"sh/pofm1sj2","slide":2,"name":"Oval 27","bbox":[37.63,37.63,3.46,3.46]}
+{"kind":"shape","id":"sh/4n65872x","slide":2,"name":"Oval 28","bbox":[50.11,37.63,3.46,3.46]}
+{"kind":"shape","id":"sh/utk3it0f","slide":2,"name":"Oval 29","bbox":[62.59,37.63,3.46,3.46]}
+{"kind":"shape","id":"sh/vutkbyh0","slide":2,"name":"Oval 30","bbox":[75.07,37.63,3.46,3.46]}
+{"kind":"shape","id":"sh/gvmlk3il","slide":2,"name":"Oval 31","bbox":[87.55,37.63,3.46,3.46]}
+{"kind":"shape","id":"sh/hwv2d8z6","slide":2,"name":"Oval 32","bbox":[100.03,37.63,3.46,3.46]}
+{"kind":"shape","id":"sh/6pkjet0j","slide":2,"name":"Oval 33","bbox":[112.51,37.63,3.46,3.46]}
+{"kind":"shape","id":"sh/7qtk7yh4","slide":2,"name":"Oval 34","bbox":[124.99,37.63,3.46,3.46]}
+{"kind":"shape","id":"sh/8r2lg3ip","slide":2,"name":"Oval 35","bbox":[137.47,37.63,3.46,3.46]}
+{"kind":"shape","id":"sh/tsb298zu","slide":2,"name":"Oval 36","bbox":[149.95,37.63,3.46,3.46]}
+{"kind":"shape","id":"sh/yl0ja907","slide":2,"name":"Oval 37","bbox":[12.67,50.11,3.46,3.46]}
+{"kind":"shape","id":"sh/jm9k3ehs","slide":2,"name":"Oval 38","bbox":[25.15,50.11,3.46,3.46]}
+{"kind":"shape","id":"sh/betgfulo","slide":2,"name":"Oval 39","bbox":[37.63,50.11,3.46,3.46]}
+{"kind":"shape","id":"sh/adkzmp43","slide":2,"name":"Oval 40","bbox":[50.11,50.11,3.46,3.46]}
+{"kind":"shape","id":"sh/xgvyh43u","slide":2,"name":"Oval 41","bbox":[62.59,50.11,3.46,3.46]}
+{"kind":"shape","id":"sh/cf2hozm9","slide":2,"name":"Oval 42","bbox":[75.07,50.11,3.46,3.46]}
+{"kind":"shape","id":"sh/natgbalc","slide":2,"name":"Oval 43","bbox":[87.55,50.11,3.46,3.46]}
+{"kind":"shape","id":"sh/29kzi547","slide":2,"name":"Oval 44","bbox":[100.03,50.11,3.46,3.46]}
+{"kind":"shape","id":"sh/pcbydk3i","slide":2,"name":"Oval 45","bbox":[112.51,50.11,3.46,3.46]}
+{"kind":"shape","id":"sh/ob2hkfmx","slide":2,"name":"Oval 46","bbox":[124.99,50.11,3.46,3.46]}
+{"kind":"shape","id":"sh/fm9g7alg","slide":2,"name":"Oval 47","bbox":[137.47,50.11,3.46,3.46]}
+{"kind":"shape","id":"sh/el0fe54v","slide":2,"name":"Oval 48","bbox":[149.95,50.11,3.46,3.46]}
+{"kind":"shape","id":"sh/4fe5s7yh","slide":2,"name":"Oval 49","bbox":[12.67,62.59,3.46,3.46]}
+{"kind":"shape","id":"sh/5gnm1cf2","slide":2,"name":"Oval 50","bbox":[25.15,62.59,3.46,3.46]}
+{"kind":"shape","id":"sh/idwnqxgb","slide":2,"name":"Oval 51","bbox":[37.63,62.59,3.46,3.46]}
+{"kind":"shape","id":"sh/je54z2xw","slide":2,"name":"Oval 52","bbox":[50.11,62.59,3.46,3.46]}
+{"kind":"shape","id":"sh/s3e5wryt","slide":2,"name":"Oval 53","bbox":[62.59,62.59,3.46,3.46]}
+{"kind":"shape","id":"sh/t47m5wfy","slide":2,"name":"Oval 54","bbox":[75.07,62.59,3.46,3.46]}
+{"kind":"shape","id":"sh/6hwnuhgn","slide":2,"name":"Oval 55","bbox":[87.55,62.59,3.46,3.46]}
+{"kind":"shape","id":"sh/ri543mx8","slide":2,"name":"Oval 56","bbox":[100.03,62.59,3.46,3.46]}
+{"kind":"shape","id":"sh/8nulkny9","slide":2,"name":"Oval 57","bbox":[112.51,62.59,3.46,3.46]}
+{"kind":"shape","id":"sh/983mtsfu","slide":2,"name":"Oval 58","bbox":[124.99,62.59,3.46,3.46]}
+{"kind":"shape","id":"sh/p4v2xo7i","slide":2,"name":"Oval 59","bbox":[137.47,62.59,3.46,3.46]}
+{"kind":"shape","id":"sh/o3mlojqd","slide":2,"name":"Oval 60","bbox":[149.95,62.59,3.46,3.46]}
+{"kind":"shape","id":"sh/n2dkveps","slide":2,"name":"Oval 61","bbox":[12.67,75.07,3.46,3.46]}
+{"kind":"shape","id":"sh/214jm987","slide":2,"name":"Oval 62","bbox":[25.15,75.07,3.46,3.46]}
+{"kind":"shape","id":"sh/x8f21o7u","slide":2,"name":"Oval 63","bbox":[37.63,75.07,3.46,3.46]}
+{"kind":"shape","id":"sh/c7mlsjq9","slide":2,"name":"Oval 64","bbox":[50.11,75.07,3.46,3.46]}
+{"kind":"shape","id":"sh/b6dkzypo","slide":2,"name":"Oval 65","bbox":[62.59,75.07,3.46,3.46]}
+{"kind":"shape","id":"sh/a543qt83","slide":2,"name":"Oval 66","bbox":[75.07,75.07,3.46,3.46]}
+{"kind":"shape","id":"sh/lcf2p87q","slide":2,"name":"Oval 67","bbox":[87.55,75.07,3.46,3.46]}
+{"kind":"shape","id":"sh/kb6lw3q5","slide":2,"name":"Oval 68","bbox":[100.03,75.07,3.46,3.46]}
+{"kind":"shape","id":"sh/ihgzq5on","slide":2,"name":"Oval 69","bbox":[112.51,75.07,3.46,3.46]}
+{"kind":"shape","id":"sh/3i90ja58","slide":2,"name":"Oval 70","bbox":[124.99,75.07,3.46,3.46]}
+{"kind":"shape","id":"sh/4jihsv6t","slide":2,"name":"Oval 71","bbox":[137.47,75.07,3.46,3.46]}
+{"kind":"shape","id":"sh/5kril0ne","slide":2,"name":"Oval 72","bbox":[149.95,75.07,3.46,3.46]}
+{"kind":"shape","id":"sh/ql0zu5oz","slide":2,"name":"Oval 73","bbox":[1155.26,497.66,3.07,3.07]}
+{"kind":"shape","id":"sh/rm90na5k","slide":2,"name":"Oval 74","bbox":[1166.78,497.66,3.07,3.07]}
+{"kind":"shape","id":"sh/s7ihwf65","slide":2,"name":"Oval 75","bbox":[1178.3,497.66,3.07,3.07]}
+{"kind":"shape","id":"sh/d8ripkna","slide":2,"name":"Oval 76","bbox":[1189.82,497.66,3.07,3.07]}
+{"kind":"shape","id":"sh/e9kzypov","slide":2,"name":"Oval 77","bbox":[1201.34,497.66,3.07,3.07]}
+{"kind":"shape","id":"sh/fat0ru5g","slide":2,"name":"Oval 78","bbox":[1212.86,497.66,3.07,3.07]}
+{"kind":"shape","id":"sh/z2pwnm9w","slide":2,"name":"Oval 79","bbox":[1224.38,497.66,3.07,3.07]}
+{"kind":"shape","id":"sh/y1gvuhsb","slide":2,"name":"Oval 80","bbox":[1235.9,497.66,3.07,3.07]}
+{"kind":"shape","id":"sh/l4repwr2","slide":2,"name":"Oval 81","bbox":[1247.42,497.66,3.07,3.07]}
+{"kind":"shape","id":"sh/03idwrah","slide":2,"name":"Oval 82","bbox":[1155.26,509.18,3.07,3.07]}
+{"kind":"shape","id":"sh/769wr69s","slide":2,"name":"Oval 83","bbox":[1166.78,509.18,3.07,3.07]}
+{"kind":"shape","id":"sh/m50vy1sn","slide":2,"name":"Oval 84","bbox":[1178.3,509.18,3.07,3.07]}
+{"kind":"shape","id":"sh/98retwry","slide":2,"name":"Oval 85","bbox":[1189.82,509.18,3.07,3.07]}
+{"kind":"shape","id":"sh/87id0rad","slide":2,"name":"Oval 86","bbox":[1201.34,509.18,3.07,3.07]}
+{"kind":"shape","id":"sh/vu9wv694","slide":2,"name":"Oval 87","bbox":[1212.86,509.18,3.07,3.07]}
+{"kind":"shape","id":"sh/u90f21sj","slide":2,"name":"Oval 88","bbox":[1224.38,509.18,3.07,3.07]}
+{"kind":"shape","id":"sh/sz2dcb6x","slide":2,"name":"Oval 89","bbox":[1235.9,509.18,3.07,3.07]}
+{"kind":"shape","id":"sh/t0bulg72","slide":2,"name":"Oval 90","bbox":[1247.42,509.18,3.07,3.07]}
+{"kind":"shape","id":"sh/6xkva1or","slide":2,"name":"Oval 91","bbox":[1155.26,520.7,3.07,3.07]}
+{"kind":"shape","id":"sh/rytcj6pc","slide":2,"name":"Oval 92","bbox":[1166.78,520.7,3.07,3.07]}
+{"kind":"shape","id":"sh/4b2d8b6l","slide":2,"name":"Oval 93","bbox":[1178.3,520.7,3.07,3.07]}
+{"kind":"shape","id":"sh/5wbuhw76","slide":2,"name":"Oval 94","bbox":[1189.82,520.7,3.07,3.07]}
+{"kind":"shape","id":"sh/i90v61of","slide":2,"name":"Oval 95","bbox":[1201.34,520.7,3.07,3.07]}
+{"kind":"shape","id":"sh/jatcf6p0","slide":2,"name":"Oval 96","bbox":[1212.86,520.7,3.07,3.07]}
+{"kind":"shape","id":"sh/w7id4r6p","slide":2,"name":"Oval 97","bbox":[1224.38,520.7,3.07,3.07]}
+{"kind":"shape","id":"sh/h8rudw7a","slide":2,"name":"Oval 98","bbox":[1235.9,520.7,3.07,3.07]}
+{"kind":"shape","id":"sh/61o3el0n","slide":2,"name":"Oval 99","bbox":[1247.42,520.7,3.07,3.07]}
+{"kind":"shape","id":"sh/72xknqh8","slide":2,"name":"Oval 100","bbox":[1155.26,532.22,3.07,3.07]}
+{"kind":"shape","id":"sh/836lgvit","slide":2,"name":"Oval 101","bbox":[1166.78,532.22,3.07,3.07]}
+{"kind":"shape","id":"sh/t4f2p0ze","slide":2,"name":"Oval 102","bbox":[1178.3,532.22,3.07,3.07]}
+{"kind":"shape","id":"sh/yx43al0r","slide":2,"name":"Oval 103","bbox":[1189.82,532.22,3.07,3.07]}
+{"kind":"shape","id":"sh/jydkjqhw","slide":2,"name":"Oval 104","bbox":[1201.34,532.22,3.07,3.07]}
+{"kind":"shape","id":"sh/kzmlcvih","slide":2,"name":"Oval 105","bbox":[1212.86,532.22,3.07,3.07]}
+{"kind":"shape","id":"sh/l0f2l0z2","slide":2,"name":"Oval 106","bbox":[1224.38,532.22,3.07,3.07]}
+{"kind":"shape","id":"sh/it83m50v","slide":2,"name":"Oval 107","bbox":[1235.9,532.22,3.07,3.07]}
+{"kind":"shape","id":"sh/3uh4vahg","slide":2,"name":"Oval 108","bbox":[1247.42,532.22,3.07,3.07]}
+{"kind":"shape","id":"sh/d03e18nu","slide":2,"name":"Oval 109","bbox":[1155.26,543.74,3.07,3.07]}
+{"kind":"shape","id":"sh/czux8369","slide":2,"name":"Oval 110","bbox":[1166.78,543.74,3.07,3.07]}
+{"kind":"shape","id":"sh/bylwzy5o","slide":2,"name":"Oval 111","bbox":[1178.3,543.74,3.07,3.07]}
+{"kind":"shape","id":"sh/qxcf6to3","slide":2,"name":"Oval 112","bbox":[1189.82,543.74,3.07,3.07]}
+{"kind":"shape","id":"sh/pc3ex8ni","slide":2,"name":"Oval 113","bbox":[1201.34,543.74,3.07,3.07]}
+{"kind":"shape","id":"sh/obax436x","slide":2,"name":"Oval 114","bbox":[1212.86,543.74,3.07,3.07]}
+{"kind":"shape","id":"sh/3a1wvy5s","slide":2,"name":"Oval 115","bbox":[1224.38,543.74,3.07,3.07]}
+{"kind":"shape","id":"sh/29sf2to7","slide":2,"name":"Oval 116","bbox":[1235.9,543.74,3.07,3.07]}
+{"kind":"shape","id":"sh/98ny9sn2","slide":2,"name":"Oval 117","bbox":[1247.42,543.74,3.07,3.07]}
+{"kind":"shape","id":"sh/87exgn6h","slide":2,"name":"Oval 118","bbox":[1155.26,555.26,3.07,3.07]}
+{"kind":"shape","id":"sh/8bmhcrud","slide":2,"name":"Oval 119","bbox":[1166.78,555.26,3.07,3.07]}
+{"kind":"shape","id":"sh/tcvi5wvy","slide":2,"name":"Oval 120","bbox":[1178.3,555.26,3.07,3.07]}
+{"kind":"shape","id":"sh/694za1cn","slide":2,"name":"Oval 121","bbox":[1189.82,555.26,3.07,3.07]}
+{"kind":"shape","id":"sh/7adg36d8","slide":2,"name":"Oval 122","bbox":[1201.34,555.26,3.07,3.07]}
+{"kind":"shape","id":"sh/k7mh8ruh","slide":2,"name":"Oval 123","bbox":[1212.86,555.26,3.07,3.07]}
+{"kind":"shape","id":"sh/l8vy1wv2","slide":2,"name":"Oval 124","bbox":[1224.38,555.26,3.07,3.07]}
+{"kind":"shape","id":"sh/y5kz6hcb","slide":2,"name":"Oval 125","bbox":[1235.9,555.26,3.07,3.07]}
+{"kind":"shape","id":"sh/j6tgzmdw","slide":2,"name":"Oval 126","bbox":[1247.42,555.26,3.07,3.07]}
+{"kind":"shape","id":"sh/wj2h47ul","slide":2,"name":"Oval 127","bbox":[1155.26,566.78,3.07,3.07]}
+{"kind":"shape","id":"sh/x4byxcvq","slide":2,"name":"Oval 128","bbox":[1166.78,566.78,3.07,3.07]}
+{"kind":"shape","id":"sh/ze90n2xs","slide":2,"name":"Oval 129","bbox":[1178.3,566.78,3.07,3.07]}
+{"kind":"shape","id":"sh/ed0zehg7","slide":2,"name":"Oval 130","bbox":[1189.82,566.78,3.07,3.07]}
+{"kind":"shape","id":"sh/1gbipcfy","slide":2,"name":"Oval 131","bbox":[1201.34,566.78,3.07,3.07]}
+{"kind":"shape","id":"sh/0fihg7yd","slide":2,"name":"Oval 132","bbox":[1212.86,566.78,3.07,3.07]}
+{"kind":"shape","id":"sh/n2t0rmxo","slide":2,"name":"Oval 133","bbox":[1224.38,566.78,3.07,3.07]}
+{"kind":"shape","id":"sh/mhkzihgj","slide":2,"name":"Oval 134","bbox":[1235.9,566.78,3.07,3.07]}
+{"kind":"shape","id":"sh/94bitwfu","slide":2,"name":"Oval 135","bbox":[1247.42,566.78,3.07,3.07]}
+{"kind":"textbox","id":"sh/o321kry9","slide":2,"name":"TextBox 136","text":"THÀNH VIÊN NHÓM","textPreview":"THÀNH VIÊN NHÓM","textChars":15,"textLines":1,"bbox":[302.4,40.32,672,59.52]}
+{"kind":"shape","id":"sh/b6t0vmx0","slide":2,"name":"Connector 137","bbox":[393.6,121.92,222.72,0]}
+{"kind":"shape","id":"sh/a5kjm1gf","slide":2,"name":"Oval 138","bbox":[634.56,116.64,10.56,10.56]}
+{"kind":"shape","id":"sh/ulcbypsn","slide":2,"name":"Connector 139","bbox":[663.36,121.92,222.72,0]}
+{"kind":"textbox","id":"sh/vmlc7u98","slide":2,"name":"TextBox 140","text":"Cùng nhau học hỏi – Cùng nhau phát triển – Cùng nhau thành công","textPreview":"Cùng nhau học hỏi – Cùng nhau phát triển – Cùng nhau thành công","textChars":63,"textLines":1,"bbox":[288,134.4,705.6,33.6]}
+{"kind":"shape","id":"sh/gnut0zqt","slide":2,"name":"Oval 141","bbox":[1006.08,29.76,32.64,32.64]}
+{"kind":"shape","id":"sh/ho3u94re","slide":2,"name":"Oval 142","bbox":[1015.68,39.36,13.44,13.44]}
+{"kind":"shape","id":"sh/ipwb298z","slide":2,"name":"Connector 143","bbox":[1038.72,46.08,84.48,35.52]}
+{"kind":"shape","id":"sh/3q5cbe9k","slide":2,"name":"Oval 144","bbox":[1120.32,59.52,92.16,92.16]}
+{"kind":"shape","id":"sh/4ret4jq5","slide":2,"name":"Oval 145","bbox":[1140.48,79.68,51.84,51.84]}
+{"kind":"shape","id":"sh/psnudora","slide":2,"name":"Oval 146","bbox":[1152.96,92.16,26.88,26.88]}
+{"kind":"shape","id":"sh/ytsb65sv","slide":2,"name":"Connector 147","bbox":[1204.8,24,62.4,50.88]}
+{"kind":"shape","id":"sh/ju1sza90","slide":2,"name":"Rounded Rectangle 148","bbox":[206.4,209.28,432,88.32]}
+{"kind":"shape","id":"sh/1ore58bi","slide":2,"name":"Rounded Rectangle 149","bbox":[201.6,203.52,72,88.32]}
+{"kind":"textbox","id":"sh/0nydcnad","slide":2,"name":"TextBox 150","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[195.07,226.9,59.52,40.32]}
+{"kind":"shape","id":"sh/zmpw3its","slide":2,"name":"Rounded Rectangle 151","bbox":[254.4,203.52,379.2,88.32]}
+{"kind":"shape","id":"sh/elgvads7","slide":2,"name":"Oval 152","bbox":[294.72,213.12,69.12,69.12]}
+{"kind":"shape","id":"sh/9cre9sbu","slide":2,"name":"Oval 153","bbox":[322.08,228.96,14.4,14.4]}
+{"kind":"shape","id":"sh/obixgna9","slide":2,"name":"Isosceles Triangle 154","bbox":[316.8,246.72,24.96,21.12]}
+{"kind":"textbox","id":"sh/na9w7ito","slide":2,"name":"TextBox 155","text":"Trần Quốc Phong","textPreview":"Trần Quốc Phong","textChars":15,"textLines":1,"bbox":[393.6,215.04,220.8,28.8]}
+{"kind":"textbox","id":"sh/mp0feds3","slide":2,"name":"TextBox 156","text":"Nhóm trưởng","textPreview":"Nhóm trưởng","textChars":11,"textLines":1,"bbox":[393.6,248.64,220.8,24]}
+{"kind":"shape","id":"sh/pgnexobq","slide":2,"name":"Connector 157","bbox":[625.92,219.84,0,55.68]}
+{"kind":"shape","id":"sh/4fed4ju5","slide":2,"name":"Rounded Rectangle 158","bbox":[652.8,209.28,432,88.32]}
+{"kind":"shape","id":"sh/wzixk321","slide":2,"name":"Rounded Rectangle 159","bbox":[648,203.52,72,88.32]}
+{"kind":"textbox","id":"sh/h0red8j6","slide":2,"name":"TextBox 160","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[636.76,228.08,59.52,40.32]}
+{"kind":"shape","id":"sh/ux0vitkv","slide":2,"name":"Rounded Rectangle 161","bbox":[700.8,203.52,379.2,88.32]}
+{"kind":"shape","id":"sh/vy9wby1g","slide":2,"name":"Oval 162","bbox":[741.12,213.12,69.12,69.12]}
+{"kind":"shape","id":"sh/432xo32x","slide":2,"name":"Oval 163","bbox":[768.48,228.96,14.4,14.4]}
+{"kind":"shape","id":"sh/54beh8ji","slide":2,"name":"Isosceles Triangle 164","bbox":[763.2,246.72,24.96,21.12]}
+{"kind":"textbox","id":"sh/i10fmtkr","slide":2,"name":"TextBox 165","text":"Lê Ngọc Tài","textPreview":"Lê Ngọc Tài","textChars":11,"textLines":1,"bbox":[840,215.04,220.8,28.8]}
+{"kind":"textbox","id":"sh/32twfy1c","slide":2,"name":"TextBox 166","text":"Thành viên","textPreview":"Thành viên","textChars":10,"textLines":1,"bbox":[840,248.64,220.8,24]}
+{"kind":"shape","id":"sh/sr2xsnit","slide":2,"name":"Connector 167","bbox":[1072.32,219.84,0,55.68]}
+{"kind":"shape","id":"sh/dsbelsje","slide":2,"name":"Rounded Rectangle 168","bbox":[206.4,322.56,432,88.32]}
+{"kind":"shape","id":"sh/nmx0bmlw","slide":2,"name":"Rounded Rectangle 169","bbox":[201.6,316.8,72,88.32]}
+{"kind":"textbox","id":"sh/2lozih4b","slide":2,"name":"TextBox 170","text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[195.07,341.36,59.52,40.32]}
+{"kind":"shape","id":"sh/pofidw3m","slide":2,"name":"Rounded Rectangle 171","bbox":[254.4,316.8,379.2,88.32]}
+{"kind":"shape","id":"sh/on6hkrm1","slide":2,"name":"Oval 172","bbox":[294.72,326.4,69.12,69.12]}
+{"kind":"shape","id":"sh/fydgn2lk","slide":2,"name":"Oval 173","bbox":[322.08,342.24,14.4,14.4]}
+{"kind":"shape","id":"sh/ex4zex4z","slide":2,"name":"Isosceles Triangle 174","bbox":[316.8,360,24.96,21.12]}
+{"kind":"textbox","id":"sh/1kvypc3q","slide":2,"name":"TextBox 175","text":"Lạc Mạnh Quân","textPreview":"Lạc Mạnh Quân","textChars":13,"textLines":1,"bbox":[393.6,328.32,220.8,28.8]}
+{"kind":"textbox","id":"sh/0zmhg7m5","slide":2,"name":"TextBox 176","text":"Thành viên","textPreview":"Thành viên","textChars":10,"textLines":1,"bbox":[393.6,361.92,220.8,24]}
+{"kind":"shape","id":"sh/zuh0j6lo","slide":2,"name":"Connector 177","bbox":[625.92,333.12,0,55.68]}
+{"kind":"shape","id":"sh/yt8zq1kj","slide":2,"name":"Rounded Rectangle 178","bbox":[652.8,322.56,432,88.32]}
+{"kind":"shape","id":"sh/up472tob","slide":2,"name":"Rounded Rectangle 179","bbox":[648,316.8,72,88.32]}
+{"kind":"textbox","id":"sh/vqdoby5w","slide":2,"name":"TextBox 180","text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[639.12,340.18,59.52,40.32]}
+{"kind":"shape","id":"sh/wrmp436h","slide":2,"name":"Rounded Rectangle 181","bbox":[700.8,316.8,379.2,88.32]}
+{"kind":"shape","id":"sh/hsf6don2","slide":2,"name":"Oval 182","bbox":[741.12,326.4,69.12,69.12]}
+{"kind":"shape","id":"sh/m147y9of","slide":2,"name":"Oval 183","bbox":[768.48,342.24,14.4,14.4]}
+{"kind":"shape","id":"sh/72do7e50","slide":2,"name":"Isosceles Triangle 184","bbox":[763.2,360,24.96,21.12]}
+{"kind":"textbox","id":"sh/83mp0j65","slide":2,"name":"TextBox 185","text":"Y Thiết Niê","textPreview":"Y Thiết Niê","textChars":11,"textLines":1,"bbox":[840,328.32,220.8,28.8]}
+{"kind":"textbox","id":"sh/94v69onq","slide":2,"name":"TextBox 186","text":"Thành viên","textPreview":"Thành viên","textChars":10,"textLines":1,"bbox":[840,361.92,220.8,24]}
+{"kind":"shape","id":"sh/yxknu9o3","slide":2,"name":"Connector 187","bbox":[1072.32,333.12,0,55.68]}
+{"kind":"shape","id":"sh/zyto3e5o","slide":2,"name":"Rounded Rectangle 188","bbox":[206.4,435.84,432,88.32]}
+{"kind":"shape","id":"sh/1sja9c76","slide":2,"name":"Rounded Rectangle 189","bbox":[201.6,430.08,72,88.32]}
+{"kind":"textbox","id":"sh/gra907ql","slide":2,"name":"TextBox 190","text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[195.07,454.64,59.52,40.32]}
+{"kind":"shape","id":"sh/fqhs72pg","slide":2,"name":"Rounded Rectangle 191","bbox":[254.4,430.08,379.2,88.32]}
+{"kind":"shape","id":"sh/ep8ryx8v","slide":2,"name":"Oval 192","bbox":[294.72,439.68,69.12,69.12]}
+{"kind":"shape","id":"sh/toza5s7a","slide":2,"name":"Oval 193","bbox":[322.08,455.52,14.4,14.4]}
+{"kind":"shape","id":"sh/snq9w7qp","slide":2,"name":"Isosceles Triangle 194","bbox":[316.8,473.28,24.96,21.12]}
+{"kind":"textbox","id":"sh/rmh832p4","slide":2,"name":"TextBox 195","text":"Y Pak Ayŭn","textPreview":"Y Pak Ayŭn","textChars":10,"textLines":1,"bbox":[393.6,439.04,111.08,33.93]}
+{"kind":"textbox","id":"sh/6l8rux8j","slide":2,"name":"TextBox 196","text":"Thành viên","textPreview":"Thành viên","textChars":10,"textLines":1,"bbox":[393.6,475.2,220.8,24]}
+{"kind":"shape","id":"sh/5kzq1s7y","slide":2,"name":"Connector 197","bbox":[625.92,446.4,0,55.68]}
+{"kind":"shape","id":"sh/4j69snqd","slide":2,"name":"Rounded Rectangle 198","bbox":[652.8,435.84,432,88.32]}
+{"kind":"shape","id":"sh/d0zet8ru","slide":2,"name":"Rounded Rectangle 199","bbox":[648,430.08,72,88.32]}
+{"kind":"textbox","id":"sh/czqxkna9","slide":2,"name":"TextBox 200","text":"06","textPreview":"06","textChars":2,"textLines":1,"bbox":[639.12,452.28,59.52,40.32]}
+{"kind":"shape","id":"sh/ryxwri9o","slide":2,"name":"Rounded Rectangle 201","bbox":[700.8,430.08,379.2,88.32]}
+{"kind":"shape","id":"sh/qxovids3","slide":2,"name":"Oval 202","bbox":[741.12,439.68,69.12,69.12]}
+{"kind":"shape","id":"sh/pwfep8ri","slide":2,"name":"Oval 203","bbox":[768.48,455.52,14.4,14.4]}
+{"kind":"shape","id":"sh/4v6dg3ad","slide":2,"name":"Isosceles Triangle 204","bbox":[763.2,473.28,24.96,21.12]}
+{"kind":"textbox","id":"sh/3uxwny9s","slide":2,"name":"TextBox 205","text":"Quách Đức Thành","textPreview":"Quách Đức Thành","textChars":15,"textLines":1,"bbox":[840,441.6,220.8,28.8]}
+{"kind":"textbox","id":"sh/2tovets7","slide":2,"name":"TextBox 206","text":"Thành viên","textPreview":"Thành viên","textChars":10,"textLines":1,"bbox":[840,475.2,220.8,24]}
+{"kind":"shape","id":"sh/h8felorm","slide":2,"name":"Connector 207","bbox":[1072.32,446.4,0,55.68]}
+{"kind":"shape","id":"sh/g7mdc3a1","slide":2,"name":"Rounded Rectangle 208","bbox":[429.12,554.88,432,88.32]}
+{"kind":"shape","id":"sh/6dkbmp8z","slide":2,"name":"Rounded Rectangle 209","bbox":[424.32,549.12,72,88.32]}
+{"kind":"textbox","id":"sh/7etcvupk","slide":2,"name":"TextBox 210","text":"07","textPreview":"07","textChars":2,"textLines":1,"bbox":[414.26,574.85,59.52,40.32]}
+{"kind":"shape","id":"sh/sz2tozq5","slide":2,"name":"Rounded Rectangle 211","bbox":[477.12,549.12,379.2,88.32]}
+{"kind":"shape","id":"sh/t0vux47a","slide":2,"name":"Oval 212","bbox":[517.44,558.72,69.12,69.12]}
+{"kind":"shape","id":"sh/i9kbip8n","slide":2,"name":"Oval 213","bbox":[544.8,574.56,14.4,14.4]}
+{"kind":"shape","id":"sh/jatsrup8","slide":2,"name":"Isosceles Triangle 214","bbox":[539.52,592.32,24.96,21.12]}
+{"kind":"textbox","id":"sh/kb2tkzqt","slide":2,"name":"TextBox 215","text":"Y Đăng Niê","textPreview":"Y Đăng Niê","textChars":10,"textLines":1,"bbox":[616.32,560.64,220.8,28.8]}
+{"kind":"textbox","id":"sh/5cbut47e","slide":2,"name":"TextBox 216","text":"Thành viên","textPreview":"Thành viên","textChars":10,"textLines":1,"bbox":[616.32,594.24,220.8,24]}
+{"kind":"shape","id":"sh/a50be58r","slide":2,"name":"Connector 217","bbox":[848.64,565.44,0,55.68]}
+{"kind":"shape","id":"sh/v69snapc","slide":2,"name":"Rectangle 218","bbox":[0,679.68,1280,40.32]}
+{"kind":"shape","id":"sh/zap8v654","slide":2,"name":"Rectangle 219","bbox":[0,662.4,1280,21.12]}
+{"kind":"shape","id":"sh/ypgrm1oj","slide":2,"name":"Oval 220","bbox":[62.4,590.4,96,96]}
+{"kind":"shape","id":"sh/lc7qxgnu","slide":2,"name":"Oval 221","bbox":[77.76,605.76,65.28,65.28]}
+{"kind":"shape","id":"sh/0by9ob6p","slide":2,"name":"Oval 222","bbox":[91.2,619.2,38.4,38.4]}
+{"kind":"shape","id":"sh/nep8zq50","slide":2,"name":"Oval 223","bbox":[100.8,628.8,19.2,19.2]}
+{"kind":"shape","id":"sh/mdgrqlof","slide":2,"name":"Connector 224","bbox":[155.52,638.4,89.28,31.68]}
+{"kind":"shape","id":"sh/9g7q10n6","slide":2,"name":"Oval 225","bbox":[247.68,666.24,13.44,13.44]}
+{"kind":"image","id":"im/5gbytcju","slide":2,"name":"Picture 226","bbox":[1131.48,-9.31,122.28,122.28]}
+{"kind":"notes","id":"nt/t9h01n","slide":2,"text":""}
+{"kind":"slide","id":"sl/4gc2z3","slide":3,"title":"01","textShapes":13}
+{"kind":"shape","id":"sh/sbelcjal","slide":3,"name":"Oval 1","bbox":[41.28,46.08,23.04,23.04]}
+{"kind":"shape","id":"sh/tcnmlob6","slide":3,"name":"Oval 2","bbox":[47.52,52.32,10.56,10.56]}
+{"kind":"shape","id":"sh/ilc369sj","slide":3,"name":"Connector 3","bbox":[64.32,57.6,74.88,17.28]}
+{"kind":"shape","id":"sh/j6l4fet4","slide":3,"name":"Oval 4","bbox":[143.52,71.52,10.56,10.56]}
+{"kind":"shape","id":"sh/47ul8zap","slide":3,"name":"Oval 5","bbox":[1195.2,52.8,19.2,19.2]}
+{"kind":"shape","id":"sh/583mh4ba","slide":3,"name":"Connector 6","bbox":[1204.8,72,0,57.6]}
+{"kind":"shape","id":"sh/uhs32psn","slide":3,"name":"Oval 7","bbox":[1178.88,118.08,51.84,51.84]}
+{"kind":"shape","id":"sh/vil4but8","slide":3,"name":"Oval 8","bbox":[1190.4,129.6,28.8,28.8]}
+{"kind":"textbox","id":"sh/f6l83qtw","slide":3,"name":"TextBox 9","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[81.6,148.8,115.2,48]}
+{"kind":"shape","id":"sh/e5crulsb","slide":3,"name":"Rectangle 10","bbox":[84.48,204.48,72,5.28]}
+{"kind":"textbox","id":"sh/183q50bm","slide":3,"name":"TextBox 11","text":"GIỚI THIỆU DỰ ÁN","textPreview":"GIỚI THIỆU DỰ ÁN","textChars":16,"textLines":1,"bbox":[81.6,220.8,249.6,32.64]}
+{"kind":"textbox","id":"sh/07u9wvah","slide":3,"name":"TextBox 12","text":"Giới thiệu dự án","textPreview":"Giới thiệu dự án","textChars":16,"textLines":1,"bbox":[340.8,139.2,720,69.12]}
+{"kind":"textbox","id":"sh/nuls7qts","slide":3,"name":"TextBox 13","text":"Tổng quan về website bán laptop & phụ kiện","textPreview":"Tổng quan về website bán laptop & phụ kiện","textChars":42,"textLines":1,"bbox":[343.68,211.2,739.2,49.92]}
+{"kind":"shape","id":"sh/29cry5s7","slide":3,"name":"Rounded Rectangle 14","bbox":[340.8,292.8,753.6,244.8]}
+{"kind":"shape","id":"sh/pwna90by","slide":3,"name":"Rounded Rectangle 15","bbox":[340.8,292.8,8.64,244.8]}
+{"kind":"textbox","id":"sh/ove90vad","slide":3,"name":"TextBox 16","text":"MỤC TIÊU","textPreview":"MỤC TIÊU","textChars":8,"textLines":1,"bbox":[376.32,320.64,192,26.88]}
+{"kind":"textbox","id":"sh/3y18v6to","slide":3,"name":"TextBox 17","text":"Xây dựng website hỗ trợ khách hàng tìm kiếm, lựa chọn và mua laptop\nphụ kiện một cách thuận tiện.","textPreview":"Xây dựng website hỗ trợ khách hàng tìm kiếm, lựa chọn và mua laptop | phụ kiện một cách thuận tiện.","textChars":97,"textLines":2,"bbox":[376.32,360.2,699.3,58.16]}
+{"kind":"shape","id":"sh/idsrm1s3","slide":3,"name":"Rounded Rectangle 18","bbox":[376.32,453.12,187.2,52.8]}
+{"kind":"shape","id":"sh/6tgbu9cr","slide":3,"name":"Oval 19","bbox":[399.78,464.02,24.96,24.96]}
+{"kind":"textbox","id":"sh/7upc3edc","slide":3,"name":"TextBox 20","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[403.2,465.53,19.2,21.12]}
+{"kind":"textbox","id":"sh/8vitwjux","slide":3,"name":"TextBox 21","text":"Dễ sử dụng","textPreview":"Dễ sử dụng","textChars":10,"textLines":1,"bbox":[426.24,463.68,115.2,28.8]}
+{"kind":"shape","id":"sh/twru5ov2","slide":3,"name":"Rounded Rectangle 22","bbox":[585.6,453.12,187.2,52.8]}
+{"kind":"shape","id":"sh/ypgbq9cf","slide":3,"name":"Oval 23","bbox":[610.57,465.53,24.96,24.96]}
+{"kind":"textbox","id":"sh/jqpczud0","slide":3,"name":"TextBox 24","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[613.44,467.86,19.2,21.12]}
+{"kind":"textbox","id":"sh/krytszul","slide":3,"name":"TextBox 25","text":"Trực quan","textPreview":"Trực quan","textChars":9,"textLines":1,"bbox":[635.52,463.68,115.2,28.8]}
+{"kind":"shape","id":"sh/ls7u14v6","slide":3,"name":"Rounded Rectangle 26","bbox":[794.88,453.12,187.2,52.8]}
+{"kind":"shape","id":"sh/a1wbmpcj","slide":3,"name":"Oval 27","bbox":[818.34,467.04,24.96,24.96]}
+{"kind":"textbox","id":"sh/b25cvud4","slide":3,"name":"TextBox 28","text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[820.8,468.96,19.2,21.12]}
+{"kind":"textbox","id":"sh/dgve1sfm","slide":3,"name":"TextBox 29","text":"Tiện lợi","textPreview":"Tiện lợi","textChars":8,"textLines":1,"bbox":[844.8,463.68,115.2,28.8]}
+{"kind":"textbox","id":"sh/sfmx8ne1","slide":3,"name":"TextBox 30","text":"WEBSITE LAPTOP & ACCESSORIES","textPreview":"WEBSITE LAPTOP & ACCESSORIES","textChars":28,"textLines":1,"bbox":[340.8,577.92,758.4,34.56]}
+{"kind":"shape","id":"sh/redwzixg","slide":3,"name":"Connector 31","bbox":[340.8,622.08,753.6,0]}
+{"kind":"shape","id":"sh/qtkf6dwv","slide":3,"name":"Oval 32","bbox":[1117.06,569.86,2.69,2.69]}
+{"kind":"shape","id":"sh/5sbexsfa","slide":3,"name":"Oval 33","bbox":[1129.54,569.86,2.69,2.69]}
+{"kind":"shape","id":"sh/4r2x4ne5","slide":3,"name":"Oval 34","bbox":[1142.02,569.86,2.69,2.69]}
+{"kind":"shape","id":"sh/3qtwvixk","slide":3,"name":"Oval 35","bbox":[1154.5,569.86,2.69,2.69]}
+{"kind":"shape","id":"sh/ipkf2dwz","slide":3,"name":"Oval 36","bbox":[1166.98,569.86,2.69,2.69]}
+{"kind":"shape","id":"sh/hobet8fe","slide":3,"name":"Oval 37","bbox":[1179.46,569.86,2.69,2.69]}
+{"kind":"shape","id":"sh/gn2x03et","slide":3,"name":"Oval 38","bbox":[1191.94,569.86,2.69,2.69]}
+{"kind":"shape","id":"sh/wru507ep","slide":3,"name":"Oval 39","bbox":[1204.42,569.86,2.69,2.69]}
+{"kind":"shape","id":"sh/hs369cfa","slide":3,"name":"Oval 40","bbox":[1216.9,569.86,2.69,2.69]}
+{"kind":"shape","id":"sh/upcnyhwz","slide":3,"name":"Oval 41","bbox":[1117.06,582.34,2.69,2.69]}
+{"kind":"shape","id":"sh/vqlo72xk","slide":3,"name":"Oval 42","bbox":[1129.54,582.34,2.69,2.69]}
+{"kind":"shape","id":"sh/4vu54re1","slide":3,"name":"Oval 43","bbox":[1142.02,582.34,2.69,2.69]}
+{"kind":"shape","id":"sh/5w36dwvm","slide":3,"name":"Oval 44","bbox":[1154.5,582.34,2.69,2.69]}
+{"kind":"shape","id":"sh/itcn2hwv","slide":3,"name":"Oval 45","bbox":[1166.98,582.34,2.69,2.69]}
+{"kind":"shape","id":"sh/julobmdg","slide":3,"name":"Oval 46","bbox":[1179.46,582.34,2.69,2.69]}
+{"kind":"shape","id":"sh/kza5snex","slide":3,"name":"Oval 47","bbox":[1191.94,582.34,2.69,2.69]}
+{"kind":"shape","id":"sh/l0jm1sf2","slide":3,"name":"Oval 48","bbox":[1204.42,582.34,2.69,2.69]}
+{"kind":"shape","id":"sh/3ep87qxk","slide":3,"name":"Oval 49","bbox":[1216.9,582.34,2.69,2.69]}
+{"kind":"shape","id":"sh/2dgrylgf","slide":3,"name":"Oval 50","bbox":[1117.06,594.82,2.69,2.69]}
+{"kind":"shape","id":"sh/pgrq90fq","slide":3,"name":"Oval 51","bbox":[1129.54,594.82,2.69,2.69]}
+{"kind":"shape","id":"sh/ofy90vy5","slide":3,"name":"Oval 52","bbox":[1142.02,594.82,2.69,2.69]}
+{"kind":"shape","id":"sh/fqp83qho","slide":3,"name":"Oval 53","bbox":[1154.5,594.82,2.69,2.69]}
+{"kind":"shape","id":"sh/epg7ulg3","slide":3,"name":"Oval 54","bbox":[1166.98,594.82,2.69,2.69]}
+{"kind":"shape","id":"sh/1c7q50fu","slide":3,"name":"Oval 55","bbox":[1179.46,594.82,2.69,2.69]}
+{"kind":"shape","id":"sh/gbypwvy9","slide":3,"name":"Oval 56","bbox":[1191.94,594.82,2.69,2.69]}
+{"kind":"shape","id":"sh/rm58z6hs","slide":3,"name":"Oval 57","bbox":[1204.42,594.82,2.69,2.69]}
+{"kind":"shape","id":"sh/6lw7q1g7","slide":3,"name":"Oval 58","bbox":[1216.9,594.82,2.69,2.69]}
+{"kind":"shape","id":"sh/uhcri10z","slide":3,"name":"Oval 59","bbox":[1117.06,607.3,2.69,2.69]}
+{"kind":"shape","id":"sh/vi58b61k","slide":3,"name":"Oval 60","bbox":[1129.54,607.3,2.69,2.69]}
+{"kind":"shape","id":"sh/wje94bi5","slide":3,"name":"Oval 61","bbox":[1142.02,607.3,2.69,2.69]}
+{"kind":"shape","id":"sh/hknadgja","slide":3,"name":"Oval 62","bbox":[1154.5,607.3,2.69,2.69]}
+{"kind":"shape","id":"sh/ilwr6l0v","slide":3,"name":"Oval 63","bbox":[1166.98,607.3,2.69,2.69]}
+{"kind":"shape","id":"sh/jm5sfq1g","slide":3,"name":"Oval 64","bbox":[1179.46,607.3,2.69,2.69]}
+{"kind":"shape","id":"sh/4ne98vi1","slide":3,"name":"Oval 65","bbox":[1191.94,607.3,2.69,2.69]}
+{"kind":"shape","id":"sh/5onahgjm","slide":3,"name":"Oval 66","bbox":[1204.42,607.3,2.69,2.69]}
+{"kind":"shape","id":"sh/69gral07","slide":3,"name":"Oval 67","bbox":[1216.9,607.3,2.69,2.69]}
+{"kind":"shape","id":"sh/rapsjq1s","slide":3,"name":"Oval 68","bbox":[1117.06,619.78,2.69,2.69]}
+{"kind":"shape","id":"sh/14ru9k3u","slide":3,"name":"Oval 69","bbox":[1129.54,619.78,2.69,2.69]}
+{"kind":"shape","id":"sh/g3itgf29","slide":3,"name":"Oval 70","bbox":[1142.02,619.78,2.69,2.69]}
+{"kind":"shape","id":"sh/fi9c7ulo","slide":3,"name":"Oval 71","bbox":[1154.5,619.78,2.69,2.69]}
+{"kind":"shape","id":"sh/eh0bepk3","slide":3,"name":"Oval 72","bbox":[1166.98,619.78,2.69,2.69]}
+{"kind":"shape","id":"sh/p8bud43q","slide":3,"name":"Oval 73","bbox":[1179.46,619.78,2.69,2.69]}
+{"kind":"shape","id":"sh/o7idkz2l","slide":3,"name":"Oval 74","bbox":[1191.94,619.78,2.69,2.69]}
+{"kind":"shape","id":"sh/369cbul0","slide":3,"name":"Oval 75","bbox":[1204.42,619.78,2.69,2.69]}
+{"kind":"shape","id":"sh/250bipkf","slide":3,"name":"Oval 76","bbox":[1216.9,619.78,2.69,2.69]}
+{"kind":"image","id":"im/a9sbmlcn","slide":3,"name":"Picture 77","bbox":[1131.48,-9.31,122.28,122.28]}
+{"kind":"notes","id":"nt/4gc2z3","slide":3,"text":""}
+{"kind":"slide","id":"sl/7j4dz9","slide":4,"title":"01","textShapes":13}
+{"kind":"shape","id":"sh/x8vqx8ba","slide":4,"name":"Oval 1","bbox":[40.32,49.92,24.96,24.96]}
+{"kind":"shape","id":"sh/w7mpo3u5","slide":4,"name":"Oval 2","bbox":[47.04,56.64,11.52,11.52]}
+{"kind":"shape","id":"sh/n2doryt8","slide":4,"name":"Connector 3","bbox":[65.28,62.4,73.92,16.32]}
+{"kind":"shape","id":"sh/m1k7itcn","slide":4,"name":"Oval 4","bbox":[1205.76,53.76,17.28,17.28]}
+{"kind":"shape","id":"sh/94v6t8be","slide":4,"name":"Connector 5","bbox":[1214.4,71.04,0,58.56]}
+{"kind":"shape","id":"sh/o3mpk3ut","slide":4,"name":"Oval 6","bbox":[1190.4,120,48,48]}
+{"kind":"shape","id":"sh/zetonetc","slide":4,"name":"Oval 7","bbox":[1200.96,130.56,26.88,26.88]}
+{"kind":"textbox","id":"sh/edk7e9cr","slide":4,"name":"TextBox 8","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[81.6,100.8,96,43.2]}
+{"kind":"shape","id":"sh/s76507q5","slide":4,"name":"Rectangle 9","bbox":[83.52,150.72,62.4,4.8]}
+{"kind":"textbox","id":"sh/d8fm9s7a","slide":4,"name":"TextBox 10","text":"Mục đích, đối tượng & tầm quan trọng","textPreview":"Mục đích, đối tượng & tầm quan trọng","textChars":36,"textLines":1,"bbox":[206.4,88.32,912,57.6]}
+{"kind":"textbox","id":"sh/q5onyx8z","slide":4,"name":"TextBox 11","text":"Định hướng dự án website bán laptop & phụ kiện","textPreview":"Định hướng dự án website bán laptop & phụ kiện","textChars":46,"textLines":1,"bbox":[209.28,151.68,835.2,34.56]}
+{"kind":"shape","id":"sh/r6x472pk","slide":4,"name":"Rounded Rectangle 12","bbox":[206.4,225.6,864,107.52]}
+{"kind":"shape","id":"sh/4365wnqt","slide":4,"name":"Rounded Rectangle 13","bbox":[206.4,225.6,11.52,107.52]}
+{"kind":"shape","id":"sh/54fm5s7e","slide":4,"name":"Oval 14","bbox":[237.12,255.36,48,48]}
+{"kind":"textbox","id":"sh/ih4nud8n","slide":4,"name":"TextBox 15","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[241.92,263.04,38.4,32.64]}
+{"kind":"textbox","id":"sh/32d43ip8","slide":4,"name":"TextBox 16","text":"MỤC ĐÍCH","textPreview":"MỤC ĐÍCH","textChars":8,"textLines":1,"bbox":[305.28,241.92,264,26.88]}
+{"kind":"textbox","id":"sh/ozq58rqx","slide":4,"name":"TextBox 17","text":"Xây dựng website thương mại điện tử chuyên biệt về laptop và phụ kiện công nghệ, cung cấp trải nghiệm mua sắm trực tuyến hiện đại, tiện lợi và an toàn.","textPreview":"Xây dựng website thương mại điện tử chuyên biệt về laptop và phụ kiện công nghệ, cung cấp trải nghiệm mua sắm trực tuyến hiện đại, tiện l...","textChars":151,"textLines":1,"bbox":[305.28,269.76,724.8,46.08]}
+{"kind":"shape","id":"sh/p0z6hw7i","slide":4,"name":"Rounded Rectangle 18","bbox":[206.4,360,864,107.52]}
+{"kind":"shape","id":"sh/xwvm1czm","slide":4,"name":"Rounded Rectangle 19","bbox":[206.4,360,11.52,107.52]}
+{"kind":"shape","id":"sh/wvm5s7yh","slide":4,"name":"Oval 20","bbox":[237.12,389.76,48,48]}
+{"kind":"textbox","id":"sh/bud4zmhw","slide":4,"name":"TextBox 21","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[241.92,397.44,38.4,32.64]}
+{"kind":"textbox","id":"sh/at4nqhgb","slide":4,"name":"TextBox 22","text":"ĐỐI TƯỢNG KHÁCH HÀNG","textPreview":"ĐỐI TƯỢNG KHÁCH HÀNG","textChars":20,"textLines":1,"bbox":[305.28,376.32,264,26.88]}
+{"kind":"textbox","id":"sh/9svmxczq","slide":4,"name":"TextBox 23","text":"Sinh viên, nhân viên văn phòng, người làm công nghệ và khách hàng có nhu cầu mua laptop, phụ kiện chính hãng với giá cạnh tranh và dịch vụ hậu mãi tốt.","textPreview":"Sinh viên, nhân viên văn phòng, người làm công nghệ và khách hàng có nhu cầu mua laptop, phụ kiện chính hãng với giá cạnh tranh và dịch v...","textChars":151,"textLines":1,"bbox":[305.28,404.16,724.8,46.08]}
+{"kind":"shape","id":"sh/orm5o7i5","slide":4,"name":"Rounded Rectangle 24","bbox":[206.4,494.4,864,107.52]}
+{"kind":"shape","id":"sh/nqd4v2hk","slide":4,"name":"Rounded Rectangle 25","bbox":[206.4,494.4,11.52,107.52]}
+{"kind":"shape","id":"sh/mp4nmx0z","slide":4,"name":"Oval 26","bbox":[237.12,524.16,48,48]}
+{"kind":"textbox","id":"sh/1obmtszu","slide":4,"name":"TextBox 27","text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[241.92,531.84,38.4,32.64]}
+{"kind":"textbox","id":"sh/0n2lkni9","slide":4,"name":"TextBox 28","text":"TẦM QUAN TRỌNG","textPreview":"TẦM QUAN TRỌNG","textChars":14,"textLines":1,"bbox":[305.28,510.72,264,26.88]}
+{"kind":"textbox","id":"sh/qhgbe9sv","slide":4,"name":"TextBox 29","text":"Đáp ứng xu hướng mua sắm công nghệ trực tuyến, góp phần số hóa hoạt động bán lẻ, tối ưu trải nghiệm người dùng và nâng cao năng lực cạnh tranh trên thị trường TMĐT.","textPreview":"Đáp ứng xu hướng mua sắm công nghệ trực tuyến, góp phần số hóa hoạt động bán lẻ, tối ưu trải nghiệm người dùng và nâng cao năng lực cạnh ...","textChars":164,"textLines":1,"bbox":[305.28,538.56,724.8,46.08]}
+{"kind":"shape","id":"sh/rips7etg","slide":4,"name":"Connector 30","bbox":[206.4,641.28,864,0]}
+{"kind":"textbox","id":"sh/sjytgzal","slide":4,"name":"TextBox 31","text":"WEBSITE LAPTOP & ACCESSORIES","textPreview":"WEBSITE LAPTOP & ACCESSORIES","textChars":28,"textLines":1,"bbox":[206.4,652.8,480,24]}
+{"kind":"image","id":"im/2d8rqh4v","slide":4,"name":"Picture 33","bbox":[1131.48,-9.31,122.28,122.28]}
+{"kind":"notes","id":"nt/7j4dz9","slide":4,"text":""}
+{"kind":"slide","id":"sl/d5ldnj","slide":5,"title":"02","textShapes":25}
+{"kind":"shape","id":"sh/wbq5o3uh","slide":5,"name":"Oval 1","bbox":[980.15,25.79,82.56,82.56]}
+{"kind":"textbox","id":"sh/hcz6x8b2","slide":5,"name":"TextBox 2","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[988.38,40.96,63.08,53.32]}
+{"kind":"textbox","id":"sh/id8nqdcn","slide":5,"name":"TextBox 3","text":"WEBSITE PHONG VŨ","textPreview":"WEBSITE PHONG VŨ","textChars":16,"textLines":1,"bbox":[818.99,18.38,192,23.04]}
+{"kind":"textbox","id":"sh/jehozit8","slide":5,"name":"TextBox 4","text":"KHẢO SÁT WEBSITE PHONG VŨ","textPreview":"KHẢO SÁT WEBSITE PHONG VŨ","textChars":25,"textLines":1,"bbox":[437.1,44.16,662.4,46.08]}
+{"kind":"textbox","id":"sh/4fq5s3ud","slide":5,"name":"TextBox 5","text":"Cùng tìm hiểu giao diện, quy trình mua hàng và các chức năng chính trên website Phong Vũ","textPreview":"Cùng tìm hiểu giao diện, quy trình mua hàng và các chức năng chính trên website Phong Vũ","textChars":88,"textLines":1,"bbox":[418.99,91.34,710.4,25.92]}
+{"kind":"shape","id":"sh/cjud0fix","slide":5,"name":"Rounded Rectangle 12","bbox":[21.12,132.48,289.92,395.52]}
+{"kind":"shape","id":"sh/3u1w3q1g","slide":5,"name":"Oval 13","bbox":[36.48,144,38.4,38.4]}
+{"kind":"textbox","id":"sh/2tsvul0v","slide":5,"name":"TextBox 14","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[37.92,148.99,36.96,27.47]}
+{"kind":"textbox","id":"sh/pwje50jm","slide":5,"name":"TextBox 15","text":"TRANG CHỦ WEBSITE","textPreview":"TRANG CHỦ WEBSITE","textChars":17,"textLines":1,"bbox":[86.4,149.76,207.36,26.88]}
+{"kind":"textbox","id":"sh/sbih432p","slide":5,"name":"TextBox 25","text":"LENOVO\nSẮP DEAL","textPreview":"LENOVO | SẮP DEAL","textChars":15,"textLines":2,"bbox":[58.56,245.76,215.04,24]}
+{"kind":"shape","id":"sh/3ydon69c","slide":5,"name":"Rectangle 49","bbox":[45.08,495.59,9.68,1.15]}
+{"kind":"shape","id":"sh/p0f6pgri","slide":5,"name":"Rounded Rectangle 51","bbox":[328.32,132.48,289.92,395.52]}
+{"kind":"shape","id":"sh/ozm5gbqx","slide":5,"name":"Oval 52","bbox":[343.68,144,38.4,38.4]}
+{"kind":"textbox","id":"sh/b2xor69o","slide":5,"name":"TextBox 53","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[338.72,148.99,47.04,27.47]}
+{"kind":"textbox","id":"sh/q1oni183","slide":5,"name":"TextBox 54","text":"DANH MỤC SẢN PHẨM","textPreview":"DANH MỤC SẢN PHẨM","textChars":17,"textLines":1,"bbox":[393.6,149.76,207.36,26.88]}
+{"kind":"shape","id":"sh/vmlsfy50","slide":5,"name":"Rounded Rectangle 103","bbox":[635.52,132.48,289.92,395.52]}
+{"kind":"shape","id":"sh/ulcbmtof","slide":5,"name":"Oval 104","bbox":[650.88,144,38.4,38.4]}
+{"kind":"textbox","id":"sh/ho3ah8n6","slide":5,"name":"TextBox 105","text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[651.57,151.73,40.31,27.47]}
+{"kind":"textbox","id":"sh/gnuto36l","slide":5,"name":"TextBox 106","text":"CHI TIẾT SẢN PHẨM","textPreview":"CHI TIẾT SẢN PHẨM","textChars":17,"textLines":1,"bbox":[700.8,149.76,207.36,26.88]}
+{"kind":"shape","id":"sh/w7y9o3ad","slide":5,"name":"Rounded Rectangle 142","bbox":[942.72,132.48,289.92,395.52]}
+{"kind":"shape","id":"sh/725sbytw","slide":5,"name":"Oval 143","bbox":[958.08,144,38.4,38.4]}
+{"kind":"textbox","id":"sh/m1writcb","slide":5,"name":"TextBox 144","text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[958.77,149.62,43.6,27.29]}
+{"kind":"textbox","id":"sh/947adob2","slide":5,"name":"TextBox 145","text":"GIỎ HÀNG / THANH TOÁN","textPreview":"GIỎ HÀNG / THANH TOÁN","textChars":21,"textLines":1,"bbox":[1008,149.76,207.36,26.88]}
+{"kind":"textbox","id":"sh/md8fi5w7","slide":5,"name":"TextBox 162","text":"THANH TOÁN","textPreview":"THANH TOÁN","textChars":10,"textLines":1,"bbox":[970.56,442.56,234.24,13.44]}
+{"kind":"shape","id":"sh/cn6xcbe5","slide":5,"name":"Rounded Rectangle 168","bbox":[22.08,549.12,1204.8,109.44]}
+{"kind":"shape","id":"sh/2t4vmhc3","slide":5,"name":"Oval 169","bbox":[46.08,571.2,65.28,65.28]}
+{"kind":"shape","id":"sh/nudcvmd8","slide":5,"name":"Oval 170","bbox":[60.72,586.08,26.4,26.4]}
+{"kind":"shape","id":"sh/ovmdorut","slide":5,"name":"Connector 171","bbox":[87.57,606.65,14.4,14.4]}
+{"kind":"textbox","id":"sh/pwvuxwve","slide":5,"name":"TextBox 172","text":"ĐIỂM NỔI BẬT\nTỪ KHẢO SÁT","textPreview":"ĐIỂM NỔI BẬT | TỪ KHẢO SÁT","textChars":24,"textLines":2,"bbox":[144,572.16,134.4,55.68]}
+{"kind":"shape","id":"sh/ax4vq1cz","slide":5,"name":"Connector 173","bbox":[292.8,566.4,0,74.88]}
+{"kind":"shape","id":"sh/bidcz6dk","slide":5,"name":"Oval 174","bbox":[312,577.92,38.4,38.4]}
+{"kind":"shape","id":"sh/cjmdsbu5","slide":5,"name":"Rounded Rectangle 175","bbox":[319.68,588.83,23.04,13.59]}
+{"kind":"shape","id":"sh/xkve1wvq","slide":5,"name":"Rectangle 176","bbox":[326.36,603.11,9.68,1.15]}
+{"kind":"textbox","id":"sh/610bexwv","slide":5,"name":"TextBox 177","text":"Giao diện hiện đại","textPreview":"Giao diện hiện đại","textChars":18,"textLines":1,"bbox":[360,570.24,158.4,21.12]}
+{"kind":"textbox","id":"sh/rmtcn2dg","slide":5,"name":"TextBox 178","text":"Bố cục khoa học, dễ nhìn,\ntrải nghiệm người dùng thân thiện.","textPreview":"Bố cục khoa học, dễ nhìn, | trải nghiệm người dùng thân thiện.","textChars":60,"textLines":2,"bbox":[360,595.2,158.4,40.32]}
+{"kind":"shape","id":"sh/vah4j2pg","slide":5,"name":"Connector 179","bbox":[523.2,568.32,0,72]}
+{"kind":"shape","id":"sh/a98nqx8v","slide":5,"name":"Oval 180","bbox":[536.64,577.92,38.4,38.4]}
+{"kind":"shape","id":"sh/xczmls7m","slide":5,"name":"Rounded Rectangle 181","bbox":[544.32,590.78,23.04,13.25]}
+{"kind":"shape","id":"sh/wbq5s7q1","slide":5,"name":"Rounded Rectangle 182","bbox":[546.85,588.83,8.64,3.23]}
+{"kind":"textbox","id":"sh/jy1on2ps","slide":5,"name":"TextBox 183","text":"Sản phẩm chính hãng","textPreview":"Sản phẩm chính hãng","textChars":19,"textLines":1,"bbox":[584.64,570.24,158.4,21.12]}
+{"kind":"textbox","id":"sh/ixsnux87","slide":5,"name":"TextBox 184","text":"Nhiều thương hiệu uy tín,\nthông tin sản phẩm rõ ràng.","textPreview":"Nhiều thương hiệu uy tín, | thông tin sản phẩm rõ ràng.","textChars":53,"textLines":2,"bbox":[584.64,595.2,158.4,40.32]}
+{"kind":"shape","id":"sh/50j6pc7y","slide":5,"name":"Connector 185","bbox":[747.84,568.32,0,72]}
+{"kind":"shape","id":"sh/kza5w7qd","slide":5,"name":"Oval 186","bbox":[761.28,577.92,38.4,38.4]}
+{"kind":"shape","id":"sh/z2x4bip8","slide":5,"name":"Rounded Rectangle 187","bbox":[772.99,594.24,12.1,6.34]}
+{"kind":"shape","id":"sh/y1onid83","slide":5,"name":"Oval 188","bbox":[774.72,602.07,2.76,2.76]}
+{"kind":"shape","id":"sh/47m1cj6l","slide":5,"name":"Oval 189","bbox":[781.98,602.07,2.76,2.76]}
+{"kind":"textbox","id":"sh/p8v2lon6","slide":5,"name":"TextBox 190","text":"Hỗ trợ giao hàng nhanh","textPreview":"Hỗ trợ giao hàng nhanh","textChars":22,"textLines":1,"bbox":[809.28,570.24,158.4,21.12]}
+{"kind":"textbox","id":"sh/2lkja9ov","slide":5,"name":"TextBox 191","text":"Khu vực toàn quốc,\nchính sách linh hoạt.","textPreview":"Khu vực toàn quốc, | chính sách linh hoạt.","textChars":40,"textLines":2,"bbox":[809.28,595.2,158.4,40.32]}
+{"kind":"shape","id":"sh/3mdkje50","slide":5,"name":"Connector 192","bbox":[972.48,568.32,0,72]}
+{"kind":"shape","id":"sh/gj218z6p","slide":5,"name":"Oval 193","bbox":[985.92,577.92,38.4,38.4]}
+{"kind":"shape","id":"sh/hkb2h4na","slide":5,"name":"Oval 194","bbox":[996.48,589.06,12.67,12.67]}
+{"kind":"shape","id":"sh/uhkj6poj","slide":5,"name":"Connector 195","bbox":[1007.19,599.65,6.91,6.91]}
+{"kind":"textbox","id":"sh/fitkfu54","slide":5,"name":"TextBox 196","text":"Dịch vụ hậu mãi tốt","textPreview":"Dịch vụ hậu mãi tốt","textChars":19,"textLines":1,"bbox":[1033.92,570.24,158.4,21.12]}
+{"kind":"textbox","id":"sh/0f6lk36t","slide":5,"name":"TextBox 197","text":"Bảo hành chính hãng,\nđội ngũ tư vấn chuyên nghiệp.","textPreview":"Bảo hành chính hãng, | đội ngũ tư vấn chuyên nghiệp.","textChars":50,"textLines":2,"bbox":[1033.92,595.2,158.4,40.32]}
+{"kind":"textbox","id":"sh/lgf2t8ne","slide":5,"name":"TextBox 198","text":"WEBSITE LAPTOP & ACCESSORIES","textPreview":"WEBSITE LAPTOP & ACCESSORIES","textChars":28,"textLines":1,"bbox":[72.96,674.88,196.8,15.36]}
+{"kind":"shape","id":"sh/sbixwbmd","slide":5,"name":"Connector 199","bbox":[283.2,682.56,628.8,0]}
+{"kind":"textbox","id":"sh/tcrypgny","slide":5,"name":"TextBox 200","text":"CÔNG NGHỆ CHO CUỘC SỐNG TỐT ĐẸP HƠN","textPreview":"CÔNG NGHỆ CHO CUỘC SỐNG TỐT ĐẸP HƠN","textChars":35,"textLines":1,"bbox":[931.2,672.96,254.4,17.28]}
+{"kind":"image","id":"im/nuxs7i1w","slide":5,"name":"Picture 16","bbox":[30.72,200.45,270.88,292.83]}
+{"kind":"image","id":"im/2torydkb","slide":5,"name":"Picture 17","bbox":[337.55,200.45,271.25,292.83]}
+{"kind":"image","id":"im/1sfa583q","slide":5,"name":"Picture 18","bbox":[647.29,203.52,266.38,289.77]}
+{"kind":"image","id":"im/0r69w325","slide":5,"name":"Picture 19","bbox":[991.92,195.75,191.52,313.13]}
+{"kind":"image","id":"im/f6x83yl0","slide":5,"name":"Picture 6","bbox":[1131.48,-9.31,122.28,122.28]}
+{"kind":"notes","id":"nt/d5ldnj","slide":5,"text":""}
+{"kind":"slide","id":"sl/w3z726","slide":6,"title":"02","textShapes":22}
+{"kind":"shape","id":"sh/21ovel0v","slide":6,"name":"Oval 1","bbox":[28.8,19.2,80.64,80.64]}
+{"kind":"textbox","id":"sh/32xw7q1g","slide":6,"name":"TextBox 2","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[34.56,34.56,69.12,48]}
+{"kind":"textbox","id":"sh/gz6dcbi5","slide":6,"name":"TextBox 3","text":"MỤC TIÊU DỰ ÁN","textPreview":"MỤC TIÊU DỰ ÁN","textChars":14,"textLines":1,"bbox":[145.92,17.28,240,24]}
+{"kind":"textbox","id":"sh/10fe5gjq","slide":6,"name":"TextBox 4","text":"Mục tiêu dự án","textPreview":"Mục tiêu dự án","textChars":14,"textLines":1,"bbox":[145.92,48,652.8,48]}
+{"kind":"textbox","id":"sh/exoval0z","slide":6,"name":"TextBox 5","text":"Định hướng xây dựng website bán laptop & phụ kiện","textPreview":"Định hướng xây dựng website bán laptop & phụ kiện","textChars":49,"textLines":1,"bbox":[145.92,95.04,729.6,26.88]}
+{"kind":"shape","id":"sh/fyxw3q1k","slide":6,"name":"Connector 6","bbox":[811.2,67.2,96,0]}
+{"kind":"shape","id":"sh/svmd8bit","slide":6,"name":"Oval 7","bbox":[903.84,63.84,6.72,6.72]}
+{"kind":"shape","id":"sh/twvu1gje","slide":6,"name":"Connector 8","bbox":[910.08,45.12,51.84,22.08]}
+{"kind":"shape","id":"sh/l4b6hob6","slide":6,"name":"Oval 9","bbox":[958.08,41.28,7.68,7.68]}
+{"kind":"shape","id":"sh/k325oja1","slide":6,"name":"Rounded Rectangle 10","bbox":[72,148.8,1137.6,113.28]}
+{"kind":"shape","id":"sh/z2tofetg","slide":6,"name":"Rounded Rectangle 11","bbox":[72,148.8,9.6,113.28]}
+{"kind":"shape","id":"sh/y1knm9sv","slide":6,"name":"Oval 12","bbox":[98.88,179.52,51.84,51.84]}
+{"kind":"textbox","id":"sh/d0bmd4ba","slide":6,"name":"TextBox 13","text":"★","textPreview":"★","textChars":1,"textLines":1,"bbox":[108.48,188.16,32.64,33.6]}
+{"kind":"textbox","id":"sh/cz25kzap","slide":6,"name":"TextBox 14","text":"MỤC TIÊU TỔNG QUÁT","textPreview":"MỤC TIÊU TỔNG QUÁT","textChars":18,"textLines":1,"bbox":[170.88,168.96,192,23.04]}
+{"kind":"textbox","id":"sh/byt4bet4","slide":6,"name":"TextBox 15","text":"Xây dựng một website thương mại điện tử chuyên nghiệp, giúp khách hàng dễ dàng tìm kiếm, lựa chọn và mua laptop, phụ kiện công nghệ trực tuyến.","textPreview":"Xây dựng một website thương mại điện tử chuyên nghiệp, giúp khách hàng dễ dàng tìm kiếm, lựa chọn và mua laptop, phụ kiện công nghệ trực ...","textChars":143,"textLines":1,"bbox":[170.88,195.84,969.6,42.24]}
+{"kind":"shape","id":"sh/qx0ni9sj","slide":6,"name":"Rounded Rectangle 16","bbox":[72,289.92,558.72,120]}
+{"kind":"shape","id":"sh/pwrm94be","slide":6,"name":"Oval 17","bbox":[92.16,323.52,51.84,51.84]}
+{"kind":"textbox","id":"sh/ovi5gzat","slide":6,"name":"TextBox 18","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[99.84,333.12,36.48,32.64]}
+{"kind":"textbox","id":"sh/gr6xc3ml","slide":6,"name":"TextBox 19","text":"Trải nghiệm người dùng","textPreview":"Trải nghiệm người dùng","textChars":22,"textLines":1,"bbox":[160.32,311.04,436.8,25.92]}
+{"kind":"textbox","id":"sh/1sfel8n6","slide":6,"name":"TextBox 20","text":"Thiết kế giao diện hiện đại, trực quan, dễ sử dụng trên máy tính và thiết bị di động.","textPreview":"Thiết kế giao diện hiện đại, trực quan, dễ sử dụng trên máy tính và thiết bị di động.","textChars":85,"textLines":1,"bbox":[160.32,341.76,436.8,47.04]}
+{"kind":"shape","id":"sh/epofat4v","slide":6,"name":"Rounded Rectangle 21","bbox":[650.88,289.92,558.72,120]}
+{"kind":"shape","id":"sh/fqxwjy50","slide":6,"name":"Oval 22","bbox":[671.04,323.52,51.84,51.84]}
+{"kind":"textbox","id":"sh/snmd8jmp","slide":6,"name":"TextBox 23","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[678.72,333.12,36.48,32.64]}
+{"kind":"textbox","id":"sh/tovehona","slide":6,"name":"TextBox 24","text":"Quản lý sản phẩm","textPreview":"Quản lý sản phẩm","textChars":16,"textLines":1,"bbox":[739.2,311.04,436.8,25.92]}
+{"kind":"textbox","id":"sh/6l4v694j","slide":6,"name":"TextBox 25","text":"Hiển thị danh mục, thông số, giá bán, khuyến mãi và tình trạng sản phẩm rõ ràng.","textPreview":"Hiển thị danh mục, thông số, giá bán, khuyến mãi và tình trạng sản phẩm rõ ràng.","textChars":80,"textLines":1,"bbox":[739.2,341.76,436.8,47.04]}
+{"kind":"shape","id":"sh/rmdwfe54","slide":6,"name":"Rounded Rectangle 26","bbox":[72,436.8,558.72,120]}
+{"kind":"shape","id":"sh/cjqxknmt","slide":6,"name":"Oval 27","bbox":[92.16,470.4,51.84,51.84]}
+{"kind":"textbox","id":"sh/xkzetsne","slide":6,"name":"TextBox 28","text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[99.84,480,36.48,32.64]}
+{"kind":"textbox","id":"sh/7e10jmpg","slide":6,"name":"TextBox 29","text":"Mua hàng thuận tiện","textPreview":"Mua hàng thuận tiện","textChars":19,"textLines":1,"bbox":[160.32,457.92,436.8,25.92]}
+{"kind":"textbox","id":"sh/mdszahob","slide":6,"name":"TextBox 30","text":"Xây dựng giỏ hàng và quy trình đặt hàng đơn giản, nhanh chóng, dễ theo dõi.","textPreview":"Xây dựng giỏ hàng và quy trình đặt hàng đơn giản, nhanh chóng, dễ theo dõi.","textChars":75,"textLines":1,"bbox":[160.32,488.64,436.8,47.04]}
+{"kind":"shape","id":"sh/9g3ilw7m","slide":6,"name":"Rounded Rectangle 31","bbox":[650.88,436.8,558.72,120]}
+{"kind":"shape","id":"sh/8fahcr61","slide":6,"name":"Oval 32","bbox":[671.04,470.4,51.84,51.84]}
+{"kind":"textbox","id":"sh/vil0nmps","slide":6,"name":"TextBox 33","text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[678.72,480,36.48,32.64]}
+{"kind":"textbox","id":"sh/uhczeho7","slide":6,"name":"TextBox 34","text":"Quản trị hiệu quả","textPreview":"Quản trị hiệu quả","textChars":17,"textLines":1,"bbox":[739.2,457.92,436.8,25.92]}
+{"kind":"textbox","id":"sh/hk3ipw7y","slide":6,"name":"TextBox 35","text":"Hỗ trợ quản lý sản phẩm, đơn hàng, khách hàng và nội dung website thuận tiện.","textPreview":"Hỗ trợ quản lý sản phẩm, đơn hàng, khách hàng và nội dung website thuận tiện.","textChars":77,"textLines":1,"bbox":[739.2,488.64,436.8,47.04]}
+{"kind":"shape","id":"sh/wjuhgr6d","slide":6,"name":"Rounded Rectangle 36","bbox":[72,585.6,1137.6,59.52]}
+{"kind":"textbox","id":"sh/bmhgb2p8","slide":6,"name":"TextBox 37","text":"KẾT QUẢ HƯỚNG TỚI","textPreview":"KẾT QUẢ HƯỚNG TỚI","textChars":17,"textLines":1,"bbox":[98.88,596.16,172.8,19.2]}
+{"kind":"textbox","id":"sh/al8z2xo3","slide":6,"name":"TextBox 38","text":"Website ổn định  •  Giao diện dễ dùng  •  Thông tin minh bạch  •  Quy trình mua hàng thuận tiện","textPreview":"Website ổn định  •  Giao diện dễ dùng  •  Thông tin minh bạch  •  Quy trình mua hàng thuận tiện","textChars":95,"textLines":1,"bbox":[271.68,590.4,897.6,30.72]}
+{"kind":"shape","id":"sh/25czixwz","slide":6,"name":"Connector 39","bbox":[72,670.08,1137.6,0]}
+{"kind":"textbox","id":"sh/3ql0r2x4","slide":6,"name":"TextBox 40","text":"WEBSITE LAPTOP & ACCESSORIES","textPreview":"WEBSITE LAPTOP & ACCESSORIES","textChars":28,"textLines":1,"bbox":[72,679.68,288,17.28]}
+{"kind":"image","id":"im/by5snapg","slide":6,"name":"Picture 42","bbox":[1131.48,-9.31,122.28,122.28]}
+{"kind":"notes","id":"nt/w3z726","slide":6,"text":""}
+{"kind":"slide","id":"sl/qvkmp8","slide":7,"title":"02","textShapes":27}
+{"kind":"shape","id":"sh/czu1cvml","slide":7,"name":"Oval 1","bbox":[30.72,19.2,72.96,72.96]}
+{"kind":"textbox","id":"sh/d03i50n6","slide":7,"name":"TextBox 2","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[36.48,33.6,61.44,42.24]}
+{"kind":"textbox","id":"sh/29sj6l4j","slide":7,"name":"TextBox 3","text":"MỤC TIÊU DỰ ÁN","textPreview":"MỤC TIÊU DỰ ÁN","textChars":14,"textLines":1,"bbox":[139.2,17.28,288,21.12]}
+{"kind":"textbox","id":"sh/3a10z654","slide":7,"name":"TextBox 4","text":"Đáp ứng nhu cầu người dùng & tối ưu trải nghiệm mua sắm","textPreview":"Đáp ứng nhu cầu người dùng & tối ưu trải nghiệm mua sắm","textChars":55,"textLines":1,"bbox":[139.2,45.12,940.8,46.08]}
+{"kind":"textbox","id":"sh/4ba18bmp","slide":7,"name":"TextBox 5","text":"Bốn định hướng trọng tâm của website bán laptop & phụ kiện","textPreview":"Bốn định hướng trọng tâm của website bán laptop & phụ kiện","textChars":58,"textLines":1,"bbox":[139.2,90.24,806.4,24.96]}
+{"kind":"shape","id":"sh/pcji1gnu","slide":7,"name":"Connector 6","bbox":[1008,65.28,91.2,0]}
+{"kind":"shape","id":"sh/u58j2147","slide":7,"name":"Oval 7","bbox":[1095.84,61.92,6.72,6.72]}
+{"kind":"shape","id":"sh/f610v65s","slide":7,"name":"Connector 8","bbox":[1102.08,38.4,54.72,26.88]}
+{"kind":"shape","id":"sh/zip4reh8","slide":7,"name":"Oval 9","bbox":[1152.96,34.56,7.68,7.68]}
+{"kind":"shape","id":"sh/ehgni9gn","slide":7,"name":"Rounded Rectangle 10","bbox":[72,148.8,556.8,196.8]}
+{"kind":"shape","id":"sh/1krmtozy","slide":7,"name":"Rounded Rectangle 11","bbox":[89.28,168,88.32,158.4]}
+{"kind":"textbox","id":"sh/0jy5kjyt","slide":7,"name":"TextBox 12","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[95.04,189.12,76.8,57.6]}
+{"kind":"textbox","id":"sh/n694vyh4","slide":7,"name":"TextBox 13","text":"Giao diện thân thiện","textPreview":"Giao diện thân thiện","textChars":20,"textLines":1,"bbox":[201.6,175.68,369.6,28.8]}
+{"kind":"textbox","id":"sh/ml0nmtgj","slide":7,"name":"TextBox 14","text":"Dễ sử dụng & đa thiết bị","textPreview":"Dễ sử dụng & đa thiết bị","textChars":24,"textLines":1,"bbox":[201.6,210.24,379.2,24]}
+{"kind":"textbox","id":"sh/98rmxoza","slide":7,"name":"TextBox 15","text":"Thiết kế bố cục trực quan, thao tác đơn giản và hiển thị tốt trên máy tính, tablet, điện thoại.","textPreview":"Thiết kế bố cục trực quan, thao tác đơn giản và hiển thị tốt trên máy tính, tablet, điện thoại.","textChars":95,"textLines":1,"bbox":[201.6,244.8,379.2,67.2]}
+{"kind":"shape","id":"sh/o7i5o3yp","slide":7,"name":"Oval 16","bbox":[568.32,176.64,24.96,24.96]}
+{"kind":"textbox","id":"sh/3a54juh0","slide":7,"name":"TextBox 17","text":"✓","textPreview":"✓","textChars":1,"textLines":1,"bbox":[569.28,177.6,23.04,21.12]}
+{"kind":"shape","id":"sh/2pw3apgf","slide":7,"name":"Rounded Rectangle 18","bbox":[648,148.8,556.8,196.8]}
+{"kind":"shape","id":"sh/6547ix03","slide":7,"name":"Rounded Rectangle 19","bbox":[665.28,168,88.32,158.4]}
+{"kind":"textbox","id":"sh/76d8r21o","slide":7,"name":"TextBox 20","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[671.04,189.12,76.8,57.6]}
+{"kind":"textbox","id":"sh/s7mpk7it","slide":7,"name":"TextBox 21","text":"Thanh toán & quản trị","textPreview":"Thanh toán & quản trị","textChars":21,"textLines":1,"bbox":[777.6,175.68,369.6,28.8]}
+{"kind":"textbox","id":"sh/t8vqtcze","slide":7,"name":"TextBox 22","text":"An toàn và hiệu quả","textPreview":"An toàn và hiệu quả","textChars":19,"textLines":1,"bbox":[777.6,210.24,379.2,24]}
+{"kind":"textbox","id":"sh/i1k7ex0r","slide":7,"name":"TextBox 23","text":"Tích hợp quy trình thanh toán rõ ràng, bảo mật thông tin và hệ thống quản trị dành cho admin.","textPreview":"Tích hợp quy trình thanh toán rõ ràng, bảo mật thông tin và hệ thống quản trị dành cho admin.","textChars":93,"textLines":1,"bbox":[777.6,244.8,379.2,67.2]}
+{"kind":"shape","id":"sh/j2t8n21c","slide":7,"name":"Oval 24","bbox":[1144.32,176.64,24.96,24.96]}
+{"kind":"textbox","id":"sh/k3mpgnix","slide":7,"name":"TextBox 25","text":"✓","textPreview":"✓","textChars":1,"textLines":1,"bbox":[1145.28,177.6,23.04,21.12]}
+{"kind":"shape","id":"sh/54vqpsji","slide":7,"name":"Rounded Rectangle 26","bbox":[72,388.8,556.8,196.8]}
+{"kind":"shape","id":"sh/adk7ad0v","slide":7,"name":"Rounded Rectangle 27","bbox":[89.28,408,88.32,158.4]}
+{"kind":"textbox","id":"sh/betoji1g","slide":7,"name":"TextBox 28","text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[95.04,429.12,76.8,57.6]}
+{"kind":"textbox","id":"sh/dszapgjy","slide":7,"name":"TextBox 29","text":"Chatbot AI","textPreview":"Chatbot AI","textChars":10,"textLines":1,"bbox":[201.6,415.68,369.6,28.8]}
+{"kind":"textbox","id":"sh/crqtgb2d","slide":7,"name":"TextBox 30","text":"Tư vấn khách hàng 24/7","textPreview":"Tư vấn khách hàng 24/7","textChars":22,"textLines":1,"bbox":[201.6,450.24,379.2,24]}
+{"kind":"textbox","id":"sh/rqhsnqls","slide":7,"name":"TextBox 31","text":"Tích hợp chatbot AI hỗ trợ giải đáp nhanh, tư vấn sản phẩm và nâng cao trải nghiệm khách hàng.","textPreview":"Tích hợp chatbot AI hỗ trợ giải đáp nhanh, tư vấn sản phẩm và nâng cao trải nghiệm khách hàng.","textChars":94,"textLines":1,"bbox":[201.6,484.8,379.2,67.2]}
+{"kind":"shape","id":"sh/qp8belk7","slide":7,"name":"Oval 32","bbox":[568.32,416.64,24.96,24.96]}
+{"kind":"textbox","id":"sh/p4zalg3m","slide":7,"name":"TextBox 33","text":"✓","textPreview":"✓","textChars":1,"textLines":1,"bbox":[569.28,417.6,23.04,21.12]}
+{"kind":"shape","id":"sh/43qtcb21","slide":7,"name":"Rounded Rectangle 34","bbox":[648,388.8,556.8,196.8]}
+{"kind":"shape","id":"sh/32hsj6lw","slide":7,"name":"Rounded Rectangle 35","bbox":[665.28,408,88.32,158.4]}
+{"kind":"textbox","id":"sh/21ora1kb","slide":7,"name":"TextBox 36","text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[671.04,429.12,76.8,57.6]}
+{"kind":"textbox","id":"sh/h0fahw3q","slide":7,"name":"TextBox 37","text":"Tối ưu mua sắm","textPreview":"Tối ưu mua sắm","textChars":14,"textLines":1,"bbox":[777.6,415.68,369.6,28.8]}
+{"kind":"textbox","id":"sh/gz698r25","slide":7,"name":"TextBox 38","text":"Nhanh chóng & tiện lợi","textPreview":"Nhanh chóng & tiện lợi","textChars":22,"textLines":1,"bbox":[777.6,450.24,379.2,24]}
+{"kind":"textbox","id":"sh/g3y1of21","slide":7,"name":"TextBox 39","text":"Tối ưu tìm kiếm, lọc sản phẩm, giỏ hàng và quy trình đặt hàng để giảm thao tác không cần thiết.","textPreview":"Tối ưu tìm kiếm, lọc sản phẩm, giỏ hàng và quy trình đặt hàng để giảm thao tác không cần thiết.","textChars":95,"textLines":1,"bbox":[777.6,484.8,379.2,67.2]}
+{"kind":"shape","id":"sh/h47ih0jm","slide":7,"name":"Oval 40","bbox":[1144.32,416.64,24.96,24.96]}
+{"kind":"textbox","id":"sh/u1gjm5kb","slide":7,"name":"TextBox 41","text":"✓","textPreview":"✓","textChars":1,"textLines":1,"bbox":[1145.28,417.6,23.04,21.12]}
+{"kind":"shape","id":"sh/v2p0fa1g","slide":7,"name":"Rounded Rectangle 42","bbox":[72,609.6,1132.8,43.2]}
+{"kind":"textbox","id":"sh/47i1sf2d","slide":7,"name":"TextBox 43","text":"KẾT QUẢ HƯỚNG TỚI","textPreview":"KẾT QUẢ HƯỚNG TỚI","textChars":17,"textLines":1,"bbox":[96,617.28,206.4,19.2]}
+{"kind":"textbox","id":"sh/58r2lkjy","slide":7,"name":"TextBox 44","text":"Thân thiện  •  An toàn  •  Thông minh  •  Nhanh chóng  •  Dễ quản trị","textPreview":"Thân thiện  •  An toàn  •  Thông minh  •  Nhanh chóng  •  Dễ quản trị","textChars":69,"textLines":1,"bbox":[292.8,614.4,868.8,23.04]}
+{"kind":"shape","id":"sh/i5gjq5k7","slide":7,"name":"Connector 45","bbox":[72,674.88,1132.8,0]}
+{"kind":"textbox","id":"sh/3690ja1s","slide":7,"name":"TextBox 46","text":"WEBSITE LAPTOP & ACCESSORIES","textPreview":"WEBSITE LAPTOP & ACCESSORIES","textChars":28,"textLines":1,"bbox":[72,683.52,288,15.36]}
+{"kind":"image","id":"im/bqxkbudo","slide":7,"name":"Picture 48","bbox":[1131.48,-9.31,122.28,122.28]}
+{"kind":"notes","id":"nt/qvkmp8","slide":7,"text":""}
+{"kind":"slide","id":"sl/j0d0sz","slide":8,"title":"03","textShapes":7}
+{"kind":"shape","id":"sh/kj298nql","slide":8,"name":"Oval 1","bbox":[30.72,19.2,76.8,76.8]}
+{"kind":"textbox","id":"sh/54bahsr6","slide":8,"name":"TextBox 2","text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[35.52,34.56,67.2,44.16]}
+{"kind":"textbox","id":"sh/65krax8r","slide":8,"name":"TextBox 3","text":"TECH STACK","textPreview":"TECH STACK","textChars":10,"textLines":1,"bbox":[144,17.28,240,21.12]}
+{"kind":"textbox","id":"sh/76tsj2pc","slide":8,"name":"TextBox 4","text":"Công nghệ sử dụng","textPreview":"Công nghệ sử dụng","textChars":17,"textLines":1,"bbox":[144,45.12,556.8,46.08]}
+{"kind":"textbox","id":"sh/s729cnqx","slide":8,"name":"TextBox 5","text":"Các công nghệ chính được sử dụng để phát triển và quản lý dự án","textPreview":"Các công nghệ chính được sử dụng để phát triển và quản lý dự án","textChars":63,"textLines":1,"bbox":[144,90.24,710.4,25.92]}
+{"kind":"shape","id":"sh/idg3idcn","slide":8,"name":"Rounded Rectangle 10","bbox":[69.12,148.8,321.6,199.68]}
+{"kind":"shape","id":"sh/5gr2d8be","slide":8,"name":"Rounded Rectangle 11","bbox":[69.12,148.8,7.68,199.68]}
+{"kind":"shape","id":"sh/b2dob6do","slide":8,"name":"Rounded Rectangle 20","bbox":[432,148.8,321.6,199.68]}
+{"kind":"shape","id":"sh/c3m5kre9","slide":8,"name":"Rounded Rectangle 21","bbox":[432,148.8,7.68,199.68]}
+{"kind":"shape","id":"sh/w3q9gfyd","slide":8,"name":"Rounded Rectangle 30","bbox":[794.88,148.8,321.6,199.68]}
+{"kind":"shape","id":"sh/v2h8nax8","slide":8,"name":"Rounded Rectangle 31","bbox":[794.88,148.8,7.68,199.68]}
+{"kind":"shape","id":"sh/94725s3q","slide":8,"name":"Rounded Rectangle 40","bbox":[69.12,385.92,321.6,199.68]}
+{"kind":"shape","id":"sh/m1w3ax4z","slide":8,"name":"Rounded Rectangle 41","bbox":[69.12,385.92,7.68,199.68]}
+{"kind":"shape","id":"sh/u5c3etoz","slide":8,"name":"Rounded Rectangle 50","bbox":[432,385.92,321.6,199.68]}
+{"kind":"shape","id":"sh/hs3m987a","slide":8,"name":"Rounded Rectangle 51","bbox":[432,385.92,7.68,199.68]}
+{"kind":"shape","id":"sh/nu9o7m9k","slide":8,"name":"Rounded Rectangle 60","bbox":[794.88,385.92,321.6,199.68]}
+{"kind":"shape","id":"sh/ovipgrq5","slide":8,"name":"Rounded Rectangle 61","bbox":[794.88,385.92,7.68,199.68]}
+{"kind":"shape","id":"sh/8fm9cfap","slide":8,"name":"Rounded Rectangle 70","bbox":[69.12,609.6,1047.36,45.12]}
+{"kind":"textbox","id":"sh/7edsjat4","slide":8,"name":"TextBox 71","text":"KIẾN TRÚC:","textPreview":"KIẾN TRÚC:","textChars":10,"textLines":1,"bbox":[91.2,618.24,134.4,17.28]}
+{"kind":"textbox","id":"sh/6d4ra5sj","slide":8,"name":"TextBox 72","text":"Vue.js  →  Laravel / PHP  →  Database     |     VS Code + Node.js + GitHub hỗ trợ phát triển","textPreview":"Vue.js  →  Laravel / PHP  →  Database     |     VS Code + Node.js + GitHub hỗ trợ phát triển","textChars":92,"textLines":1,"bbox":[209.28,614.4,854.4,23.04]}
+{"kind":"shape","id":"sh/lcbqh0by","slide":8,"name":"Connector 73","bbox":[69.12,673.92,1135.68,0]}
+{"kind":"textbox","id":"sh/kb298vad","slide":8,"name":"TextBox 74","text":"WEBSITE LAPTOP & ACCESSORIES","textPreview":"WEBSITE LAPTOP & ACCESSORIES","textChars":28,"textLines":1,"bbox":[69.12,682.56,288,15.36]}
+{"kind":"image","id":"im/8jydsre9","slide":8,"name":"Picture 12","bbox":[90.24,174.72,282.56,159.39]}
+{"kind":"image","id":"im/9k7e1wfu","slide":8,"name":"Picture 13","bbox":[457.63,174.72,277.57,159.39]}
+{"kind":"image","id":"im/2lcvexwz","slide":8,"name":"Picture 14","bbox":[816.61,174.72,284.72,159.39]}
+{"kind":"image","id":"im/3mlcn2xk","slide":8,"name":"Picture 15","bbox":[91.2,406.08,277.54,155.89]}
+{"kind":"image","id":"im/76dwzmdc","slide":8,"name":"Picture 16","bbox":[465.31,406.08,261.57,160.47]}
+{"kind":"image","id":"im/654v6hwr","slide":8,"name":"Picture 17","bbox":[812.75,415.43,292.53,146.54]}
+{"kind":"image","id":"im/t8ve1cv2","slide":8,"name":"Picture 6","bbox":[1131.48,-9.31,122.28,122.28]}
+{"kind":"notes","id":"nt/j0d0sz","slide":8,"text":""}
+{"kind":"slide","id":"sl/tfgv36","slide":9,"title":"04","textShapes":9}
+{"kind":"shape","id":"sh/vm1kjuxw","slide":9,"name":"Oval 1","bbox":[40.32,26.88,69.12,69.12]}
+{"kind":"textbox","id":"sh/ulsjqpwb","slide":9,"name":"TextBox 2","text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[40.32,40.32,69.12,28.8]}
+{"kind":"textbox","id":"sh/5c32pofy","slide":9,"name":"TextBox 3","text":"DATABASE DESIGN","textPreview":"DATABASE DESIGN","textChars":15,"textLines":1,"bbox":[136.32,23.04,230.4,19.2]}
+{"kind":"textbox","id":"sh/4bu1wjed","slide":9,"name":"TextBox 4","text":"Sơ đồ ERD","textPreview":"Sơ đồ ERD","textChars":9,"textLines":1,"bbox":[136.32,48,384,40.32]}
+{"kind":"textbox","id":"sh/3alknex8","slide":9,"name":"TextBox 5","text":"Mô hình quan hệ dữ liệu chính của website bán laptop & phụ kiện","textPreview":"Mô hình quan hệ dữ liệu chính của website bán laptop & phụ kiện","textChars":63,"textLines":1,"bbox":[136.32,88.32,672,23.04]}
+{"kind":"shape","id":"sh/i9cju9wn","slide":9,"name":"Connector 6","bbox":[864,64.32,96,0]}
+{"kind":"textbox","id":"sh/hcj2tcjq","slide":9,"name":"TextBox 162","text":"CHÚ THÍCH","textPreview":"CHÚ THÍCH","textChars":9,"textLines":1,"bbox":[1003.99,182.55,163.2,21.12]}
+{"kind":"shape","id":"sh/m58jex03","slide":9,"name":"Rounded Rectangle 163","bbox":[974.4,230.4,59.52,24.96]}
+{"kind":"textbox","id":"sh/76hkn21o","slide":9,"name":"TextBox 164","text":"Thực thể","textPreview":"Thực thể","textChars":8,"textLines":1,"bbox":[1044.48,230.4,115.2,24]}
+{"kind":"shape","id":"sh/87q1g7it","slide":9,"name":"Oval 165","bbox":[974.4,268.8,59.52,24.96]}
+{"kind":"textbox","id":"sh/98z2psje","slide":9,"name":"TextBox 166","text":"Thuộc tính","textPreview":"Thuộc tính","textChars":10,"textLines":1,"bbox":[1044.48,268.8,115.2,24]}
+{"kind":"shape","id":"sh/61s3qh07","slide":9,"name":"Diamond 167","bbox":[974.4,307.2,59.52,28.8]}
+{"kind":"textbox","id":"sh/r21kzmhs","slide":9,"name":"TextBox 168","text":"Quan hệ","textPreview":"Quan hệ","textChars":7,"textLines":1,"bbox":[1044.48,307.2,115.2,24]}
+{"kind":"textbox","id":"sh/1wnmpg3u","slide":9,"name":"TextBox 169","text":"WEBSITE LAPTOP & ACCESSORIES","textPreview":"WEBSITE LAPTOP & ACCESSORIES","textChars":28,"textLines":1,"bbox":[72,679.68,288,15.36]}
+{"kind":"image","id":"im/p43alg7a","slide":9,"name":"Picture 171","bbox":[109.83,134.01,832.62,521.67]}
+{"kind":"image","id":"im/21cbaloj","slide":9,"name":"Picture 7","bbox":[1131.48,-9.31,122.28,122.28]}
+{"kind":"notes","id":"nt/tfgv36","slide":9,"text":""}
+{"kind":"slide","id":"sl/s3j1rj","slide":10,"title":"•••","textShapes":27}
+{"kind":"shape","id":"sh/wj2l4vyx","slide":10,"name":"Connector 1","bbox":[33.6,0,0,196.8]}
+{"kind":"shape","id":"sh/xkvmx0f2","slide":10,"name":"Oval 2","bbox":[2.88,48.96,61.44,61.44]}
+{"kind":"shape","id":"sh/yl4n65gn","slide":10,"name":"Oval 3","bbox":[14.4,60.48,38.4,38.4]}
+{"kind":"shape","id":"sh/jmd4zqx8","slide":10,"name":"Oval 4","bbox":[24,70.08,19.2,19.2]}
+{"kind":"shape","id":"sh/knm58vyt","slide":10,"name":"Oval 5","bbox":[25.92,157.44,15.36,15.36]}
+{"kind":"shape","id":"sh/lovm10fe","slide":10,"name":"Connector 6","bbox":[1060.8,40.32,91.2,34.56]}
+{"kind":"shape","id":"sh/6p4na5gz","slide":10,"name":"Connector 7","bbox":[1152,24,62.4,50.88]}
+{"kind":"shape","id":"sh/7ad43axk","slide":10,"name":"Oval 8","bbox":[1049.28,28.8,23.04,23.04]}
+{"kind":"shape","id":"sh/jupgred8","slide":10,"name":"Oval 9","bbox":[1125.12,48,53.76,53.76]}
+{"kind":"shape","id":"sh/itgzytwn","slide":10,"name":"Oval 10","bbox":[1204.8,14.4,19.2,19.2]}
+{"kind":"textbox","id":"sh/5w7ytove","slide":10,"name":"TextBox 11","text":"•••","textPreview":"•••","textChars":3,"textLines":1,"bbox":[1096.32,3.84,67.2,17.28]}
+{"kind":"textbox","id":"sh/4vyh0jet","slide":10,"name":"TextBox 12","text":"Sơ đồ usecase","textPreview":"Sơ đồ usecase","textChars":13,"textLines":1,"bbox":[398.4,41.28,480,59.52]}
+{"kind":"shape","id":"sh/vqpgnexc","slide":10,"name":"Connector 13","bbox":[590.4,110.4,57.6,0]}
+{"kind":"shape","id":"sh/u5wzu9wr","slide":10,"name":"Oval 14","bbox":[660,108,4.8,4.8]}
+{"kind":"shape","id":"sh/hs7ypof2","slide":10,"name":"Oval 15","bbox":[671.52,108,4.8,4.8]}
+{"kind":"shape","id":"sh/wryhwjeh","slide":10,"name":"Rounded Rectangle 16","bbox":[139.2,168,484.8,465.6]}
+{"kind":"shape","id":"sh/fm90zydg","slide":10,"name":"Rounded Rectangle 17","bbox":[654.72,168,484.8,465.6]}
+{"kind":"shape","id":"sh/e10z6dwv","slide":10,"name":"Rounded Rectangle 18","bbox":[283.2,151.68,144,38.4]}
+{"kind":"textbox","id":"sh/qh4jyhg3","slide":10,"name":"TextBox 19","text":"ADMIN","textPreview":"ADMIN","textChars":5,"textLines":1,"bbox":[283.2,155.52,144,28.8]}
+{"kind":"shape","id":"sh/bidk72xo","slide":10,"name":"Rounded Rectangle 20","bbox":[814.08,151.68,165.12,38.4]}
+{"kind":"textbox","id":"sh/cjm107y9","slide":10,"name":"TextBox 21","text":"NGƯỜI DÙNG","textPreview":"NGƯỜI DÙNG","textChars":10,"textLines":1,"bbox":[814.08,155.52,165.12,28.8]}
+{"kind":"shape","id":"sh/dkv29cfu","slide":10,"name":"Oval 22","bbox":[194.88,336.96,23.04,23.04]}
+{"kind":"shape","id":"sh/yl4j2hgf","slide":10,"name":"Connector 23","bbox":[206.4,360,0,36.48]}
+{"kind":"shape","id":"sh/zmdkbmxk","slide":10,"name":"Connector 24","bbox":[185.28,377.28,42.24,0]}
+{"kind":"shape","id":"sh/0nml4ry5","slide":10,"name":"Connector 25","bbox":[187.2,396.48,19.2,28.8]}
+{"kind":"shape","id":"sh/lof2dwfq","slide":10,"name":"Connector 26","bbox":[206.4,396.48,19.2,28.8]}
+{"kind":"textbox","id":"sh/epkjqdgv","slide":10,"name":"TextBox 27","text":"ADMIN","textPreview":"ADMIN","textChars":5,"textLines":1,"bbox":[160.32,428.16,92.16,21.12]}
+{"kind":"shape","id":"sh/fqtkzihg","slide":10,"name":"Oval 28","bbox":[722.88,348.48,23.04,23.04]}
+{"kind":"shape","id":"sh/hkzm50zy","slide":10,"name":"Connector 29","bbox":[734.4,371.52,0,36.48]}
+{"kind":"shape","id":"sh/wjq5wvid","slide":10,"name":"Connector 30","bbox":[713.28,388.8,42.24,0]}
+{"kind":"shape","id":"sh/vih43qhs","slide":10,"name":"Connector 31","bbox":[715.2,408,19.2,28.8]}
+{"kind":"shape","id":"sh/uh8nul0n","slide":10,"name":"Connector 32","bbox":[734.4,408,19.2,28.8]}
+{"kind":"textbox","id":"sh/58jm90za","slide":10,"name":"TextBox 33","text":"NGƯỜI DÙNG","textPreview":"NGƯỜI DÙNG","textChars":10,"textLines":1,"bbox":[688.32,439.68,92.16,21.12]}
+{"kind":"textbox","id":"sh/47a50vip","slide":10,"name":"Oval 34","text":"Quản lý tài khoản","textPreview":"Quản lý tài khoản","textChars":17,"textLines":1,"bbox":[385.92,209.28,184.32,32.64]}
+{"kind":"shape","id":"sh/j6h47qh4","slide":10,"name":"Connector 35","bbox":[228.48,225.6,157.44,161.28]}
+{"kind":"textbox","id":"sh/i58nyl0j","slide":10,"name":"Oval 36","text":"Quản lý danh mục","textPreview":"Quản lý danh mục","textChars":16,"textLines":1,"bbox":[385.92,251.52,184.32,32.64]}
+{"kind":"shape","id":"sh/lcfmxgzq","slide":10,"name":"Connector 37","bbox":[228.48,267.84,157.44,119.04]}
+{"kind":"textbox","id":"sh/kb65obi5","slide":10,"name":"Oval 38","text":"Quản lý sản phẩm","textPreview":"Quản lý sản phẩm","textChars":16,"textLines":1,"bbox":[385.92,293.76,184.32,32.64]}
+{"kind":"shape","id":"sh/ojehs365","slide":10,"name":"Connector 39","bbox":[228.48,310.08,157.44,76.8]}
+{"kind":"textbox","id":"sh/pk7yl8nq","slide":10,"name":"Oval 40","text":"Quản lý đơn hàng","textPreview":"Quản lý đơn hàng","textChars":16,"textLines":1,"bbox":[385.92,336,184.32,32.64]}
+{"kind":"shape","id":"sh/2hwzqtoz","slide":10,"name":"Connector 41","bbox":[228.48,352.32,157.44,34.56]}
+{"kind":"textbox","id":"sh/ni5gjy5k","slide":10,"name":"Oval 42","text":"Quản lý khuyến mãi","textPreview":"Quản lý khuyến mãi","textChars":18,"textLines":1,"bbox":[385.92,378.24,184.32,32.64]}
+{"kind":"shape","id":"sh/0feho36t","slide":10,"name":"Connector 43","bbox":[228.48,386.88,157.44,7.68]}
+{"kind":"textbox","id":"sh/1gnyh8ne","slide":10,"name":"Oval 44","text":"Quản lý thương hiệu","textPreview":"Quản lý thương hiệu","textChars":19,"textLines":1,"bbox":[385.92,420.48,184.32,32.64]}
+{"kind":"shape","id":"sh/edwzmto3","slide":10,"name":"Connector 45","bbox":[228.48,386.88,157.44,49.92]}
+{"kind":"textbox","id":"sh/fe5gfy5o","slide":10,"name":"Oval 46","text":"Quản lý thống kê","textPreview":"Quản lý thống kê","textChars":16,"textLines":1,"bbox":[385.92,462.72,184.32,32.64]}
+{"kind":"shape","id":"sh/sbuhkj6x","slide":10,"name":"Connector 47","bbox":[228.48,386.88,157.44,92.16]}
+{"kind":"textbox","id":"sh/dcnydoni","slide":10,"name":"Oval 48","text":"Quản lý tin tức","textPreview":"Quản lý tin tức","textChars":15,"textLines":1,"bbox":[385.92,504.96,184.32,32.64]}
+{"kind":"shape","id":"sh/vml03e94","slide":10,"name":"Connector 49","bbox":[228.48,386.88,157.44,134.4]}
+{"kind":"textbox","id":"sh/ulczu98z","slide":10,"name":"Oval 50","text":"Quản lý biến thể sản phẩm","textPreview":"Quản lý biến thể sản phẩm","textChars":25,"textLines":1,"bbox":[385.92,547.2,184.32,32.64]}
+{"kind":"shape","id":"sh/ho3i5ora","slide":10,"name":"Connector 51","bbox":[228.48,386.88,157.44,176.64]}
+{"kind":"textbox","id":"sh/gnuhwjqp","slide":10,"name":"Oval 52","text":"Đăng nhập","textPreview":"Đăng nhập","textChars":9,"textLines":1,"bbox":[161.28,525.12,100.8,34.56]}
+{"kind":"shape","id":"sh/3al07y9g","slide":10,"name":"Connector 53","bbox":[206.4,449.28,0,75.84]}
+{"kind":"textbox","id":"sh/i9czyt8v","slide":10,"name":"Oval 54","text":"Quản lý thông tin cá nhân","textPreview":"Quản lý thông tin cá nhân","textChars":25,"textLines":1,"bbox":[933.12,224.64,180.48,32.64]}
+{"kind":"shape","id":"sh/5c3itorm","slide":10,"name":"Connector 55","bbox":[758.4,240.96,174.72,157.44]}
+{"kind":"textbox","id":"sh/4buh0jq1","slide":10,"name":"Oval 56","text":"Quản lý giỏ hàng","textPreview":"Quản lý giỏ hàng","textChars":16,"textLines":1,"bbox":[933.12,270.72,180.48,32.64]}
+{"kind":"shape","id":"sh/re50vy9c","slide":10,"name":"Connector 57","bbox":[758.4,287.04,174.72,111.36]}
+{"kind":"textbox","id":"sh/qdwz2t8r","slide":10,"name":"Oval 58","text":"Quản lý đơn hàng","textPreview":"Quản lý đơn hàng","textChars":16,"textLines":1,"bbox":[933.12,316.8,180.48,32.64]}
+{"kind":"shape","id":"sh/29g3uxsz","slide":10,"name":"Connector 59","bbox":[758.4,333.12,174.72,65.28]}
+{"kind":"textbox","id":"sh/napk32tk","slide":10,"name":"Oval 60","text":"Quản lý sản phẩm yêu thích","textPreview":"Quản lý sản phẩm yêu thích","textChars":26,"textLines":1,"bbox":[933.12,362.88,180.48,32.64]}
+{"kind":"shape","id":"sh/obylw7a5","slide":10,"name":"Connector 61","bbox":[758.4,379.2,174.72,19.2]}
+{"kind":"textbox","id":"sh/pcr25cbq","slide":10,"name":"Oval 62","text":"Đánh giá sản phẩm","textPreview":"Đánh giá sản phẩm","textChars":17,"textLines":1,"bbox":[933.12,408.96,180.48,32.64]}
+{"kind":"shape","id":"sh/e5g3qxs3","slide":10,"name":"Connector 63","bbox":[758.4,398.4,174.72,26.88]}
+{"kind":"textbox","id":"sh/f6pkz2to","slide":10,"name":"Oval 64","text":"Đặt hàng","textPreview":"Đặt hàng","textChars":8,"textLines":1,"bbox":[933.12,455.04,180.48,32.64]}
+{"kind":"shape","id":"sh/07ylsna9","slide":10,"name":"Connector 65","bbox":[758.4,398.4,174.72,72.96]}
+{"kind":"textbox","id":"sh/18721sbu","slide":10,"name":"Oval 66","text":"Thanh toán","textPreview":"Thanh toán","textChars":10,"textLines":1,"bbox":[933.12,501.12,180.48,32.64]}
+{"kind":"shape","id":"sh/y1032hs7","slide":10,"name":"Connector 67","bbox":[758.4,398.4,174.72,119.04]}
+{"kind":"textbox","id":"sh/j294bmts","slide":10,"name":"Oval 68","text":"Xem chi tiết sản phẩm","textPreview":"Xem chi tiết sản phẩm","textChars":21,"textLines":1,"bbox":[933.12,547.2,180.48,32.64]}
+{"kind":"shape","id":"sh/twv61gvu","slide":10,"name":"Connector 69","bbox":[758.4,398.4,174.72,165.12]}
+{"kind":"textbox","id":"sh/8vm5sbup","slide":10,"name":"Oval 70","text":"Đăng nhập","textPreview":"Đăng nhập","textChars":9,"textLines":1,"bbox":[664.32,523.2,91.2,34.56]}
+{"kind":"textbox","id":"sh/7utoz6d4","slide":10,"name":"Oval 71","text":"Đăng ký","textPreview":"Đăng ký","textChars":7,"textLines":1,"bbox":[760.32,523.2,86.4,34.56]}
+{"kind":"shape","id":"sh/6tknqlcj","slide":10,"name":"Connector 72","bbox":[708.48,460.8,25.92,62.4]}
+{"kind":"shape","id":"sh/lsb6xgvy","slide":10,"name":"Connector 73","bbox":[734.4,460.8,67.2,62.4]}
+{"kind":"shape","id":"sh/k725obud","slide":10,"name":"Connector 74","bbox":[26.88,676.8,42.24,43.2]}
+{"kind":"shape","id":"sh/j6t4v6ds","slide":10,"name":"Connector 75","bbox":[69.12,676.8,60.48,31.68]}
+{"kind":"shape","id":"sh/y5knm1c7","slide":10,"name":"Oval 76","bbox":[57.6,665.28,23.04,23.04]}
+{"kind":"shape","id":"sh/5of690b2","slide":10,"name":"Oval 77","bbox":[116.16,695.04,26.88,26.88]}
+{"kind":"textbox","id":"sh/43650vuh","slide":10,"name":"TextBox 78","text":"• • • •\n• • • •\n• • • •","textPreview":"• • • • | • • • • | • • • •","textChars":23,"textLines":3,"bbox":[1152,645.12,72,43.2]}
+{"kind":"image","id":"im/7yhov6p4","slide":10,"name":"Picture 79","bbox":[1131.48,-9.31,122.28,122.28]}
+{"kind":"notes","id":"nt/s3j1rj","slide":10,"text":""}
+{"kind":"slide","id":"sl/cf92od","slide":11,"title":"KẾT QUẢ DỰ ÁN","textShapes":12}
+{"kind":"textbox","id":"sh/2h4f6pwz","slide":11,"name":"TextBox 1","text":"KẾT QUẢ DỰ ÁN","textPreview":"KẾT QUẢ DỰ ÁN","textChars":13,"textLines":1,"bbox":[337.22,32.53,609.6,54.93]}
+{"kind":"shape","id":"sh/3idwzuxk","slide":11,"name":"Connector 2","bbox":[576,100.8,59.52,0]}
+{"kind":"shape","id":"sh/gfmx4fet","slide":11,"name":"Oval 3","bbox":[647.52,98.4,4.8,4.8]}
+{"kind":"shape","id":"sh/1gvexkfe","slide":11,"name":"Oval 4","bbox":[660,98.4,4.8,4.8]}
+{"kind":"shape","id":"sh/edkf2pw3","slide":11,"name":"Oval 5","bbox":[672.48,98.4,4.8,4.8]}
+{"kind":"shape","id":"sh/fedwvuxo","slide":11,"name":"Connector 6","bbox":[52.8,165.12,0,338.88]}
+{"kind":"shape","id":"sh/sr2x0fex","slide":11,"name":"Oval 7","bbox":[41.28,197.76,23.04,23.04]}
+{"kind":"shape","id":"sh/tcbetkfi","slide":11,"name":"Oval 8","bbox":[38.4,422.4,28.8,28.8]}
+{"kind":"shape","id":"sh/pg7qxgf2","slide":11,"name":"Connector 9","bbox":[1080,76.8,54.72,132.48]}
+{"kind":"shape","id":"sh/ofypobyh","slide":11,"name":"Connector 10","bbox":[1080,209.28,43.2,192]}
+{"kind":"shape","id":"sh/3ep8v6xc","slide":11,"name":"Oval 11","bbox":[1124.16,66.24,21.12,21.12]}
+{"kind":"shape","id":"sh/2dg7m1gr","slide":11,"name":"Oval 12","bbox":[1051.2,180.48,57.6,57.6]}
+{"kind":"shape","id":"sh/1c7qtgf6","slide":11,"name":"Oval 13","bbox":[1111.68,389.76,23.04,23.04]}
+{"kind":"shape","id":"sh/gbypkbyl","slide":11,"name":"Rounded Rectangle 14","bbox":[297.6,142.08,667.2,140.16]}
+{"kind":"shape","id":"sh/fa58r6x0","slide":11,"name":"Rounded Rectangle 15","bbox":[305.28,148.8,651.84,126.72]}
+{"kind":"shape","id":"sh/e9w7i1gf","slide":11,"name":"Oval 16","bbox":[326.4,168,88.32,88.32]}
+{"kind":"shape","id":"sh/t8nqpwfu","slide":11,"name":"Rectangle 17","bbox":[345.6,188.16,49.92,33.6]}
+{"kind":"shape","id":"sh/snepgryp","slide":11,"name":"Oval 18","bbox":[361.92,195.84,17.28,17.28]}
+{"kind":"shape","id":"sh/kripwr65","slide":11,"name":"Connector 19","bbox":[357.12,230.4,26.88,0]}
+{"kind":"shape","id":"sh/5srq5wnq","slide":11,"name":"Connector 20","bbox":[436.8,168,0,87.36]}
+{"kind":"textbox","id":"sh/ip07u1of","slide":11,"name":"TextBox 21","text":"Website hoạt động ổn định\n& đáp ứng mục tiêu","textPreview":"Website hoạt động ổn định | & đáp ứng mục tiêu","textChars":44,"textLines":2,"bbox":[462.72,164.16,364.8,46.08]}
+{"kind":"textbox","id":"sh/jq983650","slide":11,"name":"TextBox 22","text":"Xây dựng hệ thống website vận hành ổn định, hiệu suất cao,\nđáp ứng đầy đủ các mục tiêu kinh doanh đã đề ra.","textPreview":"Xây dựng hệ thống website vận hành ổn định, hiệu suất cao, | đáp ứng đầy đủ các mục tiêu kinh doanh đã đề ra.","textChars":107,"textLines":2,"bbox":[462.72,215.04,398.4,43.2]}
+{"kind":"textbox","id":"sh/wnypsr69","slide":11,"name":"TextBox 23","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[859.2,164.16,69.12,52.8]}
+{"kind":"shape","id":"sh/xorq1wnu","slide":11,"name":"Oval 24","bbox":[907.01,219.65,2.3,2.3]}
+{"kind":"shape","id":"sh/a1g7qho3","slide":11,"name":"Oval 25","bbox":[916.61,219.65,2.3,2.3]}
+{"kind":"shape","id":"sh/v2p8zm5o","slide":11,"name":"Oval 26","bbox":[926.21,219.65,2.3,2.3]}
+{"kind":"shape","id":"sh/gj294b6d","slide":11,"name":"Oval 27","bbox":[935.81,219.65,2.3,2.3]}
+{"kind":"shape","id":"sh/hkbqdgny","slide":11,"name":"Oval 28","bbox":[907.01,229.25,2.3,2.3]}
+{"kind":"shape","id":"sh/reds3ap0","slide":11,"name":"Oval 29","bbox":[916.61,229.25,2.3,2.3]}
+{"kind":"shape","id":"sh/qd4bup8v","slide":11,"name":"Oval 30","bbox":[926.21,229.25,2.3,2.3]}
+{"kind":"shape","id":"sh/dgfa5k76","slide":11,"name":"Oval 31","bbox":[935.81,229.25,2.3,2.3]}
+{"kind":"shape","id":"sh/cf6twfql","slide":11,"name":"Oval 32","bbox":[907.01,238.85,2.3,2.3]}
+{"kind":"shape","id":"sh/zixs7upc","slide":11,"name":"Oval 33","bbox":[916.61,238.85,2.3,2.3]}
+{"kind":"shape","id":"sh/ehobyp8r","slide":11,"name":"Oval 34","bbox":[926.21,238.85,2.3,2.3]}
+{"kind":"shape","id":"sh/1kfu947i","slide":11,"name":"Oval 35","bbox":[935.81,238.85,2.3,2.3]}
+{"kind":"shape","id":"sh/0j6t0zqx","slide":11,"name":"Oval 36","bbox":[907.01,248.45,2.3,2.3]}
+{"kind":"shape","id":"sh/fmtsvqp8","slide":11,"name":"Oval 37","bbox":[916.61,248.45,2.3,2.3]}
+{"kind":"shape","id":"sh/ulkbm58n","slide":11,"name":"Oval 38","bbox":[926.21,248.45,2.3,2.3]}
+{"kind":"shape","id":"sh/6h8jypkf","slide":11,"name":"Oval 39","bbox":[935.81,248.45,2.3,2.3]}
+{"kind":"shape","id":"sh/7ihk7u10","slide":11,"name":"Rounded Rectangle 40","bbox":[297.6,314.88,667.2,140.16]}
+{"kind":"shape","id":"sh/sjq10z2l","slide":11,"name":"Rounded Rectangle 41","bbox":[305.28,321.6,651.84,126.72]}
+{"kind":"shape","id":"sh/t4z294j6","slide":11,"name":"Oval 42","bbox":[326.4,340.8,88.32,88.32]}
+{"kind":"textbox","id":"sh/u58j29kr","slide":11,"name":"TextBox 43","text":"✚","textPreview":"✚","textChars":1,"textLines":1,"bbox":[340.8,355.2,59.52,59.52]}
+{"kind":"shape","id":"sh/f61kbe1c","slide":11,"name":"Connector 44","bbox":[436.8,340.8,0,87.36]}
+{"kind":"textbox","id":"sh/g7al4j2x","slide":11,"name":"TextBox 45","text":"Tích hợp đầy đủ chức năng\ntheo yêu cầu","textPreview":"Tích hợp đầy đủ chức năng | theo yêu cầu","textChars":38,"textLines":2,"bbox":[462.72,336.96,364.8,46.08]}
+{"kind":"textbox","id":"sh/h8j2x4j2","slide":11,"name":"TextBox 46","text":"Đảm bảo hệ thống tích hợp đầy đủ các chức năng theo yêu cầu,\nmang lại trải nghiệm liền mạch cho người dùng.","textPreview":"Đảm bảo hệ thống tích hợp đầy đủ các chức năng theo yêu cầu, | mang lại trải nghiệm liền mạch cho người dùng.","textChars":107,"textLines":2,"bbox":[462.72,387.84,398.4,43.2]}
+{"kind":"textbox","id":"sh/29s369kn","slide":11,"name":"TextBox 47","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[859.2,336.96,69.12,52.8]}
+{"kind":"shape","id":"sh/3a1kze18","slide":11,"name":"Oval 48","bbox":[907.01,392.45,2.3,2.3]}
+{"kind":"shape","id":"sh/d43m583a","slide":11,"name":"Oval 49","bbox":[916.61,392.45,2.3,2.3]}
+{"kind":"shape","id":"sh/c3u5w3m5","slide":11,"name":"Oval 50","bbox":[926.21,392.45,2.3,2.3]}
+{"kind":"shape","id":"sh/r2l43ilk","slide":11,"name":"Oval 51","bbox":[935.81,392.45,2.3,2.3]}
+{"kind":"shape","id":"sh/q1cnud4z","slide":11,"name":"Oval 52","bbox":[907.01,402.05,2.3,2.3]}
+{"kind":"shape","id":"sh/l8nm9s3m","slide":11,"name":"Oval 53","bbox":[916.61,402.05,2.3,2.3]}
+{"kind":"shape","id":"sh/07e50nm1","slide":11,"name":"Oval 54","bbox":[926.21,402.05,2.3,2.3]}
+{"kind":"shape","id":"sh/z6547ilg","slide":11,"name":"Oval 55","bbox":[935.81,402.05,2.3,2.3]}
+{"kind":"shape","id":"sh/y5wnyd4v","slide":11,"name":"Oval 56","bbox":[907.01,411.65,2.3,2.3]}
+{"kind":"shape","id":"sh/9wn6ds3i","slide":11,"name":"Oval 57","bbox":[916.61,411.65,2.3,2.3]}
+{"kind":"shape","id":"sh/8ve54nmx","slide":11,"name":"Oval 58","bbox":[926.21,411.65,2.3,2.3]}
+{"kind":"shape","id":"sh/8fmp0bu9","slide":11,"name":"Oval 59","bbox":[935.81,411.65,2.3,2.3]}
+{"kind":"shape","id":"sh/t0vq9gbu","slide":11,"name":"Oval 60","bbox":[907.01,421.25,2.3,2.3]}
+{"kind":"shape","id":"sh/6d47y1c3","slide":11,"name":"Oval 61","bbox":[916.61,421.25,2.3,2.3]}
+{"kind":"shape","id":"sh/7edo76to","slide":11,"name":"Oval 62","bbox":[926.21,421.25,2.3,2.3]}
+{"kind":"shape","id":"sh/g36p4bul","slide":11,"name":"Oval 63","bbox":[935.81,421.25,2.3,2.3]}
+{"kind":"shape","id":"sh/h4fqdgbq","slide":11,"name":"Rounded Rectangle 64","bbox":[297.6,487.68,667.2,140.16]}
+{"kind":"shape","id":"sh/u1o72lcf","slide":11,"name":"Rounded Rectangle 65","bbox":[305.28,494.4,651.84,126.72]}
+{"kind":"shape","id":"sh/v2x8b6t0","slide":11,"name":"Oval 66","bbox":[326.4,513.6,88.32,88.32]}
+{"kind":"shape","id":"sh/w72psru1","slide":11,"name":"Oval 67","bbox":[345.6,545.28,23.04,23.04]}
+{"kind":"textbox","id":"sh/x8b61wbm","slide":11,"name":"TextBox 68","text":"•••","textPreview":"•••","textChars":3,"textLines":1,"bbox":[366.72,530.88,40.32,28.8]}
+{"kind":"shape","id":"sh/zel0nehg","slide":11,"name":"Rounded Rectangle 69","bbox":[368.64,530.88,36.48,24.96]}
+{"kind":"shape","id":"sh/edcju90v","slide":11,"name":"Connector 70","bbox":[436.8,513.6,0,87.36]}
+{"kind":"textbox","id":"sh/lg32pozm","slide":11,"name":"TextBox 71","text":"Phản hồi tích cực từ\nngười dùng thử nghiệm","textPreview":"Phản hồi tích cực từ | người dùng thử nghiệm","textChars":42,"textLines":2,"bbox":[462.72,509.76,364.8,46.08]}
+{"kind":"textbox","id":"sh/0fu1wji1","slide":11,"name":"TextBox 72","text":"Nhận được phản hồi tích cực từ người dùng thử nghiệm,\nđảm bảo sự hài lòng và cải tiến liên tục.","textPreview":"Nhận được phản hồi tích cực từ người dùng thử nghiệm, | đảm bảo sự hài lòng và cải tiến liên tục.","textChars":95,"textLines":2,"bbox":[462.72,560.64,398.4,43.2]}
+{"kind":"textbox","id":"sh/ra10jeh4","slide":11,"name":"TextBox 73","text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[859.2,509.76,69.12,52.8]}
+{"kind":"shape","id":"sh/q9sjq90z","slide":11,"name":"Oval 74","bbox":[907.01,565.25,2.3,2.3]}
+{"kind":"shape","id":"sh/dcjiloza","slide":11,"name":"Oval 75","bbox":[916.61,565.25,2.3,2.3]}
+{"kind":"shape","id":"sh/cba1sjip","slide":11,"name":"Oval 76","bbox":[926.21,565.25,2.3,2.3]}
+{"kind":"shape","id":"sh/3610fuh8","slide":11,"name":"Oval 77","bbox":[935.81,565.25,2.3,2.3]}
+{"kind":"shape","id":"sh/2l8jmp0n","slide":11,"name":"Oval 78","bbox":[907.01,574.85,2.3,2.3]}
+{"kind":"shape","id":"sh/upcj298j","slide":11,"name":"Oval 79","bbox":[916.61,574.85,2.3,2.3]}
+{"kind":"shape","id":"sh/vqlkvep4","slide":11,"name":"Oval 80","bbox":[926.21,574.85,2.3,2.3]}
+{"kind":"shape","id":"sh/gre14zqp","slide":11,"name":"Oval 81","bbox":[935.81,574.85,2.3,2.3]}
+{"kind":"shape","id":"sh/hsn2x47a","slide":11,"name":"Oval 82","bbox":[907.01,584.45,2.3,2.3]}
+{"kind":"shape","id":"sh/6lcjyp8n","slide":11,"name":"Oval 83","bbox":[916.61,584.45,2.3,2.3]}
+{"kind":"shape","id":"sh/7ml0rups","slide":11,"name":"Oval 84","bbox":[926.21,584.45,2.3,2.3]}
+{"kind":"shape","id":"sh/8nu10zqd","slide":11,"name":"Oval 85","bbox":[935.81,584.45,2.3,2.3]}
+{"kind":"shape","id":"sh/to3it47y","slide":11,"name":"Oval 86","bbox":[907.01,594.05,2.3,2.3]}
+{"kind":"shape","id":"sh/qhwjat8r","slide":11,"name":"Oval 87","bbox":[916.61,594.05,2.3,2.3]}
+{"kind":"shape","id":"sh/ripk3ypc","slide":11,"name":"Oval 88","bbox":[926.21,594.05,2.3,2.3]}
+{"kind":"shape","id":"sh/1crm9sre","slide":11,"name":"Oval 89","bbox":[935.81,594.05,2.3,2.3]}
+{"kind":"shape","id":"sh/0bil0nat","slide":11,"name":"Arc 90","bbox":[-24,636.48,316.8,110.4]}
+{"kind":"shape","id":"sh/zq947i98","slide":11,"name":"Arc 91","bbox":[-16.32,641.28,316.8,110.4]}
+{"kind":"shape","id":"sh/epg3ydsn","slide":11,"name":"Arc 92","bbox":[-8.64,646.08,316.8,110.4]}
+{"kind":"shape","id":"sh/do7m58ri","slide":11,"name":"Oval 93","bbox":[1169.86,634.18,2.69,2.69]}
+{"kind":"shape","id":"sh/snylw3ax","slide":11,"name":"Oval 94","bbox":[1180.42,634.18,2.69,2.69]}
+{"kind":"shape","id":"sh/rmp43y9c","slide":11,"name":"Oval 95","bbox":[1190.98,634.18,2.69,2.69]}
+{"kind":"shape","id":"sh/qlg3udsr","slide":11,"name":"Oval 96","bbox":[1201.54,634.18,2.69,2.69]}
+{"kind":"shape","id":"sh/xkbmhcrm","slide":11,"name":"Oval 97","bbox":[1169.86,644.74,2.69,2.69]}
+{"kind":"shape","id":"sh/wj2587a1","slide":11,"name":"Oval 98","bbox":[1180.42,644.74,2.69,2.69]}
+{"kind":"shape","id":"sh/t8v6tgju","slide":11,"name":"Oval 99","bbox":[1190.98,644.74,2.69,2.69]}
+{"kind":"shape","id":"sh/s7mp0b2p","slide":11,"name":"Oval 100","bbox":[1201.54,644.74,2.69,2.69]}
+{"kind":"shape","id":"sh/76tor614","slide":11,"name":"Oval 101","bbox":[1169.86,655.3,2.69,2.69]}
+{"kind":"shape","id":"sh/65k7y1kj","slide":11,"name":"Oval 102","bbox":[1180.42,655.3,2.69,2.69]}
+{"kind":"shape","id":"sh/54b6pwjy","slide":11,"name":"Oval 103","bbox":[1190.98,655.3,2.69,2.69]}
+{"kind":"shape","id":"sh/k32pwr2d","slide":11,"name":"Oval 104","bbox":[1201.54,655.3,2.69,2.69]}
+{"kind":"shape","id":"sh/j2ton61s","slide":11,"name":"Oval 105","bbox":[1169.86,665.86,2.69,2.69]}
+{"kind":"shape","id":"sh/i1knu1k7","slide":11,"name":"Oval 106","bbox":[1180.42,665.86,2.69,2.69]}
+{"kind":"shape","id":"sh/x0b6lwj2","slide":11,"name":"Oval 107","bbox":[1190.98,665.86,2.69,2.69]}
+{"kind":"shape","id":"sh/wf25sr2h","slide":11,"name":"Oval 108","bbox":[1201.54,665.86,2.69,2.69]}
+{"kind":"image","id":"im/r2h872lc","slide":11,"name":"Picture 110","bbox":[1131.48,-9.31,122.28,122.28]}
+{"kind":"notes","id":"nt/cf92od","slide":11,"text":""}
+{"kind":"slide","id":"sl/gf14hl","slide":12,"title":"TESTCASE","textShapes":31}
+{"kind":"textbox","id":"sh/9wvahkfy","slide":12,"name":"TextBox 1","text":"TESTCASE","textPreview":"TESTCASE","textChars":8,"textLines":1,"bbox":[460.8,28.8,355.2,48]}
+{"kind":"shape","id":"sh/8v2tofyd","slide":12,"name":"Connector 2","bbox":[583.68,90.24,51.84,0]}
+{"kind":"shape","id":"sh/vidsjux4","slide":12,"name":"Oval 3","bbox":[647.62,87.94,4.61,4.61]}
+{"kind":"shape","id":"sh/uh4bqpgj","slide":12,"name":"Oval 4","bbox":[660.1,87.94,4.61,4.61]}
+{"kind":"shape","id":"sh/hkval4fa","slide":12,"name":"Oval 5","bbox":[672.58,87.94,4.61,4.61]}
+{"kind":"shape","id":"sh/wjmtszyp","slide":12,"name":"Connector 6","bbox":[0,46.08,78.72,86.4]}
+{"kind":"shape","id":"sh/jmdsnux0","slide":12,"name":"Connector 7","bbox":[78.72,46.08,185.28,59.52]}
+{"kind":"shape","id":"sh/il4bupgf","slide":12,"name":"Oval 8","bbox":[64.32,31.68,28.8,28.8]}
+{"kind":"shape","id":"sh/8r6lc7et","slide":12,"name":"Oval 9","bbox":[72.48,39.84,12.48,12.48]}
+{"kind":"shape","id":"sh/9sf2lcvy","slide":12,"name":"Oval 10","bbox":[252.48,94.08,23.04,23.04]}
+{"kind":"shape","id":"sh/mpojaxwn","slide":12,"name":"Oval 11","bbox":[259.2,100.8,9.6,9.6]}
+{"kind":"shape","id":"sh/7qxkj2d8","slide":12,"name":"Connector 12","bbox":[1075.2,46.08,81.6,28.8]}
+{"kind":"shape","id":"sh/wfqlg7ep","slide":12,"name":"Connector 13","bbox":[1156.8,19.2,122.88,55.68]}
+{"kind":"shape","id":"sh/hgz2pcva","slide":12,"name":"Oval 14","bbox":[1059.84,30.72,30.72,30.72]}
+{"kind":"shape","id":"sh/uto3ehwj","slide":12,"name":"Oval 15","bbox":[1147.2,65.28,19.2,19.2]}
+{"kind":"shape","id":"sh/vuhknmd4","slide":12,"name":"Rounded Rectangle 16","bbox":[72,158.4,494.4,347.52]}
+{"kind":"shape","id":"sh/4jqlkrul","slide":12,"name":"Rounded Rectangle 17","bbox":[583.68,158.4,619.2,347.52]}
+{"kind":"shape","id":"sh/5kz2twv6","slide":12,"name":"Rounded Rectangle 18","bbox":[273.6,146.88,163.2,30.72]}
+{"kind":"textbox","id":"sh/d0f2dwna","slide":12,"name":"TextBox 19","text":"TỶ LỆ PASS / FAIL","textPreview":"TỶ LỆ PASS / FAIL","textChars":17,"textLines":1,"bbox":[273.6,149.76,163.2,23.04]}
+{"kind":"shape","id":"sh/szm14rm5","slide":12,"name":"Rounded Rectangle 20","bbox":[712.32,146.88,360,30.72]}
+{"kind":"textbox","id":"sh/redkbm5k","slide":12,"name":"TextBox 21","text":"SỐ LƯỢNG TEST CASE THEO NGƯỜI THỰC HIỆN","textPreview":"SỐ LƯỢNG TEST CASE THEO NGƯỜI THỰC HIỆN","textChars":39,"textLines":1,"bbox":[712.32,149.76,360,23.04]}
+{"kind":"textbox","id":"sh/qd4j2h4z","slide":12,"name":"TextBox 22","text":"Kết quả","textPreview":"Kết quả","textChars":7,"textLines":1,"bbox":[228.48,192,177.6,30.72]}
+{"kind":"textbox","id":"sh/14f2hwnm","slide":12,"name":"TextBox 23","text":"Test case","textPreview":"Test case","textChars":9,"textLines":1,"bbox":[686.4,192,177.6,30.72]}
+{"kind":"shape","id":"sh/f2xkfm5g","slide":12,"name":"Oval 25","bbox":[115.68,451.68,14.4,14.4]}
+{"kind":"textbox","id":"sh/e1o36h4v","slide":12,"name":"TextBox 26","text":"Pass","textPreview":"Pass","textChars":4,"textLines":1,"bbox":[144,446.4,52.8,24]}
+{"kind":"textbox","id":"sh/h8b25cni","slide":12,"name":"TextBox 27","text":"83.5%","textPreview":"83.5%","textChars":5,"textLines":1,"bbox":[193.92,443.52,72,28.8]}
+{"kind":"shape","id":"sh/g721w76x","slide":12,"name":"Oval 28","bbox":[304.8,451.68,14.4,14.4]}
+{"kind":"textbox","id":"sh/m1g7q9gj","slide":12,"name":"TextBox 29","text":"Fail","textPreview":"Fail","textChars":4,"textLines":1,"bbox":[334.08,446.4,48,24]}
+{"kind":"textbox","id":"sh/72p8jeho","slide":12,"name":"TextBox 30","text":"16.5%","textPreview":"16.5%","textChars":5,"textLines":1,"bbox":[384,443.52,72,28.8]}
+{"kind":"shape","id":"sh/94rqlozu","slide":12,"name":"Oval 32","bbox":[949.92,208.8,10.56,10.56]}
+{"kind":"textbox","id":"sh/u50rutgf","slide":12,"name":"TextBox 33","text":"Trần Quốc Phong","textPreview":"Trần Quốc Phong","textChars":15,"textLines":1,"bbox":[975.36,203.52,148.8,21.12]}
+{"kind":"textbox","id":"sh/v698neh0","slide":12,"name":"TextBox 34","text":"13.1%","textPreview":"13.1%","textChars":5,"textLines":1,"bbox":[1125.12,203.52,49.92,21.12]}
+{"kind":"shape","id":"sh/w7i9wjyl","slide":12,"name":"Oval 35","bbox":[949.92,246.24,10.56,10.56]}
+{"kind":"textbox","id":"sh/h8rqpoz6","slide":12,"name":"TextBox 36","text":"Y Đăng Niê","textPreview":"Y Đăng Niê","textChars":10,"textLines":1,"bbox":[975.36,240.96,148.8,21.12]}
+{"kind":"textbox","id":"sh/a9w7ip0b","slide":12,"name":"TextBox 37","text":"12.4%","textPreview":"12.4%","textChars":5,"textLines":1,"bbox":[1125.12,240.96,49.92,21.12]}
+{"kind":"shape","id":"sh/ba58buhw","slide":12,"name":"Oval 38","bbox":[949.92,283.68,10.56,10.56]}
+{"kind":"textbox","id":"sh/r6xofq9k","slide":12,"name":"TextBox 39","text":"Y Pak Ayun","textPreview":"Y Pak Ayun","textChars":10,"textLines":1,"bbox":[975.36,278.4,148.8,21.12]}
+{"kind":"textbox","id":"sh/q5onmlsz","slide":12,"name":"TextBox 40","text":"10.9%","textPreview":"10.9%","textChars":5,"textLines":1,"bbox":[1125.12,278.4,49.92,21.12]}
+{"kind":"shape","id":"sh/dsz6hgrq","slide":12,"name":"Oval 41","bbox":[949.92,321.12,10.56,10.56]}
+{"kind":"textbox","id":"sh/s765oba5","slide":12,"name":"TextBox 42","text":"Lê Ngọc Tài","textPreview":"Lê Ngọc Tài","textChars":11,"textLines":1,"bbox":[975.36,315.84,148.8,21.12]}
+{"kind":"textbox","id":"sh/fuhojq9g","slide":12,"name":"TextBox 43","text":"16.6%","textPreview":"16.6%","textChars":5,"textLines":1,"bbox":[1125.12,315.84,49.92,21.12]}
+{"kind":"shape","id":"sh/et8nqlsb","slide":12,"name":"Oval 44","bbox":[949.92,358.56,10.56,10.56]}
+{"kind":"textbox","id":"sh/1wz6l0rm","slide":12,"name":"TextBox 45","text":"Quách Đức Thành","textPreview":"Quách Đức Thành","textChars":15,"textLines":1,"bbox":[975.36,353.28,148.8,21.12]}
+{"kind":"textbox","id":"sh/0vqpsva1","slide":12,"name":"TextBox 46","text":"12.2%","textPreview":"12.2%","textChars":5,"textLines":1,"bbox":[1125.12,353.28,49.92,21.12]}
+{"kind":"shape","id":"sh/nyhona9s","slide":12,"name":"Oval 47","bbox":[949.92,396,10.56,10.56]}
+{"kind":"textbox","id":"sh/2x87u5s7","slide":12,"name":"TextBox 48","text":"Lạc Mạnh Quân Êban","textPreview":"Lạc Mạnh Quân Êban","textChars":18,"textLines":1,"bbox":[975.36,390.72,148.8,21.12]}
+{"kind":"textbox","id":"sh/k3a54f65","slide":12,"name":"TextBox 49","text":"19.9%","textPreview":"19.9%","textChars":5,"textLines":1,"bbox":[1125.12,390.72,49.92,21.12]}
+{"kind":"shape","id":"sh/l4j6dk7q","slide":12,"name":"Oval 50","bbox":[949.92,433.44,10.56,10.56]}
+{"kind":"textbox","id":"sh/y1sn25of","slide":12,"name":"TextBox 51","text":"Y Thiết Niê","textPreview":"Y Thiết Niê","textChars":11,"textLines":1,"bbox":[975.36,428.16,148.8,21.12]}
+{"kind":"textbox","id":"sh/j214bap0","slide":12,"name":"TextBox 52","text":"14.8%","textPreview":"14.8%","textChars":5,"textLines":1,"bbox":[1125.12,428.16,49.92,21.12]}
+{"kind":"shape","id":"sh/czq50v69","slide":12,"name":"Rounded Rectangle 53","bbox":[72,529.92,1130.88,97.92]}
+{"kind":"shape","id":"sh/x0jm907u","slide":12,"name":"Oval 54","bbox":[95.04,553.92,49.92,49.92]}
+{"kind":"textbox","id":"sh/ax8nylo3","slide":12,"name":"TextBox 55","text":"✓","textPreview":"✓","textChars":1,"textLines":1,"bbox":[100.8,556.8,38.4,40.32]}
+{"kind":"textbox","id":"sh/byh47qpo","slide":12,"name":"TextBox 56","text":"GHI CHÚ","textPreview":"GHI CHÚ","textChars":7,"textLines":1,"bbox":[170.88,547.2,115.2,22.08]}
+{"kind":"textbox","id":"sh/ovq5wv6d","slide":12,"name":"TextBox 57","text":"Biểu đồ trái: tỷ lệ Pass/Fail tổng thể.\nBiểu đồ phải: phân bổ test case theo từng thành viên.","textPreview":"Biểu đồ trái: tỷ lệ Pass/Fail tổng thể. | Biểu đồ phải: phân bổ test case theo từng thành viên.","textChars":93,"textLines":2,"bbox":[170.88,574.08,427.2,36.48]}
+{"kind":"shape","id":"sh/pwzm507i","slide":12,"name":"Rounded Rectangle 58","bbox":[681.6,549.12,201.6,59.52]}
+{"kind":"textbox","id":"sh/5g7udsva","slide":12,"name":"TextBox 59","text":"TỔNG TỶ LỆ TEST","textPreview":"TỔNG TỶ LỆ TEST","textChars":15,"textLines":1,"bbox":[693.12,554.88,178.56,17.28]}
+{"kind":"textbox","id":"sh/4fytknep","slide":12,"name":"TextBox 60","text":"100%","textPreview":"100%","textChars":4,"textLines":1,"bbox":[693.12,574.08,178.56,24.96]}
+{"kind":"shape","id":"sh/3epcbid4","slide":12,"name":"Rounded Rectangle 61","bbox":[904.32,549.12,238.08,59.52]}
+{"kind":"textbox","id":"sh/idgbidwj","slide":12,"name":"TextBox 62","text":"NGÀY THỐNG KÊ","textPreview":"NGÀY THỐNG KÊ","textChars":13,"textLines":1,"bbox":[915.84,554.88,215.04,17.28]}
+{"kind":"textbox","id":"sh/hc7u98ve","slide":12,"name":"TextBox 63","text":"11 / 08 / 2026","textPreview":"11 / 08 / 2026","textChars":14,"textLines":1,"bbox":[915.84,574.08,215.04,24.96]}
+{"kind":"textbox","id":"sh/gbytg3et","slide":12,"name":"TextBox 64","text":"WEBSITE LAPTOP & ACCESSORIES","textPreview":"WEBSITE LAPTOP & ACCESSORIES","textChars":28,"textLines":1,"bbox":[81.6,655.68,307.2,14.4]}
+{"kind":"chart","id":"ch/nipk3ix0","slide":12,"name":"Chart 24","chartType":"pie","bbox":[165.12,232.32,312,201.6]}
+{"kind":"chart","id":"ch/mhg3udgf","slide":12,"name":"Chart 31","chartType":"pie","bbox":[624,235.2,302.4,206.4]}
+{"kind":"image","id":"im/mxg3u5of","slide":12,"name":"Picture 65","bbox":[1131.48,-9.31,122.28,122.28]}
+{"kind":"notes","id":"nt/gf14hl","slide":12,"text":""}
+{"kind":"slide","id":"sl/6hl56z","slide":13,"title":"ĐÁNH GIÁ THÀNH VIÊN","textShapes":10}
+{"kind":"shape","id":"sh/y9czqxsr","slide":13,"name":"Connector 1","bbox":[0,11.52,72,127.68]}
+{"kind":"shape","id":"sh/jal0zitc","slide":13,"name":"Oval 2","bbox":[43.2,110.4,57.6,57.6]}
+{"kind":"shape","id":"sh/8fehw7at","slide":13,"name":"Oval 3","bbox":[57.6,124.8,28.8,28.8]}
+{"kind":"shape","id":"sh/tgni5cbe","slide":13,"name":"Connector 4","bbox":[72,52.8,96,86.4]}
+{"kind":"shape","id":"sh/6dwzuxsn","slide":13,"name":"Oval 5","bbox":[156.48,41.28,23.04,23.04]}
+{"kind":"shape","id":"sh/7e5032t8","slide":13,"name":"Connector 6","bbox":[168,52.8,144,38.4]}
+{"kind":"shape","id":"sh/gjyh07ap","slide":13,"name":"Oval 7","bbox":[299.52,78.72,24.96,24.96]}
+{"kind":"shape","id":"sh/h47i9cba","slide":13,"name":"Connector 8","bbox":[1084.8,619.2,91.2,76.8]}
+{"kind":"shape","id":"sh/to7u5cre","slide":13,"name":"Oval 9","bbox":[1058.88,593.28,51.84,51.84]}
+{"kind":"textbox","id":"sh/8nedc7at","slide":13,"name":"TextBox 10","text":"ĐÁNH GIÁ THÀNH VIÊN","textPreview":"ĐÁNH GIÁ THÀNH VIÊN","textChars":19,"textLines":1,"bbox":[403.2,33.6,480,52.8]}
+{"kind":"textbox","id":"sh/7m5c3298","slide":13,"name":"TextBox 11","text":"Tổng hợp mức độ đóng góp theo từng hạng mục","textPreview":"Tổng hợp mức độ đóng góp theo từng hạng mục","textChars":43,"textLines":1,"bbox":[403.2,84.48,480,23.04]}
+{"kind":"shape","id":"sh/m1wbaxsn","slide":13,"name":"Connector 12","bbox":[585.6,115.2,59.52,0]}
+{"kind":"shape","id":"sh/hs7u9wra","slide":13,"name":"Rounded Rectangle 13","bbox":[115.2,155.52,1051.2,462.72]}
+{"kind":"shape","id":"sh/vqpc7m94","slide":13,"name":"Rounded Rectangle 15","bbox":[1019.52,193.92,115.2,113.28]}
+{"kind":"textbox","id":"sh/upgvehsj","slide":13,"name":"TextBox 16","text":"THÀNH VIÊN","textPreview":"THÀNH VIÊN","textChars":10,"textLines":1,"bbox":[1029.12,206.4,96,19.2]}
+{"kind":"textbox","id":"sh/xw3uxsr6","slide":13,"name":"TextBox 17","text":"07","textPreview":"07","textChars":2,"textLines":1,"bbox":[1029.12,232.32,96,36.48]}
+{"kind":"shape","id":"sh/cvut4nal","slide":13,"name":"Rounded Rectangle 18","bbox":[1019.52,326.4,115.2,113.28]}
+{"kind":"textbox","id":"sh/oril0rmt","slide":13,"name":"TextBox 19","text":"TỔNG KQ","textPreview":"TỔNG KQ","textChars":7,"textLines":1,"bbox":[1029.12,338.88,96,19.2]}
+{"kind":"textbox","id":"sh/psrm9w3y","slide":13,"name":"TextBox 20","text":"100%","textPreview":"100%","textChars":4,"textLines":1,"bbox":[1029.12,364.8,96,36.48]}
+{"kind":"shape","id":"sh/2p03yh4n","slide":13,"name":"Rounded Rectangle 21","bbox":[1019.52,458.88,115.2,113.28]}
+{"kind":"textbox","id":"sh/nq947ml8","slide":13,"name":"TextBox 22","text":"TIÊU CHÍ","textPreview":"TIÊU CHÍ","textChars":8,"textLines":1,"bbox":[1029.12,471.36,96,19.2]}
+{"kind":"textbox","id":"sh/cf2l4rmp","slide":13,"name":"TextBox 23","text":"Code\nDocs • UI","textPreview":"Code | Docs • UI","textChars":14,"textLines":2,"bbox":[1029.12,497.28,96,36.48]}
+{"kind":"textbox","id":"sh/xgbmdw3a","slide":13,"name":"TextBox 24","text":"Đánh giá dựa trên mức độ tham gia vào Code, tài liệu (Docs), giao diện (UI) và kết quả đóng góp chung.","textPreview":"Đánh giá dựa trên mức độ tham gia vào Code, tài liệu (Docs), giao diện (UI) và kết quả đóng góp chung.","textChars":102,"textLines":1,"bbox":[148.8,587.52,806.4,21.12]}
+{"kind":"textbox","id":"sh/ad03214j","slide":13,"name":"TextBox 25","text":"WEBSITE LAPTOP & ACCESSORIES","textPreview":"WEBSITE LAPTOP & ACCESSORIES","textChars":28,"textLines":1,"bbox":[115.2,679.68,307.2,15.36]}
+{"kind":"table","id":"tb/k329cjqp","slide":13,"name":"Table 14","rows":9,"cols":7,"preview":"STT | Tên thành viên | Mã SV | Code (%) | Docs (%) | UI (%) | Kết quả - KQ (%)","bbox":[148.8,193.92,849.6,360]}
+{"kind":"image","id":"im/jalcru54","slide":13,"name":"Picture 27","bbox":[1131.48,-9.31,122.28,122.28]}
+{"kind":"notes","id":"nt/6hl56z","slide":13,"text":""}
+{"kind":"slide","id":"sl/m5okto","slide":14,"title":"DEMO WEBSITE","textShapes":18}
+{"kind":"shape","id":"sh/mx4bqt07","slide":14,"name":"Rounded Rectangle 1","bbox":[74.88,103.68,1128,496.32]}
+{"kind":"shape","id":"sh/nydsjy1s","slide":14,"name":"Connector 2","bbox":[888,48,139.2,28.8]}
+{"kind":"shape","id":"sh/0vmtoji1","slide":14,"name":"Connector 3","bbox":[1027.2,76.8,100.8,91.2]}
+{"kind":"shape","id":"sh/1wvahojm","slide":14,"name":"Oval 4","bbox":[875.52,35.52,24.96,24.96]}
+{"kind":"shape","id":"sh/et4bm90b","slide":14,"name":"Oval 5","bbox":[1015.68,65.28,23.04,23.04]}
+{"kind":"shape","id":"sh/zudsfe1g","slide":14,"name":"Oval 6","bbox":[1101.12,141.12,53.76,53.76]}
+{"kind":"shape","id":"sh/kr6t0nil","slide":14,"name":"Oval 7","bbox":[1115.52,155.52,24.96,24.96]}
+{"kind":"shape","id":"sh/5szutsjq","slide":14,"name":"Connector 8","bbox":[43.2,576,100.8,67.2]}
+{"kind":"shape","id":"sh/lgrqdkvi","slide":14,"name":"Connector 9","bbox":[144,602.88,158.4,40.32]}
+{"kind":"shape","id":"sh/kfip4fux","slide":14,"name":"Oval 10","bbox":[33.6,566.4,19.2,19.2]}
+{"kind":"shape","id":"sh/zu98badc","slide":14,"name":"Oval 11","bbox":[118.08,617.28,51.84,51.84]}
+{"kind":"shape","id":"sh/yt0725cr","slide":14,"name":"Oval 12","bbox":[290.88,591.36,23.04,23.04]}
+{"kind":"shape","id":"sh/xsr69kv6","slide":14,"name":"Rounded Rectangle 13","bbox":[113.28,165.12,148.8,36.48]}
+{"kind":"textbox","id":"sh/crip0ful","slide":14,"name":"TextBox 14","text":"DEMO WEBSITE","textPreview":"DEMO WEBSITE","textChars":12,"textLines":1,"bbox":[113.28,169.92,148.8,24.96]}
+{"kind":"textbox","id":"sh/bqpo7adg","slide":14,"name":"TextBox 15","text":"Website bán Laptop\n& Phụ kiện","textPreview":"Website bán Laptop | & Phụ kiện","textChars":29,"textLines":2,"bbox":[111.89,208.27,478.08,103.4]}
+{"kind":"textbox","id":"sh/apg7y5cv","slide":14,"name":"TextBox 16","text":"Trình diễn các chức năng chính và luồng mua hàng thực tế của hệ thống.","textPreview":"Trình diễn các chức năng chính và luồng mua hàng thực tế của hệ thống.","textChars":70,"textLines":1,"bbox":[113.28,334.08,633.6,52.8]}
+{"kind":"textbox","id":"sh/4bahwn65","slide":14,"name":"TextBox 27","text":"GIAO DIỆN WEBSITE","textPreview":"GIAO DIỆN WEBSITE","textChars":17,"textLines":1,"bbox":[820.8,403.2,261.12,19.2]}
+{"kind":"shape","id":"sh/5cjips7q","slide":14,"name":"Rounded Rectangle 28","bbox":[113.28,430.08,165.12,40.32]}
+{"kind":"shape","id":"sh/76hkzi9s","slide":14,"name":"Oval 29","bbox":[124.8,440.64,19.2,19.2]}
+{"kind":"textbox","id":"sh/658j6d87","slide":14,"name":"TextBox 30","text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[124.8,439.68,19.2,21.12]}
+{"kind":"textbox","id":"sh/t8z21sri","slide":14,"name":"TextBox 31","text":"Trang chủ","textPreview":"Trang chủ","textChars":9,"textLines":1,"bbox":[151.68,437.76,117.12,24.96]}
+{"kind":"shape","id":"sh/87q18nqx","slide":14,"name":"Rounded Rectangle 32","bbox":[305.28,430.08,201.6,40.32]}
+{"kind":"shape","id":"sh/va1k3i9o","slide":14,"name":"Oval 33","bbox":[316.8,440.64,19.2,19.2]}
+{"kind":"textbox","id":"sh/u9sjax83","slide":14,"name":"TextBox 34","text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[316.8,439.68,19.2,21.12]}
+{"kind":"textbox","id":"sh/hwj25sru","slide":14,"name":"TextBox 35","text":"Danh mục & tìm kiếm","textPreview":"Danh mục & tìm kiếm","textChars":19,"textLines":1,"bbox":[343.68,437.76,153.6,24.96]}
+{"kind":"shape","id":"sh/gva1cnq9","slide":14,"name":"Rounded Rectangle 36","bbox":[528,430.08,196.8,40.32]}
+{"kind":"shape","id":"sh/3y1k7290","slide":14,"name":"Oval 37","bbox":[539.52,440.64,19.2,19.2]}
+{"kind":"textbox","id":"sh/ixsjex8f","slide":14,"name":"TextBox 38","text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[539.52,439.68,19.2,21.12]}
+{"kind":"textbox","id":"sh/2h03a1gb","slide":14,"name":"TextBox 39","text":"Chi tiết sản phẩm","textPreview":"Chi tiết sản phẩm","textChars":17,"textLines":1,"bbox":[566.4,437.76,148.8,24.96]}
+{"kind":"shape","id":"sh/3294j6hw","slide":14,"name":"Rounded Rectangle 40","bbox":[113.28,487.68,203.52,40.32]}
+{"kind":"shape","id":"sh/o3ilcbyh","slide":14,"name":"Oval 41","bbox":[124.8,498.24,19.2,19.2]}
+{"kind":"textbox","id":"sh/p4bmlgz2","slide":14,"name":"TextBox 42","text":"4","textPreview":"4","textChars":1,"textLines":1,"bbox":[124.8,497.28,19.2,21.12]}
+{"kind":"textbox","id":"sh/q5k3elgn","slide":14,"name":"TextBox 43","text":"Giỏ hàng & đặt hàng","textPreview":"Giỏ hàng & đặt hàng","textChars":19,"textLines":1,"bbox":[151.68,495.36,155.52,24.96]}
+{"kind":"shape","id":"sh/b6t47qh8","slide":14,"name":"Rounded Rectangle 44","bbox":[340.8,487.68,218.88,40.32]}
+{"kind":"shape","id":"sh/c725gvyd","slide":14,"name":"Oval 45","bbox":[352.32,498.24,19.2,19.2]}
+{"kind":"textbox","id":"sh/d8bm90fy","slide":14,"name":"TextBox 46","text":"5","textPreview":"5","textChars":1,"textLines":1,"bbox":[352.32,497.28,19.2,21.12]}
+{"kind":"textbox","id":"sh/69g32hg3","slide":14,"name":"TextBox 47","text":"Tài khoản người dùng","textPreview":"Tài khoản người dùng","textChars":20,"textLines":1,"bbox":[379.2,495.36,170.88,24.96]}
+{"kind":"shape","id":"sh/rap4bmho","slide":14,"name":"Rounded Rectangle 48","bbox":[580.8,487.68,206.4,40.32]}
+{"kind":"shape","id":"sh/9gzyxoni","slide":14,"name":"Oval 49","bbox":[592.32,498.24,19.2,19.2]}
+{"kind":"textbox","id":"sh/8f6xojmx","slide":14,"name":"TextBox 50","text":"6","textPreview":"6","textChars":1,"textLines":1,"bbox":[592.32,497.28,19.2,21.12]}
+{"kind":"textbox","id":"sh/7exgve5c","slide":14,"name":"TextBox 51","text":"Trang quản trị Admin","textPreview":"Trang quản trị Admin","textChars":20,"textLines":1,"bbox":[619.2,495.36,158.4,24.96]}
+{"kind":"textbox","id":"sh/mdof2947","slide":14,"name":"TextBox 52","text":"Luồng demo:  Tìm sản phẩm  →  Xem chi tiết  →  Thêm giỏ hàng  →  Đặt hàng  →  Quản lý đơn","textPreview":"Luồng demo:  Tìm sản phẩm  →  Xem chi tiết  →  Thêm giỏ hàng  →  Đặt hàng  →  Quản lý đơn","textChars":89,"textLines":1,"bbox":[113.28,549.12,652.8,26.88]}
+{"kind":"shape","id":"sh/h4zy1o3u","slide":14,"name":"Connector 53","bbox":[113.28,635.52,1048.32,0]}
+{"kind":"textbox","id":"sh/g3qxs3m9","slide":14,"name":"TextBox 54","text":"WEBSITE LAPTOP & ACCESSORIES","textPreview":"WEBSITE LAPTOP & ACCESSORIES","textChars":28,"textLines":1,"bbox":[113.28,650.88,316.8,17.28]}
+{"kind":"image","id":"im/0ji5cnqx","slide":14,"name":"Picture 58","bbox":[721.45,191.52,440.15,208.8]}
+{"kind":"image","id":"im/1kr6ls7i","slide":14,"name":"Picture 17","bbox":[1131.48,-9.31,122.28,122.28]}
+{"kind":"notes","id":"nt/m5okto","slide":14,"text":""}
+{"kind":"slide","id":"sl/maug3m","slide":15,"title":"•••","textShapes":8}
+{"kind":"shape","id":"sh/3yt8nuhc","slide":15,"name":"Rounded Rectangle 1","bbox":[196.8,81.6,878.4,532.8]}
+{"kind":"shape","id":"sh/2dk7upgr","slide":15,"name":"Connector 2","bbox":[849.6,43.2,163.2,31.68]}
+{"kind":"shape","id":"sh/d4vqtoze","slide":15,"name":"Connector 3","bbox":[1012.8,74.88,112.32,99.84]}
+{"kind":"shape","id":"sh/c3m90jy9","slide":15,"name":"Connector 4","bbox":[1125.12,55.68,79.68,119.04]}
+{"kind":"shape","id":"sh/b2d8reho","slide":15,"name":"Oval 5","bbox":[837.12,30.72,24.96,24.96]}
+{"kind":"shape","id":"sh/q147y9g3","slide":15,"name":"Oval 6","bbox":[1001.28,63.36,23.04,23.04]}
+{"kind":"shape","id":"sh/t8bqhkza","slide":15,"name":"Oval 7","bbox":[1096.32,145.92,57.6,57.6]}
+{"kind":"shape","id":"sh/s7ipofyp","slide":15,"name":"Oval 8","bbox":[1111.68,161.28,26.88,26.88]}
+{"kind":"shape","id":"sh/i9kbmdcf","slide":15,"name":"Oval 9","bbox":[1196.16,47.04,17.28,17.28]}
+{"kind":"textbox","id":"sh/3adcfit0","slide":15,"name":"TextBox 10","text":"•••","textPreview":"•••","textChars":3,"textLines":1,"bbox":[1153.92,16.32,52.8,17.28]}
+{"kind":"shape","id":"sh/4bmtonul","slide":15,"name":"Connector 11","bbox":[33.6,585.6,115.2,59.52]}
+{"kind":"shape","id":"sh/5cvuhsb6","slide":15,"name":"Connector 12","bbox":[148.8,597.12,158.4,48]}
+{"kind":"shape","id":"sh/qd4bqdcr","slide":15,"name":"Connector 13","bbox":[307.2,597.12,148.8,48]}
+{"kind":"shape","id":"sh/redcjitw","slide":15,"name":"Oval 14","bbox":[24.96,576.96,17.28,17.28]}
+{"kind":"shape","id":"sh/sfmtsnuh","slide":15,"name":"Oval 15","bbox":[121.92,618.24,53.76,53.76]}
+{"kind":"shape","id":"sh/d0vulsb2","slide":15,"name":"Oval 16","bbox":[136.32,632.64,24.96,24.96]}
+{"kind":"shape","id":"sh/e14buxcn","slide":15,"name":"Oval 17","bbox":[295.68,585.6,23.04,23.04]}
+{"kind":"shape","id":"sh/f2xcn2t8","slide":15,"name":"Oval 18","bbox":[443.52,632.64,24.96,24.96]}
+{"kind":"shape","id":"sh/b6xsb29g","slide":15,"name":"Rounded Rectangle 19","bbox":[513.6,132.48,249.6,36.48]}
+{"kind":"textbox","id":"sh/a5obix8v","slide":15,"name":"TextBox 20","text":"KẾT THÚC BÀI TRÌNH BÀY","textPreview":"KẾT THÚC BÀI TRÌNH BÀY","textChars":22,"textLines":1,"bbox":[513.6,136.32,249.6,25.92]}
+{"kind":"textbox","id":"sh/x8fadcr6","slide":15,"name":"TextBox 21","text":"CẢM ƠN!","textPreview":"CẢM ƠN!","textChars":7,"textLines":1,"bbox":[302.4,193.92,676.8,81.6]}
+{"kind":"textbox","id":"sh/c76tk7q1","slide":15,"name":"TextBox 22","text":"Cảm ơn thầy cô và mọi người\nđã lắng nghe","textPreview":"Cảm ơn thầy cô và mọi người | đã lắng nghe","textChars":40,"textLines":2,"bbox":[288,283.2,705.6,67.2]}
+{"kind":"shape","id":"sh/n2xs7294","slide":15,"name":"Connector 23","bbox":[532.8,377.28,76.8,0]}
+{"kind":"shape","id":"sh/21obex8j","slide":15,"name":"Oval 24","bbox":[623.52,374.88,4.8,4.8]}
+{"kind":"shape","id":"sh/p4fa9sra","slide":15,"name":"Oval 25","bbox":[637.92,374.88,4.8,4.8]}
+{"kind":"shape","id":"sh/o36tgnqp","slide":15,"name":"Oval 26","bbox":[652.32,374.88,4.8,4.8]}
+{"kind":"shape","id":"sh/feds3i98","slide":15,"name":"Rounded Rectangle 27","bbox":[388.8,417.6,499.2,110.4]}
+{"kind":"shape","id":"sh/ed4rad8n","slide":15,"name":"Oval 28","bbox":[414.72,443.52,57.6,57.6]}
+{"kind":"textbox","id":"sh/4j2p4j6l","slide":15,"name":"TextBox 29","text":"?","textPreview":"?","textChars":1,"textLines":1,"bbox":[418.56,449.28,49.92,43.2]}
+{"kind":"textbox","id":"sh/5kbqdo76","slide":15,"name":"TextBox 30","text":"Q&A • THẢO LUẬN","textPreview":"Q&A • THẢO LUẬN","textChars":15,"textLines":1,"bbox":[489.6,433.92,340.8,28.8]}
+{"kind":"textbox","id":"sh/ih0729of","slide":15,"name":"TextBox 31","text":"Rất mong nhận được câu hỏi và ý kiến đóng góp.","textPreview":"Rất mong nhận được câu hỏi và ý kiến đóng góp.","textChars":46,"textLines":1,"bbox":[489.6,466.56,340.8,32.64]}
+{"kind":"textbox","id":"sh/3it8bep0","slide":15,"name":"TextBox 32","text":"Predator Group  •  Website Laptop & Accessories","textPreview":"Predator Group  •  Website Laptop & Accessories","textChars":47,"textLines":1,"bbox":[408,554.88,460.8,24]}
+{"kind":"image","id":"im/vuxkrytc","slide":15,"name":"Picture 34","bbox":[1131.48,-9.31,122.28,122.28]}
+{"kind":"notes","id":"nt/maug3m","slide":15,"text":""}

@@ -1,0 +1,13 @@
+{
+  "status": "pass",
+  "checkedAt": "2026-08-29T12:30:58.800Z",
+  "workspace": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work",
+  "finalPptx": "C:\\xampp\\htdocs\\DATN\\NextGen_BaoVe_DoAn_2026.pptx",
+  "starterPptx": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-starter.pptx",
+  "mapPath": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-frame-map.json",
+  "starterLayoutDir": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-starter-layout",
+  "finalLayoutDir": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\final-layout",
+  "editDir": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work",
+  "issueCount": 0,
+  "issues": []
+}

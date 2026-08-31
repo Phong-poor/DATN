@@ -1887,7 +1887,7 @@ const handleSelectVariantById = (idBienThe) => {
                                             <circle cx="18.5" cy="18.5" r="2.5"/>
                                         </svg>
                                     </span>
-                                    <span class="benefit-text">Phí giao hàng toàn quốc 30.000đ hoặc <b>Giao nhanh Hỏa Tốc trong vòng 2H</b>.</span>
+                                    <span class="benefit-text">Phí giao hàng toàn quốc 30.000đ hoặc <b>Giao nhanh Hỏa Tốc</b>.</span>
                                 </li>
                             </ul>
                         </div>

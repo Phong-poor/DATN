@@ -1,0 +1,267 @@
+{
+  "sourcePptx": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\source.pptx",
+  "workspace": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work",
+  "outDir": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect",
+  "generatedAt": "2026-08-29T02:55:53.425Z",
+  "slideCount": 15,
+  "slideArtifacts": [
+    {
+      "slide": 1,
+      "previewPath": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\source-slides\\source-slide-01.png",
+      "previewRelativePath": "template-inspect/source-slides/source-slide-01.png",
+      "layoutPath": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\layouts\\source-slide-01.layout.json",
+      "layoutRelativePath": "template-inspect/layouts/source-slide-01.layout.json"
+    },
+    {
+      "slide": 2,
+      "previewPath": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\source-slides\\source-slide-02.png",
+      "previewRelativePath": "template-inspect/source-slides/source-slide-02.png",
+      "layoutPath": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\layouts\\source-slide-02.layout.json",
+      "layoutRelativePath": "template-inspect/layouts/source-slide-02.layout.json"
+    },
+    {
+      "slide": 3,
+      "previewPath": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\source-slides\\source-slide-03.png",
+      "previewRelativePath": "template-inspect/source-slides/source-slide-03.png",
+      "layoutPath": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\layouts\\source-slide-03.layout.json",
+      "layoutRelativePath": "template-inspect/layouts/source-slide-03.layout.json"
+    },
+    {
+      "slide": 4,
+      "previewPath": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\source-slides\\source-slide-04.png",
+      "previewRelativePath": "template-inspect/source-slides/source-slide-04.png",
+      "layoutPath": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\layouts\\source-slide-04.layout.json",
+      "layoutRelativePath": "template-inspect/layouts/source-slide-04.layout.json"
+    },
+    {
+      "slide": 5,
+      "previewPath": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\source-slides\\source-slide-05.png",
+      "previewRelativePath": "template-inspect/source-slides/source-slide-05.png",
+      "layoutPath": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\layouts\\source-slide-05.layout.json",
+      "layoutRelativePath": "template-inspect/layouts/source-slide-05.layout.json"
+    },
+    {
+      "slide": 6,
+      "previewPath": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\source-slides\\source-slide-06.png",
+      "previewRelativePath": "template-inspect/source-slides/source-slide-06.png",
+      "layoutPath": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\layouts\\source-slide-06.layout.json",
+      "layoutRelativePath": "template-inspect/layouts/source-slide-06.layout.json"
+    },
+    {
+      "slide": 7,
+      "previewPath": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\source-slides\\source-slide-07.png",
+      "previewRelativePath": "template-inspect/source-slides/source-slide-07.png",
+      "layoutPath": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\layouts\\source-slide-07.layout.json",
+      "layoutRelativePath": "template-inspect/layouts/source-slide-07.layout.json"
+    },
+    {
+      "slide": 8,
+      "previewPath": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\source-slides\\source-slide-08.png",
+      "previewRelativePath": "template-inspect/source-slides/source-slide-08.png",
+      "layoutPath": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\layouts\\source-slide-08.layout.json",
+      "layoutRelativePath": "template-inspect/layouts/source-slide-08.layout.json"
+    },
+    {
+      "slide": 9,
+      "previewPath": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\source-slides\\source-slide-09.png",
+      "previewRelativePath": "template-inspect/source-slides/source-slide-09.png",
+      "layoutPath": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\layouts\\source-slide-09.layout.json",
+      "layoutRelativePath": "template-inspect/layouts/source-slide-09.layout.json"
+    },
+    {
+      "slide": 10,
+      "previewPath": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\source-slides\\source-slide-10.png",
+      "previewRelativePath": "template-inspect/source-slides/source-slide-10.png",
+      "layoutPath": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\layouts\\source-slide-10.layout.json",
+      "layoutRelativePath": "template-inspect/layouts/source-slide-10.layout.json"
+    },
+    {
+      "slide": 11,
+      "previewPath": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\source-slides\\source-slide-11.png",
+      "previewRelativePath": "template-inspect/source-slides/source-slide-11.png",
+      "layoutPath": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\layouts\\source-slide-11.layout.json",
+      "layoutRelativePath": "template-inspect/layouts/source-slide-11.layout.json"
+    },
+    {
+      "slide": 12,
+      "previewPath": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\source-slides\\source-slide-12.png",
+      "previewRelativePath": "template-inspect/source-slides/source-slide-12.png",
+      "layoutPath": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\layouts\\source-slide-12.layout.json",
+      "layoutRelativePath": "template-inspect/layouts/source-slide-12.layout.json"
+    },
+    {
+      "slide": 13,
+      "previewPath": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\source-slides\\source-slide-13.png",
+      "previewRelativePath": "template-inspect/source-slides/source-slide-13.png",
+      "layoutPath": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\layouts\\source-slide-13.layout.json",
+      "layoutRelativePath": "template-inspect/layouts/source-slide-13.layout.json"
+    },
+    {
+      "slide": 14,
+      "previewPath": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\source-slides\\source-slide-14.png",
+      "previewRelativePath": "template-inspect/source-slides/source-slide-14.png",
+      "layoutPath": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\layouts\\source-slide-14.layout.json",
+      "layoutRelativePath": "template-inspect/layouts/source-slide-14.layout.json"
+    },
+    {
+      "slide": 15,
+      "previewPath": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\source-slides\\source-slide-15.png",
+      "previewRelativePath": "template-inspect/source-slides/source-slide-15.png",
+      "layoutPath": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\layouts\\source-slide-15.layout.json",
+      "layoutRelativePath": "template-inspect/layouts/source-slide-15.layout.json"
+    }
+  ],
+  "inspectPath": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\template-inspect.ndjson",
+  "inspectRelativePath": "template-inspect/template-inspect.ndjson",
+  "inspectTruncated": true,
+  "inspectMetadata": {
+    "revision": "pc6f7v",
+    "target": {
+      "id": "pr/aggqoq"
+    },
+    "kind": {
+      "requested": "slide,textbox,shape,image,table,chart",
+      "tokens": [
+        "slide",
+        "textbox",
+        "shape",
+        "image",
+        "table",
+        "chart"
+      ]
+    },
+    "include": {
+      "tokens": []
+    },
+    "exclude": {
+      "tokens": []
+    },
+    "notices": []
+  },
+  "extractedMedia": [
+    {
+      "entry": "ppt/media/image1.png",
+      "path": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\assets\\ppt\\media\\image1.png",
+      "relativePath": "template-inspect/assets/ppt/media/image1.png",
+      "bytes": 175578
+    },
+    {
+      "entry": "ppt/media/image2.png",
+      "path": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\assets\\ppt\\media\\image2.png",
+      "relativePath": "template-inspect/assets/ppt/media/image2.png",
+      "bytes": 87386
+    },
+    {
+      "entry": "ppt/media/image3.png",
+      "path": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\assets\\ppt\\media\\image3.png",
+      "relativePath": "template-inspect/assets/ppt/media/image3.png",
+      "bytes": 238238
+    },
+    {
+      "entry": "ppt/media/image4.png",
+      "path": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\assets\\ppt\\media\\image4.png",
+      "relativePath": "template-inspect/assets/ppt/media/image4.png",
+      "bytes": 156054
+    },
+    {
+      "entry": "ppt/media/image5.png",
+      "path": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\assets\\ppt\\media\\image5.png",
+      "relativePath": "template-inspect/assets/ppt/media/image5.png",
+      "bytes": 53469
+    },
+    {
+      "entry": "ppt/media/image6.png",
+      "path": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\assets\\ppt\\media\\image6.png",
+      "relativePath": "template-inspect/assets/ppt/media/image6.png",
+      "bytes": 67276
+    },
+    {
+      "entry": "ppt/media/image7.png",
+      "path": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\assets\\ppt\\media\\image7.png",
+      "relativePath": "template-inspect/assets/ppt/media/image7.png",
+      "bytes": 43708
+    },
+    {
+      "entry": "ppt/media/image13.png",
+      "path": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\assets\\ppt\\media\\image13.png",
+      "relativePath": "template-inspect/assets/ppt/media/image13.png",
+      "bytes": 1041394
+    },
+    {
+      "entry": "ppt/media/image10.png",
+      "path": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\assets\\ppt\\media\\image10.png",
+      "relativePath": "template-inspect/assets/ppt/media/image10.png",
+      "bytes": 28451
+    },
+    {
+      "entry": "ppt/media/image8.png",
+      "path": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\assets\\ppt\\media\\image8.png",
+      "relativePath": "template-inspect/assets/ppt/media/image8.png",
+      "bytes": 21681
+    },
+    {
+      "entry": "ppt/media/image9.png",
+      "path": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\assets\\ppt\\media\\image9.png",
+      "relativePath": "template-inspect/assets/ppt/media/image9.png",
+      "bytes": 36237
+    },
+    {
+      "entry": "ppt/media/image11.png",
+      "path": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\assets\\ppt\\media\\image11.png",
+      "relativePath": "template-inspect/assets/ppt/media/image11.png",
+      "bytes": 22095
+    },
+    {
+      "entry": "ppt/media/image12.png",
+      "path": "C:\\xampp\\htdocs\\DATN\\.codex-slide-work\\template-inspect\\assets\\ppt\\media\\image12.png",
+      "relativePath": "template-inspect/assets/ppt/media/image12.png",
+      "bytes": 181040
+    }
+  ],
+  "fonts": [
+    "+mj-cs",
+    "+mj-ea",
+    "+mj-lt",
+    "+mn-cs",
+    "+mn-ea",
+    "+mn-lt",
+    "Angsana New",
+    "Arial",
+    "Calibri",
+    "Cordia New",
+    "DaunPenh",
+    "DokChampa",
+    "Estrangelo Edessa",
+    "Euphemia",
+    "Gautami",
+    "Iskoola Pota",
+    "Kalinga",
+    "Kartika",
+    "Latha",
+    "MV Boli",
+    "Mangal",
+    "Microsoft Himalaya",
+    "Microsoft Uighur",
+    "Microsoft Yi Baiti",
+    "Mongolian Baiti",
+    "MoolBoran",
+    "Nyala",
+    "Plantagenet Cherokee",
+    "Raavi",
+    "Shruti",
+    "Sylfaen",
+    "Times New Roman",
+    "Tunga",
+    "Vrinda",
+    "宋体",
+    "新細明體",
+    "맑은 고딕",
+    "ＭＳ Ｐゴシック"
+  ],
+  "packageParts": {
+    "mediaCount": 13,
+    "slideXmlCount": 15,
+    "chartCount": 2,
+    "tableSlideCount": 1
+  }
+}

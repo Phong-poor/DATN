@@ -8,6 +8,7 @@ use App\Models\AffiliateReferral;
 use App\Models\AffiliateWithdrawRequest;
 use App\Services\AffiliateBalanceService;
 use App\Services\AffiliatePayoutService;
+use App\Services\SmsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -17,6 +18,7 @@ class AdminAffiliateController extends Controller
     public function __construct(
         private readonly AffiliateBalanceService $balanceService,
         private readonly AffiliatePayoutService $payoutService,
+        private readonly SmsService $smsService,
     ) {}
 
     public function index()
@@ -148,9 +150,35 @@ class AdminAffiliateController extends Controller
                 return $withdraw;
             });
 
+            $smsNotification = null;
+            if ($row->trangthai === 'paid') {
+                $row->loadMissing('affiliateUser');
+                $phone = trim((string) ($row->so_dien_thoai_nhan_sms ?: $row->affiliateUser?->phone ?? ''));
+                $normalizedPhone = preg_replace('/[\s.\-]/', '', $phone);
+                $transactionCode = (string) ($row->ma_giao_dich ?: $row->ma_yeu_cau ?: ('AFF-'.$row->id));
+
+                $smsNotification = preg_match('/^(?:\+?84|0)(?:3|5|7|8|9)\d{8}$/', $normalizedPhone)
+                    ? $this->smsService->sendAffiliatePayoutDemo($phone, (float) $row->so_tien, $transactionCode)
+                    : [
+                        'success' => false,
+                        'message_id' => null,
+                        'error' => 'Tài khoản chưa có số điện thoại Việt Nam hợp lệ để nhận SMS.',
+                    ];
+
+                $payoutData = (array) ($row->du_lieu_chi_tra ?? []);
+                $payoutData['sms_notification'] = [
+                    ...$smsNotification,
+                    'phone_masked' => $phone !== '' ? $this->smsService->maskPhone($phone) : null,
+                    'sent_at' => now()->toIso8601String(),
+                ];
+                $row->du_lieu_chi_tra = $payoutData;
+                $row->save();
+            }
+
             return response()->json([
                 'message' => $row->trangthai === 'paid' ? 'Chi trả thành công và đã ghi nhận mã giao dịch.' : 'Đã gửi lệnh chi trả, đang chờ nhà cung cấp xác nhận.',
                 'withdraw_request' => $row,
+                'sms_notification' => $smsNotification,
             ]);
         }
 

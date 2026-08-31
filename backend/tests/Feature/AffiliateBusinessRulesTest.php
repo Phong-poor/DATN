@@ -104,4 +104,34 @@ class AffiliateBusinessRulesTest extends TestCase
         $this->assertSame('cancelled', $withdraw->fresh()->trangthai);
         $this->assertSame(500000.0, app(AffiliateBalanceService::class)->summary($publisher->id)['available_balance']);
     }
+
+    public function test_withdrawal_stores_the_phone_selected_for_sms_notification(): void
+    {
+        $publisher = User::factory()->create(['sodienthoai' => '0911111111']);
+        Sanctum::actingAs($publisher);
+        AffiliateProfile::create([
+            'id_khachhang' => $publisher->id,
+            'ma_affiliate' => 'SMSPHONE',
+            'ty_le_hoa_hong' => 5,
+            'trangthai' => 'active',
+        ]);
+        AffiliateCommission::create([
+            'id_affiliate_khachhang' => $publisher->id,
+            'so_tien' => 500000,
+            'trangthai' => 'approved',
+        ]);
+
+        $this->postJson('/api/affiliate/withdraws', [
+            'amount' => 150000,
+            'bank_name' => 'BIDV',
+            'bank_account_name' => 'LE NGOC TAI',
+            'bank_account_number' => '1234567890',
+            'sms_phone' => '+84987654321',
+        ])->assertCreated()->assertJsonPath('withdraw.sms_phone', '0987654321');
+
+        $this->assertDatabaseHas('affiliate_yeu_cau_rut_tien', [
+            'id_affiliate_khachhang' => $publisher->id,
+            'so_dien_thoai_nhan_sms' => '0987654321',
+        ]);
+    }
 }

@@ -81,4 +81,14 @@ return [
         'timeout' => env('MOMO_PAYOUT_TIMEOUT', 20),
     ],
 
+    'sms' => [
+        'enabled' => env('SMS_ENABLED', false),
+        'provider' => env('SMS_PROVIDER', 'demo'),
+        'endpoint' => env('SMS_ENDPOINT'),
+        'api_key' => env('SMS_API_KEY'),
+        'secret_key' => env('SMS_SECRET_KEY'),
+        'brandname' => env('SMS_BRANDNAME', 'NEXTGEN'),
+        'type' => (int) env('SMS_TYPE', 4),
+    ],
+
 ];

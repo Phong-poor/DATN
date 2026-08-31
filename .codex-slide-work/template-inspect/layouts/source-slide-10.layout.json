@@ -1,0 +1,3457 @@
+{
+  "schema": "openai.presentation.layout/v4",
+  "unit": "px",
+  "slide": {
+    "aid": "sl/m90b6t0r",
+    "id": "m90b6t0r",
+    "slide": 10,
+    "layoutId": "/ppt/slideLayouts/slideLayout7.xml",
+    "layoutName": "Blank",
+    "layoutType": "blank",
+    "masterLayoutId": "/ppt/slideMasters/slideMaster1.xml",
+    "frame": {
+      "left": 0,
+      "top": 0,
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "theme": {
+    "colorSchemeName": "Office",
+    "colors": {
+      "accent1": "#4F81BD",
+      "accent2": "#C0504D",
+      "accent3": "#9BBB59",
+      "accent4": "#8064A2",
+      "accent5": "#4BACC6",
+      "accent6": "#F79646",
+      "dk1": "#000000",
+      "lt1": "#FFFFFF",
+      "dk2": "#1F497D",
+      "lt2": "#EEECE1",
+      "hlink": "#0000FF",
+      "folHlink": "#800080"
+    },
+    "fontScheme": {
+      "name": "Office",
+      "majorFont": {
+        "latinTypeface": "Calibri"
+      },
+      "minorFont": {
+        "latinTypeface": "Calibri"
+      }
+    },
+    "typefaces": [
+      "Arial",
+      "Calibri"
+    ]
+  },
+  "inheritedLayers": [
+    {
+      "scope": "layout",
+      "id": "/ppt/slideLayouts/slideLayout7.xml",
+      "name": "Blank",
+      "type": "blank",
+      "parentLayoutId": "/ppt/slideMasters/slideMaster1.xml",
+      "elements": [
+        {
+          "order": 1,
+          "kind": "shape",
+          "scope": "layout",
+          "aid": "template/layout//ppt/slideLayouts/slideLayout7.xml/2",
+          "id": "2",
+          "name": "Date Placeholder 1",
+          "bbox": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "text": "8/29/2026",
+          "textPreview": "8/29/2026",
+          "paragraphs": [
+            {
+              "index": 1,
+              "text": "8/29/2026",
+              "runs": [
+                {
+                  "index": 1,
+                  "text": "8/29/2026"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "order": 2,
+          "kind": "shape",
+          "scope": "layout",
+          "aid": "template/layout//ppt/slideLayouts/slideLayout7.xml/3",
+          "id": "3",
+          "name": "Footer Placeholder 2",
+          "bbox": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "order": 3,
+          "kind": "shape",
+          "scope": "layout",
+          "aid": "template/layout//ppt/slideLayouts/slideLayout7.xml/4",
+          "id": "4",
+          "name": "Slide Number Placeholder 3",
+          "bbox": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "text": "‹#›",
+          "textPreview": "‹#›",
+          "paragraphs": [
+            {
+              "index": 1,
+              "text": "‹#›",
+              "runs": [
+                {
+                  "index": 1,
+                  "text": "‹#›"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "scope": "master",
+      "id": "/ppt/slideMasters/slideMaster1.xml",
+      "type": "master",
+      "elements": [
+        {
+          "order": 1,
+          "kind": "shape",
+          "scope": "master",
+          "aid": "template/master//ppt/slideMasters/slideMaster1.xml/2",
+          "id": "2",
+          "name": "Title Placeholder 1",
+          "bbox": [
+            48,
+            28.83,
+            864,
+            120
+          ],
+          "geometry": "rect",
+          "text": "Click to edit Master title style",
+          "textPreview": "Click to edit Master title style",
+          "resolvedTextStyle": {
+            "anchor": 2,
+            "vertical": 1,
+            "verticalAlignment": "middle",
+            "autoFit": "shrinkText",
+            "insets": {
+              "top": 4.8,
+              "right": 9.6,
+              "bottom": 4.8,
+              "left": 9.6
+            }
+          },
+          "paragraphs": [
+            {
+              "index": 1,
+              "text": "Click to edit Master title style",
+              "runs": [
+                {
+                  "index": 1,
+                  "text": "Click to edit Master title style"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "order": 2,
+          "kind": "shape",
+          "scope": "master",
+          "aid": "template/master//ppt/slideMasters/slideMaster1.xml/3",
+          "id": "3",
+          "name": "Text Placeholder 2",
+          "bbox": [
+            48,
+            168,
+            864,
+            475.17
+          ],
+          "geometry": "rect",
+          "text": "Click to edit Master text styles\nSecond level\nThird level\nFourth level\nFifth level",
+          "textPreview": "Click to edit Master text styles | Second level | Third level | Fourth level | Fifth level",
+          "resolvedTextStyle": {
+            "vertical": 1,
+            "autoFit": "shrinkText",
+            "insets": {
+              "top": 4.8,
+              "right": 9.6,
+              "bottom": 4.8,
+              "left": 9.6
+            }
+          },
+          "paragraphs": [
+            {
+              "index": 1,
+              "text": "Click to edit Master text styles",
+              "runs": [
+                {
+                  "index": 1,
+                  "text": "Click to edit Master text styles"
+                }
+              ]
+            },
+            {
+              "index": 2,
+              "text": "Second level",
+              "runs": [
+                {
+                  "index": 1,
+                  "text": "Second level"
+                }
+              ]
+            },
+            {
+              "index": 3,
+              "text": "Third level",
+              "runs": [
+                {
+                  "index": 1,
+                  "text": "Third level"
+                }
+              ]
+            },
+            {
+              "index": 4,
+              "text": "Fourth level",
+              "runs": [
+                {
+                  "index": 1,
+                  "text": "Fourth level"
+                }
+              ]
+            },
+            {
+              "index": 5,
+              "text": "Fifth level",
+              "runs": [
+                {
+                  "index": 1,
+                  "text": "Fifth level"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "order": 3,
+          "kind": "shape",
+          "scope": "master",
+          "aid": "template/master//ppt/slideMasters/slideMaster1.xml/4",
+          "id": "4",
+          "name": "Date Placeholder 3",
+          "bbox": [
+            48,
+            667.33,
+            224,
+            38.33
+          ],
+          "geometry": "rect",
+          "text": "8/29/2026",
+          "textPreview": "8/29/2026",
+          "resolvedTextStyle": {
+            "anchor": 2,
+            "vertical": 1,
+            "verticalAlignment": "middle",
+            "insets": {
+              "top": 4.8,
+              "right": 9.6,
+              "bottom": 4.8,
+              "left": 9.6
+            }
+          },
+          "paragraphs": [
+            {
+              "index": 1,
+              "text": "8/29/2026",
+              "runs": [
+                {
+                  "index": 1,
+                  "text": "8/29/2026"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "order": 4,
+          "kind": "shape",
+          "scope": "master",
+          "aid": "template/master//ppt/slideMasters/slideMaster1.xml/5",
+          "id": "5",
+          "name": "Footer Placeholder 4",
+          "bbox": [
+            328,
+            667.33,
+            304,
+            38.33
+          ],
+          "geometry": "rect",
+          "resolvedTextStyle": {
+            "anchor": 2,
+            "vertical": 1,
+            "verticalAlignment": "middle",
+            "insets": {
+              "top": 4.8,
+              "right": 9.6,
+              "bottom": 4.8,
+              "left": 9.6
+            }
+          }
+        },
+        {
+          "order": 5,
+          "kind": "shape",
+          "scope": "master",
+          "aid": "template/master//ppt/slideMasters/slideMaster1.xml/6",
+          "id": "6",
+          "name": "Slide Number Placeholder 5",
+          "bbox": [
+            688,
+            667.33,
+            224,
+            38.33
+          ],
+          "geometry": "rect",
+          "text": "‹#›",
+          "textPreview": "‹#›",
+          "resolvedTextStyle": {
+            "anchor": 2,
+            "vertical": 1,
+            "verticalAlignment": "middle",
+            "insets": {
+              "top": 4.8,
+              "right": 9.6,
+              "bottom": 4.8,
+              "left": 9.6
+            }
+          },
+          "paragraphs": [
+            {
+              "index": 1,
+              "text": "‹#›",
+              "runs": [
+                {
+                  "index": 1,
+                  "text": "‹#›"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "elements": [
+    {
+      "order": 1,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/xc3mho32",
+      "id": "2",
+      "name": "Connector 1",
+      "bbox": [
+        33.6,
+        0,
+        0,
+        196.8
+      ],
+      "geometry": "line",
+      "lineColor": "#0E63E6",
+      "lineWidth": 1.07
+    },
+    {
+      "order": 2,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/cbu58j2h",
+      "id": "3",
+      "name": "Oval 2",
+      "bbox": [
+        2.88,
+        48.96,
+        61.44,
+        61.44
+      ],
+      "geometry": "ellipse",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": ""
+          }
+        ]
+      },
+      "fillColor": "#E1F3FF",
+      "lineColor": "#0E63E6",
+      "lineWidth": 1.6
+    },
+    {
+      "order": 3,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/zelojyl8",
+      "id": "4",
+      "name": "Oval 3",
+      "bbox": [
+        14.4,
+        60.48,
+        38.4,
+        38.4
+      ],
+      "geometry": "ellipse",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": ""
+          }
+        ]
+      },
+      "fillColor": "#FFFFFF",
+      "lineColor": "#0E63E6",
+      "lineWidth": 1.33
+    },
+    {
+      "order": 4,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/ydcnatkn",
+      "id": "5",
+      "name": "Oval 4",
+      "bbox": [
+        24,
+        70.08,
+        19.2,
+        19.2
+      ],
+      "geometry": "ellipse",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": ""
+          }
+        ]
+      },
+      "fillColor": "#6EC1F5",
+      "lineColor": "#0E63E6",
+      "lineWidth": 0.93
+    },
+    {
+      "order": 5,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/l036l83y",
+      "id": "6",
+      "name": "Oval 5",
+      "bbox": [
+        25.92,
+        157.44,
+        15.36,
+        15.36
+      ],
+      "geometry": "ellipse",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": ""
+          }
+        ]
+      },
+      "fillColor": "#6EC1F5",
+      "lineColor": "#0E63E6",
+      "lineWidth": 0.93
+    },
+    {
+      "order": 6,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/kzu5c32t",
+      "id": "7",
+      "name": "Connector 6",
+      "bbox": [
+        1060.8,
+        40.32,
+        91.2,
+        34.56
+      ],
+      "geometry": "line",
+      "lineColor": "#0E63E6",
+      "lineWidth": 1.07
+    },
+    {
+      "order": 7,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/725onyl4",
+      "id": "8",
+      "name": "Connector 7",
+      "bbox": [
+        1152,
+        24,
+        62.4,
+        50.88
+      ],
+      "verticalFlip": true,
+      "geometry": "line",
+      "lineColor": "#0E63E6",
+      "lineWidth": 1.07
+    },
+    {
+      "order": 8,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/m1cnetkj",
+      "id": "9",
+      "name": "Oval 8",
+      "bbox": [
+        1049.28,
+        28.8,
+        23.04,
+        23.04
+      ],
+      "geometry": "ellipse",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": ""
+          }
+        ]
+      },
+      "fillColor": "#E1F3FF",
+      "lineColor": "#0E63E6",
+      "lineWidth": 1.07
+    },
+    {
+      "order": 9,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s7yt4b21",
+      "id": "10",
+      "name": "Oval 9",
+      "bbox": [
+        1125.12,
+        48,
+        53.76,
+        53.76
+      ],
+      "geometry": "ellipse",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": ""
+          }
+        ]
+      },
+      "fillColor": "#E1F3FF",
+      "lineColor": "#0E63E6",
+      "lineWidth": 1.33
+    },
+    {
+      "order": 10,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/d87uxg3m",
+      "id": "11",
+      "name": "Oval 10",
+      "bbox": [
+        1204.8,
+        14.4,
+        19.2,
+        19.2
+      ],
+      "geometry": "ellipse",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": ""
+          }
+        ]
+      },
+      "fillColor": "#E1F3FF",
+      "lineColor": "#0E63E6",
+      "lineWidth": 1.07
+    },
+    {
+      "order": 11,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/q5gb21kb",
+      "id": "12",
+      "name": "TextBox 11",
+      "bbox": [
+        1096.32,
+        3.84,
+        67.2,
+        17.28
+      ],
+      "geometry": "rect",
+      "text": "•••",
+      "textPreview": "•••",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "tx1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "wrap": "square",
+        "autoFit": "resizeShapeToFitText",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "•••"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "•••",
+          "resolvedTextStyle": {
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "•••",
+              "fontSize": 17.33,
+              "typeface": "Arial",
+              "color": "#052B69",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ]
+    },
+    {
+      "order": 12,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/r6pcv6lw",
+      "id": "13",
+      "name": "TextBox 12",
+      "bbox": [
+        398.4,
+        41.28,
+        480,
+        59.52
+      ],
+      "geometry": "rect",
+      "text": "Sơ đồ usecase",
+      "textPreview": "Sơ đồ usecase",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "tx1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "wrap": "square",
+        "autoFit": "resizeShapeToFitText",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Sơ đồ usecase"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Sơ đồ usecase",
+          "resolvedTextStyle": {
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Sơ đồ usecase",
+              "fontSize": 40,
+              "typeface": "Arial",
+              "color": "#052B69",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ]
+    },
+    {
+      "order": 13,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/0bit8b2d",
+      "id": "14",
+      "name": "Connector 13",
+      "bbox": [
+        590.4,
+        110.4,
+        57.6,
+        0
+      ],
+      "geometry": "line",
+      "lineColor": "#0E63E6",
+      "lineWidth": 2.67
+    },
+    {
+      "order": 14,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/1cru1g3y",
+      "id": "15",
+      "name": "Oval 14",
+      "bbox": [
+        660,
+        108,
+        4.8,
+        4.8
+      ],
+      "geometry": "ellipse",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": ""
+          }
+        ]
+      },
+      "fillColor": "#0E63E6",
+      "lineColor": "#0E63E6",
+      "lineWidth": 0.27
+    },
+    {
+      "order": 15,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/e9gb61k7",
+      "id": "16",
+      "name": "Oval 15",
+      "bbox": [
+        671.52,
+        108,
+        4.8,
+        4.8
+      ],
+      "geometry": "ellipse",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": ""
+          }
+        ]
+      },
+      "fillColor": "#0E63E6",
+      "lineColor": "#0E63E6",
+      "lineWidth": 0.27
+    },
+    {
+      "order": 16,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/fapcz6ls",
+      "id": "17",
+      "name": "Rounded Rectangle 16",
+      "bbox": [
+        139.2,
+        168,
+        484.8,
+        465.6
+      ],
+      "geometry": "roundRect",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": ""
+          }
+        ]
+      },
+      "fillColor": "#FFFFFF",
+      "lineColor": "#BBD8F6",
+      "lineWidth": 1.33
+    },
+    {
+      "order": 17,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/ozitcv29",
+      "id": "18",
+      "name": "Rounded Rectangle 17",
+      "bbox": [
+        654.72,
+        168,
+        484.8,
+        465.6
+      ],
+      "geometry": "roundRect",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": ""
+          }
+        ]
+      },
+      "fillColor": "#FFFFFF",
+      "lineColor": "#BBD8F6",
+      "lineWidth": 1.33
+    },
+    {
+      "order": 18,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/p0ru503u",
+      "id": "19",
+      "name": "Rounded Rectangle 18",
+      "bbox": [
+        283.2,
+        151.68,
+        144,
+        38.4
+      ],
+      "geometry": "roundRect",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": ""
+          }
+        ]
+      },
+      "fillColor": "#0E63E6",
+      "lineColor": "#0E63E6",
+      "lineWidth": 1.33
+    },
+    {
+      "order": 19,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/xwnupgvy",
+      "id": "20",
+      "name": "TextBox 19",
+      "bbox": [
+        283.2,
+        155.52,
+        144,
+        28.8
+      ],
+      "geometry": "rect",
+      "text": "ADMIN",
+      "textPreview": "ADMIN",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "tx1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "wrap": "square",
+        "autoFit": "resizeShapeToFitText",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "ADMIN"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "ADMIN",
+          "resolvedTextStyle": {
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "ADMIN",
+              "fontSize": 14.67,
+              "typeface": "Arial",
+              "color": "#FFFFFF",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ]
+    },
+    {
+      "order": 20,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/wvetgbud",
+      "id": "21",
+      "name": "Rounded Rectangle 20",
+      "bbox": [
+        814.08,
+        151.68,
+        165.12,
+        38.4
+      ],
+      "geometry": "roundRect",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": ""
+          }
+        ]
+      },
+      "fillColor": "#0E63E6",
+      "lineColor": "#0E63E6",
+      "lineWidth": 1.33
+    },
+    {
+      "order": 21,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/bu5cnqd8",
+      "id": "22",
+      "name": "TextBox 21",
+      "bbox": [
+        814.08,
+        155.52,
+        165.12,
+        28.8
+      ],
+      "geometry": "rect",
+      "text": "NGƯỜI DÙNG",
+      "textPreview": "NGƯỜI DÙNG",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "tx1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "wrap": "square",
+        "autoFit": "resizeShapeToFitText",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "NGƯỜI DÙNG"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "NGƯỜI DÙNG",
+          "resolvedTextStyle": {
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "NGƯỜI DÙNG",
+              "fontSize": 14.67,
+              "typeface": "Arial",
+              "color": "#FFFFFF",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ]
+    },
+    {
+      "order": 22,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/atwbelcn",
+      "id": "23",
+      "name": "Oval 22",
+      "bbox": [
+        194.88,
+        336.96,
+        23.04,
+        23.04
+      ],
+      "geometry": "ellipse",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": ""
+          }
+        ]
+      },
+      "fillColor": "#FFFFFF",
+      "lineColor": "#052B69",
+      "lineWidth": 1.47
+    },
+    {
+      "order": 23,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/lk7ut0va",
+      "id": "24",
+      "name": "Connector 23",
+      "bbox": [
+        206.4,
+        360,
+        0,
+        36.48
+      ],
+      "geometry": "line",
+      "lineColor": "#052B69",
+      "lineWidth": 1.47
+    },
+    {
+      "order": 24,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/kjytkvup",
+      "id": "25",
+      "name": "Connector 24",
+      "bbox": [
+        185.28,
+        377.28,
+        42.24,
+        0
+      ],
+      "geometry": "line",
+      "lineColor": "#052B69",
+      "lineWidth": 1.47
+    },
+    {
+      "order": 25,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/jypcrqd4",
+      "id": "26",
+      "name": "Connector 25",
+      "bbox": [
+        187.2,
+        396.48,
+        19.2,
+        28.8
+      ],
+      "horizontalFlip": true,
+      "geometry": "line",
+      "lineColor": "#052B69",
+      "lineWidth": 1.47
+    },
+    {
+      "order": 26,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/yxgbilcj",
+      "id": "27",
+      "name": "Connector 26",
+      "bbox": [
+        206.4,
+        396.48,
+        19.2,
+        28.8
+      ],
+      "geometry": "line",
+      "lineColor": "#052B69",
+      "lineWidth": 1.47
+    },
+    {
+      "order": 27,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/1o3ahwvq",
+      "id": "28",
+      "name": "TextBox 27",
+      "bbox": [
+        160.32,
+        428.16,
+        92.16,
+        21.12
+      ],
+      "geometry": "rect",
+      "text": "ADMIN",
+      "textPreview": "ADMIN",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "tx1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "wrap": "square",
+        "autoFit": "resizeShapeToFitText",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "ADMIN"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "ADMIN",
+          "resolvedTextStyle": {
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "ADMIN",
+              "fontSize": 10.92,
+              "typeface": "Arial",
+              "color": "#052B69",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ]
+    },
+    {
+      "order": 28,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/0nut8rul",
+      "id": "29",
+      "name": "Oval 28",
+      "bbox": [
+        722.88,
+        348.48,
+        23.04,
+        23.04
+      ],
+      "geometry": "ellipse",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": ""
+          }
+        ]
+      },
+      "fillColor": "#FFFFFF",
+      "lineColor": "#052B69",
+      "lineWidth": 1.47
+    },
+    {
+      "order": 29,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/q9srixs3",
+      "id": "30",
+      "name": "Connector 29",
+      "bbox": [
+        734.4,
+        371.52,
+        0,
+        36.48
+      ],
+      "geometry": "line",
+      "lineColor": "#052B69",
+      "lineWidth": 1.47
+    },
+    {
+      "order": 30,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/ru18r2to",
+      "id": "31",
+      "name": "Connector 30",
+      "bbox": [
+        713.28,
+        388.8,
+        42.24,
+        0
+      ],
+      "geometry": "line",
+      "lineColor": "#052B69",
+      "lineWidth": 1.47
+    },
+    {
+      "order": 31,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/cva9k7a9",
+      "id": "32",
+      "name": "Connector 31",
+      "bbox": [
+        715.2,
+        408,
+        19.2,
+        28.8
+      ],
+      "horizontalFlip": true,
+      "geometry": "line",
+      "lineColor": "#052B69",
+      "lineWidth": 1.47
+    },
+    {
+      "order": 32,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/dwjqtcbu",
+      "id": "33",
+      "name": "Connector 32",
+      "bbox": [
+        734.4,
+        408,
+        19.2,
+        28.8
+      ],
+      "geometry": "line",
+      "lineColor": "#052B69",
+      "lineWidth": 1.47
+    },
+    {
+      "order": 33,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/exsrmhsf",
+      "id": "34",
+      "name": "TextBox 33",
+      "bbox": [
+        688.32,
+        439.68,
+        92.16,
+        21.12
+      ],
+      "geometry": "rect",
+      "text": "NGƯỜI DÙNG",
+      "textPreview": "NGƯỜI DÙNG",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "tx1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "wrap": "square",
+        "autoFit": "resizeShapeToFitText",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "NGƯỜI DÙNG"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "NGƯỜI DÙNG",
+          "resolvedTextStyle": {
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "NGƯỜI DÙNG",
+              "fontSize": 10.92,
+              "typeface": "Arial",
+              "color": "#052B69",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ]
+    },
+    {
+      "order": 34,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/zyl8vmt0",
+      "id": "35",
+      "name": "Oval 34",
+      "bbox": [
+        385.92,
+        209.28,
+        184.32,
+        32.64
+      ],
+      "geometry": "ellipse",
+      "text": "Quản lý tài khoản",
+      "textPreview": "Quản lý tài khoản",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Quản lý tài khoản"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Quản lý tài khoản",
+          "resolvedTextStyle": {
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Quản lý tài khoản",
+              "fontSize": 11.33,
+              "typeface": "Arial",
+              "color": "#052B69",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "#FFFAE8",
+      "lineColor": "#F1B532",
+      "lineWidth": 1.07
+    },
+    {
+      "order": 35,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/0zu9ora5",
+      "id": "36",
+      "name": "Connector 35",
+      "bbox": [
+        228.48,
+        225.6,
+        157.44,
+        161.28
+      ],
+      "verticalFlip": true,
+      "geometry": "line",
+      "lineColor": "#052B69",
+      "lineWidth": 0.87
+    },
+    {
+      "order": 36,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/103qxcbq",
+      "id": "37",
+      "name": "Oval 36",
+      "bbox": [
+        385.92,
+        251.52,
+        184.32,
+        32.64
+      ],
+      "geometry": "ellipse",
+      "text": "Quản lý danh mục",
+      "textPreview": "Quản lý danh mục",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Quản lý danh mục"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Quản lý danh mục",
+          "resolvedTextStyle": {
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Quản lý danh mục",
+              "fontSize": 11.33,
+              "typeface": "Arial",
+              "color": "#052B69",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "#FFFAE8",
+      "lineColor": "#F1B532",
+      "lineWidth": 1.07
+    },
+    {
+      "order": 37,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/u187adsv",
+      "id": "38",
+      "name": "Connector 37",
+      "bbox": [
+        228.48,
+        267.84,
+        157.44,
+        119.04
+      ],
+      "verticalFlip": true,
+      "geometry": "line",
+      "lineColor": "#052B69",
+      "lineWidth": 0.87
+    },
+    {
+      "order": 38,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/f2h8jitg",
+      "id": "39",
+      "name": "Oval 38",
+      "bbox": [
+        385.92,
+        293.76,
+        184.32,
+        32.64
+      ],
+      "geometry": "ellipse",
+      "text": "Quản lý sản phẩm",
+      "textPreview": "Quản lý sản phẩm",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Quản lý sản phẩm"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Quản lý sản phẩm",
+          "resolvedTextStyle": {
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Quản lý sản phẩm",
+              "fontSize": 11.33,
+              "typeface": "Arial",
+              "color": "#052B69",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "#FFFAE8",
+      "lineColor": "#F1B532",
+      "lineWidth": 1.07
+    },
+    {
+      "order": 39,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/bmpgrah8",
+      "id": "40",
+      "name": "Connector 39",
+      "bbox": [
+        228.48,
+        310.08,
+        157.44,
+        76.8
+      ],
+      "verticalFlip": true,
+      "geometry": "line",
+      "lineColor": "#052B69",
+      "lineWidth": 0.87
+    },
+    {
+      "order": 40,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/algfy50n",
+      "id": "41",
+      "name": "Oval 40",
+      "bbox": [
+        385.92,
+        336,
+        184.32,
+        32.64
+      ],
+      "geometry": "ellipse",
+      "text": "Quản lý đơn hàng",
+      "textPreview": "Quản lý đơn hàng",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Quản lý đơn hàng"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Quản lý đơn hàng",
+          "resolvedTextStyle": {
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Quản lý đơn hàng",
+              "fontSize": 11.33,
+              "typeface": "Arial",
+              "color": "#052B69",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "#FFFAE8",
+      "lineColor": "#F1B532",
+      "lineWidth": 1.07
+    },
+    {
+      "order": 41,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/xo7ytkzy",
+      "id": "42",
+      "name": "Connector 41",
+      "bbox": [
+        228.48,
+        352.32,
+        157.44,
+        34.56
+      ],
+      "verticalFlip": true,
+      "geometry": "line",
+      "lineColor": "#052B69",
+      "lineWidth": 0.87
+    },
+    {
+      "order": 42,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/wnyx0fit",
+      "id": "43",
+      "name": "Oval 42",
+      "bbox": [
+        385.92,
+        378.24,
+        184.32,
+        32.64
+      ],
+      "geometry": "ellipse",
+      "text": "Quản lý khuyến mãi",
+      "textPreview": "Quản lý khuyến mãi",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Quản lý khuyến mãi"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Quản lý khuyến mãi",
+          "resolvedTextStyle": {
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Quản lý khuyến mãi",
+              "fontSize": 11.33,
+              "typeface": "Arial",
+              "color": "#052B69",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "#FFFAE8",
+      "lineColor": "#F1B532",
+      "lineWidth": 1.07
+    },
+    {
+      "order": 43,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/jq9gvuh4",
+      "id": "44",
+      "name": "Connector 43",
+      "bbox": [
+        228.48,
+        386.88,
+        157.44,
+        7.68
+      ],
+      "geometry": "line",
+      "lineColor": "#052B69",
+      "lineWidth": 0.87
+    },
+    {
+      "order": 44,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/ip0f2p0j",
+      "id": "45",
+      "name": "Oval 44",
+      "bbox": [
+        385.92,
+        420.48,
+        184.32,
+        32.64
+      ],
+      "geometry": "ellipse",
+      "text": "Quản lý thương hiệu",
+      "textPreview": "Quản lý thương hiệu",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Quản lý thương"
+          },
+          {
+            "index": 2,
+            "text": "hiệu"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Quản lý thương hiệu",
+          "resolvedTextStyle": {
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Quản lý thương hiệu",
+              "fontSize": 11.33,
+              "typeface": "Arial",
+              "color": "#052B69",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "#FFFAE8",
+      "lineColor": "#F1B532",
+      "lineWidth": 1.07
+    },
+    {
+      "order": 45,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/5cryx4za",
+      "id": "46",
+      "name": "Connector 45",
+      "bbox": [
+        228.48,
+        386.88,
+        157.44,
+        49.92
+      ],
+      "geometry": "line",
+      "lineColor": "#052B69",
+      "lineWidth": 0.87
+    },
+    {
+      "order": 46,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/kbix4zyp",
+      "id": "47",
+      "name": "Oval 46",
+      "bbox": [
+        385.92,
+        462.72,
+        184.32,
+        32.64
+      ],
+      "geometry": "ellipse",
+      "text": "Quản lý thống kê",
+      "textPreview": "Quản lý thống kê",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Quản lý thống kê"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Quản lý thống kê",
+          "resolvedTextStyle": {
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Quản lý thống kê",
+              "fontSize": 11.33,
+              "typeface": "Arial",
+              "color": "#052B69",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "#FFFAE8",
+      "lineColor": "#F1B532",
+      "lineWidth": 1.07
+    },
+    {
+      "order": 47,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/7e9gzuhg",
+      "id": "48",
+      "name": "Connector 47",
+      "bbox": [
+        228.48,
+        386.88,
+        157.44,
+        92.16
+      ],
+      "geometry": "line",
+      "lineColor": "#052B69",
+      "lineWidth": 0.87
+    },
+    {
+      "order": 48,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/6d0f6pgv",
+      "id": "49",
+      "name": "Oval 48",
+      "bbox": [
+        385.92,
+        504.96,
+        184.32,
+        32.64
+      ],
+      "geometry": "ellipse",
+      "text": "Quản lý tin tức",
+      "textPreview": "Quản lý tin tức",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Quản lý tin tức"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Quản lý tin tức",
+          "resolvedTextStyle": {
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Quản lý tin tức",
+              "fontSize": 11.33,
+              "typeface": "Arial",
+              "color": "#052B69",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "#FFFAE8",
+      "lineColor": "#F1B532",
+      "lineWidth": 1.07
+    },
+    {
+      "order": 49,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/4j2xwzet",
+      "id": "50",
+      "name": "Connector 49",
+      "bbox": [
+        228.48,
+        386.88,
+        157.44,
+        134.4
+      ],
+      "geometry": "line",
+      "lineColor": "#052B69",
+      "lineWidth": 0.87
+    },
+    {
+      "order": 50,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/pkbep4fe",
+      "id": "51",
+      "name": "Oval 50",
+      "bbox": [
+        385.92,
+        547.2,
+        184.32,
+        32.64
+      ],
+      "geometry": "ellipse",
+      "text": "Quản lý biến thể sản phẩm",
+      "textPreview": "Quản lý biến thể sản phẩm",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Quản lý biến thể"
+          },
+          {
+            "index": 2,
+            "text": "sản phẩm"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Quản lý biến thể sản phẩm",
+          "resolvedTextStyle": {
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Quản lý biến thể sản phẩm",
+              "fontSize": 11.33,
+              "typeface": "Arial",
+              "color": "#052B69",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "#FFFAE8",
+      "lineColor": "#F1B532",
+      "lineWidth": 1.07
+    },
+    {
+      "order": 51,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/2hkfu9w3",
+      "id": "52",
+      "name": "Connector 51",
+      "bbox": [
+        228.48,
+        386.88,
+        157.44,
+        176.64
+      ],
+      "geometry": "line",
+      "lineColor": "#052B69",
+      "lineWidth": 0.87
+    },
+    {
+      "order": 52,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/3itwnex8",
+      "id": "53",
+      "name": "Oval 52",
+      "bbox": [
+        161.28,
+        525.12,
+        100.8,
+        34.56
+      ],
+      "geometry": "ellipse",
+      "text": "Đăng nhập",
+      "textPreview": "Đăng nhập",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Đăng"
+          },
+          {
+            "index": 2,
+            "text": "nhập"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Đăng nhập",
+          "resolvedTextStyle": {
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Đăng nhập",
+              "fontSize": 11.07,
+              "typeface": "Arial",
+              "color": "#052B69",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "#E1F3FF",
+      "lineColor": "#0E63E6",
+      "lineWidth": 1.07
+    },
+    {
+      "order": 53,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/gfixszex",
+      "id": "54",
+      "name": "Connector 53",
+      "bbox": [
+        206.4,
+        449.28,
+        0,
+        75.84
+      ],
+      "geometry": "line",
+      "lineColor": "#052B69",
+      "lineWidth": 1
+    },
+    {
+      "order": 54,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/hgrel4fi",
+      "id": "55",
+      "name": "Oval 54",
+      "bbox": [
+        933.12,
+        224.64,
+        180.48,
+        32.64
+      ],
+      "geometry": "ellipse",
+      "text": "Quản lý thông tin cá nhân",
+      "textPreview": "Quản lý thông tin cá nhân",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Quản lý thông tin"
+          },
+          {
+            "index": 2,
+            "text": "cá nhân"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Quản lý thông tin cá nhân",
+          "resolvedTextStyle": {
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Quản lý thông tin cá nhân",
+              "fontSize": 11.33,
+              "typeface": "Arial",
+              "color": "#052B69",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "#FFFAE8",
+      "lineColor": "#F1B532",
+      "lineWidth": 1.07
+    },
+    {
+      "order": 55,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/ud0vqpwr",
+      "id": "56",
+      "name": "Connector 55",
+      "bbox": [
+        758.4,
+        240.96,
+        174.72,
+        157.44
+      ],
+      "verticalFlip": true,
+      "geometry": "line",
+      "lineColor": "#052B69",
+      "lineWidth": 0.87
+    },
+    {
+      "order": 56,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/fe9wjuxc",
+      "id": "57",
+      "name": "Oval 56",
+      "bbox": [
+        933.12,
+        270.72,
+        180.48,
+        32.64
+      ],
+      "geometry": "ellipse",
+      "text": "Quản lý giỏ hàng",
+      "textPreview": "Quản lý giỏ hàng",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Quản lý giỏ hàng"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Quản lý giỏ hàng",
+          "resolvedTextStyle": {
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Quản lý giỏ hàng",
+              "fontSize": 11.33,
+              "typeface": "Arial",
+              "color": "#052B69",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "#FFFAE8",
+      "lineColor": "#F1B532",
+      "lineWidth": 1.07
+    },
+    {
+      "order": 57,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/sridofel",
+      "id": "58",
+      "name": "Connector 57",
+      "bbox": [
+        758.4,
+        287.04,
+        174.72,
+        111.36
+      ],
+      "verticalFlip": true,
+      "geometry": "line",
+      "lineColor": "#052B69",
+      "lineWidth": 0.87
+    },
+    {
+      "order": 58,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/tsrehkf6",
+      "id": "59",
+      "name": "Oval 58",
+      "bbox": [
+        933.12,
+        316.8,
+        180.48,
+        32.64
+      ],
+      "geometry": "ellipse",
+      "text": "Quản lý đơn hàng",
+      "textPreview": "Quản lý đơn hàng",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Quản lý đơn hàng"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Quản lý đơn hàng",
+          "resolvedTextStyle": {
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Quản lý đơn hàng",
+              "fontSize": 11.33,
+              "typeface": "Arial",
+              "color": "#052B69",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "#FFFAE8",
+      "lineColor": "#F1B532",
+      "lineWidth": 1.07
+    },
+    {
+      "order": 59,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/98julg7a",
+      "id": "60",
+      "name": "Connector 59",
+      "bbox": [
+        758.4,
+        333.12,
+        174.72,
+        65.28
+      ],
+      "verticalFlip": true,
+      "geometry": "line",
+      "lineColor": "#052B69",
+      "lineWidth": 0.87
+    },
+    {
+      "order": 60,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/87atcb6p",
+      "id": "61",
+      "name": "Oval 60",
+      "bbox": [
+        933.12,
+        362.88,
+        180.48,
+        32.64
+      ],
+      "geometry": "ellipse",
+      "text": "Quản lý sản phẩm yêu thích",
+      "textPreview": "Quản lý sản phẩm yêu thích",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Quản lý sản phẩm"
+          },
+          {
+            "index": 2,
+            "text": "yêu thích"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Quản lý sản phẩm yêu thích",
+          "resolvedTextStyle": {
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Quản lý sản phẩm yêu thích",
+              "fontSize": 11.33,
+              "typeface": "Arial",
+              "color": "#052B69",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "#FFFAE8",
+      "lineColor": "#F1B532",
+      "lineWidth": 1.07
+    },
+    {
+      "order": 61,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/n61cj6p4",
+      "id": "62",
+      "name": "Connector 61",
+      "bbox": [
+        758.4,
+        379.2,
+        174.72,
+        19.2
+      ],
+      "verticalFlip": true,
+      "geometry": "line",
+      "lineColor": "#052B69",
+      "lineWidth": 0.87
+    },
+    {
+      "order": 62,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/mlsba18j",
+      "id": "63",
+      "name": "Oval 62",
+      "bbox": [
+        933.12,
+        408.96,
+        180.48,
+        32.64
+      ],
+      "geometry": "ellipse",
+      "text": "Đánh giá sản phẩm",
+      "textPreview": "Đánh giá sản phẩm",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Đánh giá sản phẩm"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Đánh giá sản phẩm",
+          "resolvedTextStyle": {
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Đánh giá sản phẩm",
+              "fontSize": 11.33,
+              "typeface": "Arial",
+              "color": "#052B69",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "#FFFAE8",
+      "lineColor": "#F1B532",
+      "lineWidth": 1.07
+    },
+    {
+      "order": 63,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/lkzuhw7y",
+      "id": "64",
+      "name": "Connector 63",
+      "bbox": [
+        758.4,
+        398.4,
+        174.72,
+        26.88
+      ],
+      "geometry": "line",
+      "lineColor": "#052B69",
+      "lineWidth": 0.87
+    },
+    {
+      "order": 64,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/0jqt8bqd",
+      "id": "65",
+      "name": "Oval 64",
+      "bbox": [
+        933.12,
+        455.04,
+        180.48,
+        32.64
+      ],
+      "geometry": "ellipse",
+      "text": "Đặt hàng",
+      "textPreview": "Đặt hàng",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Đặt hàng"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Đặt hàng",
+          "resolvedTextStyle": {
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Đặt hàng",
+              "fontSize": 11.33,
+              "typeface": "Arial",
+              "color": "#052B69",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "#FFFAE8",
+      "lineColor": "#F1B532",
+      "lineWidth": 1.07
+    },
+    {
+      "order": 65,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/zihcf6ps",
+      "id": "66",
+      "name": "Connector 65",
+      "bbox": [
+        758.4,
+        398.4,
+        174.72,
+        72.96
+      ],
+      "geometry": "line",
+      "lineColor": "#052B69",
+      "lineWidth": 0.87
+    },
+    {
+      "order": 66,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/yh8bm18n",
+      "id": "67",
+      "name": "Oval 66",
+      "bbox": [
+        933.12,
+        501.12,
+        180.48,
+        32.64
+      ],
+      "geometry": "ellipse",
+      "text": "Thanh toán",
+      "textPreview": "Thanh toán",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Thanh toán"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Thanh toán",
+          "resolvedTextStyle": {
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Thanh toán",
+              "fontSize": 11.33,
+              "typeface": "Arial",
+              "color": "#052B69",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "#FFFAE8",
+      "lineColor": "#F1B532",
+      "lineWidth": 1.07
+    },
+    {
+      "order": 67,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/5g3ut072",
+      "id": "68",
+      "name": "Connector 67",
+      "bbox": [
+        758.4,
+        398.4,
+        174.72,
+        119.04
+      ],
+      "geometry": "line",
+      "lineColor": "#052B69",
+      "lineWidth": 0.87
+    },
+    {
+      "order": 68,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/4fudkv6x",
+      "id": "69",
+      "name": "Oval 68",
+      "bbox": [
+        933.12,
+        547.2,
+        180.48,
+        32.64
+      ],
+      "geometry": "ellipse",
+      "text": "Xem chi tiết sản phẩm",
+      "textPreview": "Xem chi tiết sản phẩm",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Xem chi tiết sản"
+          },
+          {
+            "index": 2,
+            "text": "phẩm"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Xem chi tiết sản phẩm",
+          "resolvedTextStyle": {
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Xem chi tiết sản phẩm",
+              "fontSize": 11.33,
+              "typeface": "Arial",
+              "color": "#052B69",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "#FFFAE8",
+      "lineColor": "#F1B532",
+      "lineWidth": 1.07
+    },
+    {
+      "order": 69,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/2l4rexof",
+      "id": "70",
+      "name": "Connector 69",
+      "bbox": [
+        758.4,
+        398.4,
+        174.72,
+        165.12
+      ],
+      "geometry": "line",
+      "lineColor": "#052B69",
+      "lineWidth": 0.87
+    },
+    {
+      "order": 70,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/3mxsn25k",
+      "id": "71",
+      "name": "Oval 70",
+      "bbox": [
+        664.32,
+        523.2,
+        91.2,
+        34.56
+      ],
+      "geometry": "ellipse",
+      "text": "Đăng nhập",
+      "textPreview": "Đăng nhập",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Đăng"
+          },
+          {
+            "index": 2,
+            "text": "nhập"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Đăng nhập",
+          "resolvedTextStyle": {
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Đăng nhập",
+              "fontSize": 10.8,
+              "typeface": "Arial",
+              "color": "#052B69",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "#E1F3FF",
+      "lineColor": "#0E63E6",
+      "lineWidth": 1.07
+    },
+    {
+      "order": 71,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/on69g765",
+      "id": "72",
+      "name": "Oval 71",
+      "bbox": [
+        760.32,
+        523.2,
+        86.4,
+        34.56
+      ],
+      "geometry": "ellipse",
+      "text": "Đăng ký",
+      "textPreview": "Đăng ký",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 2,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Đăng"
+          },
+          {
+            "index": 2,
+            "text": "ký"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Đăng ký",
+          "resolvedTextStyle": {
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Đăng ký",
+              "fontSize": 10.8,
+              "typeface": "Arial",
+              "color": "#052B69",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "fillColor": "#E1F3FF",
+      "lineColor": "#0E63E6",
+      "lineWidth": 1.07
+    },
+    {
+      "order": 72,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/pofapcnq",
+      "id": "73",
+      "name": "Connector 72",
+      "bbox": [
+        708.48,
+        460.8,
+        25.92,
+        62.4
+      ],
+      "horizontalFlip": true,
+      "geometry": "line",
+      "lineColor": "#052B69",
+      "lineWidth": 1
+    },
+    {
+      "order": 73,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/eh4rado3",
+      "id": "74",
+      "name": "Connector 73",
+      "bbox": [
+        734.4,
+        460.8,
+        67.2,
+        62.4
+      ],
+      "geometry": "line",
+      "lineColor": "#052B69",
+      "lineWidth": 1
+    },
+    {
+      "order": 74,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/fid8ji5o",
+      "id": "75",
+      "name": "Connector 74",
+      "bbox": [
+        26.88,
+        676.8,
+        42.24,
+        43.2
+      ],
+      "verticalFlip": true,
+      "geometry": "line",
+      "lineColor": "#0E63E6",
+      "lineWidth": 1.07
+    },
+    {
+      "order": 75,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/gjm9cn69",
+      "id": "76",
+      "name": "Connector 75",
+      "bbox": [
+        69.12,
+        676.8,
+        60.48,
+        31.68
+      ],
+      "geometry": "line",
+      "lineColor": "#0E63E6",
+      "lineWidth": 1.07
+    },
+    {
+      "order": 76,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/1kvqlsnu",
+      "id": "77",
+      "name": "Oval 76",
+      "bbox": [
+        57.6,
+        665.28,
+        23.04,
+        23.04
+      ],
+      "geometry": "ellipse",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": ""
+          }
+        ]
+      },
+      "fillColor": "#E1F3FF",
+      "lineColor": "#0E63E6",
+      "lineWidth": 1.07
+    },
+    {
+      "order": 77,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/yd8rmh47",
+      "id": "78",
+      "name": "Oval 77",
+      "bbox": [
+        116.16,
+        695.04,
+        26.88,
+        26.88
+      ],
+      "geometry": "ellipse",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "lt1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": ""
+          }
+        ]
+      },
+      "fillColor": "#E1F3FF",
+      "lineColor": "#0E63E6",
+      "lineWidth": 1.07
+    },
+    {
+      "order": 78,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/zehsvm5s",
+      "id": "79",
+      "name": "TextBox 78",
+      "bbox": [
+        1152,
+        645.12,
+        72,
+        43.2
+      ],
+      "geometry": "rect",
+      "text": "• • • •\n• • • •\n• • • •",
+      "textPreview": "• • • • | • • • • | • • • •",
+      "resolvedFontSize": 24,
+      "resolvedTextStyle": {
+        "anchor": 2,
+        "fontSize": 24,
+        "typeface": "Calibri",
+        "color": "tx1",
+        "alignment": "left",
+        "verticalAlignment": "middle",
+        "wrap": "square",
+        "autoFit": "resizeShapeToFitText",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 3,
+        "lines": [
+          {
+            "index": 1,
+            "text": "• • • •"
+          },
+          {
+            "index": 2,
+            "text": "• • • •"
+          },
+          {
+            "index": 3,
+            "text": "• • • •"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "• • • •\n• • • •\n• • • •",
+          "resolvedTextStyle": {
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "• • • •\n• • • •\n• • • •",
+              "fontSize": 13.33,
+              "typeface": "Arial",
+              "color": "#0E63E6",
+              "bold": true
+            }
+          ],
+          "marginLeft": 0
+        }
+      ]
+    },
+    {
+      "order": 79,
+      "kind": "image",
+      "scope": "slide",
+      "aid": "im/cja1g365",
+      "id": "80",
+      "name": "Picture 79",
+      "bbox": [
+        1131.48,
+        -9.31,
+        122.28,
+        122.28
+      ],
+      "contentType": "image/png",
+      "asset": {
+        "assetId": "/ppt/media/image2.png",
+        "contentType": "image/png",
+        "byteLength": 87386
+      },
+      "fillImage": {
+        "assetId": "/ppt/media/image2.png",
+        "contentType": "image/png",
+        "byteLength": 87386
+      }
+    }
+  ],
+  "composeRuns": []
+}
