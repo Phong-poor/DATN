@@ -102,13 +102,32 @@ const permissionGroups = [
   }
 ]
 
+// Helper lấy toàn bộ danh sách các mã quyền từ schema
+const getAllPermissionCodes = () => {
+  const codes = []
+  permissionGroups.forEach(group => {
+    group.permissions.forEach(p => {
+      if (p.code && !codes.includes(p.code)) {
+        codes.push(p.code)
+      }
+    })
+  })
+  return codes
+}
+
 // Fetch data
 const fetchRoles = async () => {
   loading.value = true
   try {
     const res = await api.get('/admin/vaitro')
     if (res.data?.success) {
-      roles.value = res.data.data
+      const allCodes = getAllPermissionCodes()
+      roles.value = (res.data.data || []).map(r => {
+        if (r.ma_vaitro === 'admin') {
+          return { ...r, quyen: allCodes }
+        }
+        return r
+      })
     }
   } catch (err) {
     console.error('Fetch roles failed:', err)
@@ -194,11 +213,13 @@ const openEditModal = (role) => {
   isEditMode.value = true
   editingRoleId.value = role.id_vaitro
   formError.value = ''
+  
+  const isSuperAdmin = role.ma_vaitro === 'admin'
   form.value = {
     ten_vaitro: role.ten_vaitro,
     ma_vaitro: role.ma_vaitro,
     mo_ta: role.mo_ta || '',
-    quyen: Array.isArray(role.quyen) ? [...role.quyen] : []
+    quyen: isSuperAdmin ? getAllPermissionCodes() : (Array.isArray(role.quyen) ? [...role.quyen] : [])
   }
   showModal.value = true
 }
@@ -246,6 +267,11 @@ const submitForm = async () => {
   if (!form.value.ma_vaitro.trim()) {
     formError.value = 'Vui lòng nhập mã vai trò'
     return
+  }
+
+  // Quản trị viên (admin) luôn tự động có tất cả các quyền hạn hệ thống
+  if (form.value.ma_vaitro === 'admin') {
+    form.value.quyen = getAllPermissionCodes()
   }
 
   loading.value = true
