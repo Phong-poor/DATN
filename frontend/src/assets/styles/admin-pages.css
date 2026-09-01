@@ -1133,12 +1133,75 @@ html[data-admin-theme='dark'] .ops-card:first-child .ops-copy>small {
 .admin-layout.theme-dark .affiliate-toolbar-btn.export,
 .admin-layout.theme-dark .bulk-btn.ghost,
 .admin-layout.theme-dark .menu-item,
-.admin-layout.theme-dark .tab,
+.admin-layout.theme-dark .tab:not(.status-tab),
 .admin-layout.theme-dark .tab-btn {
   border-color: #454c56 !important;
   background: #20242a !important;
   color: #cbd3df !important;
   box-shadow: none !important;
+}
+
+.admin-layout.theme-dark .status-tab {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .filter-select {
+  background-color: #13171f !important;
+  border-color: #28303d !important;
+  color: #60a5fa !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2360a5fa' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 12px center !important;
+  background-size: 15px !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .filter-select:hover {
+  background-color: #1e293b !important;
+  border-color: #3b82f6 !important;
+  color: #93c5fd !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .filter-bar {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  border-radius: 12px !important;
+  padding: 11px 18px !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .filter-select option {
+  background-color: #181d24 !important;
+  color: #f8fafc !important;
 }
 
 /* Tab danh mục cha: Viền rõ nét cho các mục chưa chọn & màu nổi cho mục active */
@@ -1569,9 +1632,9 @@ html[data-admin-theme='dark'] .modal-container .btn-cancel:hover {
 .admin-layout.theme-dark .inline-form-body>.form-cols-2>.form-group,
 .admin-layout.theme-dark .inline-form-body>.form-row>.form-group {
   border-color: #3b424b !important;
-  background: #171b20 !important;
   color: #e8edf4 !important;
   box-shadow: none !important;
+  padding: 20px;
 }
 
 .admin-layout.theme-dark .inline-form-body .products-pool {
@@ -2404,27 +2467,41 @@ html[data-admin-theme='dark'] .search-input-inner,
 html[data-admin-theme='dark'] .composer-input-wrap,
 .admin-layout.theme-dark .composer-input-wrap,
 .admin-layout.dark .composer-input-wrap {
-  background: #0f172a !important;
-  border: none !important;
-  border-color: transparent !important;
+  background: transparent !important;
+  border: 1px solid #475569 !important;
+  border-radius: 20px !important;
   box-shadow: none !important;
 }
 
 html[data-admin-theme='dark'] .search-input-inner input,
 .admin-layout.theme-dark .search-input-inner input,
-.admin-layout.dark .search-input-inner input,
-html[data-admin-theme='dark'] .search-input-wrap input,
-.admin-layout.theme-dark .search-input-wrap input,
-.admin-layout.dark .search-input-wrap input {
+.admin-layout.dark .search-input-inner input {
+  background: transparent !important;
   color: #f8fafc !important;
   border: none !important;
   border-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+html[data-admin-theme='dark'] .search-input-wrap input,
+.admin-layout.theme-dark .search-input-wrap input,
+.admin-layout.dark .search-input-wrap input {
+  background: transparent !important;
+  border: 1px solid #475569 !important;
+  border-radius: 20px !important;
+  color: #f8fafc !important;
   box-shadow: none !important;
 }
 
 html[data-admin-theme='dark'] .composer-input-wrap input,
 .admin-layout.theme-dark .composer-input-wrap input,
 .admin-layout.dark .composer-input-wrap input {
+  background: transparent !important;
+  border: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
   color: #ffffff !important;
 }
 
@@ -2460,10 +2537,1563 @@ html[data-admin-theme='dark'] .emoji-item:hover,
   background: #334155 !important;
 }
 
+html[data-admin-theme='dark'] .conversation-menu-btn,
+.admin-layout.theme-dark .conversation-menu-btn,
+.admin-layout.dark .conversation-menu-btn {
+  background: transparent !important;
+}
+
+html[data-admin-theme='dark'] .conversation-menu-btn span,
+.admin-layout.theme-dark .conversation-menu-btn span,
+.admin-layout.dark .conversation-menu-btn span {
+  background: #cbd5e1 !important;
+}
+
+html[data-admin-theme='dark'] .conversation-menu-btn:hover,
+.admin-layout.theme-dark .conversation-menu-btn:hover,
+.admin-layout.dark .conversation-menu-btn:hover {
+  background: #222a36 !important;
+}
+
+html[data-admin-theme='dark'] .conversation-menu-btn:hover span,
+.admin-layout.theme-dark .conversation-menu-btn:hover span,
+.admin-layout.dark .conversation-menu-btn:hover span {
+  background: #ffffff !important;
+}
+
 html[data-admin-theme='dark'] .empty-chat-pane,
 .admin-layout.theme-dark .empty-chat-pane,
 .admin-layout.dark .empty-chat-pane {
   background: #0f172a !important;
+}
+
+/* GLOBAL DARK MODE OVERRIDES FOR ARTICLE EDITOR BUTTONS AND PANELS */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .editor-heading button,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .editor-tabs button:not(.active),
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .format-toolbar button {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .editor-heading button:hover,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .editor-tabs button:not(.active):hover,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .format-toolbar button:hover {
+  background: #1e293b !important;
+  border-color: #3b82f6 !important;
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .editor-tabs button.active {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #2563eb !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .content-image-tools button {
+  background: #181d24 !important;
+  border-color: #3b82f6 !important;
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .content-image-tools button:hover:not(:disabled) {
+  background: #1e293b !important;
+  color: #93c5fd !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .content-quality {
+  background: rgba(234, 88, 12, 0.15) !important;
+  border-color: rgba(234, 88, 12, 0.3) !important;
+  color: #fdba74 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .content-quality span {
+  background: rgba(0, 0, 0, 0.3) !important;
+  color: #fdba74 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .content-quality.ready {
+  background: rgba(16, 185, 129, 0.15) !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+  color: #6ee7b7 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .content-quality.ready span {
+  background: rgba(0, 0, 0, 0.3) !important;
+  color: #6ee7b7 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .seo-panel {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .seo-panel summary {
+  color: #f8fafc !important;
+}
+
+/* GLOBAL PERFECT VERTICAL CENTERING FOR CLOSE BUTTONS */
+.modal-close,
+.close-search-btn,
+.modal-close-icon-btn,
+.close-btn,
+.modal-close-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  padding: 0 !important;
+  text-align: center !important;
+}
+
+/* GLOBAL RATING STARS & PRODUCT LINKS DARK MODE COLOR OVERRIDES */
+.star-icon.filled,
+.stars .star-icon.filled,
+.stars span.filled,
+html[data-admin-theme='dark'] .star-icon.filled,
+html[data-theme='dark'] .star-icon.filled,
+.admin-layout.theme-dark .star-icon.filled,
+.admin-layout.dark .star-icon.filled,
+.dark .star-icon.filled,
+html[data-admin-theme='dark'] .stars .star-icon.filled,
+html[data-theme='dark'] .stars .star-icon.filled,
+.admin-layout.theme-dark .stars .star-icon.filled,
+.admin-layout.dark .stars .star-icon.filled,
+.dark .stars .star-icon.filled {
+  color: #f59e0b !important;
+}
+
+.star-icon.empty,
+.stars .star-icon.empty,
+.stars span.empty,
+html[data-admin-theme='dark'] .star-icon.empty,
+html[data-theme='dark'] .star-icon.empty,
+.admin-layout.theme-dark .star-icon.empty,
+.admin-layout.dark .star-icon.empty,
+.dark .star-icon.empty {
+  color: #64748b !important;
+}
+
+html[data-admin-theme='dark'] .reviews-page .product-link,
+html[data-theme='dark'] .reviews-page .product-link,
+.admin-layout.theme-dark .reviews-page .product-link,
+.admin-layout.dark .reviews-page .product-link,
+.dark .reviews-page .product-link,
+.product-link {
+  color: #3b82f6 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .product-link {
+  color: #60a5fa !important;
+}
+
+/* GLOBAL DARK MODE OVERRIDES FOR TOGGLE BUTTONS (.toggle-btn) */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .toggle-btn {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .toggle-btn .tdot {
+  background: #64748b !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .toggle-btn:hover {
+  background: #1e293b !important;
+  border-color: #3b82f6 !important;
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .toggle-btn.tg-green {
+  background: rgba(34, 197, 94, 0.15) !important;
+  border-color: rgba(34, 197, 94, 0.35) !important;
+  color: #4ade80 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .toggle-btn.tg-green .tdot {
+  background: #4ade80 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .toggle-btn.tg-yellow,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .toggle-btn.tg-red {
+  background: rgba(239, 68, 68, 0.15) !important;
+  border-color: rgba(239, 68, 68, 0.35) !important;
+  color: #f87171 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .toggle-btn.tg-yellow .tdot,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .toggle-btn.tg-red .tdot {
+  background: #f87171 !important;
+}
+
+/* GLOBAL DARK MODE OVERRIDES FOR CATEGORY BADGES (.bg-cat & .bg-global) */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .bg-cat,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .table-badges-wrap .bg-cat,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .badge-pill.bg-cat {
+  background: rgba(59, 130, 246, 0.18) !important;
+  color: #60a5fa !important;
+  border: 1px solid rgba(59, 130, 246, 0.35) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .bg-global,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .table-badges-wrap .bg-global,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .badge-pill.bg-global {
+  background: rgba(16, 185, 129, 0.18) !important;
+  color: #34d399 !important;
+  border: 1px solid rgba(16, 185, 129, 0.35) !important;
+}
+
+/* GLOBAL DARK MODE OVERRIDES FOR PRODUCT ATTRIBUTES & VARIANT CHIPS */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .type-pill,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .type-pill-sm {
+  border: 1px solid transparent;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .tp-blue,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .type-pill-sm.tp-blue {
+  background: rgba(59, 130, 246, 0.2) !important;
+  color: #60a5fa !important;
+  border-color: rgba(59, 130, 246, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .tp-green,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .type-pill-sm.tp-green {
+  background: rgba(34, 197, 94, 0.2) !important;
+  color: #4ade80 !important;
+  border-color: rgba(34, 197, 94, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .tp-amber,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .type-pill-sm.tp-amber {
+  background: rgba(245, 158, 11, 0.2) !important;
+  color: #fbbf24 !important;
+  border-color: rgba(245, 158, 11, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .tp-pink,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .type-pill-sm.tp-pink {
+  background: rgba(236, 72, 153, 0.2) !important;
+  color: #f472b6 !important;
+  border-color: rgba(236, 72, 153, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .tp-purple,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .type-pill-sm.tp-purple {
+  background: rgba(168, 85, 247, 0.2) !important;
+  color: #c084fc !important;
+  border-color: rgba(168, 85, 247, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .tp-teal,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .type-pill-sm.tp-teal {
+  background: rgba(20, 184, 166, 0.2) !important;
+  color: #2dd4bf !important;
+  border-color: rgba(20, 184, 166, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .tp-red,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .type-pill-sm.tp-red {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #f87171 !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+}
+
+/* VALUE CHIPS (.val-chip & .vc-*) */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .val-chip,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .temp-val-chip {
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .vc-blue {
+  background: rgba(59, 130, 246, 0.18) !important;
+  color: #93c5fd !important;
+  border-color: rgba(59, 130, 246, 0.35) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .vc-amber {
+  background: rgba(245, 158, 11, 0.18) !important;
+  color: #fde047 !important;
+  border-color: rgba(245, 158, 11, 0.35) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .vc-purple {
+  background: rgba(168, 85, 247, 0.18) !important;
+  color: #e9d5ff !important;
+  border-color: rgba(168, 85, 247, 0.35) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .vc-pink {
+  background: rgba(236, 72, 153, 0.18) !important;
+  color: #fbcfe8 !important;
+  border-color: rgba(236, 72, 153, 0.35) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .vc-green {
+  background: rgba(34, 197, 94, 0.18) !important;
+  color: #86efac !important;
+  border-color: rgba(34, 197, 94, 0.35) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .vc-teal {
+  background: rgba(20, 184, 166, 0.18) !important;
+  color: #99f6e4 !important;
+  border-color: rgba(20, 184, 166, 0.35) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .vc-red {
+  background: rgba(239, 68, 68, 0.18) !important;
+  color: #fca5a5 !important;
+  border-color: rgba(239, 68, 68, 0.35) !important;
+}
+
+/* ACCORDION BADGE & SELECTED COUNT BADGES IN DARK MODE (.accordion-badge, .fst-count, .gtab-badge) */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .accordion-badge,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .fst-count,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .gtab-badge {
+  background: rgba(37, 99, 235, 0.25) !important;
+  color: #60a5fa !important;
+  border: 1px solid rgba(59, 130, 246, 0.45) !important;
+  font-weight: 600 !important;
+}
+
+/* DARK MODE OVERRIDES FOR QUICK ACTION BUTTONS HOVER (CHỌN TẤT CẢ / BỎ CHỌN) */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .quick-act-btn.select-all {
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .quick-act-btn.select-all:hover {
+  background: rgba(37, 99, 235, 0.25) !important;
+  color: #93c5fd !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .quick-act-btn.clear-all {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .quick-act-btn.clear-all:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .quick-act-btn.clear-all:disabled {
+  color: #475569 !important;
+  background: transparent !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .quick-act-btn.add-val-btn {
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .quick-act-btn.add-val-btn:hover {
+  background: rgba(37, 99, 235, 0.25) !important;
+  color: #93c5fd !important;
+}
+
+/* ==========================================================================
+   GLOBAL STYLING & DARK MODE OVERRIDES FOR ADD ATTRIBUTE VALUE MODAL
+   ========================================================================== */
+.attr-value-modal-card {
+  max-width: 620px !important;
+  width: 92vw !important;
+  border-radius: 18px !important;
+  overflow: hidden !important;
+}
+
+.attr-modal-tab-nav {
+  display: flex;
+  background: #f1f5f9;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 6px 12px;
+  gap: 8px;
+}
+
+.attr-tab-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.attr-tab-btn small {
+  font-size: 11px;
+  font-weight: 400;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
+.attr-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.6);
+  color: #2563eb;
+}
+
+.attr-tab-btn.active {
+  background: #ffffff;
+  color: #2563eb;
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.tab-help-text {
+  font-size: 12.5px;
+  color: #64748b;
+  line-height: 1.5;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border-radius: 10px;
+  border-left: 3.5px solid #3b82f6;
+}
+
+.temp-val-search-box {
+  position: relative;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+}
+
+.temp-val-search-box .search-icon {
+  position: absolute;
+  left: 12px;
+  width: 16px;
+  height: 16px;
+  stroke: #94a3b8;
+  pointer-events: none;
+}
+
+.temp-val-search-box input {
+  width: 100%;
+  padding: 10px 14px 10px 38px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  font-size: 13px;
+  color: #0f172a;
+  outline: none;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.temp-val-search-box input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.temp-val-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.temp-val-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.temp-val-chip:hover {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  color: #2563eb;
+  transform: translateY(-1px);
+}
+
+.temp-val-chip.selected {
+  background: #eff6ff;
+  border-color: #2563eb;
+  color: #2563eb;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+}
+
+.tv-check {
+  font-size: 12px;
+  font-weight: 700;
+  opacity: 0.7;
+}
+
+.swatch-mini {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
+}
+
+/* DARK MODE OVERRIDES FOR ADD ATTRIBUTE VALUE MODAL */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .attr-modal-tab-nav {
+  background: #11151c !important;
+  border-bottom-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .attr-tab-btn {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .attr-tab-btn:hover {
+  background: #1e293b !important;
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .attr-tab-btn.active {
+  background: #1e293b !important;
+  color: #60a5fa !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .tab-help-text {
+  background: rgba(30, 41, 59, 0.6) !important;
+  color: #cbd5e1 !important;
+  border-left-color: #3b82f6 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .temp-val-search-box input {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .temp-val-search-box input:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .temp-val-chip {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .temp-val-chip:hover {
+  background: #1e293b !important;
+  border-color: #3b82f6 !important;
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .temp-val-chip.selected {
+  background: rgba(37, 99, 235, 0.22) !important;
+  color: #60a5fa !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 2px 10px rgba(59, 130, 246, 0.3) !important;
+}
+
+/* REMOVE BLACK BACKGROUND & WHITE BORDER FROM BOTTOM FORM FOOTER & BUTTONS */
+.inline-form-footer {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  margin-top: 24px;
+}
+
+/* SQUARED CORNERS FOR SIDE-CARD (BOTTOM) & PREVIEW-CARD (TOP) */
+.right-col {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+}
+
+.side-card {
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  border-bottom: none !important;
+}
+
+.preview-card {
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .inline-form-footer {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.inline-form-footer .btn-cancel,
+.inline-form-footer .btn-prev-tab {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .inline-form-footer .btn-cancel,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .inline-form-footer .btn-prev-tab {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .inline-form-footer .btn-cancel:hover,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .inline-form-footer .btn-prev-tab:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* ==========================================================================
+   GLOBAL DARK MODE OVERRIDES FOR BIEN THE SAN PHAM (QUẢN LÝ BIẾN THỂ)
+   ========================================================================== */
+
+/* 1. SỐ THUỘC TÍNH (.count-badge) */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .count-badge {
+  background: rgba(59, 130, 246, 0.2) !important;
+  color: #60a5fa !important;
+  border: 1px solid rgba(59, 130, 246, 0.4) !important;
+}
+
+/* CELL ICON BOXES IN DARK MODE (.cell-icon) */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .cell-icon {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  box-shadow: none !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .cell-icon.green-icon svg {
+  stroke: #4ade80 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .cell-icon.purple-icon svg {
+  stroke: #c084fc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .group-tag,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .type-badge {
+  box-shadow: none !important;
+  font-weight: 600;
+  border-style: solid;
+  border-width: 1px;
+}
+
+/* 3. STATUS BADGES & PREVIEW CHIP (.chip-ok, .chip-out) */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .chip-ok {
+  background: rgba(34, 197, 94, 0.2) !important;
+  color: #4ade80 !important;
+  border: 1px solid rgba(34, 197, 94, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .chip-out {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #f87171 !important;
+  border: 1px solid rgba(239, 68, 68, 0.4) !important;
+}
+
+/* 4. BOTTOM CARDS ICON BOXES & FILE BUTTONS (.bottom-icon, .export-sm-btn, .btn-choose-file) */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .bottom-icon {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .export-sm-btn {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .export-sm-btn:hover {
+  background: #1e293b !important;
+  border-color: #3b82f6 !important;
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .bottom-card label.btn-choose-file,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .bottom-card .btn-choose-file,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .bottom-card button {
+  background: rgba(59, 130, 246, 0.2) !important;
+  color: #60a5fa !important;
+  border: 1px solid rgba(59, 130, 246, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .bottom-card label.btn-choose-file:hover,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .bottom-card .btn-choose-file:hover {
+  background: rgba(59, 130, 246, 0.35) !important;
+  color: #93c5fd !important;
+}
+
+/* 5. COLOR ROW ITEMS (.color-row-item) IN RIGHT SIDEBAR */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .color-row-item {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .color-row-item:hover,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .color-row-item.color-selected {
+  background: #1e293b !important;
+  border-color: #3b82f6 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .color-info b {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .color-info span {
+  color: #94a3b8 !important;
+}
+
+/* 6. TAB BUTTONS (.tab-buttons, .tab) */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .tab-buttons {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .tab {
+  color: #94a3b8 !important;
+  background: transparent !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .tab.active {
+  background: #1e293b !important;
+  color: #60a5fa !important;
+  border-color: #3b82f6 !important;
+}
+
+/* 7. PAGINATION BUTTONS IN DARK MODE FOR ALL TABLES */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .phan-trang-container button,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .pagination-wrap button,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .pg-btn {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .phan-trang-container button:hover:not(:disabled),
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .pagination-wrap button:hover:not(:disabled),
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .pg-btn:hover:not(:disabled) {
+  background: #1e293b !important;
+  color: #60a5fa !important;
+  border-color: #3b82f6 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .phan-trang-container button.active,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .pagination-wrap button.active,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .pg-btn.active {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #2563eb !important;
 }
 
 html[data-admin-theme='dark'] .empty-pane-content h2,
@@ -3023,9 +4653,10 @@ body.theme-dark .combo-admin-table td {
 html[data-admin-theme='dark'] .detail-section,
 .admin-layout.theme-dark .detail-section,
 body.theme-dark .detail-section {
-  background: #181d24 !important;
-  border: 1px solid #28303d !important;
+  background: transparent !important;
+  border: none !important;
   color: #f8fafc !important;
+  padding: 0 !important;
 }
 
 html[data-admin-theme='dark'] .detail-section-title,
@@ -3340,17 +4971,6 @@ body.dark .generate-bar,
   body.theme-dark,
   body.dark,
   .dark) :is(.table-wrap, .modal) table tbody td b {
-  color: #f8fafc !important;
-}
-
-:is(html[data-admin-theme='dark'],
-  html[data-theme='dark'],
-  .admin-layout.theme-dark,
-  .admin-layout.dark,
-  .admin-layout.is-dark,
-  body.theme-dark,
-  body.dark,
-  .dark) :is(.table-wrap, .modal) table tbody td span:not(.badge):not(.status-badge):not([class*='badge']):not([class*='status']):not([class*='pill']) {
   color: #f8fafc !important;
 }
 
@@ -3744,7 +5364,6 @@ body.dark .generate-bar,
   body.theme-dark,
   body.dark,
   .dark) :is(.form-section-card, .form-step-section, .form-card, .form-actions, .inline-form-footer) {
-  background: #181d24 !important;
   border-color: #28303d !important;
 }
 
@@ -4285,4 +5904,633 @@ body.dark .generate-bar,
   background: #2563eb !important;
   border-color: #2563eb !important;
   color: #ffffff !important;
+}
+
+/* ORDER MANAGEMENT DARK MODE FIXES */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .customer-cell .avatar {
+  background: rgba(59, 130, 246, 0.2) !important;
+  color: #60a5fa !important;
+  border: 1px solid rgba(59, 130, 246, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill {
+  box-shadow: none !important;
+  font-weight: 600 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill.pill-green,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill[style*="background: rgb(220, 252, 231)"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill[style*="background: #dcfce7"] {
+  background: rgba(34, 197, 94, 0.2) !important;
+  color: #4ade80 !important;
+  border: 1px solid rgba(34, 197, 94, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill.pill-red,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill[style*="background: rgb(254, 226, 226)"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill[style*="background: #fee2e2"] {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #f87171 !important;
+  border: 1px solid rgba(239, 68, 68, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill.pill-amber,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill[style*="background: rgb(255, 237, 213)"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill[style*="background: #ffedd5"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill[style*="background: rgb(254, 243, 199)"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill[style*="background: #fef3c7"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill[style*="background: rgb(254, 249, 195)"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill[style*="background: #fef9c3"] {
+  background: rgba(245, 158, 11, 0.2) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill.pill-purple,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill[style*="background: rgb(237, 233, 254)"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill[style*="background: #ede9fe"] {
+  background: rgba(168, 85, 247, 0.2) !important;
+  color: #c084fc !important;
+  border: 1px solid rgba(168, 85, 247, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill.pill-blue,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill[style*="background: rgb(219, 234, 254)"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill[style*="background: #dbeafe"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill[style*="background: rgb(224, 242, 254)"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill[style*="background: #e0f2fe"] {
+  background: rgba(59, 130, 246, 0.2) !important;
+  color: #60a5fa !important;
+  border: 1px solid rgba(59, 130, 246, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .unpaid-notice-pill {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #f87171 !important;
+  border: 1px solid rgba(239, 68, 68, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .emp-name-badge {
+  background: #181d24 !important;
+  color: #cbd5e1 !important;
+  border-color: #28303d !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .emp-name-badge svg {
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .act-btn {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #cbd5e1 !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .act-btn:hover {
+  background: #1e293b !important;
+  border-color: #3b82f6 !important;
+  color: #60a5fa !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .act-btn.danger {
+  color: #f87171 !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .act-btn.danger:hover {
+  background: rgba(239, 68, 68, 0.2) !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+}
+
+/* ORDER DETAIL MODAL IN DARK MODE (.detail-modal) */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal {
+  background: #11151c !important;
+  border: 1px solid #28303d !important;
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal .modal-header {
+  border-bottom-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal .modal-header h3 {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal .modal-sub {
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal .detail-section {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin-bottom: 20px !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal .section-title {
+  color: #f8fafc !important;
+  border: none !important;
+  padding-bottom: 0 !important;
+  margin-bottom: 12px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal .info-grid {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  border-radius: 14px !important;
+  padding: 18px !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal .info-item {
+  background: transparent !important;
+  border: none !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal .info-label {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal .info-value {
+  color: #f8fafc !important;
+  background: rgba(17, 21, 28, 0.6) !important;
+  border: none !important;
+  border-radius: 8px !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal .employee-select,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal select {
+  background: rgba(17, 21, 28, 0.6) !important;
+  border: 1px solid #28303d !important;
+  color: #f8fafc !important;
+  border-radius: 8px !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal .employee-select:disabled,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal select:disabled {
+  background: rgba(17, 21, 28, 0.8) !important;
+  color: #94a3b8 !important;
+  border-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal select option {
+  background: #181d24 !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .shipment-card {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  border-radius: 14px !important;
+  padding: 18px !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .shipment-head strong {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .shipment-grid > div {
+  background: rgba(17, 21, 28, 0.6) !important;
+  border: none !important;
+  border-radius: 8px !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .shipment-grid span {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .shipment-grid b {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .shipment-event b {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .shipment-event p {
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .shipment-event small {
+  color: #64748b !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .shipment-event .event-dot {
+  background: #3b82f6 !important;
+  border-color: #11151c !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .order-item {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .order-item .item-img {
+  background: #11151c !important;
+  border-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .order-item .item-name {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .order-item .item-variant {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .order-item .iq-price {
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .order-summary-box {
+  background: rgba(59, 130, 246, 0.15) !important;
+  border: 1px solid rgba(59, 130, 246, 0.3) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .order-summary-box span {
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .order-summary-box .final-total {
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal .modal-footer {
+  background: #11151c !important;
+  border-top-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal .btn-cancel {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #cbd5e1 !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal .btn-cancel:hover {
+  background: #1e293b !important;
+  border-color: #3b82f6 !important;
+  color: #60a5fa !important;
+}
+
+/* QUAN LY KHUYEN MAI DARK MODE OVERRIDES */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .list-title,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .promo-name {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .list-sub,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .promo-code,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .date-cell,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .page-info {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .btn-filter {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #cbd5e1 !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .btn-filter:hover {
+  background: #1e293b !important;
+  border-color: #3b82f6 !important;
+  color: #60a5fa !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .btn-filter svg {
+  stroke: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .table-card {
+  background: #11151c !important;
+  border-color: #28303d !important;
+  box-shadow: none !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) table thead tr {
+  background: #181d24 !important;
+  border-bottom-color: #28303d !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) table th {
+  color: #94a3b8 !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) table tbody tr {
+  border-bottom-color: #28303d !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) table tbody tr:hover {
+  background: #181d24 !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) table tbody tr.row-selected {
+  background: rgba(59, 130, 246, 0.15) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .promo-icon {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .discount-tag {
+  border-radius: 20px !important;
+  font-weight: 700 !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .discount-tag[style*="fef3c7"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .discount-tag[style*="254, 243, 199"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .discount-percent {
+  background: rgba(245, 158, 11, 0.2) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.4) !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .discount-tag[style*="eff6ff"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .discount-tag[style*="239, 246, 255"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .discount-fixed {
+  background: rgba(59, 130, 246, 0.2) !important;
+  color: #60a5fa !important;
+  border: 1px solid rgba(59, 130, 246, 0.4) !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .discount-tag[style*="dcfce7"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .discount-tag[style*="220, 252, 231"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .discount-green {
+  background: rgba(34, 197, 94, 0.2) !important;
+  color: #4ade80 !important;
+  border: 1px solid rgba(34, 197, 94, 0.4) !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .discount-tag[style*="ede9fe"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .discount-tag[style*="237, 233, 254"] {
+  background: rgba(168, 85, 247, 0.2) !important;
+  color: #c084fc !important;
+  border: 1px solid rgba(168, 85, 247, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-badge {
+  border-radius: 20px !important;
+  font-weight: 700 !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-badge.status-running,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-badge[style*="dcfce7"] {
+  background: rgba(34, 197, 94, 0.2) !important;
+  color: #4ade80 !important;
+  border: 1px solid rgba(34, 197, 94, 0.4) !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-badge.status-expired,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-badge[style*="fee2e2"] {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #f87171 !important;
+  border: 1px solid rgba(239, 68, 68, 0.4) !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-badge.status-open,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-badge[style*="dbeafe"] {
+  background: rgba(59, 130, 246, 0.2) !important;
+  color: #60a5fa !important;
+  border: 1px solid rgba(59, 130, 246, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .action-btn {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #cbd5e1 !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .action-btn svg {
+  stroke: #cbd5e1 !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .action-btn:hover {
+  background: #1e293b !important;
+  border-color: #3b82f6 !important;
+  color: #60a5fa !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .action-btn:hover svg {
+  stroke: #60a5fa !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .action-btn.action-delete {
+  color: #f87171 !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .action-btn.action-delete svg {
+  stroke: #f87171 !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .action-btn.action-delete:hover {
+  background: rgba(239, 68, 68, 0.2) !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .page-btn {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #cbd5e1 !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .page-btn:hover {
+  background: #1e293b !important;
+  border-color: #3b82f6 !important;
+  color: #60a5fa !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .page-btn.active {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  color: #ffffff !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .bottom-card {
+  background: #11151c !important;
+  border-color: #28303d !important;
+  color: #f8fafc !important;
+  box-shadow: none !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .bottom-card h3 {
+  color: #f8fafc !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .rank-name {
+  color: #cbd5e1 !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .rank-bar {
+  background: #181d24 !important;
+}
+
+/* Condition Cards Dark Mode Overrides */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body > .condition-row,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body > .condition-row.reward-condition-row,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body > .condition-row.freeship-row {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body > .condition-row .form-input,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body > .condition-row .form-select,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body > .condition-row .condition-select,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body > .condition-row .condition-input {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body > .condition-row option {
+  background: #181d24 !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body {
+  background: #11151c !important;
+  border-color: #242c38 !important;
+  box-shadow: none !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body .form-label {
+  color: #f1f5f9 !important;
+  font-weight: 700 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body .form-hint {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body .form-input,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body textarea.form-input,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body select.form-input,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body .form-select,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body .condition-select,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body .condition-input {
+  background-color: #1e2433 !important;
+  border: 1px solid #2d3748 !important;
+  color: #f1f5f9 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .btn-gen-code {
+  background-color: #1e2433 !important;
+  border: 1px solid #2d3748 !important;
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .btn-gen-code:hover {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  color: #ffffff !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .condition-badge {
+  background: rgba(59, 130, 246, 0.2) !important;
+  color: #60a5fa !important;
+  border-color: rgba(59, 130, 246, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .condition-badge.freeship-badge {
+  background: rgba(34, 197, 94, 0.2) !important;
+  color: #4ade80 !important;
+  border-color: rgba(34, 197, 94, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .condition-badge.reward-badge {
+  background: rgba(249, 115, 22, 0.2) !important;
+  color: #fb923c !important;
+  border-color: rgba(249, 115, 22, 0.4) !important;
+}
+
+/* 10. Holiday & Events Tab Dark Mode Overrides */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .holiday-list-wrapper {
+  background: #11151c !important;
+  border-color: #28303d !important;
+  box-shadow: none !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .holiday-item {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .holiday-item:hover {
+  background: #1e2634 !important;
+  border-color: #3b82f6 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .next-holiday {
+  background: linear-gradient(to right, rgba(37, 99, 235, 0.18), #181d24) !important;
+  border-color: rgba(59, 130, 246, 0.5) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .holiday-date-box {
+  background: #1e2634 !important;
+  border-color: #2e3848 !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .holiday-day {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .holiday-month {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .multi-day {
+  background: #1e2634 !important;
+  border-color: #2e3848 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .holiday-day-range {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .holiday-name {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .next-holiday .holiday-name {
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .holiday-tag-green {
+  background: rgba(34, 197, 94, 0.18) !important;
+  color: #4ade80 !important;
+  border-color: rgba(34, 197, 94, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .holiday-tag-blue {
+  background: rgba(59, 130, 246, 0.18) !important;
+  color: #60a5fa !important;
+  border-color: rgba(59, 130, 246, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .holiday-countdown {
+  background: #1e2634 !important;
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .next-holiday .holiday-countdown {
+  background: rgba(234, 179, 8, 0.2) !important;
+  color: #facc15 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .auto-send-toggle {
+  background: #1e2634 !important;
+  border-color: #2e3848 !important;
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .auto-send-toggle.enabled {
+  background: rgba(34, 197, 94, 0.18) !important;
+  border-color: rgba(34, 197, 94, 0.4) !important;
+  color: #4ade80 !important;
+}
+
+/* 11. Status & Note Info Boxes in Dark Mode */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .birthday-status-info {
+  background: rgba(245, 158, 11, 0.15) !important;
+  border: 1px solid rgba(245, 158, 11, 0.35) !important;
+  color: #fef08a !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .birthday-status-info strong {
+  color: #fbbf24 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .birthday-icon {
+  background: rgba(245, 158, 11, 0.25) !important;
+  color: #fef08a !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .birthday-status-info.event-status-info {
+  background: rgba(59, 130, 246, 0.15) !important;
+  border: 1px solid rgba(59, 130, 246, 0.35) !important;
+  color: #bfdbfe !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .birthday-status-info.event-status-info strong {
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .event-icon {
+  background: rgba(59, 130, 246, 0.3) !important;
+  color: #93c5fd !important;
 }

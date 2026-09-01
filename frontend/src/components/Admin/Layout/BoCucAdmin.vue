@@ -3227,24 +3227,25 @@ a {
   color: #ffffff !important;
 }
 
-/* Khuyến mãi: bảo đảm chữ rõ trên nền badge và nút của thẻ gradient. */
-.admin-layout .main :deep(.discount-tag.discount-percent),
-.admin-layout .main :deep(.discount-tag.discount-maxprice) {
-  border: 1px solid #f4cf67 !important;
-  background: #fff3bf !important;
-  color: #713b08 !important;
+/* Khuyến mãi trong Light Mode */
+:is(.admin-layout:not(.theme-dark):not(.dark)) .main :deep(.discount-tag.discount-percent),
+:is(.admin-layout:not(.theme-dark):not(.dark)) .main :deep(.discount-tag.discount-maxprice) {
+  border: 1px solid #fde68a !important;
+  background: #fef3c7 !important;
+  color: #b45309 !important;
 }
 
-.admin-layout .main :deep(.discount-tag.discount-fixed) {
-  border: 1px solid #93c5fd !important;
-  background: #dbeafe !important;
-  color: #1e3a8a !important;
+:is(.admin-layout:not(.theme-dark):not(.dark)) .main :deep(.discount-tag.discount-fixed) {
+  border: 1px solid #bfdbfe !important;
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
 }
 
-.admin-layout .main :deep(.discount-tag.discount-freeship) {
-  border: 1px solid #86efac !important;
+:is(.admin-layout:not(.theme-dark):not(.dark)) .main :deep(.discount-tag.discount-freeship),
+:is(.admin-layout:not(.theme-dark):not(.dark)) .main :deep(.discount-tag.discount-green) {
+  border: 1px solid #bbf7d0 !important;
   background: #dcfce7 !important;
-  color: #14532d !important;
+  color: #15803d !important;
 }
 
 .admin-layout.theme-dark .main :deep(.stat-card-gradient .stat-card-btn) {
@@ -3260,17 +3261,29 @@ a {
   color: #1e40af !important;
 }
 
-.admin-layout.theme-dark .main :deep(td .discount-tag.discount-percent),
-.admin-layout.theme-dark .main :deep(td .discount-tag.discount-maxprice) {
-  color: #713b08 !important;
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .main :deep(.discount-tag.discount-percent),
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .main :deep(.discount-tag.discount-maxprice),
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .main :deep(td .discount-tag.discount-percent),
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .main :deep(td .discount-tag.discount-maxprice) {
+  background: rgba(245, 158, 11, 0.2) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.4) !important;
 }
 
-.admin-layout.theme-dark .main :deep(td .discount-tag.discount-fixed) {
-  color: #1e3a8a !important;
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .main :deep(.discount-tag.discount-fixed),
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .main :deep(td .discount-tag.discount-fixed) {
+  background: rgba(59, 130, 246, 0.2) !important;
+  color: #60a5fa !important;
+  border: 1px solid rgba(59, 130, 246, 0.4) !important;
 }
 
-.admin-layout.theme-dark .main :deep(td .discount-tag.discount-freeship) {
-  color: #14532d !important;
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .main :deep(.discount-tag.discount-freeship),
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .main :deep(.discount-tag.discount-green),
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .main :deep(td .discount-tag.discount-freeship),
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .main :deep(td .discount-tag.discount-green) {
+  background: rgba(34, 197, 94, 0.2) !important;
+  color: #4ade80 !important;
+  border: 1px solid rgba(34, 197, 94, 0.4) !important;
 }
 
 /* Bảng dữ liệu tối đồng nhất: loại bỏ các hàng trắng làm chữ phụ bị chìm. */

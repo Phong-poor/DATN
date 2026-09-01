@@ -1265,15 +1265,99 @@ const submitEdit = async () => {
     margin: 0 4px;
 }
 
-.status-tab {
+.status-tab,
+.admin-layout.theme-dark .status-tab,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .status-tab {
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 2px 8px 2px 14px !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
 }
 
 .status-tab:hover {
-    background: transparent !important; /* Keep transparent hover since child dropdown handles interaction */
+    background: transparent !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .status-tab > span {
+    color: #e2e8f0 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .status-filter-dropdown .dropdown-trigger {
+    background: #13171f !important;
+    border-color: #28303d !important;
+    color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .status-filter-dropdown .dropdown-menu {
+    background: #181d24 !important;
+    border-color: #28303d !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .status-filter-dropdown .dropdown-menu li {
+    color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .status-filter-dropdown .dropdown-menu li:hover {
+    background: #222a36 !important;
+    color: #ffffff !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .status-filter-dropdown .dropdown-menu li.active {
+    background: #2563eb !important;
+    color: #ffffff !important;
 }
 
 /* Custom Premium Dropdown specifically for status filter */

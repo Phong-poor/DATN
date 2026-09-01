@@ -23,20 +23,28 @@ const formError = ref('')
 const loading = ref(false)
 
 const typePalette = [
-  { bg: '#dbeafe', color: '#1d4ed8' },
-  { bg: '#dcfce7', color: '#1d4ed8' },
-  { bg: '#ede9fe', color: '#1d4ed8' },
-  { bg: '#fef3c7', color: '#b45309' },
-  { bg: '#fee2e2', color: '#b91c1c' },
-  { bg: '#e0f2fe', color: '#0369a1' },
+  { bg: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa', borderColor: 'rgba(59, 130, 246, 0.4)' },
+  { bg: 'rgba(168, 85, 247, 0.2)', color: '#c084fc', borderColor: 'rgba(168, 85, 247, 0.4)' },
+  { bg: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24', borderColor: 'rgba(245, 158, 11, 0.4)' },
+  { bg: 'rgba(20, 184, 166, 0.2)', color: '#2dd4bf', borderColor: 'rgba(20, 184, 166, 0.4)' },
+  { bg: 'rgba(236, 72, 153, 0.2)', color: '#f472b6', borderColor: 'rgba(236, 72, 153, 0.4)' },
+  { bg: 'rgba(34, 197, 94, 0.2)', color: '#4ade80', borderColor: 'rgba(34, 197, 94, 0.4)' },
+  { bg: 'rgba(239, 68, 68, 0.2)', color: '#f87171', borderColor: 'rgba(239, 68, 68, 0.4)' },
 ]
 
 const getTypeStyle = (name) => {
-  if (!name) return { bg: '#e5e7eb', color: '#374151' }
-  const index =
-    String(name)
-      .split('')
-      .reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % typePalette.length
+  if (!name) return typePalette[0]
+  const str = String(name).trim()
+  const lower = str.toLowerCase()
+  if (lower.includes('ram')) return typePalette[0]
+  if (lower.includes('cpu')) return typePalette[1]
+  if (lower.includes('gpu')) return typePalette[2]
+  if (lower.includes('ssd') || lower.includes('o cung') || lower.includes('ổ cứng')) return typePalette[3]
+  if (lower.includes('mau') || lower.includes('màu')) return typePalette[4]
+  if (lower.includes('kich thuoc') || lower.includes('kích thước') || lower.includes('man hinh') || lower.includes('màn hình')) return typePalette[5]
+  if (lower.includes('do phan giai') || lower.includes('độ phân giải') || lower.includes('pin')) return typePalette[6]
+
+  const index = str.split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % typePalette.length
   return typePalette[index]
 }
 
@@ -1195,7 +1203,7 @@ async function handleImportFile(e) {
                   <span class="variant-name">{{ a.name }}</span>
                 </div>
               </td>
-              <td><span class="group-tag">{{ a.group }}</span></td>
+              <td><span class="group-tag" :style="{ background: getTypeStyle(a.group).bg, color: getTypeStyle(a.group).color, borderColor: getTypeStyle(a.group).borderColor }">{{ a.group }}</span></td>
               <td>
                 <span class="status-dot" :class="a.status === 'Hoạt động' ? 'active' : 'draft'">● {{ a.status }}</span>
               </td>
@@ -1322,7 +1330,7 @@ async function handleImportFile(e) {
                 <td class="variant-name">{{ v.name }}</td>
                 <td>
                   <span class="type-badge"
-                    :style="{ background: getTypeStyle(v.type).bg, color: getTypeStyle(v.type).color }">{{ v.type }}</span>
+                    :style="{ background: getTypeStyle(v.type).bg, color: getTypeStyle(v.type).color, borderColor: getTypeStyle(v.type).borderColor }">{{ v.type }}</span>
                 </td>
                 <td>
                   <span v-if="v.danh_muc_ids && v.danh_muc_ids.length > 0" style="font-size: 12.5px; color: #475569; font-weight: 500;" :title="getCategoryNamesTooltip(v.danh_muc_ids)">
@@ -2651,7 +2659,24 @@ tbody td {
   background: transparent;
 }
 
-.side-card { padding: 16px; }
+.right-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.side-card {
+  padding: 16px;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  border-bottom: none !important;
+}
+
+.preview-card {
+  padding: 14px;
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+}
 
 .side-header {
   display: flex;
@@ -2775,7 +2800,6 @@ tbody td {
 .stock-ok { color: #2563eb; font-size: 12px; font-weight: 600; }
 .stock-out { color: #dc2626; font-size: 12px; font-weight: 600; }
 
-.preview-card { padding: 14px; }
 .preview-label {
   font-size: 9px;
   font-weight: 700;
@@ -3982,6 +4006,379 @@ html[data-admin-theme='dark'] .attribute-filter-dropdown .dropdown-group-title.a
 .dark .attribute-filter-dropdown .dropdown-group-title.active {
   background: #1e3a8a !important;
   color: #93c5fd !important;
+}
+
+/* ==========================================================================
+   COMPLETE DARK MODE OVERRIDES FOR BIEN THE SAN PHAM (QUẢN LÝ BIẾN THỂ)
+   ========================================================================== */
+
+/* 1. SỐ THUỘC TÍNH (.count-badge) */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .count-badge {
+  background: rgba(59, 130, 246, 0.2) !important;
+  color: #60a5fa !important;
+  border: 1px solid rgba(59, 130, 246, 0.4) !important;
+}
+
+/* CELL ICON BOXES IN DARK MODE (.cell-icon) */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .cell-icon {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  box-shadow: none !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .cell-icon.green-icon svg {
+  stroke: #4ade80 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .cell-icon.purple-icon svg {
+  stroke: #c084fc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .group-tag,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .type-badge {
+  box-shadow: none !important;
+  font-weight: 600;
+  border-style: solid;
+  border-width: 1px;
+}
+
+/* 3. STATUS BADGES & PREVIEW CHIP (.chip-ok, .chip-out) */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .chip-ok {
+  background: rgba(34, 197, 94, 0.2) !important;
+  color: #4ade80 !important;
+  border: 1px solid rgba(34, 197, 94, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .chip-out {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #f87171 !important;
+  border: 1px solid rgba(239, 68, 68, 0.4) !important;
+}
+
+/* 4. BOTTOM CARDS ICON BOXES & FILE BUTTONS (.bottom-icon, .export-sm-btn, .btn-choose-file) */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .bottom-icon {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .export-sm-btn {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .export-sm-btn:hover {
+  background: #1e293b !important;
+  border-color: #3b82f6 !important;
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .bottom-card label.btn-choose-file,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .bottom-card .btn-choose-file,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .bottom-card button {
+  background: rgba(59, 130, 246, 0.2) !important;
+  color: #60a5fa !important;
+  border: 1px solid rgba(59, 130, 246, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .bottom-card label.btn-choose-file:hover,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .bottom-card .btn-choose-file:hover {
+  background: rgba(59, 130, 246, 0.35) !important;
+  color: #93c5fd !important;
+}
+
+/* 5. COLOR ROW ITEMS (.color-row-item) IN RIGHT SIDEBAR */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .color-row-item {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .color-row-item:hover,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .color-row-item.color-selected {
+  background: #1e293b !important;
+  border-color: #3b82f6 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .color-info b {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .color-info span {
+  color: #94a3b8 !important;
+}
+
+/* 6. TAB BUTTONS (.tab-buttons, .tab) */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .tab-buttons {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .tab {
+  color: #94a3b8 !important;
+  background: transparent !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .tab.active {
+  background: #1e293b !important;
+  color: #60a5fa !important;
+  border-color: #3b82f6 !important;
+}
+
+/* 7. PAGINATION BUTTONS IN DARK MODE FOR ALL TABLES */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .phan-trang-container button,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .pagination-wrap button,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .pg-btn {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .phan-trang-container button:hover:not(:disabled),
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .pagination-wrap button:hover:not(:disabled),
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .pg-btn:hover:not(:disabled) {
+  background: #1e293b !important;
+  color: #60a5fa !important;
+  border-color: #3b82f6 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .phan-trang-container button.active,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .pagination-wrap button.active,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .pg-btn.active {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #2563eb !important;
 }
 </style>
 
