@@ -394,8 +394,8 @@ const handleJumpKeyDown = (e) => {
   body.theme-dark,
   body.dark,
   .dark) .dots-btn {
-  background: #181d24 !important;
-  border-color: #28303d !important;
+  background: #253346 !important;
+  border-color: #334155 !important;
   color: #cbd5e1 !important;
   box-shadow: none !important;
 }
@@ -451,8 +451,8 @@ const handleJumpKeyDown = (e) => {
   body.theme-dark,
   body.dark,
   .dark) .nav-btn:disabled {
-  background: #11151c !important;
-  border-color: #1e293b !important;
+  background: #1e2430 !important;
+  border-color: #28303d !important;
   color: #475569 !important;
 }
 </style>

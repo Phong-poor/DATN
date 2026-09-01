@@ -389,49 +389,242 @@ onMounted(() => props.admin ? fetchAdmin() : fetchMine())
 </style>
 
 <style>
-.admin-layout.theme-dark .leave-panel,
-html[data-admin-theme='dark'] .leave-panel {
-  background: #111827;
-  border-color: #374151;
-  color: #f8fafc;
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
 }
-.admin-layout.theme-dark .leave-panel .request-card,
-.admin-layout.theme-dark .leave-panel .review-card,
-html[data-admin-theme='dark'] .leave-panel .request-card,
-html[data-admin-theme='dark'] .leave-panel .review-card {
-  background: #151e2d;
-  border-color: #374151;
-  color: #f8fafc;
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel .request-card,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel .review-card,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel .empty {
+  background: #181d24 !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
 }
-.admin-layout.theme-dark .leave-panel .leave-form,
-html[data-admin-theme='dark'] .leave-panel .leave-form {
-  background: #0b1220;
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel .leave-form {
+  background: #13171f !important;
+  border-color: #334155 !important;
 }
-.admin-layout.theme-dark .leave-panel .form-actions,
-html[data-admin-theme='dark'] .leave-panel .form-actions {
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel .form-actions {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
   padding: 0 !important;
 }
-.admin-layout.theme-dark .leave-panel p,
-.admin-layout.theme-dark .leave-panel small,
-html[data-admin-theme='dark'] .leave-panel p,
-html[data-admin-theme='dark'] .leave-panel small {
-  color: #b8c4d6;
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel p,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel small {
+  color: #b8c4d6 !important;
 }
-.admin-layout.theme-dark .leave-panel input,
-.admin-layout.theme-dark .leave-panel select,
-.admin-layout.theme-dark .leave-panel textarea,
-html[data-admin-theme='dark'] .leave-panel input,
-html[data-admin-theme='dark'] .leave-panel select,
-html[data-admin-theme='dark'] .leave-panel textarea {
-  background: #1f2937;
-  border-color: #4b5563;
-  color: #f8fafc;
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel input,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel select,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel textarea {
+  background: #13171f !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
 }
-.admin-layout.theme-dark .leave-panel .manager-note,
-html[data-admin-theme='dark'] .leave-panel .manager-note {
-  background: #202c3d;
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel .manager-note {
+  background: #253346 !important;
+  border: 1px solid #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel .leave-status {
+  background: rgba(245, 158, 11, 0.2) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.45) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel .leave-status.approved {
+  background: rgba(34, 197, 94, 0.2) !important;
+  color: #4ade80 !important;
+  border: 1px solid rgba(34, 197, 94, 0.45) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel .leave-status.rejected,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel .leave-status.cancelled {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #f87171 !important;
+  border: 1px solid rgba(239, 68, 68, 0.45) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel .history-pagination button {
+  background: #253346 !important;
+  border-color: #334155 !important;
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel .history-pagination button:disabled {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #64748b !important;
+  opacity: 0.5 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel .history-pagination span {
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel .view-btn {
+  background: #253346 !important;
+  border-color: #334155 !important;
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel .view-btn:hover {
+  background: #1e293b !important;
+  color: #93c5fd !important;
 }
 </style>

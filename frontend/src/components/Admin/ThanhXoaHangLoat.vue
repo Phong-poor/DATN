@@ -151,9 +151,21 @@ defineEmits(['clear', 'delete-selected', 'delete-all'])
   body.theme-dark,
   body.dark,
   .dark) .bulk-toolbar {
-  background: #181d24 !important;
-  border-color: #28303d !important;
+  background: #1e293b !important;
+  border-color: #334155 !important;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .bulk-icon {
+  background: rgba(59, 130, 246, 0.2) !important;
+  color: #60a5fa !important;
 }
 
 :is(html[data-admin-theme='dark'],
@@ -186,9 +198,22 @@ defineEmits(['clear', 'delete-selected', 'delete-all'])
   body.theme-dark,
   body.dark,
   .dark) .bulk-btn.ghost {
-  background: #202732 !important;
-  color: #cbd5e1 !important;
-  border-color: #3b424b !important;
+  background: #253346 !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .bulk-btn.danger-outline {
+  background: rgba(239, 68, 68, 0.18) !important;
+  color: #f87171 !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
 }
 
 @media (max-width: 768px) {

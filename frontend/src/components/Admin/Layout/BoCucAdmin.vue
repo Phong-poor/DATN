@@ -498,6 +498,7 @@ const filteredMenuConfig = computed(() => {
     '/admin/bien-the-san-pham': ['bien_the_xem', 'bien_the_sua'],
 
     '/admin/quan-ly-don-hang': ['don_hang_xem', 'don_hang_sua', 'hoa_don_xem'],
+    '/admin/thong-ke-doanh-so-nhan-vien': 'doanh_so_nhan_vien',
 
     '/admin/quan-ly-khuyen-mai': 'marketing_quan_ly',
     '/admin/gui-ma-sinh-nhat': 'marketing_quan_ly',
@@ -523,10 +524,16 @@ const filteredMenuConfig = computed(() => {
     '/admin/xu': 'xu_quan_ly',
     '/admin/quan-ly-cham-cong': 'quan_ly_cham_cong',
     '/admin/quan-ly-don-xin-nghi': 'quan_ly_cham_cong',
+    '/admin/cham-cong-camera': 'xac_thuc_nhan_vien',
   }
 
   return menuConfig.map(item => {
     if (item.path === '/admin' && !isAdmin) return null
+    // Ngoại trừ Tổng quan và Xin nghỉ phép thì nhân viên nào cũng thấy trên sidebar
+    if (['/admin/bang-dieu-khien', '/admin/xin-nghi-phep'].includes(item.path)) {
+      return item
+    }
+
     if (!item.isDropdown) {
       const required = pathPermissionMap[item.path]
       if (required && !hasPerm(required)) return null
@@ -3350,21 +3357,25 @@ a {
 }
 
 .admin-layout.theme-dark .main :deep(.chip-ok) {
-  border-color: #86efac !important;
-  background: #dcfce7 !important;
-  color: #166534 !important;
+  border-color: rgba(34, 197, 94, 0.4) !important;
+  background: rgba(34, 197, 94, 0.2) !important;
+  color: #4ade80 !important;
 }
 
-.admin-layout.theme-dark .main :deep(.status-badge.pending) {
-  border-color: #fde68a !important;
-  background: #fef3c7 !important;
-  color: #854d0e !important;
+.admin-layout.theme-dark .main :deep(.status-badge.pending),
+.admin-layout.theme-dark .main :deep(.status-expired) {
+  border-color: rgba(245, 158, 11, 0.4) !important;
+  background: rgba(245, 158, 11, 0.2) !important;
+  color: #fbbf24 !important;
 }
 
-.admin-layout.theme-dark .main :deep(.badge.badge-success) {
-  border-color: #86efac !important;
-  background: #dcfce7 !important;
-  color: #166534 !important;
+.admin-layout.theme-dark .main :deep(.badge.badge-success),
+.admin-layout.theme-dark .main :deep(.badge-success),
+.admin-layout.theme-dark .main :deep(.badge-green),
+.admin-layout.theme-dark .main :deep(.badge-active-green) {
+  border-color: rgba(34, 197, 94, 0.4) !important;
+  background: rgba(34, 197, 94, 0.2) !important;
+  color: #4ade80 !important;
 }
 
 .admin-layout.theme-dark .main :deep(.moderation-tool h4),

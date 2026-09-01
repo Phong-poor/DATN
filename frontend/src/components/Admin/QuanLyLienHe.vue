@@ -141,7 +141,7 @@
             <td class="content-cell">"{{ c.preview }}..."</td>
             <td>
               <div class="tag-stack">
-                <span v-for="t in c.tags" :key="t.label" class="tag" :style="{ background: t.bg, color: t.color }">{{ t.label }}</span>
+                <span v-for="t in c.tags" :key="t.label" class="tag" :style="{ backgroundColor: t.bg, color: t.color, border: t.border }">{{ t.label }}</span>
               </div>
             </td>
             <td class="time-cell">
@@ -372,15 +372,15 @@ function getTagStyle(category) {
   const label = String(category || 'Liên hệ').trim()
   const normalized = label.toLocaleLowerCase('vi-VN')
 
-  if (normalized.includes('tư vấn')) return { label: label.toUpperCase(), bg: '#dbeafe', color: '#1e40af' }
-  if (normalized.includes('kỹ thuật')) return { label: label.toUpperCase(), bg: '#fff7ed', color: '#9a3412' }
-  if (normalized.includes('bảo hành') || normalized.includes('sửa chữa')) return { label: label.toUpperCase(), bg: '#ede9fe', color: '#6d28d9' }
-  if (normalized.includes('đặt lịch') || normalized.includes('showroom')) return { label: label.toUpperCase(), bg: '#dcfce7', color: '#166534' }
-  if (normalized.includes('hợp tác')) return { label: label.toUpperCase(), bg: '#cffafe', color: '#155e75' }
-  if (normalized.includes('khiếu nại')) return { label: label.toUpperCase(), bg: '#fee2e2', color: '#991b1b' }
-  if (normalized.includes('đơn hàng')) return { label: label.toUpperCase(), bg: '#fef3c7', color: '#92400e' }
+  if (normalized.includes('tư vấn')) return { label: label.toUpperCase(), bg: 'rgba(59, 130, 246, 0.18)', color: '#60a5fa', border: '1px solid rgba(59, 130, 246, 0.4)' }
+  if (normalized.includes('kỹ thuật')) return { label: label.toUpperCase(), bg: 'rgba(245, 158, 11, 0.18)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.4)' }
+  if (normalized.includes('bảo hành') || normalized.includes('sửa chữa')) return { label: label.toUpperCase(), bg: 'rgba(168, 85, 247, 0.18)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.4)' }
+  if (normalized.includes('đặt lịch') || normalized.includes('showroom')) return { label: label.toUpperCase(), bg: 'rgba(34, 197, 94, 0.18)', color: '#4ade80', border: '1px solid rgba(34, 197, 94, 0.4)' }
+  if (normalized.includes('hợp tác')) return { label: label.toUpperCase(), bg: 'rgba(6, 182, 212, 0.18)', color: '#22d3ee', border: '1px solid rgba(6, 182, 212, 0.4)' }
+  if (normalized.includes('khiếu nại')) return { label: label.toUpperCase(), bg: 'rgba(239, 68, 68, 0.18)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.4)' }
+  if (normalized.includes('đơn hàng')) return { label: label.toUpperCase(), bg: 'rgba(245, 158, 11, 0.18)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.4)' }
 
-  return { label: label.toUpperCase(), bg: '#e2e8f0', color: '#475569' }
+  return { label: label.toUpperCase(), bg: 'rgba(148, 163, 184, 0.18)', color: '#cbd5e1', border: '1px solid rgba(148, 163, 184, 0.4)' }
 }
 
 function mapItem(item) {
@@ -1203,8 +1203,8 @@ a { text-decoration: none; }
   body.theme-dark,
   body.dark,
   .dark) .filter-bar {
-  background: #181d24 !important;
-  border: 1px solid #28303d !important;
+  background: #1e293b !important;
+  border: 1px solid #334155 !important;
   border-radius: 12px !important;
   padding: 11px 18px !important;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25) !important;
@@ -1218,7 +1218,87 @@ a { text-decoration: none; }
   body.theme-dark,
   body.dark,
   .dark) .filter-select option {
-  background-color: #181d24 !important;
+  background-color: #1e293b !important;
   color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .status-badge.status-resolved {
+  background: rgba(34, 197, 94, 0.22) !important;
+  color: #4ade80 !important;
+  border: 1px solid rgba(34, 197, 94, 0.45) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .status-badge.status-processing,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .status-badge.status-new {
+  background: rgba(245, 158, 11, 0.22) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.45) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .action-btn {
+  background: #253346 !important;
+  border-color: #334155 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .action-btn svg {
+  stroke: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .action-btn.action-delete {
+  background: rgba(239, 68, 68, 0.2) !important;
+  border-color: rgba(239, 68, 68, 0.45) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .action-btn.action-delete svg {
+  stroke: #f87171 !important;
 }
 </style>

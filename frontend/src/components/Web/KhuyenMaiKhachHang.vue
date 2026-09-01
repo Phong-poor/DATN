@@ -262,8 +262,11 @@ onMounted(() => {
 
 watch(() => route.query.section, scrollToPromotionSection)
 
+let scrollRevealListener = null
+
 onUnmounted(() => {
   if (countdownInterval) clearInterval(countdownInterval)
+  if (scrollRevealListener) window.removeEventListener('scroll', scrollRevealListener)
 })
 
 // ===================== DATA FETCHING =====================
@@ -884,7 +887,7 @@ const animateCounters = () => {
 const initScrollReveal = () => {
   const revealElements = document.querySelectorAll('.scroll-reveal')
   
-  const revealOnScroll = () => {
+  scrollRevealListener = () => {
     revealElements.forEach(el => {
       const rect = el.getBoundingClientRect()
       const windowHeight = window.innerHeight
@@ -894,12 +897,8 @@ const initScrollReveal = () => {
     })
   }
 
-  window.addEventListener('scroll', revealOnScroll)
-  setTimeout(revealOnScroll, 100)
-
-  onUnmounted(() => {
-    window.removeEventListener('scroll', revealOnScroll)
-  })
+  window.addEventListener('scroll', scrollRevealListener)
+  setTimeout(scrollRevealListener, 100)
 }
 </script>
 
