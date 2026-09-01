@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\NewVoucherMail;
 use App\Models\DatHang;
+use App\Models\NewsletterSubscriber;
 use App\Models\Promotion;
 use App\Models\UserVoucher;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -326,6 +329,11 @@ class PromotionController extends Controller
             'so_luong_phat' => $request->danhmuc === 'birthday' ? null : $request->so_luong_phat,
         ]);
 
+        // Gửi email thông báo voucher mới cho newsletter subscribers (chỉ với voucher công khai)
+        if ($promo->congkhai) {
+            $this->broadcastNewVoucher($promo);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Tạo khuyến mãi thành công!',
@@ -426,4 +434,20 @@ class PromotionController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Gửi email thông báo voucher mới đến tất cả newsletter subscribers.
+     */
+    private function broadcastNewVoucher(Promotion $promo): void
+    {
+        try {
+            $subscribers = NewsletterSubscriber::active()->pluck('email');
+            foreach ($subscribers as $email) {
+                Mail::to($email)->send(new NewVoucherMail($promo, $email));
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Newsletter broadcast (voucher) failed: ' . $e->getMessage());
+        }
+    }
 }
+

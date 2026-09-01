@@ -330,6 +330,44 @@
   box-shadow: none !important;
 }
 
+/* Fix browser autofill màu chữ trắng cho newsletter input */
+.newsletter-interactive-form input:-webkit-autofill,
+.newsletter-interactive-form input:-webkit-autofill:hover,
+.newsletter-interactive-form input:-webkit-autofill:focus,
+.newsletter-interactive-form input:-webkit-autofill:active,
+.input-glow-group input:-webkit-autofill,
+.input-glow-group input:-webkit-autofill:hover,
+.input-glow-group input:-webkit-autofill:focus,
+.input-glow-group input:-webkit-autofill:active,
+.newsletter-form-group input:-webkit-autofill,
+.newsletter-form-group input:-webkit-autofill:hover,
+.newsletter-form-group input:-webkit-autofill:focus,
+.newsletter-form-group input:-webkit-autofill:active {
+  -webkit-text-fill-color: #ffffff !important;
+  -webkit-box-shadow: 0 0 0px 1000px #0d1b35 inset !important;
+  box-shadow: 0 0 0px 1000px #0d1b35 inset !important;
+  caret-color: #3b82f6 !important;
+  color: #ffffff !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+}
+
+/* Fix autofill cho Footer subscribe input */
+.subscribe-input {
+  color: #f8fafc !important;
+  -webkit-text-fill-color: #f8fafc !important;
+}
+.subscribe-input:-webkit-autofill,
+.subscribe-input:-webkit-autofill:hover,
+.subscribe-input:-webkit-autofill:focus,
+.subscribe-input:-webkit-autofill:active {
+  -webkit-text-fill-color: #f8fafc !important;
+  -webkit-box-shadow: 0 0 0px 1000px #050d1d inset !important;
+  box-shadow: 0 0 0px 1000px #050d1d inset !important;
+  caret-color: #3b82f6 !important;
+  color: #f8fafc !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+}
+
 .input-wrapper input,
 .input-group input,
 .search-box input,

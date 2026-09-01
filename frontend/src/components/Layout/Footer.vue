@@ -188,20 +188,8 @@ onUnmounted(() => {
           </ul>
         </div>
 
-        <!-- COLUMN 5: NEWSLETTER & NEWS SOUNDWAVE HOTLINE -->
+        <!-- COLUMN 5: HOTLINE & BRANCHES -->
         <div class="dir-col newsletter-col">
-          <h4 class="col-title">Bản Tin Cyber-Tech</h4>
-          <p class="news-desc">Đăng ký ngay để nhận sớm voucher giảm giá 10% và cập nhật công nghệ AI mới nhất.</p>
-          
-          <div class="subscribe-box-glass">
-            <span class="sub-mail-icon">@</span>
-            <input v-model="subscriberEmail" type="email" placeholder="Email của bạn" class="subscribe-input" @keyup.enter="subscribeNewsletter" />
-            <button class="subscribe-btn" :disabled="subscribing" @click="subscribeNewsletter">
-              <span>{{ subscribing ? 'Đang gửi...' : 'Đăng ký' }}</span>
-              <svg class="arrow-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-            </button>
-          </div>
-          <p v-if="subscribeMessage" class="subscribe-message" :class="{ error: subscribeError }">{{ subscribeMessage }}</p>
 
           <!-- Hotline Soundwave card -->
           <div class="hotline-card">
