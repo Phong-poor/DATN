@@ -219,6 +219,44 @@ const capNhatSoLuong = async (item, delta) => {
     }
 }
 
+const onInputSoLuong = async (item, event) => {
+    let val = parseInt(event.target.value, 10)
+    if (isNaN(val) || val < 1) {
+        val = 1
+        event.target.value = 1
+    }
+    const maxStock = Number(item.ton_kho || 99)
+    if (val > maxStock) {
+        val = maxStock
+        event.target.value = maxStock
+        hienThiThongBao('error', `Kho chỉ còn ${maxStock} sản phẩm.`)
+    }
+    
+    if (val === item.soluong) return
+
+    const delta = val - item.soluong
+    await capNhatSoLuong(item, delta)
+}
+
+const onInputSoLuongCombo = async (group, event) => {
+    let val = parseInt(event.target.value, 10)
+    if (isNaN(val) || val < 1) {
+        val = 1
+        event.target.value = 1
+    }
+    const maxStock = Number(group.ton_kho || 99)
+    if (val > maxStock) {
+        val = maxStock
+        event.target.value = maxStock
+        hienThiThongBao('error', `Kho chỉ còn ${maxStock} combo.`)
+    }
+
+    if (val === group.soluong) return
+
+    const delta = val - group.soluong
+    await capNhatSoLuongCombo(group, delta)
+}
+
 const xoaSanPham = async (idGioHang) => {
     const index = cart.value.findIndex(item => item.id_giohang === idGioHang)
     if (index === -1) return
@@ -657,7 +695,7 @@ onMounted(() => {
                     <button class="qty-btn" @click="capNhatSoLuong(entry, -1)" :disabled="entry.soluong <= 1">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     </button>
-                    <span class="qty-num">{{ entry.soluong }}</span>
+                    <input type="number" min="1" :max="entry.ton_kho" class="qty-input" :value="entry.soluong" @change="onInputSoLuong(entry, $event)" @blur="onInputSoLuong(entry, $event)" @keyup.enter="$event.target.blur()" />
                     <button class="qty-btn" @click="capNhatSoLuong(entry, +1)" :disabled="entry.soluong >= entry.ton_kho">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     </button>
@@ -726,7 +764,7 @@ onMounted(() => {
                     <button class="qty-btn" @click="capNhatSoLuongCombo(entry, -1)" :disabled="entry.soluong <= 1">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     </button>
-                    <span class="qty-num">{{ entry.soluong }}</span>
+                    <input type="number" min="1" :max="entry.ton_kho" class="qty-input" :value="entry.soluong" @change="onInputSoLuongCombo(entry, $event)" @blur="onInputSoLuongCombo(entry, $event)" @keyup.enter="$event.target.blur()" />
                     <button class="qty-btn" @click="capNhatSoLuongCombo(entry, +1)" :disabled="entry.soluong >= entry.ton_kho">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     </button>
@@ -1316,6 +1354,26 @@ onMounted(() => {
   border-right: 1px solid #c7d2fe;
   padding: 0 4px;
   line-height: 28px;
+}
+.qty-input {
+  width: 44px;
+  height: 28px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  border: none;
+  border-left: 1px solid #c7d2fe;
+  border-right: 1px solid #c7d2fe;
+  background: transparent;
+  outline: none;
+  padding: 0 2px;
+  -moz-appearance: textfield;
+}
+.qty-input::-webkit-outer-spin-button,
+.qty-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 

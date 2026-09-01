@@ -138,9 +138,19 @@ const hasValidPrice = (product) => toFiniteNumber(product?.gia) > 0
 const getOriginalPrice = (combo) => {
   if (!combo.products) return 0
   return combo.products.reduce((sum, p) => {
-    const firstVariantPrice = p.bien_thes?.[0]?.gia || 0
+    const firstVariantPrice = p.bien_thes?.[0]?.gia || p.gia || 0
     return sum + Number(firstVariantPrice)
   }, 0)
+}
+
+const getComboDiscountPercent = (combo) => {
+  const orig = getOriginalPrice(combo)
+  if (!orig || orig <= combo.giakhuyenmai) return 0
+  return Math.round(((orig - combo.giakhuyenmai) / orig) * 100)
+}
+
+const getItemPrice = (item) => {
+  return item.gia || item.giaSP || item.bien_thes?.[0]?.gia || 0
 }
 
 // Flash Sale State & Helpers
@@ -1304,38 +1314,62 @@ const initScrollReveal = () => {
 
         <div class="combos-bento-layout scroll-reveal reveal-stagger" v-if="combos && combos.length">
           <div v-for="combo in combos" :key="combo.id_combo" class="combo-bento-card">
+            <div class="combo-card-glow"></div>
             <div class="combo-main-content">
               <div class="combo-details">
-                <span class="combo-discount-badge" v-if="getOriginalPrice(combo) > combo.giakhuyenmai">
-                  Tiết kiệm {{ formatCurrency(getOriginalPrice(combo) - combo.giakhuyenmai) }}
-                </span>
-                <h3>{{ combo.ten_combo }}</h3>
-                <p>{{ combo.mota }}</p>
+                <div class="combo-header-badges">
+                  <span class="combo-discount-badge" v-if="getOriginalPrice(combo) > combo.giakhuyenmai">
+                    <Flame class="badge-icon" />
+                    Tiết kiệm {{ formatCurrency(getOriginalPrice(combo) - combo.giakhuyenmai) }}
+                  </span>
+                  <span class="combo-percent-badge" v-if="getComboDiscountPercent(combo) > 0">
+                    -{{ getComboDiscountPercent(combo) }}%
+                  </span>
+                </div>
+
+                <h3 class="combo-title">{{ combo.ten_combo }}</h3>
+                <p class="combo-desc">{{ combo.mota }}</p>
                 
+                <div class="combo-perks-list">
+                  <span class="perk-item"><Check class="perk-icon" /> Hàng chính hãng</span>
+                  <span class="perk-item"><Truck class="perk-icon" /> Giao nhanh 2h</span>
+                  <span class="perk-item"><ShieldCheck class="perk-icon" /> Đổi trả 7 ngày</span>
+                </div>
+
                 <div class="combo-pricing-group">
                   <div class="price-block">
-                    <span class="price-label">Giá combo:</span>
+                    <span class="price-label">Giá Combo Ưu Đãi</span>
                     <span class="price-val">{{ formatCurrency(combo.giakhuyenmai) }}</span>
                   </div>
                   <div class="price-block old-price-block" v-if="getOriginalPrice(combo) > combo.giakhuyenmai">
-                    <span class="price-label">Tổng giá gốc:</span>
+                    <span class="price-label">Tổng Giá Gốc</span>
                     <span class="price-val-old">{{ formatCurrency(getOriginalPrice(combo)) }}</span>
                   </div>
                 </div>
 
-                <button type="button" class="btn btn-primary-glass combo-action-btn" @click="openCombo(combo)">
-                  Mua trọn bộ combo
+                <button type="button" class="combo-action-btn" @click="openCombo(combo)">
+                  <span>Mua trọn bộ combo</span>
                   <ChevronRight class="btn-chevron" />
                 </button>
               </div>
 
               <div class="combo-visual-connector" v-if="combo.products && combo.products.length">
-                <div v-for="(item, itemIdx) in combo.products" :key="itemIdx" class="connector-node">
-                  <div class="node-image-box">
-                    <img :src="item.hinhanh || productImageUrl(item, null, 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500')" :alt="item.tenSP" />
+                <div v-for="(item, itemIdx) in combo.products" :key="itemIdx" class="connector-node-wrapper">
+                  <div class="connector-node">
+                    <div class="node-image-box">
+                      <img
+                        :src="productImageUrl(item)"
+                        :alt="item.tenSP"
+                        loading="lazy"
+                        @error="handleImageFallback"
+                      />
+                    </div>
+                    <span class="node-title" :title="item.tenSP">{{ item.tenSP }}</span>
+                    <span class="node-price" v-if="getItemPrice(item)">{{ formatCurrency(getItemPrice(item)) }}</span>
                   </div>
-                  <span class="node-title">{{ item.tenSP }}</span>
-                  <div v-if="itemIdx < combo.products.length - 1" class="node-plus-sign">+</div>
+                  <div v-if="itemIdx < combo.products.length - 1" class="node-plus-sign">
+                    <span>+</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1502,35 +1536,7 @@ const initScrollReveal = () => {
       </div>
     </section>
 
-    <!-- 9. NEWSLETTER -->
-    <section class="section newsletter-section">
-      <div class="grid-container">
-        <div class="newsletter-glass-card scroll-reveal reveal-fade-up">
-          <div class="newsletter-glow-orb"></div>
-          <div class="newsletter-layout">
-            <div class="newsletter-headline">
-              <h2>KHÔNG BỎ LỠ CƠ HỘI NÀO!</h2>
-              <p style="color: #f1f5f9 !important; -webkit-text-fill-color: #f1f5f9 !important; opacity: 1 !important;">Để lại email của bạn, chúng tôi sẽ gửi trực tiếp các chương trình khuyến mãi độc quyền và các mã giảm giá cá nhân sớm nhất.</p>
-            </div>
 
-            <div class="newsletter-form-group">
-              <form @submit.prevent="submitNewsletter" class="newsletter-interactive-form">
-                <input
-                  v-model="newsletterEmail"
-                  type="email"
-                  placeholder="Nhập email của bạn..."
-                  required
-                  style="color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; background: transparent !important; border: none !important; outline: none !important;"
-                />
-                <button type="submit" class="btn-newsletter-submit">
-                  Đăng ký ngay
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
 
     <!-- Combo Selection variant modal -->
     <ComboSelectionModal
@@ -2828,37 +2834,53 @@ const initScrollReveal = () => {
    6. COMBO SECTION
    ============================================================ */
 .combo-section {
-  background: #050d1a;
+  background: #030816;
   border-top: 1px solid var(--border-glass);
   border-bottom: 1px solid var(--border-glass);
+  position: relative;
 }
 
 .combos-bento-layout {
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 36px;
 }
 
 .combo-bento-card {
-  background: #081529;
+  background: linear-gradient(145deg, rgba(13, 27, 46, 0.95) 0%, rgba(8, 17, 32, 0.98) 100%);
   border-radius: 24px;
-  border: 1px solid var(--border-glass);
-  padding: 32px;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  padding: 36px;
   overflow: hidden;
   position: relative;
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .combo-bento-card:hover {
-  border-color: rgba(59, 130, 246, 0.25);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  border-color: rgba(99, 102, 241, 0.5);
+  box-shadow: 0 20px 45px rgba(37, 99, 235, 0.25), 0 0 30px rgba(99, 102, 241, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transform: translateY(-3px);
+}
+
+.combo-card-glow {
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.18) 0%, rgba(0, 0, 0, 0) 70%);
+  pointer-events: none;
+  filter: blur(40px);
 }
 
 .combo-main-content {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 48px;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 40px;
   align-items: center;
+  position: relative;
+  z-index: 2;
 }
 
 .combo-details {
@@ -2868,71 +2890,146 @@ const initScrollReveal = () => {
   text-align: left;
 }
 
-.combo-discount-badge {
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  color: white;
-  font-size: 11px;
-  font-weight: 800;
-  padding: 5px 12px;
-  border-radius: 30px;
-  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.35);
+.combo-header-badges {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.combo-discount-badge {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
   letter-spacing: 0.02em;
 }
 
-.combo-details h3 {
-  font-size: 26px;
-  font-weight: 850;
-  margin: 0 0 10px 0;
-  color: var(--text-light);
-  letter-spacing: -0.02em;
+.badge-icon {
+  width: 14px;
+  height: 14px;
+  color: #fff;
 }
 
-.combo-details p {
+.combo-percent-badge {
+  background: rgba(234, 179, 8, 0.15);
+  border: 1px solid rgba(234, 179, 8, 0.4);
+  color: #facc15;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 5px 12px;
+  border-radius: 20px;
+}
+
+.combo-title {
+  font-size: 24px;
+  font-weight: 800;
+  margin: 0 0 10px 0;
+  color: #f8fafc;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.combo-desc {
   font-size: 14px;
   line-height: 1.6;
   color: #94a3b8;
-  margin-bottom: 24px;
+  margin-bottom: 18px;
+}
+
+.combo-perks-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.perk-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #cbd5e1;
+  font-weight: 500;
+}
+
+.perk-icon {
+  width: 13px;
+  height: 13px;
+  color: #38bdf8;
 }
 
 .combo-pricing-group {
   display: flex;
-  gap: 32px;
-  margin-bottom: 28px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  padding-top: 20px;
+  align-items: flex-end;
+  gap: 24px;
+  margin-bottom: 24px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 14px 20px;
+  border-radius: 14px;
   width: 100%;
 }
 
 .price-block {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .price-label {
   font-size: 11px;
   font-weight: 600;
   color: #64748b;
-  text-transform: capitalize;
+  text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .price-val {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 850;
-  color: var(--highlight);
+  color: #38bdf8;
+  text-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
 }
 
 .price-val-old {
-  font-size: 20px;
-  font-weight: 700;
-  color: #475569;
+  font-size: 18px;
+  font-weight: 600;
+  color: #64748b;
   text-decoration: line-through;
 }
 
 .combo-action-btn {
-  padding: 12px 28px;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 14px 28px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+}
+
+.combo-action-btn:hover {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  box-shadow: 0 8px 25px rgba(37, 99, 235, 0.6);
+  transform: translateY(-2px);
 }
 
 .btn-chevron {
@@ -2949,65 +3046,102 @@ const initScrollReveal = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 24px;
+  gap: 12px;
   position: relative;
-  background: rgba(7, 14, 27, 0.45);
-  border: 1px solid var(--border-glass);
-  padding: 30px 28px;
-  border-radius: 22px;
-  min-height: 208px;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.7) 0%, rgba(30, 41, 59, 0.5) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 24px 20px;
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+  min-height: 220px;
+  width: 100%;
+}
+
+.connector-node-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
 }
 
 .connector-node {
   display: flex;
   flex-direction: column;
   align-items: center;
+  text-align: center;
   position: relative;
   flex: 1;
-  min-width: 104px;
+  min-width: 0;
+  transition: transform 0.3s ease;
+}
+
+.connector-node:hover {
+  transform: translateY(-4px);
 }
 
 .node-image-box {
-  width: 100px;
-  height: 100px;
-  border-radius: 14px;
-  background: var(--tn-surface);
-  padding: 8px;
+  width: 110px;
+  height: 110px;
+  border-radius: 16px;
+  background: #ffffff;
+  padding: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.connector-node:hover .node-image-box {
+  border-color: #38bdf8;
+  box-shadow: 0 12px 30px rgba(56, 189, 248, 0.3);
 }
 
 .node-image-box img {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
 }
 
 .node-title {
-  font-size: 12.5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-top: 10px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  max-width: 130px;
+}
+
+.node-price {
+  font-size: 11px;
   font-weight: 700;
   color: #94a3b8;
-  margin-top: 12px;
-  text-align: center;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  height: 38px;
-  line-height: 1.5;
+  margin-top: 2px;
 }
 
 .node-plus-sign {
-  position: absolute;
-  right: -25px;
-  top: 36px;
-  font-size: 22px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.25) 0%, rgba(99, 102, 241, 0.35) 100%);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #38bdf8;
+  font-size: 18px;
   font-weight: 800;
-  color: var(--accent);
+  flex-shrink: 0;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
 }
 
 /* ============================================================

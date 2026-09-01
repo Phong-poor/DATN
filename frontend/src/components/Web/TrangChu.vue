@@ -12,6 +12,34 @@ import { rememberAffiliateVideo } from '@/services/affiliateAttribution'
 
 const router = useRouter()
 
+// ===== NEWSLETTER SUBSCRIBE (hero section) =====
+const heroEmail = ref('')
+const heroSubscribing = ref(false)
+const heroMessage = ref('')
+const heroError = ref(false)
+
+const heroSubscribe = async () => {
+    const email = heroEmail.value.trim()
+    heroMessage.value = ''
+    heroError.value = false
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+        heroError.value = true
+        heroMessage.value = 'Vui lòng nhập email hợp lệ.'
+        return
+    }
+    heroSubscribing.value = true
+    try {
+        const { data } = await api.post('/news-subscribe', { email })
+        heroMessage.value = data?.message || '🎉 Đăng ký thành công!'
+        heroEmail.value = ''
+    } catch (err) {
+        heroError.value = true
+        heroMessage.value = err.response?.data?.message || 'Chưa thể đăng ký. Vui lòng thử lại.'
+    } finally {
+        heroSubscribing.value = false
+    }
+}
+
 const tickerIcons = [
     '<svg class="ticker-code-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 7h11v9H3z"/><path d="M14 10h4l3 3v3h-7z"/><path d="M5 16a2 2 0 1 0 4 0"/><path d="M16 16a2 2 0 1 0 4 0"/></svg>',
     '<svg class="ticker-code-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/><path d="M9 12l2 2 4-5"/></svg>',
@@ -248,6 +276,15 @@ const newsPlaceholderImage = 'https://images.unsplash.com/photo-1517336714731-48
 const newsImageUrl = (path) => {
     if (!path) return newsPlaceholderImage
     return normalizeImageUrl(path, newsPlaceholderImage)
+}
+
+const formatNewsDateTime = (value) => {
+    if (!value) return ''
+    const date = new Date(value)
+    if (isNaN(date.getTime())) return ''
+    const timeStr = date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false })
+    const dateStr = date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    return `${timeStr} - ${dateStr}`
 }
 
 const normalizeMediaType = (value, url = '') => {
@@ -1564,6 +1601,17 @@ onUnmounted(() => {
                             <span class="art-badge-tag">{{ latestNews[0].category || 'Nổi bật' }}</span>
                         </div>
                         <div class="main-art-info">
+                            <div class="art-meta-bar">
+                                <span class="art-author-pill">
+                                    <svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                    {{ latestNews[0].author || latestNews[0].author_name || 'Ban biên tập NextGen' }}
+                                </span>
+                                <span class="art-meta-divider" v-if="latestNews[0].published_at || latestNews[0].created_at">•</span>
+                                <span class="art-date-pill" v-if="latestNews[0].published_at || latestNews[0].created_at">
+                                    <svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                    {{ formatNewsDateTime(latestNews[0].published_at || latestNews[0].created_at) }}
+                                </span>
+                            </div>
                             <h3>{{ latestNews[0].title }}</h3>
                             <p>{{ latestNews[0].excerpt || 'Khám phá các bài phân tích sâu về hiệu năng và các công nghệ cốt lõi mới nhất.' }}</p>
                             <RouterLink :to="`/tin-tuc/${latestNews[0].id}`" class="art-deep-link" @click.stop>Xem chi tiết bài viết ➔</RouterLink>
@@ -1577,9 +1625,21 @@ onUnmounted(() => {
                                 <img :src="newsImageUrl(n.image)" :alt="n.title" @error="handleImgError($event, newsPlaceholderImage)" />
                             </div>
                             <div class="mini-art-info">
-                                <span class="mini-tag">{{ n.category || 'Công nghệ' }}</span>
+                                <div class="mini-art-header">
+                                    <span class="mini-tag">{{ n.category || 'Công nghệ' }}</span>
+                                    <span class="mini-date-pill" v-if="n.published_at || n.created_at">
+                                        <svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                        {{ formatNewsDateTime(n.published_at || n.created_at) }}
+                                    </span>
+                                </div>
                                 <h3>{{ n.title }}</h3>
-                                <RouterLink :to="`/tin-tuc/${n.id}`" @click.stop>Đọc bài viết ➔</RouterLink>
+                                <div class="mini-art-footer">
+                                    <span class="mini-author">
+                                        <svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                        {{ n.author || n.author_name || 'NextGen' }}
+                                    </span>
+                                    <RouterLink :to="`/tin-tuc/${n.id}`" @click.stop class="mini-read-more">Đọc bài viết ➔</RouterLink>
+                                </div>
                             </div>
                         </article>
                     </div>
@@ -1637,9 +1697,24 @@ onUnmounted(() => {
                         </div>
                         <div class="newsletter-interactive-form">
                             <div class="input-glow-group">
-                                <input type="email" placeholder="Nhập địa chỉ email của bạn" aria-label="Địa chỉ email đăng ký" />
-                                <button class="btn btn-premium-glow">Đăng ký</button>
+                                <input
+                                    v-model="heroEmail"
+                                    type="email"
+                                    placeholder="Nhập địa chỉ email của bạn"
+                                    aria-label="Địa chỉ email đăng ký"
+                                    @keyup.enter="heroSubscribe"
+                                />
+                                <button
+                                    class="btn btn-premium-glow"
+                                    :disabled="heroSubscribing"
+                                    @click="heroSubscribe"
+                                >
+                                    {{ heroSubscribing ? 'Đang gửi...' : 'Đăng ký' }}
+                                </button>
                             </div>
+                            <p v-if="heroMessage" :style="{ color: heroError ? '#fca5a5' : '#86efac', marginTop: '10px', fontSize: '13px', fontWeight: '600' }">
+                                {{ heroMessage }}
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -3760,6 +3835,64 @@ onUnmounted(() => {
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+}
+.art-meta-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-size: 12.5px;
+    color: #64748b;
+    font-weight: 500;
+}
+.art-author-pill,
+.art-date-pill,
+.mini-date-pill,
+.mini-author {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+.art-author-pill {
+    color: #2563eb;
+    font-weight: 600;
+}
+.art-meta-divider {
+    color: #cbd5e1;
+}
+.meta-icon {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+}
+.mini-art-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+.mini-date-pill {
+    font-size: 11px;
+    color: #94a3b8;
+    font-weight: 500;
+}
+.mini-art-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: 12px;
+}
+.mini-author {
+    color: #64748b;
+    font-weight: 500;
+    font-size: 11.5px;
+}
+.mini-read-more {
+    color: var(--accent-blue);
+    font-weight: 700;
+    text-decoration: none;
 }
 .mini-art-info a {
     color: var(--col-muted);

@@ -3,12 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\ImageHelper;
+use App\Mail\NewArticleMail;
 use App\Models\News;
 use App\Models\NewsRevision;
+use App\Models\NewsletterSubscriber;
 use App\Models\NewsTag;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -114,6 +117,11 @@ class NewsController extends Controller
         });
 
         $this->clearNewsCaches();
+
+        // Gửi email thông báo cho newsletter subscribers nếu bài viết được publish
+        if (($news->trangthai ?? '') === 'published') {
+            $this->broadcastNewArticle($news);
+        }
 
         return response()->json(['success' => true, 'message' => 'Tạo bài viết thành công.', 'data' => $news], 201);
     }
@@ -478,4 +486,20 @@ class NewsController extends Controller
         Cache::forget('news_feed_xml');
         Cache::forget('news_sitemap_xml');
     }
+
+    /**
+     * Gửi email thông báo bài viết mới đến tất cả newsletter subscribers.
+     */
+    private function broadcastNewArticle(News $article): void
+    {
+        try {
+            $subscribers = NewsletterSubscriber::active()->pluck('email');
+            foreach ($subscribers as $email) {
+                Mail::to($email)->send(new NewArticleMail($article, $email));
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Newsletter broadcast (article) failed: ' . $e->getMessage());
+        }
+    }
 }
+
