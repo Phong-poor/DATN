@@ -405,6 +405,14 @@ onMounted(async () => {
                     </svg>
                     {{ getReadingTime(post.noidung) }} phút đọc
                   </span>
+                  <span class="meta-dot">•</span>
+                  <span class="card-views-count" style="display: inline-flex; align-items: center; gap: 4px;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="display: inline-block; vertical-align: middle;">
+                      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                      <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    {{ Number(post.luotxem || post.views || 0).toLocaleString() }} lượt xem
+                  </span>
                 </div>
                 <h3 class="card-headline">{{ post.tieude }}</h3>
                 <p class="card-excerpt" v-if="post.tomtat">{{ post.tomtat }}</p>

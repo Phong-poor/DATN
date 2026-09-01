@@ -42,6 +42,7 @@ const fetchProductCombos = async (productId) => {
 // ===================== STATE GIỎ HÀNG =====================
 const soLuongMua = ref(1)
 const dangThem = ref(false)
+const daThemThanhCong = ref(false)
 const thongBao = ref({ show: false, type: '', message: '' })
 
 const hienThiThongBao = (type, message) => {
@@ -460,6 +461,18 @@ const tangSoLuong = () => {
     const maxTonKho = Number(selectedVariant.value?.soluong ?? 999)
     if (soLuongMua.value < maxTonKho) soLuongMua.value++
 }
+const onInputSoLuongMua = (e) => {
+    let val = parseInt(e.target.value, 10)
+    const maxTonKho = Number(selectedVariant.value?.soluong ?? 999)
+    if (isNaN(val) || val < 1) {
+        val = 1
+    } else if (val > maxTonKho) {
+        val = maxTonKho
+        hienThiThongBao('error', `Kho chỉ còn ${maxTonKho} sản phẩm.`)
+    }
+    soLuongMua.value = val
+    e.target.value = val
+}
 
 // THÊM GIỎ HÀNG
 const themVaoGioHang = async () => {
@@ -509,6 +522,8 @@ const themVaoGioHang = async () => {
         })
 
         hienThiThongBao('success', '✅ Đã thêm vào giỏ hàng!')
+        daThemThanhCong.value = true
+        setTimeout(() => { daThemThanhCong.value = false }, 2500)
 
         // 🔥 cập nhật badge header
         window.dispatchEvent(new Event('cart-updated'))
@@ -1534,8 +1549,12 @@ const handleSelectVariantById = (idBienThe) => {
                         {{ selectedVariant ? formatPrice(selectedVariant.gia) : formatPrice(product.gia) }}
                     </div>
                     <template v-if="selectedVariant && Number(selectedVariant.soluong) > 0">
-                        <button class="btn btn-premium-glass sticky-cart-icon-btn" @click="themVaoGioHang" :disabled="dangThem" aria-label="Thêm vào giỏ hàng" title="Thêm vào giỏ hàng">
-                            <svg class="sticky-cart-icon" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <button class="btn btn-premium-glass sticky-cart-icon-btn" :class="{ 'added-success': daThemThanhCong }" @click.stop.prevent="themVaoGioHang" :disabled="dangThem" aria-label="Thêm vào giỏ hàng" title="Thêm vào giỏ hàng">
+                            <span v-if="dangThem" class="loading-spin-circle" style="width: 18px; height: 18px; border: 2px solid rgba(37,99,235,0.2); border-top-color: #2563eb; border-radius: 50%; display: inline-block; animation: spin 0.8s linear infinite;"></span>
+                            <svg v-else-if="daThemThanhCong" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="pointer-events: none;">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <svg v-else class="sticky-cart-icon" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="pointer-events: none;">
                                 <circle cx="9" cy="21" r="1"></circle>
                                 <circle cx="20" cy="21" r="1"></circle>
                                 <path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"></path>
@@ -1555,11 +1574,13 @@ const handleSelectVariantById = (idBienThe) => {
         </div>
     </transition>
 
-    <transition name="slide-down">
-        <div v-if="thongBao.show" :class="['toast', thongBao.type]">
-            {{ thongBao.message }}
-        </div>
-    </transition>
+    <Teleport to="body">
+        <transition name="slide-down">
+            <div v-if="thongBao.show" :class="['toast', thongBao.type]">
+                {{ thongBao.message }}
+            </div>
+        </transition>
+    </Teleport>
 
     <!-- TOP GLOW DECORATOR -->
     <div class="tech-glow-top"></div>
@@ -1754,7 +1775,7 @@ const handleSelectVariantById = (idBienThe) => {
                                         <line x1="5" y1="12" x2="19" y2="12"></line>
                                     </svg>
                                 </button>
-                                <span class="stepper-value">{{ soLuongMua }}</span>
+                                <input type="number" min="1" :max="Number(selectedVariant?.soluong || 999)" class="stepper-input" :value="soLuongMua" @focus="$event.target.select()" @change="onInputSoLuongMua" @blur="onInputSoLuongMua" @keyup.enter="$event.target.blur()" />
                                 <button @click="tangSoLuong" :disabled="soLuongMua >= Number(selectedVariant.soluong)" class="stepper-btn" aria-label="Tăng số lượng">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
                                         <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -2738,6 +2759,35 @@ const handleSelectVariantById = (idBienThe) => {
 
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
 
+.stepper-input {
+    width: 48px;
+    height: 32px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-1, #1e293b);
+    border: none;
+    border-left: 1px solid var(--border, #e2e8f0);
+    border-right: 1px solid var(--border, #e2e8f0);
+    background: #ffffff;
+    outline: none;
+    padding: 0;
+    transition: all 0.2s ease;
+    -moz-appearance: textfield;
+}
+.stepper-input:focus {
+    background: #eff6ff;
+    color: #2563eb;
+    border-left-color: #2563eb;
+    border-right-color: #2563eb;
+    box-shadow: inset 0 0 0 1.5px #2563eb;
+}
+.stepper-input::-webkit-outer-spin-button,
+.stepper-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
 /* ==================== STICKY BUY BAR & NEW CONVERSION SECTIONS ==================== */
 .sticky-buy-bar {
     position: fixed;
@@ -2837,9 +2887,24 @@ const handleSelectVariantById = (idBienThe) => {
     justify-content: center;
     border-radius: 12px;
     color: #2563EB;
-    background: var(--tn-surface);
-    border: 1px solid #dbeafe;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
     overflow: visible;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sticky-cart-icon-btn:hover:not(:disabled) {
+    background: #dbeafe;
+    border-color: #3b82f6;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+.sticky-cart-icon-btn.added-success {
+    background: #dcfce7 !important;
+    border-color: #86efac !important;
+    color: #16a34a !important;
 }
 
 .sticky-cart-icon {
@@ -2847,6 +2912,7 @@ const handleSelectVariantById = (idBienThe) => {
     height: 22px;
     display: block;
     flex: 0 0 auto;
+    pointer-events: none;
     opacity: 1;
     stroke: #2563eb;
     fill: none;
@@ -3131,7 +3197,7 @@ const handleSelectVariantById = (idBienThe) => {
     position: fixed;
     top: 24px;
     right: 24px;
-    z-index: 10000;
+    z-index: 9999999 !important;
     padding: 16px 24px;
     border-radius: 16px;
     font-family: var(--font-heading);

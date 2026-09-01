@@ -383,6 +383,7 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::put('/orders/{id}/status', [DatHangController::class, 'updateStatus']);
         Route::put('/orders/{id}/payment-status', [DatHangController::class, 'updatePaymentStatus']);
         Route::post('/orders/{id}/refund-proof', [DatHangController::class, 'uploadRefundProof']);
+        Route::get('/orders/employees-list', [DatHangController::class, 'getEmployeesList']);
         Route::delete('/orders/{id}', [DatHangController::class, 'destroyAdmin']);
 
         // ===== LIÊN HỆ ADMIN =====

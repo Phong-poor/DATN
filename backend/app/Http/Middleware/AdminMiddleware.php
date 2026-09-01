@@ -47,6 +47,7 @@ class AdminMiddleware
             '/api/admin/dashboard',
             '/api/admin/account/profile',
             '/api/admin/account/active-admins',
+            '/api/admin/orders/employees-list',
             '/api/admin/account/activity-log',
             '/api/admin/account/settings',
             '/api/admin/account/two-factor',

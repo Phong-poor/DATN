@@ -95,7 +95,16 @@ function broadcastAuthEvent(key, value) {
   }
 }
 
+export function clearLoginFailures() {
+  try {
+    localStorage.removeItem('login_failed_attempts')
+    localStorage.removeItem('login_lock_until')
+    localStorage.removeItem('login_lock_count')
+  } catch (_) {}
+}
+
 export function saveAuth(token, user, remember = false) {
+  clearLoginFailures()
   const normalizedUser = normalizeAuthUser(user)
   const encodedUser = btoa(unescape(encodeURIComponent(JSON.stringify(normalizedUser))))
 
@@ -117,6 +126,7 @@ export function saveAuth(token, user, remember = false) {
 }
 
 export function clearAuth() {
+  clearLoginFailures()
   localStorage.removeItem('token')
   localStorage.removeItem('user')
   sessionStorage.removeItem('token')

@@ -92,7 +92,7 @@ const statusMap = {
     pending: { label: 'Chờ xác nhận', bg: '#fef9c3', color: '#ca8a04' },
     confirmed: { label: 'Đã xác nhận', bg: '#e0f2fe', color: '#0369a1' },
     shipping: { label: 'Đang giao', bg: '#dbeafe', color: '#2563eb' },
-    done: { label: 'Hoàn thành', bg: '#dcfce7', color: '#15803d' },
+    done: { label: 'Giao thành công', bg: '#dcfce7', color: '#15803d' },
     refund_pending: { label: 'Yêu cầu hoàn trả', bg: '#ffedd5', color: '#f97316' },
     refund_pickup: { label: 'Chờ lấy hàng hoàn', bg: '#fef3c7', color: '#d97706' },
     refund_delivering: { label: 'Đang giao hoàn', bg: '#dbeafe', color: '#2563eb' },
@@ -463,14 +463,15 @@ const deleteOrder = async (id) => {
 const employees = ref([])
 const fetchEmployees = async () => {
     try {
-        const res = await api.get('/admin/account/active-admins')
-        if (res.data.success) {
-            employees.value = res.data.admins || res.data.data || []
+        const res = await api.get('/admin/orders/employees-list')
+        if (res.data && res.data.success) {
+            employees.value = res.data.data || res.data.admins || []
         }
     } catch (err) {
         console.error('Lỗi tải danh sách nhân viên:', err)
     }
 }
+
 
 const assignEmployee = async (orderId, empId) => {
     try {
@@ -923,17 +924,13 @@ async function exportExcel() {
                         <td><b class="total">{{ o.total }}</b></td>
 
                         <td>
-                            <span v-if="o.nhan_vien" class="emp-name-badge"
-                                style="background: #f1f5f9; color: #475569; padding: 4px 8px; border-radius: 6px; font-weight: 600; font-size: 12px; white-space: nowrap; border: 1px solid #e2e8f0; display: inline-flex; align-items: center; gap: 4px;">
-                                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor"
-                                    stroke-width="2.5" style="color: #64748b;">
-                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                    <circle cx="12" cy="7" r="4"></circle>
-                                </svg>
-                                {{ o.nhan_vien.name || o.nhan_vien.ten }}
-                            </span>
-                            <span v-else style="color: #94a3b8; font-style: italic; font-size: 12px;">Chưa phân
-                                công</span>
+                            <select class="emp-table-select" :value="o.id_nhanvien || ''"
+                                @change="assignEmployee(o.id_backend, $event.target.value ? Number($event.target.value) : null)">
+                                <option value="">Chưa phân công</option>
+                                <option v-for="emp in employees" :key="emp.id" :value="emp.id">
+                                    {{ emp.name || emp.ten }} ({{ emp.role_label || emp.vaitro || 'Nhân viên' }})
+                                </option>
+                            </select>
                         </td>
 
                         <td>
@@ -976,16 +973,6 @@ async function exportExcel() {
                                     </svg>
                                 </button>
 
-                                <button v-if="canCreateShipment(o)" class="act-btn logistics" @click="createShipment(o)"
-                                    title="Tạo vận đơn demo">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                        stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M3 7h11v9H3z" />
-                                        <path d="M14 10h4l3 3v3h-7z" />
-                                        <circle cx="7" cy="18" r="2" />
-                                        <circle cx="18" cy="18" r="2" />
-                                    </svg>
-                                </button>
 
                                 <button v-if="canAdvanceShipment(o)" class="act-btn logistics"
                                     @click="advanceShipment(o)" title="Cập nhật bước vận chuyển tiếp theo">
@@ -1025,11 +1012,11 @@ async function exportExcel() {
                                         <path d="M5 12h14M12 5l7 7-7 7" />
                                     </svg>
                                 </button>
-                                <span v-else-if="isBankTransferUnpaid(o)" class="unpaid-notice-pill"
-                                    style="font-size: 11px; color: #dc2626; background: #fee2e2; padding: 3px 8px; border-radius: 6px; font-weight: 600; white-space: nowrap;"
-                                    title="Cần xác nhận đã thanh toán trong chi tiết đơn hàng trước khi chuyển trạng thái">
-                                    Chờ xác nhận TT
-                                </span>
+                                <button v-else-if="isBankTransferUnpaid(o)" class="btn-confirm-payment-table"
+                                    @click="markPaymentAsPaid(o)"
+                                    title="Bấm để xác nhận đơn hàng đã nhận đủ tiền thanh toán">
+                                    Xác nhận TT
+                                </button>
 
                                 <!-- Nút xử lý hoàn trả -->
                                 <button v-if="o.status === 'refund_pending'" class="act-btn" style="color: #2563eb;"
@@ -1133,24 +1120,15 @@ async function exportExcel() {
                                             style="padding: 4px 12px; font-size: 0.85em; border-radius: 6px; font-weight: 600;">
                                             {{ getPaymentStatusLabel(viewOrder) }}
                                         </span>
-                                        <button v-if="isBankTransferUnpaid(viewOrder)" class="btn-confirm-payment"
-                                            @click="markPaymentAsPaid(viewOrder)"
-                                            style="padding: 6px 16px; background: #16a34a; color: #ffffff; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(22,163,74,0.2); transition: background 0.2s;">
-                                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none"
-                                                stroke="currentColor" stroke-width="2.5">
-                                                <polyline points="20 6 9 17 4 12"></polyline>
-                                            </svg>
-                                            Xác nhận đã thanh toán
-                                        </button>
                                     </div>
                                 </div>
                                 <div class="info-item" style="grid-column: span 2;">
                                     <span class="info-label">Nhân viên phụ trách</span>
-                                    <select class="employee-select" :value="viewOrder.id_nhanvien || ''" :disabled="!!viewOrder.id_nhanvien"
+                                    <select class="employee-select" :value="viewOrder.id_nhanvien || ''"
                                         @change="assignEmployee(viewOrder.id_backend, $event.target.value ? Number($event.target.value) : null)">
                                         <option value="">Chưa phân công</option>
                                         <option v-for="emp in employees" :key="emp.id" :value="emp.id">
-                                            {{ emp.name }} ({{ emp.email }})
+                                            {{ emp.name || emp.ten }} ({{ emp.role_label || emp.vaitro || 'Nhân viên' }} - {{ emp.email }})
                                         </option>
                                     </select>
                                 </div>
@@ -1225,12 +1203,7 @@ async function exportExcel() {
                             </div>
                             <div v-else class="shipment-empty">
                                 <b>Chưa tạo vận đơn</b>
-                                <p>Hệ thống sẽ tạo mã tracking demo và mô phỏng các bước lấy hàng, giao hàng, hoàn tất.
-                                </p>
-                                <button v-if="canCreateShipment(viewOrder)" class="btn-export"
-                                    @click="createShipment(viewOrder)">
-                                    Tạo vận đơn ngay
-                                </button>
+                                <p>Hệ thống tự động tạo mã tracking demo và mô phỏng các bước vận chuyển khi đơn được xác nhận.</p>
                             </div>
                         </div>
 
@@ -2066,6 +2039,32 @@ tbody td {
     color: #ef4444;
 }
 
+.btn-confirm-payment-table {
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+    border: 1px solid #16a34a;
+    background: #16a34a;
+    color: #ffffff;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    box-shadow: 0 2px 4px rgba(22, 163, 74, 0.25);
+    transition: all 0.2s ease;
+}
+
+.btn-confirm-payment-table:hover {
+    background: #15803d;
+    border-color: #15803d;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 6px rgba(22, 163, 74, 0.35);
+}
+
 /* FOOTER */
 .don-hang-footer-row {
     display: flex;
@@ -2447,6 +2446,24 @@ tbody td {
     min-height: 35px;
     display: flex;
     align-items: center;
+}
+
+.emp-table-select {
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    background-color: #f8fafc;
+    color: #334155;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    max-width: 160px;
+    outline: none;
+    transition: all 0.2s;
+}
+.emp-table-select:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
 }
 
 .employee-select {
@@ -3225,6 +3242,19 @@ tbody td {
     border-color: rgba(239, 68, 68, 0.4) !important;
 }
 
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .btn-confirm-payment-table {
+    background: rgba(34, 197, 94, 0.18) !important;
+    color: #4ade80 !important;
+    border: 1px solid rgba(74, 222, 128, 0.4) !important;
+    box-shadow: none !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .btn-confirm-payment-table:hover {
+    background: rgba(34, 197, 94, 0.32) !important;
+    border-color: rgba(74, 222, 128, 0.7) !important;
+    color: #86efac !important;
+}
+
 /* 7. REVENUE CHIP */
 :is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .revenue-chip {
     background: #181d24 !important;
@@ -3288,6 +3318,17 @@ tbody td {
     background: rgba(17, 21, 28, 0.6) !important;
     border: none !important;
     border-radius: 8px !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .emp-table-select {
+    background: #1e293b !important;
+    border: 1px solid #334155 !important;
+    color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .emp-table-select option {
+    background: #0f172a !important;
+    color: #f8fafc !important;
 }
 
 :is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal .employee-select,
