@@ -11,8 +11,8 @@
         <div class="filter-category-box">
           <select v-model="selectedCategoryFilter" class="filter-select">
             <option value="">📁 Tất cả danh mục</option>
-            <option v-for="cat in categories" :key="'filter_cat_' + cat.id_danhmuc" :value="cat.id_danhmuc">
-              {{ cat.id_danhmuc_cha || cat.parent_id ? '└─ ' : '📁 ' }}{{ cat.ten_danhmuc }}
+            <option v-for="cat in hierarchicalCategories" :key="'filter_cat_' + cat.id_danhmuc" :value="cat.id_danhmuc">
+              {{ cat.is_parent || (!cat.id_danhmuc_cha && !cat.parent_id) ? '📁 ' : '&nbsp;&nbsp;&nbsp;&nbsp;└─ ' }}{{ cat.ten_danhmuc }}
             </option>
           </select>
         </div>
@@ -355,10 +355,33 @@ const fetchBrands = async () => {
   }
 };
 
+const parentCategoriesList = ref([]);
+const childCategoriesList = ref([]);
+
 const fetchCategories = async () => {
   try {
-    const response = await api.get('/danhmuc'); 
-    categories.value = response.data.data || response.data;
+    const [parentRes, childRes] = await Promise.all([
+      api.get('/danhmuc-cha'),
+      api.get('/danhmuc')
+    ]);
+
+    const parents = (parentRes.data.data || parentRes.data || []).map(p => ({
+      id_danhmuc: Number(p.id_danhmuc_cha || p.id),
+      ten_danhmuc: p.ten_danhmuc,
+      id_danhmuc_cha: null,
+      is_parent: true
+    }));
+
+    const children = (childRes.data.data || childRes.data || []).map(c => ({
+      id_danhmuc: Number(c.id_danhmuc || c.id),
+      ten_danhmuc: c.ten_danhmuc,
+      id_danhmuc_cha: Number(c.id_danhmuc_cha || c.parent_id),
+      is_parent: false
+    }));
+
+    parentCategoriesList.value = parents;
+    childCategoriesList.value = children;
+    categories.value = [...parents, ...children];
   } catch (error) {
     console.error('Lỗi khi tải danh mục:', error);
   }
@@ -387,18 +410,38 @@ const getCategoryName = (id) => {
 
 // Phân chia Danh mục Cha / Con
 const parentCategories = computed(() => {
-  return categories.value.filter(c => !c.id_danhmuc_cha && !c.parent_id);
+  return parentCategoriesList.value;
 });
 
 const getChildCategoriesOf = (parentId) => {
-  return categories.value.filter(c => String(c.id_danhmuc_cha) === String(parentId) || String(c.parent_id) === String(parentId));
+  return childCategoriesList.value.filter(c => Number(c.id_danhmuc_cha) === Number(parentId));
 };
+
+// Sắp xếp danh mục theo cấu trúc cây (Danh mục Cha đi kèm các Danh mục Con trực thuộc bên dưới)
+const hierarchicalCategories = computed(() => {
+  const result = [];
+  parentCategoriesList.value.forEach(parent => {
+    result.push(parent);
+    const children = childCategoriesList.value.filter(c => Number(c.id_danhmuc_cha) === Number(parent.id_danhmuc));
+    result.push(...children);
+  });
+  
+  // Bổ sung các danh mục con chưa được xếp vào danh mục cha (nếu có)
+  const addedIds = new Set(result.map(c => Number(c.id_danhmuc)));
+  childCategoriesList.value.forEach(child => {
+    if (!addedIds.has(Number(child.id_danhmuc))) {
+      result.push(child);
+    }
+  });
+
+  return result;
+});
 
 const getSelectedCategoryBadges = (selectedIds) => {
   if (!Array.isArray(selectedIds) || !selectedIds.length) return [];
   return selectedIds.map(id => {
     const found = categories.value.find(c => String(c.id_danhmuc) === String(id) || String(c.id) === String(id));
-    const isParent = found ? (!found.id_danhmuc_cha && !found.parent_id) : false;
+    const isParent = found ? (found.is_parent || (!found.id_danhmuc_cha && !found.parent_id)) : false;
     return found 
       ? { id: Number(found.id_danhmuc || found.id), name: found.ten_danhmuc, isParent } 
       : { id: Number(id), name: `Danh mục #${id}`, isParent: false };
@@ -480,9 +523,13 @@ const filteredBrands = computed(() => {
 
   if (selectedCategoryFilter.value) {
     const catId = Number(selectedCategoryFilter.value);
+    const isParent = parentCategories.value.some(p => Number(p.id_danhmuc || p.id) === catId);
+    const childIds = isParent ? getChildCategoriesOf(catId).map(c => Number(c.id_danhmuc || c.id)) : [];
+    const targetIds = [catId, ...childIds];
+
     result = result.filter(c => {
       if (!c.danh_muc_ids || c.danh_muc_ids.length === 0) return true; // Áp dụng toàn cục
-      return c.danh_muc_ids.map(Number).includes(catId);
+      return c.danh_muc_ids.map(Number).some(id => targetIds.includes(id));
     });
   }
 
@@ -1014,20 +1061,62 @@ td { padding: 14px 20px; vertical-align: middle; }
   border-color: #334155 !important;
 }
 
-:global(html[data-admin-theme='dark']) .bg-global,
-:global(.admin-layout.dark) .bg-global,
-:global(.dark) .bg-global {
-  background: rgba(16, 185, 129, 0.15) !important;
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .bg-global,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .table-badges-wrap .bg-global,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .badge-pill.bg-global {
+  background: rgba(16, 185, 129, 0.18) !important;
   color: #34d399 !important;
-  border-color: rgba(16, 185, 129, 0.3) !important;
+  border: 1px solid rgba(16, 185, 129, 0.35) !important;
 }
 
-:global(html[data-admin-theme='dark']) .bg-cat,
-:global(.admin-layout.dark) .bg-cat,
-:global(.dark) .bg-cat {
-  background: rgba(59, 130, 246, 0.15) !important;
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .bg-cat,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .table-badges-wrap .bg-cat,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .badge-pill.bg-cat {
+  background: rgba(59, 130, 246, 0.18) !important;
   color: #60a5fa !important;
-  border-color: rgba(59, 130, 246, 0.3) !important;
+  border: 1px solid rgba(59, 130, 246, 0.35) !important;
 }
 
 :global(html[data-admin-theme='dark']) .action-btn,
@@ -1152,46 +1241,76 @@ td { padding: 14px 20px; vertical-align: middle; }
   color: #6ee7b7 !important;
 }
 
-:global(html[data-admin-theme='dark']) .warn-notice,
-:global(.admin-layout.dark) .warn-notice,
-:global(.dark) .warn-notice {
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .warn-notice {
   background: rgba(245, 158, 11, 0.15) !important;
   color: #fbbf24 !important;
-  border-color: rgba(245, 158, 11, 0.3) !important;
+  border: 1px solid rgba(245, 158, 11, 0.3) !important;
 }
 
-:global(html[data-admin-theme='dark']) .parent-pill,
-:global(.admin-layout.dark) .parent-pill,
-:global(.dark) .parent-pill {
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .parent-pill {
   background: #1e3a8a !important;
   color: #93c5fd !important;
   border-color: #1d4ed8 !important;
 }
 
-:global(html[data-admin-theme='dark']) .child-pill,
-:global(.admin-layout.dark) .child-pill,
-:global(.dark) .child-pill {
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .child-pill {
   background: #334155 !important;
   color: #cbd5e1 !important;
   border-color: #475569 !important;
 }
 
-:global(html[data-admin-theme='dark']) .category-checkbox-tree-box,
-:global(.admin-layout.dark) .category-checkbox-tree-box,
-:global(.dark) .category-checkbox-tree-box {
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .category-checkbox-tree-box {
   background: #0f172a !important;
   border-color: #334155 !important;
 }
 
-:global(html[data-admin-theme='dark']) .parent-title,
-:global(.admin-layout.dark) .parent-title,
-:global(.dark) .parent-title {
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .parent-title {
   color: #f8fafc !important;
 }
 
-:global(html[data-admin-theme='dark']) .child-row span,
-:global(.admin-layout.dark) .child-row span,
-:global(.dark) .child-row span {
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .child-row span {
   color: #cbd5e1 !important;
 }
 
