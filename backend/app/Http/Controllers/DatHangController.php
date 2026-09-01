@@ -233,12 +233,17 @@ class DatHangController extends Controller
         $paymentData = $this->paymentDataWithStatusTime($order, $orderStatus);
         $paymentData['shipping_demo'] = $shipment;
 
+        if (! $order->id_nhanvien && Auth::id()) {
+            $extraUpdates['id_nhanvien'] = Auth::id();
+            $order->id_nhanvien = Auth::id();
+        }
+
         $order->update(array_merge([
             'trangthai' => $orderStatus,
             'du_lieu_thanh_toan' => $paymentData,
         ], $extraUpdates));
 
-        return $order->fresh(['user', 'chi_tiets.bienThe.sanPham']);
+        return $order->fresh(['user', 'nhanVien', 'chi_tiets.bienThe.sanPham']);
     }
 
     private function normalizedFailureReason(?string $reason): string
@@ -1124,6 +1129,8 @@ class DatHangController extends Controller
 
             DB::commit();
 
+            $this->syncDueDemoShipments(false);
+
             // Invalidate dashboard cache
             Cache::forget('dashboard_data_all');
             Cache::forget('dashboard_data_week');
@@ -1656,6 +1663,8 @@ class DatHangController extends Controller
 
     public function allOrders()
     {
+        $this->syncDueDemoShipments(false);
+
         $orders = DatHang::with(['user', 'nhanVien', 'chi_tiets.bienThe.sanPham'])
             ->where(function ($query) {
                 $query->whereNotIn('PTTT', ['vnpay', 'momo'])
@@ -2208,6 +2217,61 @@ class DatHangController extends Controller
             'success' => true,
             'message' => 'Phân công nhân viên xử lý đơn hàng thành công!',
             'order' => $order,
+        ]);
+    }
+
+    public function getEmployeesList()
+    {
+        $roleMap = [
+            'admin' => 'Quản trị viên',
+            'order_manager' => 'Xử lý đơn hàng',
+            'editor' => 'Biên tập viên',
+            'marketing' => 'Marketing',
+            'nhanvien' => 'Nhân viên',
+            'nhan_vien' => 'Nhân viên',
+            'accountant' => 'Kế toán',
+            'ke_toan' => 'Kế toán',
+            'thukho' => 'Thủ kho',
+            'thu_kho' => 'Thủ kho',
+            'inventory' => 'Thủ kho',
+            'affiliate_manager' => 'Quản lý Affiliate',
+            'support' => 'Tư vấn viên',
+            'user' => 'Khách hàng',
+        ];
+
+        try {
+            $customRoles = \App\Models\VaiTro::pluck('ten_vaitro', 'ma_vaitro')->toArray();
+            foreach ($customRoles as $code => $label) {
+                if (!empty($code) && !empty($label)) {
+                    $roleMap[strtolower(trim($code))] = $label;
+                }
+            }
+        } catch (\Throwable $th) {}
+
+        $employees = \App\Models\Admin::select('id', 'ten', 'email', 'vaitro')
+            ->where(function ($q) {
+                $q->whereNull('vaitro')
+                  ->orWhere('vaitro', '!=', 'user');
+            })
+            ->orderBy('ten', 'asc')
+            ->get()
+            ->map(function ($admin) use ($roleMap) {
+                $code = strtolower(trim((string)$admin->vaitro));
+                $label = $roleMap[$code] ?? ($admin->ten_vaitro_hienthi ?: ($admin->vaitro ?: 'Nhân viên'));
+
+                return [
+                    'id' => $admin->id,
+                    'name' => $admin->ten ?: ($admin->email ?: 'Nhân viên #'.$admin->id),
+                    'ten' => $admin->ten ?: ($admin->email ?: 'Nhân viên #'.$admin->id),
+                    'email' => $admin->email,
+                    'vaitro' => $admin->vaitro,
+                    'role_label' => $label,
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'data' => $employees,
         ]);
     }
 

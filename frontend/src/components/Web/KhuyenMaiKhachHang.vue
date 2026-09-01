@@ -237,6 +237,22 @@ const magazineArticles = computed(() => {
   })
 })
 
+const formatNewsDateTime = (dateStr) => {
+  if (!dateStr) return ''
+  try {
+    const d = new Date(dateStr)
+    if (isNaN(d.getTime())) return String(dateStr)
+    const hh = String(d.getHours()).padStart(2, '0')
+    const mm = String(d.getMinutes()).padStart(2, '0')
+    const DD = String(d.getDate()).padStart(2, '0')
+    const MM = String(d.getMonth() + 1).padStart(2, '0')
+    const YYYY = d.getFullYear()
+    return `${hh}:${mm} - ${DD}/${MM}/${YYYY}`
+  } catch {
+    return String(dateStr)
+  }
+}
+
 const goToNewsDetail = (id) => {
   if (id) {
     router.push(`/tin-tuc/${id}`)
@@ -998,111 +1014,7 @@ const initScrollReveal = () => {
       </div>
     </section>
 
-    <!-- 3. CATEGORIES SECTION -->
-    <section class="section categories-section">
-      <div class="grid-container">
-        <div class="section-header scroll-reveal reveal-fade-up">
-          <span class="ambient-label">
-            <SlidersHorizontal class="pill-icon" />
-            Danh mục khuyến mãi
-          </span>
-          <h2>Săn ưu đãi theo nhu cầu</h2>
-          <p class="section-sub" style="color: #f1f5f9 !important; -webkit-text-fill-color: #f1f5f9 !important; opacity: 1 !important;">Những dòng laptop hiệu năng cao, linh kiện chất lượng nhất đang được áp dụng mức giá cực sốc.</p>
-        </div>
 
-        <div class="categories-bento-grid scroll-reveal reveal-stagger">
-          <div class="bento-item gaming-bento" @click="activeCategoryTab = 'gaming'">
-            <div class="bento-image-bg">
-              <img src="https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&q=80" alt="Laptop Gaming Sale" />
-            </div>
-            <div class="bento-content-overlay">
-              <div class="bento-badge">Gaming Pro</div>
-              <h3>Laptop Gaming Sale</h3>
-              <a href="#discount-grid" class="bento-buy-btn" @click.stop="activeCategoryTab = 'gaming'">Mua ngay</a>
-              <span class="bento-link">
-                Khám phá ngay
-                <ChevronRight class="chevron-link-icon" />
-              </span>
-            </div>
-          </div>
-
-          <div class="bento-item mac-bento" @click="activeCategoryTab = 'macbook'">
-            <div class="bento-image-bg">
-              <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=600&q=80" alt="MacBook Pro Sale" />
-            </div>
-            <div class="bento-content-overlay">
-              <div class="bento-badge">Apple Premium</div>
-              <h3>MacBook Pro / Air</h3>
-              <a href="#discount-grid" class="bento-buy-btn" @click.stop="activeCategoryTab = 'macbook'">Mua ngay</a>
-              <span class="bento-link">
-                Khám phá ngay
-                <ChevronRight class="chevron-link-icon" />
-              </span>
-            </div>
-          </div>
-
-          <div class="bento-item office-bento" @click="activeCategoryTab = 'office'">
-            <div class="bento-image-bg">
-              <img src="https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=600&q=80" alt="Laptop Văn Phòng Sale" />
-            </div>
-            <div class="bento-content-overlay">
-              <div class="bento-badge">Office & Student</div>
-              <a href="#discount-grid" class="bento-buy-btn" @click.stop="activeCategoryTab = 'office'">Mua ngay</a>
-              <h3>Laptop Văn Phòng</h3>
-              <span class="bento-link">
-                Khám phá ngay
-                <ChevronRight class="chevron-link-icon" />
-              </span>
-            </div>
-          </div>
-
-          <div class="bento-item workstation-bento" @click="activeCategoryTab = 'workstation'">
-            <div class="bento-image-bg">
-              <img src="/hero_gaming_parts.png" alt="Workstation Sale" />
-            </div>
-            <div class="bento-content-overlay">
-              <div class="bento-badge">Extreme Performance</div>
-              <a href="#discount-grid" class="bento-buy-btn" @click.stop="activeCategoryTab = 'workstation'">Mua ngay</a>
-              <h3>Máy Trạm Đồ Họa</h3>
-              <span class="bento-link">
-                Khám phá ngay
-                <ChevronRight class="chevron-link-icon" />
-              </span>
-            </div>
-          </div>
-
-          <div class="bento-item accessories-bento" @click="activeCategoryTab = 'accessories'">
-            <div class="bento-image-bg">
-              <img src="/elite_accessories.png" alt="Accessories Sale" />
-            </div>
-            <div class="bento-content-overlay">
-              <div class="bento-badge">Accessories Deal</div>
-              <h3>Gaming Accessories</h3>
-              <a href="#discount-grid" class="bento-buy-btn" @click.stop="activeCategoryTab = 'accessories'">Mua ngay</a>
-              <span class="bento-link">
-                Khám phá ngay
-                <ChevronRight class="chevron-link-icon" />
-              </span>
-            </div>
-          </div>
-
-          <div class="bento-item setup-bento" @click="activeCategoryTab = 'accessories'">
-            <div class="bento-image-bg">
-              <img src="/elite_unboxing.png" alt="Setup bundle sale" />
-            </div>
-            <div class="bento-content-overlay">
-              <div class="bento-badge">Setup Bundle</div>
-              <h3>Setup Gear Sale</h3>
-              <a href="#discount-grid" class="bento-buy-btn" @click.stop="activeCategoryTab = 'accessories'">Mua ngay</a>
-              <span class="bento-link">
-                Khám phá ngay
-                <ChevronRight class="chevron-link-icon" />
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
 
     <!-- 4. FLASH SALE TODAY -->
     <section id="flash-sale" class="section flash-sale-dark-section" v-if="isFlashSaleActive && flashSaleProducts && flashSaleProducts.length">
@@ -1175,17 +1087,15 @@ const initScrollReveal = () => {
     <!-- 5. VOUCHER CENTER -->
     <section id="voucher-center" class="section voucher-center-section">
       <div class="grid-container">
-        <div class="voucher-header-flex scroll-reveal reveal-fade-up">
-          <div class="section-header-left">
-            <span class="ambient-label">
-              <Tag class="pill-icon" />
-              Voucher Center
-            </span>
-            <h2>Trung tâm mã giảm giá</h2>
-            <p class="section-sub" style="color: #f1f5f9 !important; -webkit-text-fill-color: #f1f5f9 !important; opacity: 1 !important;">Nhấn <strong style="color: #ffffff !important; -webkit-text-fill-color: #ffffff !important;">Nhận voucher</strong> để lưu mã vào tài khoản và áp dụng ở bước thanh toán để nhận thêm ưu đãi cực kỳ hấp dẫn.</p>
-          </div>
+        <div class="section-header scroll-reveal reveal-fade-up">
+          <span class="ambient-label">
+            <Tag class="pill-icon" />
+            Voucher Center
+          </span>
+          <h2>Trung tâm mã giảm giá</h2>
+          <p class="section-sub">Nhấn <strong style="color: #60a5fa !important; -webkit-text-fill-color: #60a5fa !important;">Nhận voucher</strong> để lưu mã vào tài khoản và áp dụng ở bước thanh toán để nhận thêm ưu đãi cực kỳ hấp dẫn.</p>
 
-          <div class="voucher-toolbar-actions">
+          <div class="voucher-toolbar-actions" style="margin-top: 16px; justify-content: center;">
             <!-- Nút Slide Controls: chỉ hiện khi ở chế độ Slide & có hơn 1 slide -->
             <div v-if="!isViewAllVouchers && totalVoucherSlides > 1" class="voucher-slide-nav">
               <button 
@@ -1242,16 +1152,6 @@ const initScrollReveal = () => {
               <div class="voucher-ticket-content">
                 <div class="voucher-code-row">
                   <span class="voucher-code-caption">Mã voucher</span>
-                  <button
-                    type="button"
-                    class="voucher-copy-button"
-                    :class="{ copied: copiedVoucherCode === v.code }"
-                    :title="copiedVoucherCode === v.code ? 'Đã sao chép' : 'Sao chép mã'"
-                    @click.stop="copyVoucherCode(v)"
-                  >
-                    <Check v-if="copiedVoucherCode === v.code" />
-                    <Copy v-else />
-                  </button>
                 </div>
 
                 <h3 class="voucher-code">{{ v.code }}</h3>
@@ -1506,9 +1406,15 @@ const initScrollReveal = () => {
                   Xem chi tiết bài viết
                   <ArrowRight class="art-arrow-icon" />
                 </RouterLink>
-                <span class="art-views-badge" v-if="magazineArticles[0].views > 0">
-                  👁 {{ magazineArticles[0].views.toLocaleString() }} lượt xem
-                </span>
+                <div class="art-meta-right" style="display: flex; align-items: center; gap: 12px;">
+                  <span class="art-date-badge" v-if="magazineArticles[0].date" style="font-size: 12px; color: #94a3b8; font-weight: 500; display: inline-flex; align-items: center; gap: 4px;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    {{ formatNewsDateTime(magazineArticles[0].date) }}
+                  </span>
+                  <span class="art-views-badge" v-if="magazineArticles[0].views > 0">
+                    👁 {{ magazineArticles[0].views.toLocaleString() }} lượt xem
+                  </span>
+                </div>
               </div>
             </div>
           </article>
@@ -1519,9 +1425,15 @@ const initScrollReveal = () => {
                 <img :src="n.img" :alt="n.title" />
               </div>
               <div class="mini-art-info">
-                <div class="mini-tag-row">
+                <div class="mini-tag-row" style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
                   <span class="mini-tag">{{ n.category }}</span>
-                  <span class="mini-views-count" v-if="n.views > 0">👁 {{ n.views.toLocaleString() }}</span>
+                  <div class="mini-meta-right" style="display: flex; align-items: center; gap: 8px;">
+                    <span class="mini-date-badge" v-if="n.date" style="font-size: 10px; color: #94a3b8; font-weight: 500; display: inline-flex; align-items: center; gap: 3px;">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                      {{ formatNewsDateTime(n.date) }}
+                    </span>
+                    <span class="mini-views-count" v-if="n.views > 0">👁 {{ n.views.toLocaleString() }}</span>
+                  </div>
                 </div>
                 <h3>{{ n.title }}</h3>
                 <RouterLink :to="`/tin-tuc/${n.id}`" class="mini-art-link" @click.stop>

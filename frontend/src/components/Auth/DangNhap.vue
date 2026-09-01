@@ -1,9 +1,9 @@
 <script setup>
-import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
 import api from '@/services/api'
-import { getDeviceFingerprint, getUser, saveAuth } from '@/services/auth'
+import { getDeviceFingerprint, getUser, saveAuth, clearLoginFailures } from '@/services/auth'
 import { formatAuthMessage } from '@/services/authMessages'
 import { validateEmail, normalizeEmail } from '@/services/authValidation'
 
@@ -21,6 +21,18 @@ const lockUntil = ref(Number(localStorage.getItem('login_lock_until') || 0))
 const lockCount = ref(Number(localStorage.getItem('login_lock_count') || 0))
 const secondsRemaining = ref(0)
 let lockInterval = null
+
+const resetLoginFailures = () => {
+  clearLoginFailures()
+  failedAttempts.value = 0
+  lockUntil.value = 0
+  lockCount.value = 0
+  secondsRemaining.value = 0
+  if (lockInterval) {
+    clearInterval(lockInterval)
+    lockInterval = null
+  }
+}
 
 const updateLockCountdown = () => {
   const now = Date.now()
@@ -90,6 +102,7 @@ const showModal = (type, title, message, onConfirm = null) => {
 
 const loginGoogle = () => {
   if (loading.value || adminOpening.value || webOpening.value || socialOpening.value) return
+  resetLoginFailures()
   socialOpening.value = true
   if (route.query.redirect) {
     sessionStorage.setItem('redirect_after_auth', route.query.redirect)
@@ -296,6 +309,7 @@ onMounted(() => {
   }
 
   if (user && token) {
+    resetLoginFailures()
     if (isAdminUser(user)) {
       router.replace('/admin')
     } else {
@@ -358,17 +372,7 @@ const handleLogin = async () => {
     }
 
     // Reset login failures on success
-    localStorage.removeItem('login_failed_attempts')
-    localStorage.removeItem('login_lock_until')
-    localStorage.removeItem('login_lock_count')
-    failedAttempts.value = 0
-    lockUntil.value = 0
-    lockCount.value = 0
-    secondsRemaining.value = 0
-    if (lockInterval) {
-      clearInterval(lockInterval)
-      lockInterval = null
-    }
+    resetLoginFailures()
 
     saveAuth(token, user, remember.value)
 
@@ -393,13 +397,7 @@ const handleLogin = async () => {
     if (err.response?.status === 423 || err.response?.data?.code === 'ACCOUNT_LOCKED') {
       const message = err.response?.data?.message || 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên để được hỗ trợ.'
       localStorage.removeItem('account_locked_message')
-      localStorage.removeItem('login_failed_attempts')
-      localStorage.removeItem('login_lock_until')
-      localStorage.removeItem('login_lock_count')
-      failedAttempts.value = 0
-      lockUntil.value = 0
-      lockCount.value = 0
-      secondsRemaining.value = 0
+      resetLoginFailures()
       showModal('error', 'Tài khoản bị khóa', message)
       return
     }

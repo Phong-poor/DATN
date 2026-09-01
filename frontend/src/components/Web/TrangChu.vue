@@ -1485,50 +1485,50 @@ onUnmounted(() => {
             <div class="grid-container">
                 <div class="section-header center scroll-reveal reveal-fade-up">
                     <div class="label-wrapper center">
-                        <span class="ambient-label">HỆ SINH THÁI CAO CẤP</span>
-                        <h2>Kiến tạo góc setup trong mơ</h2>
-                        <p>Hoàn thiện không gian chiến game và làm việc chuyên sâu với các thiết bị ngoại vi đồng bộ cao cấp.</p>
+                        <span class="ambient-label">HỆ SINH THÁI PHỤ KIỆN HIGH-END</span>
+                        <h2>Nâng tầm góc làm việc & Chơi game</h2>
+                        <p>Bộ sưu tập bàn phím, chuột, tai nghe và lót chuột cao cấp giúp hoàn thiện góc setup và tối ưu mọi trải nghiệm.</p>
                     </div>
                 </div>
 
                 <div class="bento-asymmetrical-grid scroll-reveal reveal-stagger">
-                    <div class="bento-block block-xl" style="background-image: url('https://images.unsplash.com/photo-1593640408182-31c70c8268f5?w=1000')">
+                    <div class="bento-block block-xl" style="background-image: url('https://hoanglongcomputer.vn/media/lib/11-05-2026/2174d7ca7af586a1c458e21jpg1920x1080_q100_crop-scal.jpg')">
                         <div class="block-tint"></div>
                         <div class="bento-text">
-                            <span class="bento-category-tag">TRUNG TÂM SETUP</span>
-                            <h3>Không gian tối giản</h3>
-                            <p>Tối đa diện tích, đồng bộ cổng kết nối và tối ưu không gian đa nhiệm đỉnh cao.</p>
-                            <router-link to="/san-pham?cat=phu-kien" class="bento-cta-link">Khám phá ngay ➔</router-link>
+                            <span class="bento-category-tag">CHUỘT GAMING</span>
+                            <h3>Chuột Ergonomic & Gaming</h3>
+                            <p>Độ nhạy DPI cực cao, mắt đọc quang học chính xác và thiết kế cầm nắm chuẩn giải phẫu.</p>
+                            <router-link to="/phu-kien?line=mouse&scroll=catalog" class="bento-cta-link">Khám phá ngay ➔</router-link>
                         </div>
                     </div>
 
-                    <div class="bento-block block-medium" style="background-image: url('https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=600')">
+                    <div class="bento-block block-medium" style="background-image: url('https://cdn2.fptshop.com.vn/unsafe/1920x0/filters:format(webp):quality(75)/tai_nghe_gaming_chong_on_thumb_4cbcd1959c.jpg')">
                         <div class="block-tint"></div>
                         <div class="bento-text">
-                            <span class="bento-category-tag">ÂM THANH</span>
+                            <span class="bento-category-tag">TAI NGHE & ÂM THANH</span>
                             <h3>Tai nghe chuẩn studio</h3>
                             <p>Âm thanh vòm cinematic 7.1 tích hợp mic khử ồn AI thông minh.</p>
-                            <router-link to="/san-pham?cat=phu-kien" class="bento-cta-link">Xem mẫu ➔</router-link>
+                            <router-link to="/phu-kien?line=headphone&scroll=catalog" class="bento-cta-link">Khám phá ngay ➔</router-link>
                         </div>
                     </div>
 
-                    <div class="bento-block block-medium" style="background-image: url('https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=600')">
+                    <div class="bento-block block-medium" style="background-image: url('https://phongvu.vn/cong-nghe/wp-content/uploads/2020/08/Gearvn_b%C3%A0n-ph%C3%ADm-c%C6%A1_-32.jpg')">
                         <div class="block-tint"></div>
                         <div class="bento-text">
                             <span class="bento-category-tag">BÀN PHÍM CƠ</span>
                             <h3>Bàn phím custom NX</h3>
                             <p>Xúc giác cực nhạy, phản hồi tức thì với LED RGB tùy biến 16.8 triệu màu.</p>
-                            <router-link to="/san-pham?cat=phu-kien" class="bento-cta-link">Sở hữu ngay ➔</router-link>
+                            <router-link to="/phu-kien?line=keyboard&scroll=catalog" class="bento-cta-link">Khám phá ngay ➔</router-link>
                         </div>
                     </div>
 
-                    <div class="bento-block block-wide" style="background-image: url('https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800')">
+                    <div class="bento-block block-wide" style="background-image: url('https://linhkienstore.vn/plugins/responsive_filemanager/source/MY/BCD%20LIGHTNING/LC%20RGB%20250-350/lot-chuot-gaming-rgb-250-350%20(1).jpg')">
                         <div class="block-tint"></div>
                         <div class="bento-text">
-                            <span class="bento-category-tag">MÀN HÌNH</span>
-                            <h3>Màn hình cực đỉnh OLED</h3>
-                            <p>Tần số quét 240Hz phản hồi siêu tốc, màu sắc chuẩn điện ảnh HDR chuyên nghiệp.</p>
-                            <router-link to="/san-pham?cat=phu-kien" class="bento-cta-link">Xem màn hình ➔</router-link>
+                            <span class="bento-category-tag">LÓT CHUỘT</span>
+                            <h3>Pad chuột Speed & Control</h3>
+                            <p>Bề mặt sợi dệt siêu mịn, viền khâu chống bong tróc và đế cao su chống trượt tuyệt đối.</p>
+                            <router-link to="/phu-kien?line=pad&scroll=catalog" class="bento-cta-link">Khám phá ngay ➔</router-link>
                         </div>
                     </div>
                 </div>
@@ -1611,6 +1611,11 @@ onUnmounted(() => {
                                     <svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                                     {{ formatNewsDateTime(latestNews[0].published_at || latestNews[0].created_at) }}
                                 </span>
+                                <span class="art-meta-divider">•</span>
+                                <span class="art-views-pill" style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #64748b;">
+                                    <svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    {{ Number(latestNews[0].views || latestNews[0].luotxem || 0).toLocaleString() }} lượt xem
+                                </span>
                             </div>
                             <h3>{{ latestNews[0].title }}</h3>
                             <p>{{ latestNews[0].excerpt || 'Khám phá các bài phân tích sâu về hiệu năng và các công nghệ cốt lõi mới nhất.' }}</p>
@@ -1627,10 +1632,16 @@ onUnmounted(() => {
                             <div class="mini-art-info">
                                 <div class="mini-art-header">
                                     <span class="mini-tag">{{ n.category || 'Công nghệ' }}</span>
-                                    <span class="mini-date-pill" v-if="n.published_at || n.created_at">
-                                        <svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                                        {{ formatNewsDateTime(n.published_at || n.created_at) }}
-                                    </span>
+                                    <div class="mini-meta-right" style="display: flex; align-items: center; gap: 8px;">
+                                        <span class="mini-date-pill" v-if="n.published_at || n.created_at">
+                                            <svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                            {{ formatNewsDateTime(n.published_at || n.created_at) }}
+                                        </span>
+                                        <span class="mini-views-pill" style="font-size: 11px; color: #64748b; display: inline-flex; align-items: center; gap: 3px;">
+                                            <svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                                            {{ Number(n.views || n.luotxem || 0).toLocaleString() }}
+                                        </span>
+                                    </div>
                                 </div>
                                 <h3>{{ n.title }}</h3>
                                 <div class="mini-art-footer">
@@ -3487,57 +3498,77 @@ onUnmounted(() => {
 .block-tint {
     position: absolute;
     inset: 0;
-    background: linear-gradient(to top, rgba(7,12,22,0.92) 0%, rgba(7,12,22,0.4) 60%, transparent 100%);
+    background: linear-gradient(to top, rgba(7, 12, 22, 0.96) 0%, rgba(7, 12, 22, 0.65) 50%, rgba(7, 12, 22, 0.25) 100%);
     transition: all 0.4s ease;
 }
 .bento-block:hover {
     transform: translateY(-5px);
     border-color: #3b82f6;
-    box-shadow: 0 18px 42px rgba(59, 130, 246, 0.22);
+    box-shadow: 0 18px 42px rgba(59, 130, 246, 0.28);
 }
 .bento-block:hover .block-tint {
-    background: linear-gradient(to top, rgba(7,12,22,0.95) 0%, rgba(59, 130, 246, 0.14) 100%);
+    background: linear-gradient(to top, rgba(7, 12, 22, 0.98) 0%, rgba(59, 130, 246, 0.2) 100%);
 }
 .bento-text {
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
-    padding: 32px;
+    padding: 28px;
     z-index: 2;
 }
 .bento-category-tag {
-    display: block;
-    font-size: 9.5px;
+    display: inline-block;
+    font-size: 10.5px;
     font-weight: 800;
-    color: #60a5fa;
-    letter-spacing: 0.15em;
-    margin-bottom: 6px;
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.16);
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    padding: 4px 12px;
+    border-radius: 20px;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 2px 10px rgba(56, 189, 248, 0.2);
 }
 .bento-text h3 {
     font-size: 22px;
     font-weight: 800;
-    color: white;
-    margin: 0 0 6px;
+    color: #ffffff;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+    margin: 0 0 8px;
+    line-height: 1.25;
 }
 .bento-text p {
     font-size: 13.5px;
     line-height: 1.6;
-    color: #cbd5e1;
-    margin: 0 0 14px;
+    color: #f8fafc;
+    font-weight: 500;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.95);
+    margin: 0 0 16px;
+    opacity: 0.95;
 }
 .bento-cta-link {
-    display: inline-block;
-    color: #60a5fa;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #ffffff;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    padding: 9px 18px;
+    border-radius: 12px;
     font-weight: 700;
     font-size: 13px;
-    text-transform: capitalize;
-    letter-spacing: 0.05em;
-    transition: all 0.3s;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .bento-block:hover .bento-cta-link {
-    color: #bfdbfe;
-    transform: translateX(4px);
+    color: #ffffff;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
 }
 
 .block-xl {

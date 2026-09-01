@@ -295,6 +295,10 @@ class MomoController extends Controller
 
         $this->clearDashboardCache();
 
+        try {
+            app(\App\Services\DemoShipmentService::class)->syncDueShipments();
+        } catch (\Throwable $t) {}
+
         if ($shouldBroadcast) {
             event(new NewOrderPlaced($order->fresh()));
         }
