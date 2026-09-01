@@ -90,7 +90,7 @@
 
                                 <!-- Status -->
                                 <td>
-                                    <span class="status-badge" :class="statusClass(review.trangthai)" :style="statusStyle(review.trangthai)">
+                                    <span class="status-badge" :class="statusClass(review.trangthai)">
                                         {{ statusLabel(review.trangthai) }}
                                     </span>
                                 </td>
@@ -101,19 +101,19 @@
                                         <button v-if="isPendingLike(review)" class="action-btn approve"
                                             @click="approveReview(review)">DUYỆT<br />NGAY</button>
                                         
-                                        <button v-if="review.trangthai !== 'spam'" class="action-btn icon-btn" style="background:#fff7ed !important; color:#f97316 !important; border:1px solid #fed7aa !important;" title="Đánh dấu Spam" @click="markAsSpam(review)">
+                                        <button v-if="review.trangthai !== 'spam'" class="action-btn icon-btn warn" title="Đánh dấu Spam" @click="markAsSpam(review)">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
                                             </svg>
                                         </button>
 
-                                        <button v-if="review.trangthai === 'spam'" class="action-btn icon-btn" style="background:#ecfdf5 !important; color:#2563eb !important; border:1px solid #a7f3d0 !important;" title="Đưa về chờ duyệt thủ công" @click="undoReview(review)">
+                                        <button v-if="review.trangthai === 'spam'" class="action-btn icon-btn undo" title="Đưa về chờ duyệt thủ công" @click="undoReview(review)">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                 <path d="M3 10h10a5 5 0 0 1 5 5v2"/><polyline points="7 6 3 10 7 14"/>
                                             </svg>
                                         </button>
 
-                                        <button class="action-btn icon-btn delete" style="background:#fef2f2 !important; color:#ef4444 !important; border:1px solid #fecaca !important;" title="Xoá"
+                                        <button class="action-btn icon-btn danger delete" title="Xoá"
                                             @click="deleteReview(review.id_danhgia)">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                 <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4h6v2" />
@@ -237,12 +237,7 @@ const tabs = [
     { key: 'approved', label: 'Đã duyệt' },
 ]
 
-const statusStyle = (status) => {
-    if (status === 'approved') return { background: '#dcfce7 !important', color: '#15803d !important', border: '1px solid #86efac !important' }
-    if (status === 'pending') return { background: '#fef9c3 !important', color: '#a16207 !important', border: '1px solid #fde047 !important' }
-    if (status === 'spam') return { background: '#fee2e2 !important', color: '#b91c1c !important', border: '1px solid #fca5a5 !important' }
-    return {}
-}
+const statusStyle = () => ({})
 
 const reviews = ref([])
 const pagination = ref({
@@ -941,28 +936,42 @@ td {
 
 /* Status badge */
 .status-badge {
-    display: inline-block;
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 10.5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 11px;
     font-weight: 700;
     letter-spacing: .4px;
     white-space: nowrap;
 }
 
+.status-badge::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
 .status-badge.approved {
     background: #dcfce7;
-    color: #2563eb;
+    color: #15803d;
+    border: 1px solid #86efac;
 }
 
 .status-badge.pending {
     background: #fef9c3;
-    color: #ca8a04;
+    color: #a16207;
+    border: 1px solid #fde047;
 }
 
 .status-badge.spam {
     background: #fee2e2;
-    color: #dc2626;
+    color: #b91c1c;
+    border: 1px solid #fca5a5;
 }
 
 /* Action buttons */
@@ -1007,6 +1016,7 @@ td {
     flex: 0 0 32px;
     padding: 0;
     line-height: 0;
+    border-radius: 8px;
 }
 
 .action-btn.icon-btn svg {
@@ -1016,21 +1026,36 @@ td {
     margin: 0;
 }
 
-.action-btn.reply {
+.action-btn.icon-btn.warn {
+    background: #fff7ed;
+    color: #f97316;
+    border: 1px solid #fed7aa;
+}
+
+.action-btn.icon-btn.warn:hover {
+    background: #f97316;
+    color: #fff;
+}
+
+.action-btn.icon-btn.undo {
     background: #eff6ff;
-    color: #3b82f6;
+    color: #2563eb;
+    border: 1px solid #bfdbfe;
 }
 
-.action-btn.reply:hover {
-    background: #dbeafe;
+.action-btn.icon-btn.undo:hover {
+    background: #2563eb;
+    color: #fff;
 }
 
+.action-btn.icon-btn.danger,
 .action-btn.delete {
-    background: #fff1f2;
+    background: #fef2f2;
     color: #ef4444;
-    border: 1px solid #fecdd3;
+    border: 1px solid #fecaca;
 }
 
+.action-btn.icon-btn.danger:hover,
 .action-btn.delete:hover {
     background: #ef4444;
     border-color: #ef4444;

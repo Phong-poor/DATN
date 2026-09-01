@@ -514,6 +514,13 @@ const getSelectedOfferProductName = (id) => {
   return p ? p.tenSP : 'Sản phẩm #' + id
 }
 
+const getSelectedOfferProductImage = (id) => {
+  const p = allProductsPool.value.find(prod => prod.id_sanpham === id)
+  if (!p) return ''
+  const img = p.hinhanh || p.hinh_anh || p.image
+  return img ? storageUrl(img) : ''
+}
+
 const getSelectedVariantName = (id) => {
   const v = availableOfferVariants.value.find(varItem => varItem.id_bienthe === Number(id))
   return v ? getConfigName(v.ten_bienthe) : 'Cấu hình #' + id
@@ -1071,22 +1078,24 @@ onBeforeUnmount(() => {
             </div>
           </div>
 
-          <!-- 3. Tên và Giá Combo -->
-          <div class="form-cols-2 form-step-section">
-            <div class="form-group">
-              <label>Bước 3: Tên Combo <span class="required">*</span></label>
-              <input v-model="form.ten_combo" @input="isNameManuallyEdited = true" placeholder="VD: Combo Bàn phím + Chuột gaming" :class="{ 'input-error': fieldErrors.ten_combo }" />
-              <p v-if="fieldErrors.ten_combo" class="field-error">{{ fieldErrors.ten_combo }}</p>
-              <small class="step-help-text">Tên combo sẽ tự động ghép từ các sản phẩm phụ kiện đã chọn trừ khi bạn chỉnh sửa thủ công.</small>
-            </div>
+          <!-- 3. Tên và Giá Combo (Gộp làm 1 div duy nhất) -->
+          <div class="form-group form-step-section">
+            <div class="form-cols-2">
+              <div class="form-group-inner">
+                <label>Bước 3: Tên Combo <span class="required">*</span></label>
+                <input v-model="form.ten_combo" @input="isNameManuallyEdited = true" placeholder="VD: Combo Bàn phím + Chuột gaming" :class="{ 'input-error': fieldErrors.ten_combo }" />
+                <p v-if="fieldErrors.ten_combo" class="field-error">{{ fieldErrors.ten_combo }}</p>
+                <small class="step-help-text">Tên combo sẽ tự động ghép từ các sản phẩm phụ kiện đã chọn trừ khi bạn chỉnh sửa thủ công.</small>
+              </div>
 
-            <div class="form-group">
-              <label>Bước 3.2: Giá Khuyến Mãi Combo (Đ) <span class="required">*</span></label>
-              <input v-model="form.giakhuyenmai" type="number" @input="isPriceManuallyEdited = true" placeholder="VD: 550000" :class="{ 'input-error': fieldErrors.giakhuyenmai }" />
-              <p v-if="fieldErrors.giakhuyenmai" class="field-error">{{ fieldErrors.giakhuyenmai }}</p>
-              <div v-if="selectedOriginalPriceTotal > 0" class="combo-price-suggest-box">
-                <span>Tổng giá gốc mua lẻ: <b>{{ selectedOriginalPriceTotal.toLocaleString('vi-VN') }}đ</b></span>
-                <span>Đã tự động đề xuất giảm <b>15%</b></span>
+              <div class="form-group-inner">
+                <label>Bước 3.2: Giá Khuyến Mãi Combo (Đ) <span class="required">*</span></label>
+                <input v-model="form.giakhuyenmai" type="number" @input="isPriceManuallyEdited = true" placeholder="VD: 550000" :class="{ 'input-error': fieldErrors.giakhuyenmai }" />
+                <p v-if="fieldErrors.giakhuyenmai" class="field-error">{{ fieldErrors.giakhuyenmai }}</p>
+                <div v-if="selectedOriginalPriceTotal > 0" class="combo-price-suggest-box">
+                  <span>Tổng giá gốc mua lẻ: <b>{{ selectedOriginalPriceTotal.toLocaleString('vi-VN') }}đ</b></span>
+                  <span>Đã tự động đề xuất giảm <b>15%</b></span>
+                </div>
               </div>
             </div>
           </div>
@@ -1154,7 +1163,15 @@ onBeforeUnmount(() => {
                     class="laptop-select-card" 
                     @click="selectOfferProductAction(p)"
                   >
-                    <div class="laptop-card-icon">💻</div>
+                    <div class="laptop-card-icon">
+                      <img 
+                        v-if="p.hinhanh || p.hinh_anh || p.image" 
+                        :src="storageUrl(p.hinhanh || p.hinh_anh || p.image)" 
+                        :alt="p.tenSP" 
+                        style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;"
+                      />
+                      <span v-else>💻</span>
+                    </div>
                     <div class="laptop-card-info">
                       <b class="laptop-item-name">{{ p.tenSP }}</b>
                       <div class="laptop-item-meta">
@@ -1173,7 +1190,15 @@ onBeforeUnmount(() => {
               <!-- Selected product Showcase Banner -->
               <div v-else class="selected-laptop-showcase">
                 <div class="showcase-left">
-                  <div class="showcase-icon">💻</div>
+                  <div class="showcase-icon">
+                    <img 
+                      v-if="getSelectedOfferProductImage(selectedOfferProduct)" 
+                      :src="getSelectedOfferProductImage(selectedOfferProduct)" 
+                      alt="Laptop" 
+                      style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;"
+                    />
+                    <span v-else>💻</span>
+                  </div>
                   <div class="showcase-details">
                     <span class="showcase-badge">Laptop Đang Chọn Kích Hoạt</span>
                     <b class="showcase-title">{{ getSelectedOfferProductName(selectedOfferProduct) }}</b>
@@ -1190,17 +1215,21 @@ onBeforeUnmount(() => {
               <label>Bước 2: Chọn Biến thể / Cấu hình áp dụng ưu đãi <span class="required">*</span></label>
               <p v-if="offerFieldErrors.id_bienthe" class="field-error" style="margin-bottom: 4px;">{{ offerFieldErrors.id_bienthe }}</p>
               
-              <!-- Selected variant badge/info (similar to Selected Laptop box) -->
-              <div v-if="offerForm.id_bienthe && isVariantCollapsed" class="selected-variant-info">
-                <div style="text-align: left;">
-                  <span class="selected-variant-label">Cấu Hình Đang Chọn:</span>
-                  <b class="selected-variant-name">{{ getSelectedVariantName(offerForm.id_bienthe) }}</b>
-                  <span class="selected-variant-price">
-                    Giá bán lẻ: {{ getSelectedVariantPrice(offerForm.id_bienthe) }}
-                  </span>
+              <!-- Selected variant showcase banner (Redesigned Step 2 - No Icon) -->
+              <div v-if="offerForm.id_bienthe && isVariantCollapsed" class="selected-variant-showcase">
+                <div class="showcase-left">
+                  <div class="showcase-details">
+                    <div class="showcase-header-row">
+                      <span class="variant-showcase-badge">Cấu Hình Kích Hoạt</span>
+                      <span v-if="getSelectedVariantPrice(offerForm.id_bienthe)" class="variant-price-tag">
+                        Giá bán lẻ: <b>{{ getSelectedVariantPrice(offerForm.id_bienthe) }}</b>
+                      </span>
+                    </div>
+                    <b class="variant-showcase-title">{{ getSelectedVariantName(offerForm.id_bienthe) }}</b>
+                  </div>
                 </div>
-                <button v-if="!isOfferEditMode" type="button" @click="isVariantCollapsed = false" class="img-change action-change-btn">
-                  Thay đổi
+                <button v-if="!isOfferEditMode" type="button" @click="isVariantCollapsed = false" class="showcase-change-btn">
+                  🔄 Thay đổi
                 </button>
               </div>
 
@@ -1298,20 +1327,22 @@ onBeforeUnmount(() => {
               <small class="step-help-text">Dòng này sẽ được hiển thị nổi bật tại trang chi tiết sản phẩm chính để thu hút khách nâng cấp cấu hình.</small>
             </div>
 
-            <!-- Limit & Expiry Date (2 columns) -->
-            <div class="form-cols-2 form-step-section">
-              <div class="form-group">
-                <label>Giới hạn số lượng (suất)</label>
-                <input v-model="offerForm.gioi_han_soluong" type="number" placeholder="Không giới hạn" :class="{ 'input-error': offerFieldErrors.gioi_han_soluong }" />
-                <p v-if="offerFieldErrors.gioi_han_soluong" class="field-error">{{ offerFieldErrors.gioi_han_soluong }}</p>
-                <small class="step-help-text">Ưu đãi tự động đóng khi đạt giới hạn.</small>
-              </div>
+            <!-- Limit & Expiry Date (Combined into 1 single div) -->
+            <div class="form-group form-step-section">
+              <div class="form-cols-2">
+                <div class="form-group-inner">
+                  <label>Giới hạn số lượng (suất)</label>
+                  <input v-model="offerForm.gioi_han_soluong" type="number" placeholder="Không giới hạn" :class="{ 'input-error': offerFieldErrors.gioi_han_soluong }" />
+                  <p v-if="offerFieldErrors.gioi_han_soluong" class="field-error">{{ offerFieldErrors.gioi_han_soluong }}</p>
+                  <small class="step-help-text">Ưu đãi tự động đóng khi đạt giới hạn.</small>
+                </div>
 
-              <div class="form-group">
-                <label>Thời hạn ưu đãi</label>
-                <input v-model="offerForm.ngay_het_han" type="datetime-local" :class="{ 'input-error': offerFieldErrors.ngay_het_han }" />
-                <p v-if="offerFieldErrors.ngay_het_han" class="field-error">{{ offerFieldErrors.ngay_het_han }}</p>
-                <small style="color: #64748b; font-size:11px; margin-top:2px; display:block;">Ưu đãi tự động hết hạn sau thời điểm này.</small>
+                <div class="form-group-inner">
+                  <label>Thời hạn ưu đãi</label>
+                  <input v-model="offerForm.ngay_het_han" type="datetime-local" :class="{ 'input-error': offerFieldErrors.ngay_het_han }" />
+                  <p v-if="offerFieldErrors.ngay_het_han" class="field-error">{{ offerFieldErrors.ngay_het_han }}</p>
+                  <small class="step-help-text">Ưu đãi tự động hết hạn sau thời điểm này.</small>
+                </div>
               </div>
             </div>
 
@@ -2205,6 +2236,14 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
+  width: 100%;
+}
+
+.form-group-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
 }
 
 /* Card-like wrappers for each form-group in inline-form-body */
@@ -3142,6 +3181,66 @@ onBeforeUnmount(() => {
   color: white;
 }
 
+/* ── Selected Variant Showcase Card (Step 2 Redesign) ── */
+.selected-variant-showcase {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 1.5px solid #bae6fd;
+  border-radius: 14px;
+  gap: 16px;
+}
+
+.variant-showcase-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #0284c7;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(2, 132, 199, 0.25);
+}
+
+.showcase-header-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.variant-showcase-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #0284c7;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.variant-price-tag {
+  font-size: 11.5px;
+  color: #475569;
+}
+
+.variant-price-tag b {
+  color: #0284c7;
+  font-weight: 700;
+}
+
+.variant-showcase-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* ── Variant Offer Cards Styles (Step 2) ── */
 .variant-offer-cards-grid {
   display: grid;
@@ -3379,50 +3478,451 @@ onBeforeUnmount(() => {
   color: #0f172a;
 }
 
-/* Campaign Detail Modal Dark Mode Overrides */
-:global(html[data-admin-theme='dark']) .detail-section,
-:global(.admin-layout.theme-dark) .detail-section,
-:global(.admin-layout.dark) .detail-section,
-:global(.dark) .detail-section {
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DARK MODE OVERRIDES FOR QUAN LY COMBO
+   ══════════════════════════════════════════════════════════════════════════ */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .combo-list-panel,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .offers-table-wrap {
+  background: #11151c !important;
+  border-color: #28303d !important;
+  box-shadow: none !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .combo-admin-table thead tr,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .offers-table thead tr {
+  background: #181d24 !important;
+  border-bottom-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .combo-admin-table th,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .offers-table th {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .combo-admin-table tbody tr,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .offers-table tbody tr {
+  border-bottom-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .combo-admin-table tbody tr:hover,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .offers-table tbody tr:hover {
+  background: #181d24 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .combo-list-info b {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .combo-list-info span,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .block.text-gray {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .combo-product-stack span {
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .combo-list-price {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .combo-tag {
+  background: rgba(124, 58, 237, 0.2) !important;
+  color: #c4b5fd !important;
+  border: 1px solid rgba(124, 58, 237, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .product-name {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .variant-spec-badge {
+  background: #1e2634 !important;
+  color: #60a5fa !important;
+  border: 1px solid #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .usage-info,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .expiry-box {
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .usage-info b,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .expiry-box b {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .usage-bar-bg {
+  background: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .badge-success,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .badge-green {
+  background: rgba(34, 197, 94, 0.2) !important;
+  color: #4ade80 !important;
+  border-color: rgba(34, 197, 94, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .badge-draft,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .badge-expired-red {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #f87171 !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .badge-orange {
+  background: rgba(245, 158, 11, 0.2) !important;
+  color: #fbbf24 !important;
+  border-color: rgba(245, 158, 11, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .price-text {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .price-text.free-text {
+  color: #4ade80 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .act-btn {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .act-btn:hover {
+  background: #1e2634 !important;
+  border-color: #3b82f6 !important;
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .act-btn.danger {
+  background: rgba(239, 68, 68, 0.15) !important;
+  border-color: rgba(239, 68, 68, 0.35) !important;
+  color: #f87171 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .act-btn.danger:hover {
+  background: rgba(239, 68, 68, 0.3) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DARK MODE OVERRIDES FOR COMBO & OFFER FORMS
+   ══════════════════════════════════════════════════════════════════════════ */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body > .form-group,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body > .products-selection-section,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body > .form-cols-2 > .form-group,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body > .form-row > .form-group {
+  background: #11151c !important;
+  border-color: #28303d !important;
+  color: #f8fafc !important;
+  box-shadow: none !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body .form-group label {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .step-help-text,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .form-group small,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-header p {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-header h1 {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .back-btn {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body .form-group input:not([type='file']),
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body .form-group select,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body .form-group textarea {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body .form-group select option {
+  background: #181d24 !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .pool-search-input-wrap,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .laptop-select-card {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .pool-search-input-wrap input {
+  background: transparent !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .laptop-item-name {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .laptop-pick-btn {
+  background: rgba(59, 130, 246, 0.2) !important;
+  color: #60a5fa !important;
+  border-color: rgba(59, 130, 246, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .selected-laptop-showcase,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .selected-variant-info {
+  background: rgba(59, 130, 246, 0.15) !important;
+  border-color: rgba(59, 130, 246, 0.35) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .showcase-badge,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .selected-variant-label {
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .showcase-title,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .selected-variant-name {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .showcase-change-btn,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .action-change-btn {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .variant-offer-card {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .variant-offer-card.selected {
+  background: rgba(59, 130, 246, 0.15) !important;
+  border-color: #3b82f6 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .variant-config-title {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .variant-config-price {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .offer-type-card-item {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .offer-type-card-item.active {
+  background: rgba(59, 130, 246, 0.15) !important;
+  border-color: #3b82f6 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .offer-type-heading {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .offer-type-subtext {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-footer {
+  border-top-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .btn-cancel {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .pool-empty-notice {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .laptop-card-icon,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .showcase-icon {
+  background: #1e2634 !important;
+  border: 1px solid #28303d !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .meta-tag.sku {
+  background: #1e2634 !important;
+  color: #cbd5e1 !important;
+  border: 1px solid #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .meta-tag.category {
+  background: rgba(124, 58, 237, 0.2) !important;
+  color: #c4b5fd !important;
+  border: 1px solid rgba(124, 58, 237, 0.35) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .laptop-select-card:hover {
+  background: #182232 !important;
+  border-color: #3b82f6 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .selected-variant-showcase {
+  background: rgba(2, 132, 199, 0.15) !important;
+  border: 1px solid rgba(2, 132, 199, 0.35) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .variant-showcase-icon {
+  background: #1e2634 !important;
+  border: 1px solid #28303d !important;
+  color: #38bdf8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .variant-showcase-badge {
+  color: #38bdf8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .variant-price-tag {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .variant-price-tag b {
+  color: #38bdf8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .variant-showcase-title {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .p-tag {
+  background: rgba(99, 102, 241, 0.18) !important;
+  border: 1px solid rgba(99, 102, 241, 0.35) !important;
+  color: #a5b4fc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .p-tag button {
+  background: rgba(99, 102, 241, 0.35) !important;
+  color: #ffffff !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .p-tag button:hover {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .tab-btn {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .tab-btn:hover {
+  background: #1e2634 !important;
+  color: #60a5fa !important;
+  border-color: #3b82f6 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .tab-btn.active {
+  background: linear-gradient(135deg, #2563eb, #3b82f6) !important;
+  color: #ffffff !important;
+  border-color: #3b82f6 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .pool-search-box input {
   background: #181d24 !important;
   border: 1px solid #28303d !important;
   color: #f8fafc !important;
 }
 
-:global(html[data-admin-theme='dark']) .detail-section-title,
-:global(.admin-layout.theme-dark) .detail-section-title,
-:global(.admin-layout.dark) .detail-section-title,
-:global(.dark) .detail-section-title {
-  color: #94a3b8 !important;
-  border-bottom-color: #28303d !important;
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .products-pool {
+  background: #11151c !important;
+  border: 1px solid #28303d !important;
 }
 
-:global(html[data-admin-theme='dark']) .detail-info-row,
-:global(.admin-layout.theme-dark) .detail-info-row,
-:global(.admin-layout.dark) .detail-info-row,
-:global(.dark) .detail-info-row {
-  border-bottom-color: #28303d !important;
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .pool-item {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
 }
 
-:global(html[data-admin-theme='dark']) .detail-info-label,
-:global(.admin-layout.theme-dark) .detail-info-label,
-:global(.admin-layout.dark) .detail-info-label,
-:global(.dark) .detail-info-label {
-  color: #94a3b8 !important;
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .pool-item:hover {
+  background: #1e2634 !important;
+  border-color: #3b82f6 !important;
 }
 
-:global(html[data-admin-theme='dark']) .detail-info-value,
-:global(.admin-layout.theme-dark) .detail-info-value,
-:global(.admin-layout.dark) .detail-info-value,
-:global(.dark) .detail-info-value {
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .pool-item.selected {
+  background: rgba(59, 130, 246, 0.18) !important;
+  border-color: #3b82f6 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .pool-item .p-info b {
   color: #f8fafc !important;
 }
 
-:global(html[data-admin-theme='dark']) .vip-banner-box,
-:global(.admin-layout.theme-dark) .vip-banner-box,
-:global(.admin-layout.dark) .vip-banner-box,
-:global(.dark) .vip-banner-box {
-  background: rgba(244, 63, 94, 0.15) !important;
-  color: #fda4af !important;
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .pool-item .p-info span {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .pool-item .p-info .p-pool-price {
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .pool-item .chk {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .pool-item.selected .chk {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  color: #ffffff !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .upload-zone {
+  background: #181d24 !important;
+  border: 2px dashed #28303d !important;
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .upload-zone p {
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .upload-zone p span {
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .upload-zone small {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .img-preview-wrap {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .img-change {
+  background: #11151c !important;
+  border-color: #28303d !important;
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .combo-price-suggest-box {
+  background: rgba(59, 130, 246, 0.15) !important;
+  border: 1px solid rgba(59, 130, 246, 0.35) !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .combo-price-suggest-box span {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .combo-price-suggest-box b {
+  color: #60a5fa !important;
 }
 </style>

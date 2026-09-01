@@ -17,10 +17,8 @@ const isOpenStatusDropdown = ref(false)
 
 const currentUser = ref(null)
 
-const showModal = ref(false)
 const showEditModal = ref(false)
 
-const formError = ref('')
 const editError = ref('')
 
 const users = ref([])
@@ -38,15 +36,16 @@ const tabs = ['Tất cả', 'Admin', 'Khách hàng']
 const statusOptions = ['Tất cả', 'Hoạt động', 'Bị khóa']
 
 const roleStyle = ref({
-    'ADMIN': { bg: '#fee2e2', color: '#b91c1c' },
-    'KHÁCH HÀNG': { bg: '#dcfce7', color: '#15803d' },
-    'THỦ KHO': { bg: '#ffedd5', color: '#ea580c' },
-    'XỬ LÝ ĐƠN HÀNG': { bg: '#e0f2fe', color: '#0369a1' },
-    'MARKETING': { bg: '#fce7f3', color: '#db2777' },
-    'QUẢN LÝ AFFILIATE': { bg: '#f3e8ff', color: '#1d4ed8' },
-    'BIÊN TẬP VIÊN': { bg: '#e0e7ff', color: '#1d4ed8' },
-    'TƯ VẤN VIÊN': { bg: '#ccfbf1', color: '#1d4ed8' },
-    'KẾ TOÁN': { bg: '#fae8ff', color: '#a21caf' }
+    'ADMIN': { bg: 'rgba(239, 68, 68, 0.2)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.45)' },
+    'QUẢN TRỊ VIÊN': { bg: 'rgba(239, 68, 68, 0.2)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.45)' },
+    'KHÁCH HÀNG': { bg: 'rgba(34, 197, 94, 0.2)', color: '#4ade80', border: '1px solid rgba(34, 197, 94, 0.45)' },
+    'THỦ KHO': { bg: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.45)' },
+    'XỬ LÝ ĐƠN HÀNG': { bg: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.45)' },
+    'MARKETING': { bg: 'rgba(236, 72, 153, 0.2)', color: '#f472b6', border: '1px solid rgba(236, 72, 153, 0.45)' },
+    'QUẢN LÝ AFFILIATE': { bg: 'rgba(168, 85, 247, 0.2)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.45)' },
+    'BIÊN TẬP VIÊN': { bg: 'rgba(99, 102, 241, 0.2)', color: '#818cf8', border: '1px solid rgba(99, 102, 241, 0.45)' },
+    'TƯ VẤN VIÊN': { bg: 'rgba(20, 184, 166, 0.2)', color: '#2dd4bf', border: '1px solid rgba(20, 184, 166, 0.45)' },
+    'KẾ TOÁN': { bg: 'rgba(217, 70, 239, 0.2)', color: '#e879f9', border: '1px solid rgba(217, 70, 239, 0.45)' }
 })
 
 const statusStyle = {
@@ -133,7 +132,7 @@ const fetchRoles = async () => {
                 const ten = String(role.ten_vaitro).toUpperCase()
                 roleLabelMapFixed.value[ma] = ten
                 if (!roleStyle.value[ten]) {
-                    roleStyle.value[ten] = { bg: '#f1f5f9', color: '#475569' }
+                    roleStyle.value[ten] = { bg: 'rgba(148, 163, 184, 0.2)', color: '#cbd5e1', border: '1px solid rgba(148, 163, 184, 0.45)' }
                 }
             })
         }
@@ -422,44 +421,6 @@ const removeUser = (id) => {
     })
 }
 
-// ─── CREATE ──────────────────────────
-const defaultForm = () => ({
-    name: '', email: '', phone: '', role: staffRoles.value[0] || 'THỦ KHO',
-    status: 'Hoạt động', password: ''
-})
-
-const form = ref(defaultForm())
-
-const openModal = () => {
-    form.value = defaultForm()
-    formError.value = ''
-    showModal.value = true
-}
-
-const closeModal = () => showModal.value = false
-
-const submitForm = async () => {
-    const err = validateUser(form.value)
-    if (err) return formError.value = err
-
-    try {
-        const { data } = await api.post('/admin/users', {
-            ten: form.value.name,
-            email: form.value.email,
-            sodienthoai: form.value.phone,
-            vaitro: mapRoleValue(form.value.role),
-            trangthai: mapStatusValue(form.value.status),
-            matkhau: form.value.password,
-            matkhau_confirmation: form.value.password
-        })
-        users.value.unshift(normalizeUser(data.user))
-        currentPage.value = 1
-        closeModal()
-    } catch (err) {
-        formError.value = err.response?.data?.message || 'Lỗi tạo user'
-    }
-}
-
 // ─── EDIT ────────────────────────────
 const editingUser = ref(null)
 const editForm = ref({})
@@ -604,14 +565,6 @@ const submitEdit = async () => {
                         </svg>
                         Xuất báo cáo
                     </button>
-                    <button class="btn-new-user" @click="openModal" v-if="activeTab === 'Admin'">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
-                            style="width:14px;height:14px">
-                            <line x1="12" y1="5" x2="12" y2="19" />
-                            <line x1="5" y1="12" x2="19" y2="12" />
-                        </svg>
-                        Thêm người dùng
-                    </button>
                 </div>
             </div>
         </div>
@@ -662,7 +615,7 @@ const submitEdit = async () => {
                         </td>
                         <td class="col-role">
                             <span class="role-badge"
-                                :style="{ background: roleStyle[u.role]?.bg || '#f1f5f9', color: roleStyle[u.role]?.color || '#475569' }">
+                                :style="{ backgroundColor: roleStyle[u.role]?.bg || 'rgba(148, 163, 184, 0.2)', color: roleStyle[u.role]?.color || '#cbd5e1', border: roleStyle[u.role]?.border || '1px solid rgba(148, 163, 184, 0.45)' }">
                                 {{ u.role }}
                             </span>
                         </td>
@@ -761,60 +714,6 @@ const submitEdit = async () => {
                 </div>
             </div>
         </div>
-
-        <!-- ─── MODAL TẠO MỚI ─── -->
-        <Teleport to="body">
-            <div v-if="showModal" class="modal-overlay">
-                <div class="modal">
-                    <div class="modal-header">
-                        <h3>Thêm người dùng mới</h3>
-                        <button class="modal-close" @click="closeModal">×</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>HỌ TÊN <span class="req">*</span></label>
-                                <input v-model="form.name" placeholder="VD: Nguyễn Văn A" />
-                            </div>
-                            <div class="form-group">
-                                <label>EMAIL <span class="req">*</span></label>
-                                <input v-model="form.email" type="email" placeholder="VD: user@gmail.com" />
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>SỐ ĐIỆN THOẠI</label>
-                                <input v-model="form.phone" placeholder="VD: 0901234567" />
-                            </div>
-                            <div class="form-group">
-                                <label>MẬT KHẨU <span class="req">*</span></label>
-                                <input v-model="form.password" type="password" placeholder="Tối thiểu 8 ký tự" />
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>VAI TRÒ</label>
-                                <select v-model="form.role">
-                                    <option v-for="r in staffRoles" :key="r">{{ r }}</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>TRẠNG THÁI</label>
-                                <select v-model="form.status">
-                                    <option>Hoạt động</option>
-                                    <option>Bị khóa</option>
-                                </select>
-                            </div>
-                        </div>
-                        <p v-if="formError" class="form-error">⚠ {{ formError }}</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn-cancel" @click="closeModal">Hủy</button>
-                        <button class="btn-submit" @click="submitForm">Tạo người dùng</button>
-                    </div>
-                </div>
-            </div>
-        </Teleport>
 
         <!-- ─── CUSTOM CONFIRM MODAL ─── -->
         <Teleport to="body">
@@ -993,33 +892,6 @@ const submitEdit = async () => {
 
 .search-box input::placeholder {
     color: #94a3b8 !important;
-}
-
-.btn-new-user {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    white-space: nowrap;
-    padding: 9px 16px;
-    border-radius: 10px;
-    border: none;
-    background: linear-gradient(135deg, #2563eb, #1D4ED8);
-    color: white;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: opacity 0.2s, transform 0.2s;
-    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
-}
-
-.btn-new-user:hover {
-    opacity: 0.9;
-    transform: translateY(-1px);
-}
-
-.btn-new-user svg {
-    width: 14px;
-    height: 14px;
 }
 
 .users-bulk-toolbar {
@@ -2416,5 +2288,298 @@ tbody td {
     padding: 6px 10px;
     border-radius: 6px;
     border-left: 3px solid #3b82f6;
+}
+
+/* DARK MODE OVERRIDES FOR USER MANAGEMENT */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .role-badge {
+    font-weight: 700 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .col-actions .act-btn {
+    background: #253346 !important;
+    color: #60a5fa !important;
+    border: 1px solid #334155 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .col-actions .act-btn svg {
+    stroke: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .col-actions .act-btn.danger {
+    background: rgba(239, 68, 68, 0.2) !important;
+    color: #f87171 !important;
+    border: 1px solid rgba(239, 68, 68, 0.45) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .col-actions .act-btn.danger svg {
+    stroke: #f87171 !important;
+}
+
+/* DARK MODE MODAL & POPUP OVERRIDES */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .modal {
+    background: #181d24 !important;
+    border: 1.5px solid #334155 !important;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(59, 130, 246, 0.25) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .modal-header,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .modal-footer {
+    border-color: #28303d !important;
+    background: #181d24 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .modal-header h3 {
+    color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .modal-close {
+    color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .modal-close:hover {
+    color: #f87171 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .form-group input,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .form-group select {
+    background: #13171f !important;
+    border-color: #28303d !important;
+    color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .form-group input:disabled,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .form-group select:disabled {
+    background: #0f131a !important;
+    border-color: #28303d !important;
+    color: #94a3b8 !important;
+    opacity: 0.8 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .form-group select option {
+    background: #181d24 !important;
+    color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .role-hint-text {
+    background: #13171f !important;
+    border: 1px solid #28303d !important;
+    border-left: 3px solid #3b82f6 !important;
+    color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .role-preview {
+    background: #13171f !important;
+    border: 1px solid #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .preview-label {
+    color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .btn-cancel {
+    background: #253346 !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .confirm-box {
+    background: #181d24 !important;
+    border: 1.5px solid #334155 !important;
+    box-shadow: 0 32px 80px rgba(0, 0, 0, 0.6) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .confirm-content h4 {
+    color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .confirm-content p {
+    color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .confirm-sub {
+    background: #13171f !important;
+    border-color: #28303d !important;
+    color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .confirm-cancel {
+    background: #253346 !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
 }
 </style>

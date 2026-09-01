@@ -4,25 +4,18 @@
          VIEW 1: DANH SÁCH ĐỢT FLASH SALE & SẢN PHẨM TRONG ĐỢT
     ══════════════════════════════════════════════════════ -->
     <template v-if="currentView === 'list'">
-      <div class="top">
-        <div>
-          <h1>Quản lý Flash Sale</h1>
-          <p>Lên lịch và thiết lập các khung giờ vàng giảm giá sốc cho sản phẩm</p>
-        </div>
-        <div class="excel-actions">
-          <button class="add-btn" @click="openCreateSession">+ Tạo Đợt Flash Sale</button>
-        </div>
-      </div>
-
-      <!-- TABS CHÍNH -->
+      <!-- TABS CHÍNH (Đặt lên đầu trang đồng bộ Quản lý Danh mục) -->
       <div class="category-tabs">
-        <button :class="['cat-tab', { active: activeTab === 'sessions' }]" @click="activeTab = 'sessions'">
-          Danh sách Đợt Flash Sale
-        </button>
-        <button :class="['cat-tab', { active: activeTab === 'products' }]" @click="switchTabToProducts"
-          :disabled="!selectedSession">
-          Sản phẩm trong đợt: {{ selectedSession ? selectedSession.ten_dot : 'Chưa chọn' }}
-        </button>
+        <div class="category-tab-list">
+          <button :class="['cat-tab', { active: activeTab === 'sessions' }]" @click="activeTab = 'sessions'">
+            Danh sách Đợt Flash Sale
+          </button>
+          <button :class="['cat-tab', { active: activeTab === 'products' }]" @click="switchTabToProducts"
+            :disabled="!selectedSession">
+            Sản phẩm trong đợt: {{ selectedSession ? selectedSession.ten_dot : 'Chưa chọn' }}
+          </button>
+        </div>
+        <button v-if="activeTab === 'sessions'" class="add-btn" @click="openCreateSession">+ Tạo Đợt Flash Sale</button>
       </div>
 
       <!-- TAB 1: DANH SÁCH ĐỢT FLASH SALE -->
@@ -93,7 +86,9 @@
               <b>{{ formatDateTime(selectedSession.thoi_gian_ket_thuc) }}</b>
             </p>
           </div>
-          <button class="add-btn" @click="openAddProductsModal">+ Thêm sản phẩm vào đợt sale</button>
+          <button class="add-btn" @click="openAddProductsModal">
+            {{ sessionProducts.length > 0 ? '+ Thêm / Cấu hình sản phẩm sale' : '+ Thêm sản phẩm vào đợt sale' }}
+          </button>
         </div>
 
         <div class="table-card">
@@ -119,9 +114,8 @@
                     alt="" class="table-thumb" />
                 </td>
                 <td>
-                  <p class="cat-name">{{ p.bien_the?.san_pham?.tenSP || 'N/A' }}</p>
-                  <p style="font-size: 12px; color: #64748b;">Hãng: {{ p.bien_the?.san_pham?.thuong_hieu?.ten_thuonghieu
-                    || 'N/A' }}</p>
+                  <p class="cat-name">{{ p.bien_the?.san_pham?.tenSP || p.san_pham?.tenSP || 'N/A' }}</p>
+                  <p style="font-size: 12px; color: #64748b;">Hãng: {{ getProductBrandName(p) }}</p>
                 </td>
                 <td>
                   <span class="spec-tag">{{ p.bien_the?.ten_bienthe }}</span>
@@ -288,12 +282,16 @@
                   Không tìm thấy sản phẩm nào trong danh mục này.
                 </div>
                 <div v-for="p in filteredProductsToSelect" :key="p.id_sanpham" class="product-item-card"
-                  :class="{ active: targetProductId === p.id_sanpham }" @click="selectTargetProduct(p)">
+                  :class="{ active: targetProductId === p.id_sanpham, 'is-added-in-session': getProductSessionCount(p) > 0 }"
+                  @click="selectTargetProduct(p)">
                   <div class="prod-card-img-box">
                     <img :src="p.hinhanh ? getStorageUrl(p.hinhanh) : 'https://placehold.co/100'" alt="" />
+                    <span v-if="getProductSessionCount(p) > 0" class="added-badge-tag" title="Đã có cấu hình trong đợt sale">
+                      ✓ {{ getProductSessionCount(p) }} cấu hình
+                    </span>
                   </div>
                   <div class="prod-card-info">
-                    <span class="prod-card-brand">{{ p.thuong_hieu?.ten_thuonghieu || p.brand || 'Laptop' }}</span>
+                    <span class="prod-card-brand">{{ getProductBrandName(p) }}</span>
                     <span class="prod-card-title" :title="p.tenSP">{{ p.tenSP }}</span>
                   </div>
                 </div>
@@ -430,6 +428,7 @@ const sessions = ref([])
 const sessionProducts = ref([])
 const allProducts = ref([])
 const variants = ref([])
+const brands = ref([])
 
 // Category tree & products select state
 const categories = ref([])
@@ -472,6 +471,7 @@ onMounted(() => {
   fetchAllProducts()
   fetchCategories()
   fetchParentCategories()
+  fetchBrands()
 })
 
 // Fetch Flash Sale sessions
@@ -495,6 +495,74 @@ const fetchAllProducts = async () => {
   } catch (e) {
     console.error('Lỗi khi tải danh sách sản phẩm:', e)
   }
+}
+
+// Fetch brands list
+const fetchBrands = async () => {
+  try {
+    const res = await api.get('/thuonghieu')
+    brands.value = res.data?.data || res.data || []
+  } catch (e) {
+    console.error('Lỗi khi tải thương hiệu:', e)
+  }
+}
+
+// Helper: Extract brand name for product
+const getProductBrandName = (p) => {
+  if (!p) return 'N/A'
+  const sp = p?.bien_the?.san_pham || p?.san_pham || p
+  const directBrand =
+    sp?.thuong_hieu?.ten_thuonghieu ||
+    sp?.thuonghieu?.ten_thuonghieu ||
+    sp?.tenthuonghieu ||
+    sp?.ten_thuonghieu ||
+    sp?.hang ||
+    sp?.brand ||
+    p?.thuong_hieu?.ten_thuonghieu ||
+    p?.tenthuonghieu ||
+    p?.hang ||
+    p?.brand
+
+  if (directBrand) return directBrand
+
+  const targetId = sp?.id_sanpham || p?.bien_the?.id_sanpham || p?.id_sanpham
+  if (targetId && allProducts.value && allProducts.value.length > 0) {
+    const foundProduct = allProducts.value.find(prod => String(prod.id_sanpham) === String(targetId))
+    if (foundProduct) {
+      const foundBrand =
+        foundProduct.thuong_hieu?.ten_thuonghieu ||
+        foundProduct.thuonghieu?.ten_thuonghieu ||
+        foundProduct.tenthuonghieu ||
+        foundProduct.ten_thuonghieu ||
+        foundProduct.hang ||
+        foundProduct.brand
+      if (foundBrand) return foundBrand
+
+      if (foundProduct.id_thuonghieu && brands.value && brands.value.length > 0) {
+        const foundB = brands.value.find(b => String(b.id_thuonghieu) === String(foundProduct.id_thuonghieu))
+        if (foundB) return foundB.ten_thuonghieu
+      }
+    }
+  }
+
+  const brandId = sp?.id_thuonghieu || p?.id_thuonghieu
+  if (brandId && brands.value && brands.value.length > 0) {
+    const foundB = brands.value.find(b => String(b.id_thuonghieu) === String(brandId))
+    if (foundB) return foundB.ten_thuonghieu
+  }
+
+  // 4. Smart title lookup fallback
+  const title = (sp?.tenSP || p?.tenSP || '').toLowerCase()
+  if (title.includes('macbook') || title.includes('ipad') || title.includes('iphone') || title.includes('apple')) return 'Apple'
+  if (title.includes('asus') || title.includes('rog') || title.includes('tuf')) return 'ASUS'
+  if (title.includes('dell') || title.includes('alienware')) return 'Dell'
+  if (title.includes('hp') || title.includes('victus') || title.includes('pavilion')) return 'HP'
+  if (title.includes('lenovo') || title.includes('thinkpad') || title.includes('legion')) return 'Lenovo'
+  if (title.includes('msi')) return 'MSI'
+  if (title.includes('acer') || title.includes('predator') || title.includes('nitro')) return 'Acer'
+  if (title.includes('logitech')) return 'Logitech'
+
+  return 'N/A'
 }
 
 // Fetch categories for tree list
@@ -787,6 +855,16 @@ const deleteSession = async (session) => {
   }
 }
 
+// Helper: Count configured variants in current session for product
+const getProductSessionCount = (p) => {
+  if (!p || !sessionProducts.value || sessionProducts.value.length === 0) return 0
+  const prodId = p.id_sanpham
+  return sessionProducts.value.filter(sp => {
+    const spProdId = sp.bien_the?.id_sanpham || sp.id_sanpham || sp.bien_the?.san_pham?.id_sanpham
+    return String(spProdId) === String(prodId)
+  }).length
+}
+
 // Open Add Products View
 const openAddProductsModal = () => {
   targetProductId.value = ''
@@ -797,6 +875,17 @@ const openAddProductsModal = () => {
   bulkFilter.value = { ram: '', cpu: '', mausac: '' }
   bulkData.value = { gia_flash_sale: '', so_luong_gioi_han: '' }
   currentView.value = 'add-products'
+
+  // If session already has products, auto select the first configured product
+  if (sessionProducts.value && sessionProducts.value.length > 0) {
+    const firstAddedSpId = sessionProducts.value[0]?.bien_the?.id_sanpham || sessionProducts.value[0]?.id_sanpham || sessionProducts.value[0]?.bien_the?.san_pham?.id_sanpham
+    if (firstAddedSpId) {
+      const foundP = allProducts.value.find(p => String(p.id_sanpham) === String(firstAddedSpId))
+      if (foundP) {
+        selectTargetProduct(foundP)
+      }
+    }
+  }
 }
 
 const closeAddProductsModal = () => {
@@ -1032,39 +1121,104 @@ const removeProductFromSession = async (prod) => {
   transform: translateY(-1px);
 }
 
-/* Category Tabs */
+/* Category Tabs (Đồng bộ kiểu dáng sticky full-width giống Quản lý Danh mục) */
 .category-tabs {
-  display: flex;
-  gap: 12px;
-  border-bottom: 2px solid #e2e8f0;
-  padding-bottom: 0;
+  position: sticky !important;
+  top: 0px !important;
+  z-index: 50 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  width: calc(100% + 56px) !important;
+  margin: -24px -28px 20px -28px !important;
+  padding: 12px 28px !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.92) !important;
+  background: rgba(244, 247, 251, 0.94) !important;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-radius: 0 !important;
+  transition: all 0.28s ease !important;
+}
+
+.category-tab-list {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  background: transparent !important;
+  padding: 0 !important;
 }
 
 .cat-tab {
-  background: transparent;
-  border: none;
-  padding: 12px 20px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #64748b;
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -2px;
-  transition: all 0.2s;
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 10px !important;
+  padding: 9px 20px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: #64748b !important;
+  cursor: pointer !important;
+  height: 40px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
+  box-shadow: none !important;
 }
 
 .cat-tab:hover:not(:disabled) {
-  color: #2563eb;
+  color: #2563eb !important;
+  border-color: #2563eb !important;
+  background: rgba(37, 99, 235, 0.06) !important;
 }
 
 .cat-tab.active {
-  color: #2563eb;
-  border-bottom-color: #2563eb;
+  color: #ffffff !important;
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25) !important;
 }
 
 .cat-tab:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  opacity: 0.55 !important;
+  cursor: not-allowed !important;
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+  color: #94a3b8 !important;
+}
+
+/* Category Tabs Dark Mode */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .category-tabs {
+  background: rgba(17, 21, 28, 0.94) !important;
+  border-bottom: 1px solid #28303d !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .cat-tab {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .cat-tab:hover:not(:disabled) {
+  background: #1e2634 !important;
+  color: #60a5fa !important;
+  border-color: #3b82f6 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .cat-tab.active {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .cat-tab:disabled {
+  background: #11151c !important;
+  border-color: #1e2634 !important;
+  color: #475569 !important;
 }
 
 /* Table Card */
@@ -1154,6 +1308,31 @@ td {
   color: #64748b;
   background: #f1f5f9;
   border: 1px solid #cbd5e1;
+}
+
+/* Status Badges Dark Mode */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-active {
+  background: rgba(34, 197, 94, 0.18) !important;
+  color: #4ade80 !important;
+  border: 1px solid rgba(34, 197, 94, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pending {
+  background: rgba(59, 130, 246, 0.18) !important;
+  color: #60a5fa !important;
+  border: 1px solid rgba(59, 130, 246, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-expired {
+  background: rgba(245, 158, 11, 0.18) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-hidden {
+  background: rgba(148, 163, 184, 0.18) !important;
+  color: #cbd5e1 !important;
+  border: 1px solid rgba(148, 163, 184, 0.35) !important;
 }
 
 .actions {
@@ -1662,6 +1841,7 @@ td {
   cursor: pointer;
   transition: all 0.2s;
   background: white;
+  position: relative;
 }
 
 .product-item-card:hover {
@@ -1676,13 +1856,63 @@ td {
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
 }
 
+.product-item-card.is-added-in-session {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.05);
+}
+
 .prod-card-img-box {
   width: 50px;
   height: 50px;
+  position: relative;
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid #e2e8f0;
   flex-shrink: 0;
+}
+
+.added-badge-tag {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  background: #16a34a;
+  color: #ffffff;
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  z-index: 2;
+}
+
+/* Dark Mode product-item-card */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .product-item-card {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .product-item-card:hover {
+  background: #1e2634 !important;
+  border-color: #3b82f6 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .product-item-card.active {
+  background: rgba(59, 130, 246, 0.18) !important;
+  border-color: #3b82f6 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .product-item-card.is-added-in-session {
+  border-color: #3b82f6 !important;
+  background: rgba(59, 130, 246, 0.1) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .prod-card-title {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .prod-card-brand {
+  color: #94a3b8 !important;
 }
 
 .prod-card-img-box img {
@@ -2088,6 +2318,50 @@ td {
 .r-badge { background: #fef3c7; color: #d97706; }
 .c-badge { background: #e0f2fe; color: #0284c7; }
 .m-badge { background: #fce7f3; color: #db2777; }
+
+/* Variants Table & Attribute Badges Dark Mode */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .variants-table th {
+  background: #1e2634 !important;
+  color: #cbd5e1 !important;
+  border-bottom: 1px solid #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .variants-table td {
+  border-bottom: 1px solid #28303d !important;
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .variants-table tr.row-selected {
+  background: rgba(59, 130, 246, 0.15) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .variant-name-td {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .table-input {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .r-badge {
+  background: rgba(245, 158, 11, 0.18) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.35) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .c-badge {
+  background: rgba(56, 189, 248, 0.18) !important;
+  color: #38bdf8 !important;
+  border: 1px solid rgba(56, 189, 248, 0.35) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .m-badge {
+  background: rgba(244, 114, 182, 0.18) !important;
+  color: #f472b6 !important;
+  border: 1px solid rgba(244, 114, 182, 0.35) !important;
+}
 
 /* Unround inner meeting corners between all stacked form cards inside inline-form-body */
 .inline-form-body {
