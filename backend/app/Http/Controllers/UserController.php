@@ -121,6 +121,8 @@ class UserController extends Controller
             'so_cccd' => 'nullable|digits:12|unique:khachhang,so_cccd',
             'ngaysinh' => 'nullable|date|before:today',
             'gioitinh' => 'nullable|in:Nam,Nữ,Khác',
+            'quoc_tich' => 'nullable|required_with:so_cccd|string|max:100',
+            'dia_chi_thuong_tru' => 'nullable|required_with:so_cccd|string|max:500',
             'ngay_cap_cccd' => 'nullable|date|before_or_equal:today',
             'noi_cap_cccd' => 'nullable|string|max:255',
             'anh_cccd_mat_truoc' => 'nullable|required_with:so_cccd|image|mimes:jpeg,jpg,png,webp|max:5120',
@@ -142,6 +144,8 @@ class UserController extends Controller
                     'so_cccd' => $validated['so_cccd'] ?? null,
                     'ngaysinh' => $validated['ngaysinh'] ?? null,
                     'gioitinh' => $validated['gioitinh'] ?? null,
+                    'quoc_tich' => $validated['quoc_tich'] ?? null,
+                    'dia_chi_thuong_tru' => $validated['dia_chi_thuong_tru'] ?? null,
                     'ngay_cap_cccd' => $validated['ngay_cap_cccd'] ?? null,
                     'noi_cap_cccd' => $validated['noi_cap_cccd'] ?? null,
                 ]);
@@ -160,6 +164,8 @@ class UserController extends Controller
                     'so_cccd' => $validated['so_cccd'] ?? null,
                     'ngaysinh' => $validated['ngaysinh'] ?? null,
                     'gioitinh' => $validated['gioitinh'] ?? null,
+                    'quoc_tich' => $validated['quoc_tich'] ?? null,
+                    'dia_chi_thuong_tru' => $validated['dia_chi_thuong_tru'] ?? null,
                     'ngay_cap_cccd' => $validated['ngay_cap_cccd'] ?? null,
                     'noi_cap_cccd' => $validated['noi_cap_cccd'] ?? null,
                 ]);
@@ -227,6 +233,8 @@ class UserController extends Controller
             ],
             'ngaysinh' => 'nullable|date|before:today',
             'gioitinh' => 'nullable|in:Nam,Nữ,Khác',
+            'quoc_tich' => 'nullable|required_with:so_cccd|string|max:100',
+            'dia_chi_thuong_tru' => 'nullable|required_with:so_cccd|string|max:500',
             'ngay_cap_cccd' => 'nullable|date|before_or_equal:today',
             'noi_cap_cccd' => 'nullable|string|max:255',
             'anh_cccd_mat_truoc' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:5120',
@@ -257,7 +265,7 @@ class UserController extends Controller
         if (! empty($validated['matkhau'])) {
             $user->matkhau = $validated['matkhau'];
         }
-        foreach (['so_cccd', 'ngaysinh', 'gioitinh', 'ngay_cap_cccd', 'noi_cap_cccd'] as $field) {
+        foreach (['so_cccd', 'ngaysinh', 'gioitinh', 'quoc_tich', 'dia_chi_thuong_tru', 'ngay_cap_cccd', 'noi_cap_cccd'] as $field) {
             if (array_key_exists($field, $validated)) {
                 $user->{$field} = $validated[$field] ?: null;
             }

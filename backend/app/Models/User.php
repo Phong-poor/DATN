@@ -32,6 +32,8 @@ class User extends Authenticatable
         'anh_cccd_mat_sau',
         'ngaysinh',
         'gioitinh',
+        'quoc_tich',
+        'dia_chi_thuong_tru',
         'anhdaidien',
         'matkhau',
         'vaitro',

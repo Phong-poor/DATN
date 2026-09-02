@@ -23,6 +23,8 @@ class Admin extends Authenticatable
         'sodienthoai',
         'ngaysinh',
         'gioitinh',
+        'quoc_tich',
+        'dia_chi_thuong_tru',
         'anhdaidien',
         'matkhau',
         'vaitro',

@@ -68,6 +68,8 @@ const employeeForm = ref({
   so_cccd: '',
   ngaysinh: '',
   gioitinh: '',
+  quoc_tich: 'Việt Nam',
+  dia_chi_thuong_tru: '',
   ngay_cap_cccd: '',
   noi_cap_cccd: ''
 })
@@ -85,7 +87,7 @@ const identitySideStatus = ref({
 const identityFileHashes = ref({ anh_cccd_mat_truoc: '', anh_cccd_mat_sau: '' })
 
 function emptyEmployeeForm() {
-  return { ten: '', email: '', sodienthoai: '', vaitro: roles.value[0]?.ma_vaitro || '', matkhau: '', trangthai: 'active', so_cccd: '', ngaysinh: '', gioitinh: '', ngay_cap_cccd: '', noi_cap_cccd: '' }
+  return { ten: '', email: '', sodienthoai: '', vaitro: roles.value[0]?.ma_vaitro || '', matkhau: '', trangthai: 'active', so_cccd: '', ngaysinh: '', gioitinh: '', quoc_tich: 'Việt Nam', dia_chi_thuong_tru: '', ngay_cap_cccd: '', noi_cap_cccd: '' }
 }
 
 function resetIdentityFiles() {
@@ -186,6 +188,65 @@ function parseDate(value) {
   return match ? `${match[3]}-${match[2]}-${match[1]}` : ''
 }
 
+function extractOcrLineValue(rawLines, labelPattern, multiline = false) {
+  const index = rawLines.findIndex(line => labelPattern.test(normalizeOcrText(line)))
+  if (index < 0) return ''
+
+  const values = []
+  const labelLine = String(rawLines[index])
+  const normalizedLabelLine = normalizeOcrText(labelLine)
+  const labelMatch = normalizedLabelLine.match(labelPattern)
+  const inline = labelMatch
+    ? labelLine.slice(labelMatch.index + labelMatch[0].length).replace(/^[\s\/:.\-]+/, '').trim()
+    : String(labelLine).split(':').slice(1).join(':').trim()
+  if (inline) values.push(inline)
+
+  const limit = multiline ? 2 : 1
+  for (let offset = 1; offset <= limit && index + offset < rawLines.length; offset += 1) {
+    const candidate = rawLines[index + offset].trim()
+    const normalized = normalizeOcrText(candidate)
+    if (/DATE OF EXPIRY|CO GIA TRI DEN|NGAY CAP|DATE OF ISSUE|DAC DIEM|IDENTIFICATION/.test(normalized)) break
+    if (candidate) values.push(candidate)
+    if (!multiline) break
+  }
+
+  return values.join(', ').replace(/\s{2,}/g, ' ').trim()
+}
+
+function cleanResidenceAddress(value = '') {
+  let residence = String(value || '')
+    // Tesseract có thể đọc "Date of expiry" thành "Date of expry" và
+    // dính toàn bộ nhãn này ở đầu địa chỉ.
+    .replace(/^.*?date\s*of\s*exp(?:iry|ry)\s*/iu, ' ')
+    .replace(/n[ơo]i\s*th[ươu]ờ?ng\s*tr[uú]\s*(?:\/\s*place\s*of\s*residence)?/giu, ' ')
+    .replace(/place\s*of\s*residence/giu, ' ')
+    .replace(/c[oó]\w{0,3}gi\w{0,3}tri\w{0,3}(?:den|đ[eế]n)\s*[\/]?/giu, ' ')
+    .replace(/c[oó]\s*gi[aá]\s*tr[iị]\s*đ[eế]n\s*(?:\/\s*date\s*of\s*expiry)?/giu, ' ')
+    .replace(/date\s*of\s*exp(?:iry|ry)/giu, ' ')
+    .replace(/\b\d{2}[\/\-.]\d{2}[\/\-.]\d{4}\b/g, ' ')
+    .replace(/\b(?:s[oố]|no)\s*[\/:.-]*\s*\d{9,12}\b/giu, ' ')
+    .replace(/^[\s\/:.,;\-]+|[\s\/:.,;\-]+$/g, '')
+    .replace(/\s+([,.;])/g, '$1')
+    .replace(/([,.;])(?=\S)/g, '$1 ')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+
+  // OCR thường nhận nhầm phần cuối của "Số / No" thành vài ký tự rác.
+  residence = residence
+    .replace(/\s+(?:s[oố]|no)\b.*$/giu, '')
+    .replace(/["'“”]+\s*[a-z]{1,3}\s*$/giu, '')
+    .trim()
+  // Chỉnh lỗi OCR thường gặp trên tên địa danh Đắk Nông.
+  residence = residence
+    .replace(/^Thon\b/iu, 'Thôn')
+    .replace(/\bHuyen\b/giu, 'Huyện')
+    .replace(/,?\s*Đắk\s*,\s*L[AẠ]\s*$/giu, ', Đắk Nông')
+    .replace(/Đắk\s*,?\s*L[AẠ]\b/giu, 'Đắk Nông')
+    .replace(/\s+,/g, ',')
+    .trim()
+  return residence
+}
+
 function extractIdentityFields(frontRaw, backRaw) {
   const front = normalizeOcrText(frontRaw)
   const back = normalizeOcrText(backRaw)
@@ -211,11 +272,31 @@ function extractIdentityFields(frontRaw, backRaw) {
     .trim()
   if (name.length < 4 || /^(FULL NAME|HO VA TEN|DATE OF BIRTH|CITIZEN IDENTITY)$/.test(name)) name = ''
   const gender = /(?:SEX|GIOI TINH)[\s\/:.-]*(FEMALE|MALE|NAM|NU)/.exec(front)?.[1] || ''
+  const nationalityRaw = extractOcrLineValue(rawFrontLines, /QUOC TICH|NATIONALITY/)
+  const nationality = /VIET\s*NAM/i.test(nationalityRaw) || /VIET\s*NAM/.test(front)
+    ? 'Việt Nam'
+    : nationalityRaw
+  let residence = cleanResidenceAddress(
+    extractOcrLineValue(rawFrontLines, /NOI THUONG TRU|PLACE OF RESIDENCE/, true)
+  )
+
+  // Một số ảnh làm OCR gộp địa chỉ vào cùng dòng "Date of expiry".
+  // Chỉ dùng đường lui này khi dòng có đặc điểm địa chỉ rõ ràng.
+  if (!residence) {
+    const mergedAddressLine = rawFrontLines.find(line => {
+      const normalized = normalizeOcrText(line)
+      return /CO GIA TRI DEN|DATE OF EXP(?:IRY|RY)/.test(normalized)
+        && /THON|XA|PHUONG|HUYEN|QUAN|TINH|THANH PHO|TP\b/.test(normalized)
+    })
+    residence = cleanResidenceAddress(mergedAddressLine || '')
+  }
   return {
     so_cccd: id,
     ten: name ? name.toLocaleLowerCase('vi').replace(/(^|\s)\p{L}/gu, letter => letter.toLocaleUpperCase('vi')) : '',
     ngaysinh: parseDate(allDatesFront[0]),
     gioitinh: /FEMALE|\bNU\b/.test(gender) ? 'Nữ' : (/MALE|\bNAM\b/.test(gender) ? 'Nam' : ''),
+    quoc_tich: nationality,
+    dia_chi_thuong_tru: residence,
     ngay_cap_cccd: parseDate(allDatesBack[0]),
     noi_cap_cccd: 'Cục Cảnh sát quản lý hành chính về trật tự xã hội'
   }
@@ -514,6 +595,8 @@ async function fetchEnrollmentTarget() {
       so_cccd: target.so_cccd || '',
       ngaysinh: target.ngaysinh ? String(target.ngaysinh).slice(0, 10) : '',
       gioitinh: target.gioitinh || '',
+      quoc_tich: target.quoc_tich || 'Việt Nam',
+      dia_chi_thuong_tru: target.dia_chi_thuong_tru || '',
       ngay_cap_cccd: target.ngay_cap_cccd ? String(target.ngay_cap_cccd).slice(0, 10) : '',
       noi_cap_cccd: target.noi_cap_cccd || ''
     }
@@ -543,7 +626,20 @@ async function fetchEnrollmentTarget() {
 async function fetchRoles() {
   try {
     const response = await api.get('/admin/vaitro', { skipGlobalLoader: true })
-    roles.value = (response.data.data || []).filter(role => role.ma_vaitro !== 'user')
+    const roleLabels = {
+      admin: 'Quản trị viên', inventory: 'Thủ kho', order_manager: 'Xử lý đơn hàng',
+      marketing: 'Marketing', affiliate_manager: 'Quản lý Affiliate', editor: 'Biên tập viên',
+      support: 'Tư vấn viên', accountant: 'Kế toán',
+      coin_and_minigame_manager: 'Quản lý Xu & Minigame', cskh: 'CSKH'
+    }
+    roles.value = (response.data.data || [])
+      .filter(role => role.ma_vaitro !== 'user')
+      .map(role => ({
+        ...role,
+        ten_vaitro: String(role.ten_vaitro || '').includes('?')
+          ? (roleLabels[role.ma_vaitro] || role.ma_vaitro)
+          : role.ten_vaitro
+      }))
     if (!employeeForm.value.vaitro && roles.value.length) {
       employeeForm.value.vaitro = roles.value[0].ma_vaitro
     }
@@ -603,6 +699,10 @@ function validateEmployeeForm() {
   const number = String(employeeForm.value.so_cccd || '').trim()
   identityError.value = !/^\d{12}$/.test(number)
     ? 'Số CCCD phải gồm đúng 12 chữ số.'
+    : !String(employeeForm.value.quoc_tich || '').trim()
+      ? 'Vui lòng nhập quốc tịch theo CCCD.'
+      : !String(employeeForm.value.dia_chi_thuong_tru || '').trim()
+        ? 'Vui lòng nhập địa chỉ thường trú theo CCCD.'
     : (!editingEmployee.value && (!identityFiles.value.anh_cccd_mat_truoc || !identityFiles.value.anh_cccd_mat_sau))
       ? 'Vui lòng tải đủ ảnh mặt trước và mặt sau CCCD.'
       : (!editingEmployee.value && !identityVerified.value)
@@ -788,6 +888,8 @@ async function openEditEmployee(employee) {
     , so_cccd: employee.so_cccd || ''
     , ngaysinh: employee.ngaysinh ? String(employee.ngaysinh).slice(0, 10) : ''
     , gioitinh: employee.gioitinh || ''
+    , quoc_tich: employee.quoc_tich || 'Việt Nam'
+    , dia_chi_thuong_tru: employee.dia_chi_thuong_tru || ''
     , ngay_cap_cccd: employee.ngay_cap_cccd ? String(employee.ngay_cap_cccd).slice(0, 10) : ''
     , noi_cap_cccd: employee.noi_cap_cccd || ''
   }
@@ -1654,12 +1756,20 @@ onUnmounted(() => {
                 </select>
               </label>
               <label>
+                <span>Quốc tịch *</span>
+                <input v-model.trim="employeeForm.quoc_tich" maxlength="100" placeholder="Ví dụ: Việt Nam" />
+              </label>
+              <label>
                 <span>Ngày cấp</span>
                 <input v-model="employeeForm.ngay_cap_cccd" type="date" />
               </label>
-              <label class="identity-place-field">
+              <label>
                 <span>Nơi cấp</span>
                 <input v-model.trim="employeeForm.noi_cap_cccd" placeholder="Ví dụ: Cục Cảnh sát QLHC về TTXH" />
+              </label>
+              <label class="identity-place-field">
+                <span>Địa chỉ thường trú *</span>
+                <textarea v-model.trim="employeeForm.dia_chi_thuong_tru" rows="2" maxlength="500" placeholder="Nhập đầy đủ nơi thường trú theo CCCD"></textarea>
               </label>
             </div>
 
@@ -2294,7 +2404,8 @@ onUnmounted(() => {
 .employee-setup-form label { display: grid; gap: 5px; }
 .employee-setup-form label > span { color: #475569; font-size: 10.5px; font-weight: 700; }
 .employee-setup-form input,
-.employee-setup-form select {
+.employee-setup-form select,
+.employee-setup-form textarea {
   width: 100%;
   height: 37px;
   padding: 0 11px;
@@ -2305,6 +2416,13 @@ onUnmounted(() => {
   color: #0f172a;
   font-size: 12px;
   transition: border-color .18s, box-shadow .18s;
+}
+.employee-setup-form textarea {
+  min-height: 62px;
+  height: auto;
+  padding: 9px 11px;
+  resize: vertical;
+  line-height: 1.45;
 }
 .password-input-wrap { position: relative; width: 100%; }
 .password-input-wrap > input { padding-right: 43px; }
@@ -2335,7 +2453,8 @@ onUnmounted(() => {
 .password-visibility-button:focus-visible { outline: 2px solid #60a5fa; outline-offset: 1px; }
 .password-visibility-button svg { width: 17px; height: 17px; }
 .employee-setup-form input:focus,
-.employee-setup-form select:focus {
+.employee-setup-form select:focus,
+.employee-setup-form textarea:focus {
   border-color: #60a5fa;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, .12);
 }

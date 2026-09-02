@@ -1747,7 +1747,15 @@ class DatHangController extends Controller
 
         $pttt = strtolower(trim((string)$order->PTTT));
         $isBankTransfer = in_array($pttt, ['chuyen_khoan', 'chuyenkhoan', 'sepay', 'vnpay', 'momo']);
-        if ($isBankTransfer && $order->trang_thai_thanh_toan !== 'paid' && in_array($newStatus, ['confirmed', 'shipping', 'done'])) {
+        $paymentData = $order->du_lieu_thanh_toan ?? [];
+        $isChatbotOrder = (bool) data_get($paymentData, 'checkout.chatbot_order', false)
+            || data_get($paymentData, 'checkout.order_source') === 'chatbot';
+        $isBankTransfer = $isBankTransfer || $isChatbotOrder;
+        $depositVerified = in_array(data_get($paymentData, 'deposit.status'), ['verified', 'balance_collected'], true);
+        $paymentAllowsProcessing = $order->trang_thai_thanh_toan === 'paid'
+            || ($isChatbotOrder && $order->trang_thai_thanh_toan === 'partially_paid' && $depositVerified);
+
+        if ($isBankTransfer && ! $paymentAllowsProcessing && in_array($newStatus, ['confirmed', 'shipping', 'done'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Đơn hàng chuyển khoản chưa được thanh toán. Vui lòng bấm "Xác nhận đã thanh toán" trước khi chuyển trạng thái đơn hàng.',
@@ -1871,11 +1879,51 @@ class DatHangController extends Controller
 
         $order = DatHang::with(['chi_tiets.bienThe', 'user'])->findOrFail($id);
 
-        $newStatus = in_array(strtolower($request->trang_thai_thanh_toan), ['paid', 'da_thanhtoan']) ? 'paid' : 'unpaid';
+        $requestedStatus = strtolower((string) $request->trang_thai_thanh_toan);
+        $newStatus = in_array($requestedStatus, ['paid', 'da_thanhtoan'], true) ? 'paid' : 'unpaid';
+        $paymentData = $order->du_lieu_thanh_toan ?? [];
+        $isChatbotOrder = (bool) data_get($paymentData, 'checkout.chatbot_order', false)
+            || data_get($paymentData, 'checkout.order_source') === 'chatbot';
+        $depositStatus = (string) data_get($paymentData, 'deposit.status', '');
+        $confirmingDeposit = $isChatbotOrder
+            && $newStatus === 'paid'
+            && ! in_array($depositStatus, ['verified', 'balance_collected'], true);
+
+        if ($confirmingDeposit) {
+            $depositAmount = (float) data_get(
+                $paymentData,
+                'deposit.reported_paid_amount',
+                data_get($paymentData, 'deposit.required_amount', 0)
+            );
+            $shippingFee = (float) data_get($paymentData, 'checkout.shipping_payable', 30000);
+            $paymentData['deposit'] = array_merge($paymentData['deposit'] ?? [], [
+                'required' => true,
+                'percent' => (int) data_get($paymentData, 'deposit.percent', 50),
+                'verified_paid_amount' => $depositAmount,
+                'remaining_due' => max(0, (float) $order->tongtien - $depositAmount),
+                'shipping_due_on_delivery' => $shippingFee,
+                'status' => 'verified',
+                'verified_at' => now()->toDateTimeString(),
+                'verified_by' => Auth::id(),
+            ]);
+            $newStatus = 'partially_paid';
+        } elseif ($isChatbotOrder && $newStatus === 'paid') {
+            $remainingDue = (float) data_get($paymentData, 'deposit.remaining_due', 0);
+            $paymentData['deposit'] = array_merge($paymentData['deposit'] ?? [], [
+                'status' => 'balance_collected',
+                'remaining_collected_amount' => $remainingDue,
+                'remaining_collected_at' => now()->toDateTimeString(),
+                'remaining_collected_by' => Auth::id(),
+            ]);
+        }
+
+        $history = $paymentData['status_history'] ?? [];
+        $history[$newStatus] = now()->toDateTimeString();
+        $paymentData['status_history'] = $history;
 
         $updateData = [
             'trang_thai_thanh_toan' => $newStatus,
-            'du_lieu_thanh_toan' => $this->paymentDataWithStatusTime($order, $newStatus),
+            'du_lieu_thanh_toan' => $paymentData,
         ];
 
         if ($newStatus === 'paid') {
@@ -1888,7 +1936,9 @@ class DatHangController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Cập nhật trạng thái thanh toán thành công!',
+            'message' => $confirmingDeposit
+                ? 'Đã xác minh khách hàng thanh toán cọc 50%. Đơn hàng còn phần tiền nhận khi giao.'
+                : 'Cập nhật trạng thái thanh toán thành công!',
             'order' => $order->fresh(),
         ]);
     }
