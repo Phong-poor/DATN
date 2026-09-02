@@ -21,4 +21,8 @@ backend/database/*_demo.sql
 **/node_modules/
 node_modules/
 
+# Log chạy cục bộ, không đưa vào lịch sử mã nguồn.
+debug.log
+*.debug.log
+
 
