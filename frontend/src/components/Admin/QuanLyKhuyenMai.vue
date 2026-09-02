@@ -163,7 +163,7 @@
                 </div>
               </td>
             <td>
-              <span :class="['discount-tag', `discount-${p.loai || 'percent'}`]" :style="{ background: p.tagBg, color: p.tagColor }">{{ p.discount || discountLabel(p) }}</span>
+              <span :class="['discount-tag', getDiscountTagClass(p)]">{{ p.discount || discountLabel(p) }}</span>
             </td>
             <td class="date-cell">{{ (p.danhmuc === 'birthday' || p.danhmuc === 'event') ? '—' : (p.ngaybatdau || '—') }}</td>
             <td class="date-cell">{{ (p.danhmuc === 'birthday' || p.danhmuc === 'event') ? '—' : (p.ngayketthuc || '—') }}</td>
@@ -227,10 +227,10 @@
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                   {{ h.formattedDate }}
                 </span>
-                <span style="display: flex; align-items: center; gap: 4px; color: #059669; font-weight: 700; background: #dcfce7; padding: 2px 8px; border-radius: 6px; border: 1px dashed #86efac;">
+                <span class="holiday-tag-green">
                   Tên KM: {{ eventDisplayName(h) }}
                 </span>
-                <span style="display: flex; align-items: center; gap: 4px; color: #2563eb; font-weight: 700; background: #eff6ff; padding: 2px 8px; border-radius: 6px; border: 1px dashed #bfdbfe;">
+                <span class="holiday-tag-blue">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
                   Mã KM: {{ h.code }}
                 </span>
@@ -369,24 +369,22 @@
         </div>
 
         <!-- Hình thức hiển thị / phát hành -->
-        <div class="form-row" v-if="form.danhmuc !== 'birthday'">
-          <div class="form-group" style="flex: 1;">
-            <label class="form-label">Hình thức hiển thị / phát hành <span class="req">*</span></label>
-            <div style="display: flex; gap: 1rem; align-items: center; margin-top: 8px;">
-              <label style="cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                <input type="radio" :value="1" v-model="form.congkhai" />
-                Công khai (Hiện trên web)
-              </label>
-              <label style="cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                <input type="radio" :value="0" v-model="form.congkhai" />
-                Tặng khi đủ điều kiện
-              </label>
-            </div>
-            <p class="form-hint">Tặng có điều kiện sẽ tự động tặng cho khách khi đặt hàng thành công.</p>
+        <div class="form-group" v-if="form.danhmuc !== 'birthday'">
+          <label class="form-label">Hình thức hiển thị / phát hành <span class="req">*</span></label>
+          <div style="display: flex; gap: 2rem; align-items: center; margin-top: 6px;">
+            <label style="cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 600;">
+              <input type="radio" :value="1" v-model="form.congkhai" />
+              <span>Công khai (Hiện trên web)</span>
+            </label>
+            <label style="cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 600;">
+              <input type="radio" :value="0" v-model="form.congkhai" />
+              <span>Tặng khi đủ điều kiện</span>
+            </label>
           </div>
+          <p class="form-hint" style="margin-top: 4px;">Tặng có điều kiện sẽ tự động tặng cho khách khi đặt hàng thành công.</p>
         </div>
 
-        <div class="form-row condition-row" style="background: #fffbfa; border: 1px dashed #f87171;"
+        <div class="form-row condition-row reward-condition-row"
           v-if="form.danhmuc !== 'birthday' && form.congkhai === 0">
           <div class="form-group">
             <label class="form-label">Mức đơn hàng để tặng (VNĐ)</label>
@@ -464,8 +462,8 @@
           </div>
         </div>
         <div class="form-group" v-if="form.danhmuc === 'event'">
-          <div class="birthday-status-info" style="background: #e0f2fe; border-color: #bae6fd;">
-            <span class="birthday-icon" style="background: #3b82f6;">EV</span>
+          <div class="birthday-status-info event-status-info">
+            <span class="birthday-icon event-icon">EV</span>
             <span>Sự kiện sẽ tự động <strong>kích hoạt lặp lại hằng năm</strong> theo ngày kích hoạt đã nhập.</span>
           </div>
         </div>
@@ -1048,6 +1046,18 @@ async function deletePromo(id) {
     swal.error('Lỗi', 'Lỗi khi xóa khuyến mãi!')
     console.error(err)
   }
+}
+
+function getDiscountTagClass(p) {
+  const loai = String(p?.loai || '').toLowerCase()
+  const text = String(p?.discount || '').toLowerCase()
+  if (loai === 'fixed' || loai === 'tiendan' || loai === 'cash' || text.includes('đ') || text.includes('vnd')) {
+    return 'discount-fixed'
+  }
+  if (loai === 'freeship' || text.includes('miễn phí') || text.includes('free')) {
+    return 'discount-green'
+  }
+  return 'discount-percent'
 }
 </script>
 
@@ -1663,6 +1673,25 @@ td {
   border-radius: 20px;
   font-size: 11.5px;
   font-weight: 700;
+  white-space: nowrap;
+}
+
+.discount-percent {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.discount-fixed {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.discount-green {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
 }
 
 .date-cell {
@@ -1942,6 +1971,30 @@ td {
   font-size: 13px;
   color: #64748b;
   font-weight: 500;
+}
+
+.holiday-tag-green {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #059669;
+  font-weight: 700;
+  background: #dcfce7;
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px dashed #86efac;
+}
+
+.holiday-tag-blue {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #2563eb;
+  font-weight: 700;
+  background: #eff6ff;
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px dashed #bfdbfe;
 }
 
 .holiday-countdown {
@@ -2399,6 +2452,21 @@ select.form-input {
   color: #b45309;
 }
 
+.event-status-info {
+  background: #eff6ff !important;
+  border: 1.5px solid #93c5fd !important;
+  color: #1e40af !important;
+}
+
+.event-status-info strong {
+  color: #1d4ed8 !important;
+}
+
+.event-icon {
+  background: #3b82f6 !important;
+  color: #ffffff !important;
+}
+
 /* ═══ INLINE FORM ═══ */
 .inline-form-header {
   margin-bottom: 24px;
@@ -2444,49 +2512,60 @@ select.form-input {
 .inline-form-body {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 26px;
+  gap: 32px;
+  padding: 20px;
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 18px;
   box-shadow: 0 8px 28px rgba(15, 23, 42, 0.06);
 }
 
-.inline-form-body>.form-group,
-.inline-form-body>.form-row>.form-group {
+.inline-form-body > .form-group,
+.inline-form-body > .form-row > .form-group {
   background: transparent;
   border-radius: 0;
   border: 0;
-  padding: 0;
+  padding: 20px;
   box-shadow: none;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
-.inline-form-body>.form-row {
+.inline-form-body > .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 28px;
+  
 }
 
 .inline-form-body .form-label {
-  font-size: 11.5px;
+  font-size: 13.5px;
   font-weight: 700;
-  color: #6b7280;
-  letter-spacing: 0.06em;
-  text-transform: capitalize;
+  color: #475569;
+  letter-spacing: 0.02em;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.inline-form-body .form-hint {
+  font-size: 12.5px;
+  color: #64748b;
+  margin-top: 6px;
+  margin-bottom: 4px;
+  line-height: 1.5;
 }
 
 .inline-form-body .form-input {
-  padding: 11px 14px;
+  padding: 12px 16px;
+  min-height: 46px;
   border-radius: 10px;
-  border: 1.5px solid #e2e8f0;
+  border: 1px solid #cbd5e1;
   font-size: 14px;
   color: #0f172a;
   outline: none;
   transition: all 0.2s;
-  background: #f9fafb;
+  background: #ffffff;
   font-family: inherit;
   width: 100%;
   box-sizing: border-box;
@@ -2505,12 +2584,13 @@ select.form-input {
 
 .inline-form-body .form-textarea {
   resize: vertical;
-  min-height: 90px;
+  min-height: 115px;
+  padding: 14px 16px;
 }
 
 .code-input-row {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   align-items: center;
 }
 
@@ -2519,10 +2599,10 @@ select.form-input {
 }
 
 .btn-gen-code {
-  padding: 0 16px;
-  height: 44px;
+  padding: 0 18px;
+  height: 46px;
   background: #f1f5f9;
-  border: 1.5px solid #cbd5e1;
+  border: 1px solid #cbd5e1;
   border-radius: 10px;
   font-size: 13px;
   font-weight: 600;
@@ -2543,40 +2623,56 @@ select.form-input {
   cursor: not-allowed;
 }
 
-.inline-form-body>.condition-row {
-  background: #f5f3ff;
-  border: 1.5px dashed #a5b4fc;
-  border-radius: 14px;
-  padding: 16px 18px;
+.inline-form-body > .condition-row {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
 }
 
-.inline-form-body>.condition-row>.form-group {
+.inline-form-body > .condition-row.reward-condition-row,
+.inline-form-body > .condition-row.freeship-row {
+  background: transparent;
+  border: none;
+}
+
+.condition-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.condition-badge.freeship-badge {
+  background: #dcfce7;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+
+.condition-badge.reward-badge {
+  background: #ffedd5;
+  color: #c2410c;
+  border-color: #fed7aa;
+}
+
+.inline-form-body > .condition-row > .form-group {
   padding: 0;
   border: 0;
   background: transparent;
   box-shadow: none;
-}
-
-@media (max-width: 900px) {
-  .inline-form-body {
-    padding: 18px;
-  }
-
-  .inline-form-body>.form-row {
-    grid-template-columns: 1fr;
-  }
-}
-
-.inline-form-body>.condition-row.freeship-row {
-  background: #f0fdf4;
-  border-color: #86efac;
-}
+} 
 
 .inline-form-footer {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  padding-top: 20px;
+  padding: 20px;
   border-top: 1px solid #e2e8f0;
   margin-top: 8px;
 }
@@ -2611,4 +2707,400 @@ select.form-input {
 .modal-enter-from, .modal-leave-to { opacity: 0; }
 .modal-enter-active .holiday-modal { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
 @keyframes slideUp { from { transform: translateY(20px) scale(0.95); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+
+/* ==========================================================================
+   DARK MODE OVERRIDES FOR QUAN LY KHUYEN MAI
+   ========================================================================== */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .list-title,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .promo-name {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .list-sub,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .promo-code,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .date-cell,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .page-info {
+  color: #94a3b8 !important;
+}
+
+/* 1. Header Filter & Create Buttons */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .btn-filter {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #cbd5e1 !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .btn-filter:hover {
+  background: #1e293b !important;
+  border-color: #3b82f6 !important;
+  color: #60a5fa !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .btn-filter svg {
+  stroke: #94a3b8 !important;
+}
+
+/* 2. Table Card & Structure */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .table-card {
+  background: #11151c !important;
+  border-color: #28303d !important;
+  box-shadow: none !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) table thead tr {
+  background: #181d24 !important;
+  border-bottom-color: #28303d !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) table th {
+  color: #94a3b8 !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) table tbody tr {
+  border-bottom-color: #28303d !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) table tbody tr:hover {
+  background: #181d24 !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) table tbody tr.row-selected {
+  background: rgba(59, 130, 246, 0.15) !important;
+}
+
+/* 3. Promo Icons */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .promo-icon {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  color: #60a5fa !important;
+}
+
+/* 4. Discount Tags & Category Badges (Loại ưu đãi) */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .discount-tag {
+  border-radius: 20px !important;
+  font-weight: 700 !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .discount-tag[style*="fef3c7"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .discount-tag[style*="254, 243, 199"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .discount-percent {
+  background: rgba(245, 158, 11, 0.2) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.4) !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .discount-tag[style*="eff6ff"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .discount-tag[style*="239, 246, 255"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .discount-fixed {
+  background: rgba(59, 130, 246, 0.2) !important;
+  color: #60a5fa !important;
+  border: 1px solid rgba(59, 130, 246, 0.4) !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .discount-tag[style*="dcfce7"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .discount-tag[style*="220, 252, 231"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .discount-green {
+  background: rgba(34, 197, 94, 0.2) !important;
+  color: #4ade80 !important;
+  border: 1px solid rgba(34, 197, 94, 0.4) !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .discount-tag[style*="ede9fe"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .discount-tag[style*="237, 233, 254"] {
+  background: rgba(168, 85, 247, 0.2) !important;
+  color: #c084fc !important;
+  border: 1px solid rgba(168, 85, 247, 0.4) !important;
+}
+
+/* 5. Status Badges (Hình thức & Trạng thái columns) */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-badge {
+  border-radius: 20px !important;
+  font-weight: 700 !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-badge.status-running,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-badge[style*="dcfce7"] {
+  background: rgba(34, 197, 94, 0.2) !important;
+  color: #4ade80 !important;
+  border: 1px solid rgba(34, 197, 94, 0.4) !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-badge.status-expired,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-badge[style*="fee2e2"] {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #f87171 !important;
+  border: 1px solid rgba(239, 68, 68, 0.4) !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-badge.status-open,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-badge[style*="dbeafe"] {
+  background: rgba(59, 130, 246, 0.2) !important;
+  color: #60a5fa !important;
+  border: 1px solid rgba(59, 130, 246, 0.4) !important;
+}
+
+/* 6. Action Buttons in Table */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .action-btn {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #cbd5e1 !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .action-btn svg {
+  stroke: #cbd5e1 !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .action-btn:hover {
+  background: #1e293b !important;
+  border-color: #3b82f6 !important;
+  color: #60a5fa !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .action-btn:hover svg {
+  stroke: #60a5fa !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .action-btn.action-delete {
+  color: #f87171 !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .action-btn.action-delete svg {
+  stroke: #f87171 !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .action-btn.action-delete:hover {
+  background: rgba(239, 68, 68, 0.2) !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+}
+
+/* 7. Pagination Buttons */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .page-btn {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #cbd5e1 !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .page-btn:hover {
+  background: #1e293b !important;
+  border-color: #3b82f6 !important;
+  color: #60a5fa !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .page-btn.active {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  color: #ffffff !important;
+}
+
+/* 8. Bottom Analytics Cards */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .bottom-card {
+  background: #11151c !important;
+  border-color: #28303d !important;
+  color: #f8fafc !important;
+  box-shadow: none !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .bottom-card h3 {
+  color: #f8fafc !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .rank-name {
+  color: #cbd5e1 !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .rank-bar {
+  background: #181d24 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body {
+  background: #11151c !important;
+  border-color: #242c38 !important;
+  box-shadow: none !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body .form-label {
+  color: #f1f5f9 !important;
+  font-weight: 700 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body .form-hint {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body .form-input,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body textarea.form-input,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body select.form-input,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body .form-select,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body .condition-select,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body .condition-input {
+  background-color: #1e2433 !important;
+  border: 1px solid #2d3748 !important;
+  color: #f1f5f9 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .btn-gen-code {
+  background-color: #1e2433 !important;
+  border: 1px solid #2d3748 !important;
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .btn-gen-code:hover {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  color: #ffffff !important;
+}
+
+/* 9. Condition Cards in Dark Mode */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body > .condition-row,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body > .condition-row.reward-condition-row,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body > .condition-row.freeship-row {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .condition-badge {
+  background: rgba(59, 130, 246, 0.2) !important;
+  color: #60a5fa !important;
+  border-color: rgba(59, 130, 246, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .condition-badge.freeship-badge {
+  background: rgba(34, 197, 94, 0.2) !important;
+  color: #4ade80 !important;
+  border-color: rgba(34, 197, 94, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .condition-badge.reward-badge {
+  background: rgba(249, 115, 22, 0.2) !important;
+  color: #fb923c !important;
+  border-color: rgba(249, 115, 22, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body > .condition-row option {
+  background: #181d24 !important;
+  color: #f8fafc !important;
+}
+
+/* 10. Holiday & Events Tab Dark Mode Overrides */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .holiday-list-wrapper {
+  background: #11151c !important;
+  border-color: #28303d !important;
+  box-shadow: none !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .holiday-item {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .holiday-item:hover {
+  background: #1e2634 !important;
+  border-color: #3b82f6 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .next-holiday {
+  background: linear-gradient(to right, rgba(37, 99, 235, 0.18), #181d24) !important;
+  border-color: rgba(59, 130, 246, 0.5) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .holiday-date-box {
+  background: #1e2634 !important;
+  border-color: #2e3848 !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .holiday-day {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .holiday-month {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .multi-day {
+  background: #1e2634 !important;
+  border-color: #2e3848 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .holiday-day-range {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .holiday-name {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .next-holiday .holiday-name {
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .holiday-tag-green {
+  background: rgba(34, 197, 94, 0.18) !important;
+  color: #4ade80 !important;
+  border-color: rgba(34, 197, 94, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .holiday-tag-blue {
+  background: rgba(59, 130, 246, 0.18) !important;
+  color: #60a5fa !important;
+  border-color: rgba(59, 130, 246, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .holiday-countdown {
+  background: #1e2634 !important;
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .next-holiday .holiday-countdown {
+  background: rgba(234, 179, 8, 0.2) !important;
+  color: #facc15 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .auto-send-toggle {
+  background: #1e2634 !important;
+  border-color: #2e3848 !important;
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .auto-send-toggle.enabled {
+  background: rgba(34, 197, 94, 0.18) !important;
+  border-color: rgba(34, 197, 94, 0.4) !important;
+  color: #4ade80 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .list-title {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .list-sub {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .btn-filter {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .page-tabs-wrap {
+  border-bottom-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .page-tab {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .page-tab.active {
+  color: #60a5fa !important;
+  border-bottom-color: #3b82f6 !important;
+}
+
+/* 11. Status & Note Info Boxes in Dark Mode */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .birthday-status-info {
+  background: rgba(245, 158, 11, 0.15) !important;
+  border: 1px solid rgba(245, 158, 11, 0.35) !important;
+  color: #fef08a !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .birthday-status-info strong {
+  color: #fbbf24 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .birthday-icon {
+  background: rgba(245, 158, 11, 0.25) !important;
+  color: #fef08a !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .birthday-status-info.event-status-info {
+  background: rgba(59, 130, 246, 0.15) !important;
+  border: 1px solid rgba(59, 130, 246, 0.35) !important;
+  color: #bfdbfe !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .birthday-status-info.event-status-info strong {
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .event-icon {
+  background: rgba(59, 130, 246, 0.3) !important;
+  color: #93c5fd !important;
+}
 </style>
+

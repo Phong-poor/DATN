@@ -418,4 +418,85 @@ onUnmounted(() => {
   font-size: 9px;
   color: #cbd5e1;
 }
+
+/* DARK MODE OVERRIDES FOR MESSAGE ACTION MENU */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .msg-menu-trigger {
+  background: #1e293b !important;
+  color: #f8fafc !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .msg-menu-trigger:hover,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .msg-menu-trigger[aria-expanded="true"] {
+  background: #334155 !important;
+  color: #ffffff !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .msg-action-menu {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .msg-action-menu button {
+  background: transparent !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .msg-action-menu button:hover {
+  background: #222a36 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .msg-action-menu button.danger {
+  color: #f87171 !important;
+}
 </style>

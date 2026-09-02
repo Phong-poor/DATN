@@ -355,4 +355,104 @@ const handleJumpKeyDown = (e) => {
     align-items: center;
   }
 }
+
+/* ==========================================================================
+   DARK MODE OVERRIDES FOR PHAN TRANG ADMIN
+   ========================================================================== */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .admin-pagination-info {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .nav-btn,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .page-btn,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .dots-btn {
+  background: #253346 !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+  box-shadow: none !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .nav-btn:hover:not(:disabled),
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .page-btn:hover:not(:disabled),
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .dots-btn:hover {
+  background: #1e293b !important;
+  color: #60a5fa !important;
+  border-color: #3b82f6 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .page-btn.active {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .nav-btn:disabled {
+  background: #1e2430 !important;
+  border-color: #28303d !important;
+  color: #475569 !important;
+}
 </style>

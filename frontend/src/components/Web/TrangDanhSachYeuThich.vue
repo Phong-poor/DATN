@@ -334,10 +334,19 @@ const updateQuantity = (item, change) => {
 }
 
 const removeItem = async (id) => {
+  const isConfirmed = await swal.confirm(
+    'Xóa khỏi yêu thích',
+    'Bạn có chắc chắn muốn xóa sản phẩm này khỏi danh sách yêu thích?',
+    'Xóa',
+    'Hủy'
+  )
+  if (!isConfirmed) return
+
   try {
     await api.delete(`/yeu-thich/xoa/${id}`)
     wishlist.value = wishlist.value.filter(item => item.id !== id)
     window.dispatchEvent(new Event('wishlist-updated'))
+    swal.toast('Đã xóa sản phẩm khỏi danh sách yêu thích', 'success')
   } catch (err) {
     swal.error('Lỗi', 'Lỗi khi xoá sản phẩm!')
   }

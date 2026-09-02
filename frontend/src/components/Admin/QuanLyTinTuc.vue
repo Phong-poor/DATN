@@ -73,15 +73,15 @@ const categoryOptions = computed(() => {
 })
 
 const catStyle = {
-  'Công nghệ': { bg: '#dbeafe', color: '#1d4ed8' },
-  'Sự kiện': { bg: '#dcfce7', color: '#1d4ed8' },
-  'Sản phẩm': { bg: '#fef9c3', color: '#a16207' },
-  'Nội bộ': { bg: '#ede9fe', color: '#1d4ed8' },
+  'Công nghệ': { backgroundColor: 'rgba(59, 130, 246, 0.18)', color: '#60a5fa', border: '1px solid rgba(59, 130, 246, 0.4)' },
+  'Sự kiện': { backgroundColor: 'rgba(34, 197, 94, 0.18)', color: '#4ade80', border: '1px solid rgba(34, 197, 94, 0.4)' },
+  'Sản phẩm': { backgroundColor: 'rgba(236, 72, 153, 0.18)', color: '#f472b6', border: '1px solid rgba(236, 72, 153, 0.4)' },
+  'Nội bộ': { backgroundColor: 'rgba(168, 85, 247, 0.18)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.4)' },
 }
 const statusStyle = {
-  published: { bg: '#dcfce7', color: '#1d4ed8' },
-  scheduled: { bg: '#fef9c3', color: '#a16207' },
-  draft: { bg: '#f1f5f9', color: '#64748b' },
+  published: { backgroundColor: 'rgba(34, 197, 94, 0.22)', color: '#4ade80', border: '1px solid rgba(34, 197, 94, 0.45)' },
+  scheduled: { backgroundColor: 'rgba(245, 158, 11, 0.22)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.45)' },
+  draft: { backgroundColor: 'rgba(148, 163, 184, 0.22)', color: '#cbd5e1', border: '1px solid rgba(148, 163, 184, 0.45)' },
 }
 const avatarColors = ['#dbeafe', '#dcfce7', '#ede9fe', '#fef9c3', '#fee2e2']
 const avatarText = ['#1d4ed8', '#15803d', '#6d28d9', '#a16207', '#b91c1c']
@@ -646,7 +646,7 @@ onMounted(async () => {
                   </span>
                 </div>
               </td>
-              <td><span class="status-badge" :style="statusStyle[post.trangthai] || statusStyle.draft">{{
+              <td><span class="status-badge" :class="post.trangthai" :style="statusStyle[post.trangthai] || statusStyle.draft">{{
                 statusText[post.trangthai] || post.trangthai }}</span></td>
               <td>
                 <div class="actions">
@@ -1708,18 +1708,32 @@ tbody td {
 
 .cat-badge,
 .status-badge {
-  display: inline-block;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 4px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
 }
 
 .cat-badge {
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
 .status-badge {
-  border-radius: 20px;
+  border-radius: 999px;
+}
+
+.status-badge::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
 }
 
 .author-avatar {
@@ -1883,6 +1897,11 @@ tbody td {
   color: #94a3b8;
   cursor: pointer;
   font-size: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
 }
 
 .modal-body {
@@ -2152,5 +2171,189 @@ button:disabled {
   .content-image-tools {
     grid-template-columns: 1fr;
   }
+}
+
+/* DARK MODE OVERRIDES FOR NEWS ARTICLE EDITOR */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .editor-heading button,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .editor-tabs button:not(.active),
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .format-toolbar button {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .editor-heading button:hover,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .editor-tabs button:not(.active):hover,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .format-toolbar button:hover {
+  background: #1e293b !important;
+  border-color: #3b82f6 !important;
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .editor-tabs button.active {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #2563eb !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .content-image-tools button {
+  background: #181d24 !important;
+  border-color: #3b82f6 !important;
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .content-image-tools button:hover:not(:disabled) {
+  background: #1e293b !important;
+  color: #93c5fd !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .content-quality {
+  background: rgba(234, 88, 12, 0.15) !important;
+  border-color: rgba(234, 88, 12, 0.3) !important;
+  color: #fdba74 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .content-quality span {
+  background: rgba(0, 0, 0, 0.3) !important;
+  color: #fdba74 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .content-quality.ready {
+  background: rgba(16, 185, 129, 0.15) !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+  color: #6ee7b7 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .content-quality.ready span {
+  background: rgba(0, 0, 0, 0.3) !important;
+  color: #6ee7b7 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .content-preview {
+  background: #13171f !important;
+  border-color: #28303d !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .seo-panel {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .seo-panel summary {
+  color: #f8fafc !important;
 }
 </style>

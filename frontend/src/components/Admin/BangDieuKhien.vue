@@ -4769,6 +4769,170 @@ html[data-admin-theme='dark'] .leave-priority-alert .leave-priority-title span,
     color: #ffffff !important;
     opacity: 1 !important;
 }
+
+/* ==========================================================================
+   DARK MODE STYLES FOR DASHBOARD MODALS (REVENUE HISTORY & AGE DONUT CHART)
+   ========================================================================== */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .revenue-history-overlay,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .age-chart-overlay {
+    background: rgba(10, 15, 26, 0.75) !important;
+    backdrop-filter: blur(8px) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .revenue-history-modal,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .age-chart-modal {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.6) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .revenue-history-head,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .age-chart-modal-head {
+    border-bottom-color: #334155 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .revenue-history-head h2,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .age-chart-modal-head h2 {
+    color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .revenue-history-head p,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .age-chart-modal-head p {
+    color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .revenue-close,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .age-chart-close,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .revenue-month-nav button {
+    background: #0f172a !important;
+    border-color: #334155 !important;
+    color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .revenue-close:hover,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .revenue-month-nav button:hover {
+    background: #1e293b !important;
+    color: #60a5fa !important;
+    border-color: #3b82f6 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .age-chart-close:hover {
+    background: rgba(239, 68, 68, 0.2) !important;
+    border-color: #f87171 !important;
+    color: #f87171 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .revenue-month-nav strong {
+    color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .revenue-month-summary div {
+    background: rgba(30, 58, 138, 0.35) !important;
+    border-color: rgba(59, 130, 246, 0.35) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .revenue-month-summary span {
+    color: #93c5fd !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .revenue-month-summary b {
+    color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .daily-revenue-row {
+    background: #0f172a !important;
+    border-color: #334155 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .daily-revenue-row time b {
+    color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .daily-revenue-row time span,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .daily-revenue-row > span {
+    color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .daily-revenue-row > strong {
+    color: #34d399 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .daily-revenue-row.empty {
+    opacity: 0.55 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .daily-revenue-row.empty > strong {
+    color: #64748b !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .revenue-loading {
+    color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .age-legend-row {
+    background: #0f172a !important;
+    border-color: #334155 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .age-legend-row b {
+    color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .age-legend-row span {
+    color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .age-legend-row > strong {
+    color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .age-donut-center b {
+    color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .age-donut-center strong {
+    color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .age-donut-center span {
+    color: #64748b !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .age-chart-summary {
+    background: #334155 !important;
+    border-top-color: #334155 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .age-chart-summary div {
+    background: #0f172a !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .age-chart-summary span {
+    color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .age-chart-summary b {
+    color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .risk-row {
+    background: #0f172a !important;
+    border-color: #334155 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .risk-row:hover {
+    background: #1e293b !important;
+    border-color: #f87171 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .risk-customer b {
+    color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .risk-metrics b {
+    color: #cbd5e1 !important;
+}
 </style>
 
 

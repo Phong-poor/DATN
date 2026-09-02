@@ -1420,6 +1420,8 @@ onBeforeUnmount(() => {
   font-size: 13px;
   color: #1e293b;
   width: 100%;
+  background: transparent;
+  box-shadow: none;
 }
 
 .search-input-box input::placeholder {
@@ -2499,5 +2501,339 @@ onBeforeUnmount(() => {
   .config-save-footer > .btn-action {
     min-width: 220px;
   }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DARK MODE OVERRIDES FOR GUI MA SINH NHAT
+   ══════════════════════════════════════════════════════════════════════════ */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .page {
+  background: transparent !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .dashboard-container {
+  background: #11151c !important;
+  border-color: #28303d !important;
+  box-shadow: none !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .tabs-header {
+  background: #11151c !important;
+  border-bottom-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .tab-button {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .tab-button:hover {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .tab-button.active {
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .tab-button.active::after {
+  background: #3b82f6 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .search-input-box {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .search-input-box input {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .search-input-box input::placeholder {
+  color: #64748b !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .search-icon,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .filter-label {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .styled-select,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .styled-date-input,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .styled-select-full {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .styled-select option,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .styled-select-full option {
+  background: #181d24 !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .btn-refresh {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .btn-refresh:hover {
+  background: #1e2634 !important;
+  border-color: #3b82f6 !important;
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .btn-secondary {
+  background: rgba(59, 130, 246, 0.18) !important;
+  border-color: rgba(59, 130, 246, 0.35) !important;
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .btn-secondary:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.3) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .selection-notice-bar {
+  background: rgba(59, 130, 246, 0.12) !important;
+  border-color: rgba(59, 130, 246, 0.35) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .notice-info {
+  color: #93c5fd !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .notice-guide {
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .promotion-empty-warning {
+  background: rgba(245, 158, 11, 0.15) !important;
+  border-color: rgba(245, 158, 11, 0.35) !important;
+  color: #fef08a !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .table-wrap {
+  background: #11151c !important;
+  border-color: #28303d !important;
+  box-shadow: none !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .admin-data-table thead tr {
+  background: #181d24 !important;
+  border-bottom-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .admin-data-table th {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .admin-data-table tbody tr {
+  border-bottom-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .admin-data-table tbody tr:hover {
+  background: #181d24 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .admin-data-table tbody tr.row-selected {
+  background: rgba(59, 130, 246, 0.15) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .admin-data-table td {
+  color: #e2e8f0 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .user-fullname {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .user-subtext {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .email-text,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .sent-time-cell {
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .bold-text {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .coupon-badge {
+  background: rgba(59, 130, 246, 0.18) !important;
+  color: #60a5fa !important;
+  border-color: rgba(59, 130, 246, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .sent-time-value {
+  background: rgba(59, 130, 246, 0.18) !important;
+  color: #60a5fa !important;
+  border-color: rgba(59, 130, 246, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-success {
+  background: rgba(34, 197, 94, 0.2) !important;
+  color: #4ade80 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-warning {
+  background: rgba(245, 158, 11, 0.2) !important;
+  color: #fbbf24 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-danger {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #f87171 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .btn-table-action {
+  background: rgba(59, 130, 246, 0.18) !important;
+  color: #60a5fa !important;
+  border-color: rgba(59, 130, 246, 0.35) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .btn-table-action:hover:not(:disabled) {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #2563eb !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .btn-icon-action {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .btn-danger-action {
+  background: rgba(239, 68, 68, 0.15) !important;
+  border-color: rgba(239, 68, 68, 0.35) !important;
+  color: #f87171 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .table-pagination {
+  border-top-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .showing-entries {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .btn-page {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .btn-page.active {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  color: #ffffff !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .config-card {
+  background: #11151c !important;
+  border-color: #28303d !important;
+  box-shadow: none !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .config-card h3,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .option-title {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .card-hint-text,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .option-desc {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .card-divider,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .config-save-footer {
+  border-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .checkbox-option-item:hover:not(.disabled) {
+  background: #181d24 !important;
+}
+
+/* 12. Auto Config Tab Dark Mode Overrides */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .scheduler-warning {
+  background: rgba(245, 158, 11, 0.15) !important;
+  border: 1px solid rgba(245, 158, 11, 0.35) !important;
+  color: #fef08a !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .scheduler-ok {
+  background: rgba(34, 197, 94, 0.15) !important;
+  border: 1px solid rgba(34, 197, 94, 0.35) !important;
+  color: #4ade80 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .bold-label {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .label-subtext,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .form-help-text {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .time-picker-24 {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  box-shadow: none !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .time-picker-24 > strong,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .time-part > span {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .time-spinner-control {
+  background: #11151c !important;
+  border-color: #28303d !important;
+  box-shadow: none !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .time-spinner-control > strong {
+  background: #181d24 !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .time-spinner-control button {
+  background: #11151c !important;
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .time-spinner-control button:hover {
+  background: #1e2634 !important;
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .styled-time-input {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .validity-input-wrap strong {
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-link {
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .config-status-badge.is-enabled {
+  background: rgba(34, 197, 94, 0.2) !important;
+  color: #4ade80 !important;
+  border-color: rgba(34, 197, 94, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .config-status-badge.is-disabled {
+  background: rgba(245, 158, 11, 0.2) !important;
+  color: #fbbf24 !important;
+  border-color: rgba(245, 158, 11, 0.4) !important;
 }
 </style>

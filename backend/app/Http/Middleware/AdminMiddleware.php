@@ -42,12 +42,15 @@ class AdminMiddleware
         $method = $request->getMethod();
         $userPerms = $user->cac_quyen ?: [];
 
-        // Các route cơ bản ai cũng được vào (Dashboard, Xem/Sửa Profile cá nhân, Nhật ký thông báo cá nhân)
+        // Các route cơ bản ai cũng được vào (Dashboard, Xem/Sửa Profile cá nhân, Nhật ký thông báo cá nhân, Cài đặt cá nhân/hệ thống)
         $basicPaths = [
             '/api/admin/dashboard',
             '/api/admin/account/profile',
             '/api/admin/account/active-admins',
-            '/api/admin/account/activity-log'
+            '/api/admin/orders/employees-list',
+            '/api/admin/account/activity-log',
+            '/api/admin/account/settings',
+            '/api/admin/account/two-factor',
         ];
         
         foreach ($basicPaths as $bp) {

@@ -242,17 +242,17 @@
             </div>
           </div>
 
-        </div>
+          <div class="form-actions" style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px; padding-top: 20px; border-top: 1px solid #f1f5f9;">
+            <button class="btn-cancel" @click="closeForm">Hủy</button>
+            <button class="btn-submit" :disabled="saving" @click="save">
+              <svg v-if="saving" class="spin" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+              <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              {{ saving ? "Đang lưu..." : (editingId ? "Lưu thay đổi" : "Tạo banner") }}
+            </button>
+          </div>
 
-        <div class="form-actions" style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px; padding-top: 20px; border-top: 1px solid #f1f5f9;">
-          <button class="btn-cancel" @click="closeForm">Hủy</button>
-          <button class="btn-submit" :disabled="saving" @click="save">
-            <svg v-if="saving" class="spin" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-            {{ saving ? "Đang lưu..." : (editingId ? "Lưu thay đổi" : "Tạo banner") }}
-          </button>
         </div>
       </div>
     </template>
@@ -962,6 +962,7 @@ td {
   display: flex;
   flex-direction: column;
   gap: 5px;
+  padding-bottom: 20px;
 }
 
 .form-group label {
@@ -976,6 +977,7 @@ td {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
+  padding-bottom: 20px;
 }
 
 .req {
@@ -1267,5 +1269,116 @@ td {
 .upload-zone small {
   color: #94a3b8;
   font-size: 12px;
+}
+
+/* DARK MODE OVERRIDES FOR TOGGLE BUTTONS */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .toggle-btn {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .toggle-btn .tdot {
+  background: #64748b !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .toggle-btn:hover {
+  background: #1e293b !important;
+  border-color: #3b82f6 !important;
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .toggle-btn.tg-green {
+  background: rgba(34, 197, 94, 0.15) !important;
+  border-color: rgba(34, 197, 94, 0.35) !important;
+  color: #4ade80 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .toggle-btn.tg-green .tdot {
+  background: #4ade80 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .toggle-btn.tg-yellow {
+  background: rgba(239, 68, 68, 0.15) !important;
+  border-color: rgba(239, 68, 68, 0.35) !important;
+  color: #f87171 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .toggle-btn.tg-yellow .tdot {
+  background: #f87171 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .form-actions {
+  border-top-color: #334155 !important;
+  background: transparent !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .btn-cancel {
+  background: #253346 !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
 }
 </style>

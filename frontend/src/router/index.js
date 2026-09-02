@@ -269,6 +269,8 @@ router.beforeEach((to, from, next) => {
         '/admin/diem-danh': 'diem_danh_quan_ly',
         '/admin/quan-ly-cham-cong': 'quan_ly_cham_cong',
         '/admin/quan-ly-don-xin-nghi': 'quan_ly_cham_cong',
+        '/admin/cham-cong-camera': 'xac_thuc_nhan_vien',
+        '/admin/thong-ke-doanh-so-nhan-vien': 'doanh_so_nhan_vien',
       }
 
       const basicPaths = [
@@ -278,7 +280,6 @@ router.beforeEach((to, from, next) => {
         '/admin/profile',
         '/admin/cai-dat-he-thong',
         '/admin/settings',
-        '/admin/cham-cong-camera',
         '/admin/xin-nghi-phep'
       ]
 

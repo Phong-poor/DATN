@@ -48,6 +48,7 @@ use App\Http\Controllers\VnpayPayoutController;
 use App\Http\Controllers\VongQuayController;
 use App\Http\Controllers\XuController;
 use App\Http\Controllers\YeuThichController;
+use App\Http\Controllers\NewsletterController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -92,7 +93,8 @@ Route::get('/news-tags', [NewsController::class, 'tags']);
 Route::get('/news-feed.xml', [NewsController::class, 'feed']);
 Route::get('/news-sitemap.xml', [NewsController::class, 'sitemap']);
 Route::post('/news/{id}/track', [NewsController::class, 'track'])->whereNumber('id');
-Route::post('/news-subscribe', [NewsController::class, 'subscribe']);
+Route::post('/news-subscribe', [NewsletterController::class, 'subscribe']);
+Route::post('/news-unsubscribe', [NewsletterController::class, 'unsubscribe']);
 Route::get('/banners', [BannerController::class, 'index']);
 Route::get('/flash-sale/current', [FlashSaleWebController::class, 'getCurrentSession']);
 Route::get('/vong-quay/prizes', [VongQuayController::class, 'prizes']);
@@ -381,6 +383,7 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::put('/orders/{id}/status', [DatHangController::class, 'updateStatus']);
         Route::put('/orders/{id}/payment-status', [DatHangController::class, 'updatePaymentStatus']);
         Route::post('/orders/{id}/refund-proof', [DatHangController::class, 'uploadRefundProof']);
+        Route::get('/orders/employees-list', [DatHangController::class, 'getEmployeesList']);
         Route::delete('/orders/{id}', [DatHangController::class, 'destroyAdmin']);
 
         // ===== LIÊN HỆ ADMIN =====
@@ -513,5 +516,8 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::put('/vong-quay/{id}', [VongQuayController::class, 'adminUpdate']);
         Route::delete('/vong-quay/{id}', [VongQuayController::class, 'adminDestroy']);
         Route::get('/vong-quay/lich-su', [VongQuayController::class, 'adminHistory']);
+
+        // ===== ADMIN NEWSLETTER =====
+        Route::get('/newsletter/subscribers', [NewsletterController::class, 'list']);
 
     });

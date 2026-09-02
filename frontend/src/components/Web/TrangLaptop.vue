@@ -382,23 +382,24 @@ const canonicalText = (value) => String(value || '')
 
 const lineMatcher = (product, line = activeLine.value) => {
   const text = canonicalText(`${product.tenSP} ${product.brand} ${product.category} ${(product.searchSpecs || product.specs).join(' ')}`)
+  const pCatId = Number(product.id_danhmuc || product.danh_muc?.id_danhmuc || 0)
   if (line === 'all') return true
   
   if (isAccessoryPage.value) {
-    if (line === 'mouse') return text.includes('chuot') || text.includes('mouse')
-    if (line === 'keyboard') return text.includes('ban phim') || text.includes('keyboard')
-    if (line === 'headphone') return text.includes('tai nghe') || text.includes('headphone') || text.includes('tai-nghe')
-    if (line === 'pad') return text.includes('lot chuot') || text.includes('mousepad') || text.includes('pad')
+    if (line === 'mouse' || line === '10' || line === 'chuot') return pCatId === 10 || text.includes('chuot') || text.includes('mouse')
+    if (line === 'keyboard' || line === '11' || line === 'ban-phim' || line === 'banphim') return pCatId === 11 || text.includes('ban phim') || text.includes('keyboard')
+    if (line === 'headphone' || line === '12' || line === 'tai-nghe' || line === 'tainghe') return pCatId === 12 || text.includes('tai nghe') || text.includes('headphone') || text.includes('tai-nghe')
+    if (line === 'pad' || line === 'mousepad' || line === '13' || line === 'lot-chuot' || line === 'lotchuot') return pCatId === 13 || text.includes('lot chuot') || text.includes('mousepad') || text.includes('pad')
     if (line === 'hub') return text.includes('hub') || text.includes('cap') || text.includes('sac') || text.includes('ugreen')
-    if (line === 'other') return !['chuot', 'mouse', 'ban phim', 'keyboard', 'tai nghe', 'headphone', 'lot chuot', 'mousepad'].some(k => text.includes(k))
+    if (line === 'other') return !['chuot', 'mouse', 'ban phim', 'keyboard', 'tai nghe', 'headphone', 'lot chuot', 'mousepad'].some(k => text.includes(k)) && ![10, 11, 12, 13].includes(pCatId)
     return true
   }
 
-  if (line === 'gaming') return text.includes('gaming') || text.includes('rtx') || text.includes('rog') || text.includes('legion')
-  if (line === 'macbook') return text.includes('macbook') || text.includes('apple')
-  if (line === 'office') return text.includes('van phong') || text.includes('vivobook') || text.includes('inspiron') || text.includes('ideapad')
-  if (line === 'student') return text.includes('hoc') || text.includes('student') || text.includes('air') || text.includes('thin')
-  if (line === 'accessory') return text.includes('chuot') || text.includes('ban phim') || text.includes('tai nghe') || text.includes('phu kien')
+  if (line === 'gaming') return text.includes('gaming') || text.includes('rtx') || text.includes('rog') || text.includes('legion') || [2, 7].includes(pCatId)
+  if (line === 'macbook') return text.includes('macbook') || text.includes('apple') || pCatId === 4
+  if (line === 'office') return text.includes('van phong') || text.includes('vivobook') || text.includes('inspiron') || text.includes('ideapad') || pCatId === 3
+  if (line === 'student') return text.includes('hoc') || text.includes('student') || text.includes('air') || text.includes('thin') || pCatId === 7
+  if (line === 'accessory') return isProductAccessory(product)
   return true
 }
 
@@ -699,13 +700,21 @@ const scrollToCatalog = () => {
   }, 200)
 }
 
-watch(() => route.fullPath, () => {
-  const line = String(route.query.line || route.meta?.line || '').toLowerCase()
-  if (line && activeLinesList.value.some(item => item.key === line)) {
-    activeLine.value = line
-  } else {
-    activeLine.value = 'all'
+const resolveActiveLineFromQuery = () => {
+  let lineParam = String(route.query.line || route.query.cat || route.query.category || route.query.id_danhmuc || route.meta?.line || '').toLowerCase()
+  if (lineParam === '10' || lineParam === 'chuot') lineParam = 'mouse'
+  if (lineParam === '11' || lineParam === 'ban-phim' || lineParam === 'banphim') lineParam = 'keyboard'
+  if (lineParam === '12' || lineParam === 'tai-nghe' || lineParam === 'tainghe') lineParam = 'headphone'
+  if (lineParam === '13' || lineParam === 'lot-chuot' || lineParam === 'lotchuot' || lineParam === 'mousepad') lineParam = 'pad'
+
+  if (lineParam && activeLinesList.value.some(item => item.key === lineParam)) {
+    return lineParam
   }
+  return 'all'
+}
+
+watch(() => route.fullPath, () => {
+  activeLine.value = resolveActiveLineFromQuery()
   searchQuery.value = route.query.q ? String(route.query.q) : ''
   
   if (route.query.brand) {
@@ -744,7 +753,7 @@ watch(() => route.fullPath, () => {
 
 watch(isAccessoryPage, (newVal) => {
   maxPrice.value = newVal ? 15000000 : 200000000
-  activeLine.value = 'all'
+  activeLine.value = resolveActiveLineFromQuery()
   searchQuery.value = ''
   selectedBrands.value = []
   selectedCpus.value = []
@@ -756,12 +765,7 @@ watch(filteredProducts, () => {
 })
 
 onMounted(() => {
-  const line = String(route.query.line || route.meta?.line || '').toLowerCase()
-  if (line && activeLinesList.value.some(item => item.key === line)) {
-    activeLine.value = line
-  } else {
-    activeLine.value = 'all'
-  }
+  activeLine.value = resolveActiveLineFromQuery()
   searchQuery.value = route.query.q ? String(route.query.q) : ''
   
   if (route.query.brand) {
@@ -902,32 +906,7 @@ onMounted(() => {
       </div>
     </section>
 
-    <section class="lp-flagship">
-      <div class="section-copy">
-        <span></span>
-        <div>
-          <h2>{{ isAccessoryPage ? 'Phụ kiện cao cấp bán chạy' : 'Máy flagship đắt tiền nhất' }}</h2>
-          <p>{{ isAccessoryPage ? 'Những phụ kiện đỉnh cấp và chuyên nghiệp nhất dành cho góc máy của bạn.' : 'Những cấu hình cao cấp nhất trong kho, gồm cả laptop gaming và MacBook.' }}</p>
-        </div>
-      </div>
-      <div class="flagship-row">
-        <article v-for="product in flagshipProducts" :key="product.id_bienthe || product.id_sanpham" class="flag-card" @click="viewDetail(product)">
-          <img :src="product.image" :alt="product.tenSP" loading="lazy" decoding="async" @error="handleImageFallback($event, 'https://placehold.co/600x420?text=NextGen+Laptop')" />
-          <h3>{{ product.tenSP }}</h3>
-          <div class="specs">
-            <span v-for="spec in product.specs.slice(0, 3)" :key="spec">{{ spec }}</span>
-          </div>
-          <strong class="product-price">{{ formatPrice(product.gia) }}</strong>
-          <div class="flag-actions">
-            <button class="config" @click.stop="viewDetail(product)">
-              <SlidersHorizontal />
-              <span>Cấu hình</span>
-            </button>
-            <button class="buy" @click.stop="buyNow(product)">Mua ngay</button>
-          </div>
-        </article>
-      </div>
-    </section>
+
 
     <section class="lp-catalog" id="catalog">
       <div class="catalog-title">
@@ -1093,31 +1072,6 @@ onMounted(() => {
       </div>
     </section>
 
-    <section v-if="accessoryProducts.length && !isAccessoryPage" class="lp-accessories">
-      <div class="section-copy compact">
-        <span></span>
-        <div>
-          <small>Gaming gear</small>
-          <h2>Phụ kiện</h2>
-        </div>
-      </div>
-      <div class="accessory-strip">
-        <article
-          v-for="product in accessoryProducts"
-          :key="product.id_sanpham"
-          class="product-card"
-          @click="viewDetail(product)"
-          @pointerenter="warmDetail(product)"
-          @focusin="warmDetail(product)"
-        >
-          <img :src="product.image" :alt="product.tenSP" loading="lazy" decoding="async" @error="handleImageFallback($event, 'https://placehold.co/600x420?text=NextGen+Laptop')" />
-          <h3>{{ product.tenSP }}</h3>
-          <div class="stars">★ {{ product.rating.toFixed(1) }} <span>({{ product.reviews }})</span></div>
-          <strong class="product-price">{{ formatPrice(product.gia) }}</strong>
-        </article>
-      </div>
-    </section>
-
     <section v-if="isAccessoryPage" id="combos-section" class="lp-combos">
       <div class="combos-header">
         <div class="combo-heading-mark">
@@ -1133,8 +1087,8 @@ onMounted(() => {
           <div class="combo-main-content">
             <div class="combo-details">
               <span class="combo-card-label">CURATED SET · {{ combo.products?.length || 0 }} SẢN PHẨM</span>
-              <span class="combo-discount-badge" v-if="getOriginalPrice(combo) > combo.giakhuyenmai">
-                Tiết kiệm {{ formatPrice(getOriginalPrice(combo) - combo.giakhuyenmai) }}
+              <span class="combo-discount-badge" v-if="getOriginalPrice(combo) > (combo.giakhuyenmai || combo.gia_combo)">
+                Tiết kiệm {{ formatPrice(getOriginalPrice(combo) - (combo.giakhuyenmai || combo.gia_combo)) }}
               </span>
               <h3>{{ combo.ten_combo }}</h3>
               <p>{{ combo.mota }}</p>
@@ -1142,9 +1096,9 @@ onMounted(() => {
               <div class="combo-pricing-group">
                 <div class="price-block">
                   <span class="price-label">Giá Combo:</span>
-                  <span class="price-val">{{ formatPrice(combo.giakhuyenmai) }}</span>
+                  <span class="price-val">{{ formatPrice(combo.giakhuyenmai || combo.gia_combo) }}</span>
                 </div>
-                <div class="price-block old-price-block" v-if="getOriginalPrice(combo) > combo.giakhuyenmai">
+                <div class="price-block old-price-block" v-if="getOriginalPrice(combo) > (combo.giakhuyenmai || combo.gia_combo)">
                   <span class="price-label">Tổng Giá gốc:</span>
                   <span class="price-val-old">{{ formatPrice(getOriginalPrice(combo)) }}</span>
                 </div>
@@ -1206,7 +1160,32 @@ onMounted(() => {
       </div>
     </section>
 
-    <section v-else id="showroom-section" class="lp-showroom">
+    <section v-if="accessoryProducts.length && !isAccessoryPage" class="lp-accessories">
+      <div class="section-copy compact">
+        <span></span>
+        <div>
+          <small>Gaming gear</small>
+          <h2>Phụ kiện</h2>
+        </div>
+      </div>
+      <div class="accessory-strip">
+        <article
+          v-for="product in accessoryProducts"
+          :key="product.id_sanpham"
+          class="product-card"
+          @click="viewDetail(product)"
+          @pointerenter="warmDetail(product)"
+          @focusin="warmDetail(product)"
+        >
+          <img :src="product.image" :alt="product.tenSP" loading="lazy" decoding="async" @error="handleImageFallback($event, 'https://placehold.co/600x420?text=NextGen+Laptop')" />
+          <h3>{{ product.tenSP }}</h3>
+          <div class="stars">★ {{ product.rating.toFixed(1) }} <span>({{ product.reviews }})</span></div>
+          <strong class="product-price">{{ formatPrice(product.gia) }}</strong>
+        </article>
+      </div>
+    </section>
+
+    <section v-if="!isAccessoryPage" id="showroom-section" class="lp-showroom">
       <div class="lp-showroom-copy">
         <small>NEXTGEN SHOWROOM</small>
         <h2>Trải nghiệm trực tiếp tại Showroom NextGen</h2>
@@ -1589,6 +1568,235 @@ onMounted(() => {
   color: #94a3b8;
   font-size: 18px;
   margin: 12px 0 0;
+}
+
+/* Combo Showcase Layout */
+.combo-showcase-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 24px;
+}
+
+.combo-showcase-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 20px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+  cursor: pointer;
+}
+
+.combo-showcase-card:hover {
+  transform: translateY(-4px);
+  border-color: #3b82f6;
+  box-shadow: 0 16px 36px rgba(37, 99, 235, 0.12);
+}
+
+.combo-card-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.combo-hot-tag {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.combo-save-tag {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.combo-image-box {
+  width: 100%;
+  height: 200px;
+  background: #f8fafc;
+  border-radius: 14px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin-bottom: 16px;
+  border: 1px solid #f1f5f9;
+}
+
+.combo-image-box img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  transition: transform 0.3s ease;
+}
+
+.combo-showcase-card:hover .combo-image-box img {
+  transform: scale(1.04);
+}
+
+.combo-card-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.4;
+  margin: 0 0 12px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.combo-items-row {
+  background: #f8fafc;
+  border: 1px solid #edf2f7;
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+}
+
+.combo-items-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.combo-items-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.combo-item-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 4px 8px;
+}
+
+.chip-thumb {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  border-radius: 4px;
+  background: #f1f5f9;
+}
+
+.chip-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chip-plus {
+  font-size: 13px;
+  font-weight: 700;
+  color: #3b82f6;
+  margin-left: 2px;
+}
+
+.combo-card-footer {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.combo-price-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.price-main {
+  font-size: 18px;
+  font-weight: 800;
+  color: #2563eb;
+}
+
+.price-strike {
+  font-size: 13px;
+  color: #94a3b8;
+  text-decoration: line-through;
+  font-weight: 500;
+}
+
+.combo-btn-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-combo-detail {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-combo-detail:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.btn-combo-buy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #ff6b00, #ff8800);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 4px 12px rgba(255, 107, 0, 0.25);
+}
+
+.btn-combo-buy:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(255, 107, 0, 0.35);
 }
 
 .flagship-row,
@@ -2504,7 +2712,7 @@ onMounted(() => {
   display: grid;
   grid-template-columns: minmax(0, 0.95fr) minmax(360px, 1fr);
   gap: clamp(28px, 4vw, 56px);
-  align-items: center;
+  align-items: flex-start;
   margin: clamp(28px, 4vw, 54px) auto 0;
   padding-left: clamp(28px, 5vw, 72px);
   padding-right: clamp(28px, 5vw, 72px);
@@ -2520,27 +2728,37 @@ onMounted(() => {
   overflow: hidden;
 }
 
+.lp-showroom-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
 .lp-showroom-copy small {
   display: block;
-  color: #38bdf8;
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  margin-bottom: 9px;
+  color: #2563eb;
+  font-size: 13.5px;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
 }
 
 .lp-showroom-copy h2 {
   max-width: 720px;
-  margin: 0 0 12px;
-  font-size: clamp(26px, 2.7vw, 38px);
-  line-height: 1.08;
-  color: #ffffff;
+  margin: 0 0 14px 0;
+  font-size: clamp(30px, 2.8vw, 42px) !important;
+  font-weight: 850;
+  line-height: 1.14;
+  color: #0f172a;
+  letter-spacing: -0.03em;
 }
 
 .lp-showroom-copy > p {
   max-width: 680px;
   margin: 0 0 20px;
-  color: #cbd5e1;
+  color: #475569;
   font-size: 15px;
   line-height: 1.58;
 }
@@ -5013,6 +5231,24 @@ onMounted(() => {
 :global(.dark) .catalog-empty-state .empty-title,
 :global(html[data-theme='dark']) .catalog-empty-state .empty-title {
   color: #f4f4f5;
+}
+
+:global(.theme-dark) .lp-showroom-copy h2,
+:global(.dark) .lp-showroom-copy h2,
+:global(html[data-theme='dark']) .lp-showroom-copy h2 {
+  color: #ffffff !important;
+}
+
+:global(.theme-dark) .lp-showroom-copy small,
+:global(.dark) .lp-showroom-copy small,
+:global(html[data-theme='dark']) .lp-showroom-copy small {
+  color: #38bdf8 !important;
+}
+
+:global(.theme-dark) .lp-showroom-copy > p,
+:global(.dark) .lp-showroom-copy > p,
+:global(html[data-theme='dark']) .lp-showroom-copy > p {
+  color: #cbd5e1 !important;
 }
 
 :global(.theme-dark) .catalog-empty-state .empty-desc,

@@ -631,4 +631,331 @@ input:focus,select:focus{outline:none;border-color:#93c5fd;box-shadow:0 0 0 3px 
 .chart-col p{margin:0;color:#334155;font-size:12px}
 .two-factor-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}.two-factor-status{padding:5px 9px;border-radius:999px;background:#f1f5f9;color:#64748b;font-size:10px!important;font-weight:800}.two-factor-status.enabled{background:#dcfce7;color:#15803d}.two-factor-btn{height:28px;padding:0 10px;border:1px solid #2563eb;border-radius:8px;background:#2563eb;color:#fff;font-size:10px!important;font-weight:800;cursor:pointer}.two-factor-btn.secondary{border-color:#bfdbfe;background:#eff6ff;color:#1d4ed8}.two-factor-btn.danger{border-color:#fecaca;background:#fff;color:#dc2626}.two-factor-btn:disabled{opacity:.55;cursor:not-allowed}.two-factor-setup{margin:12px 15px;padding:14px;display:grid;grid-template-columns:150px 1fr;align-items:center;gap:16px;border:1px solid #bfdbfe;border-radius:12px;background:#eff6ff}.qr-code{display:grid;place-items:center;padding:8px;border-radius:10px;background:#fff}.qr-code:deep(svg){display:block;width:132px;height:132px}.two-factor-setup b,.recovery-card>b{color:#0f172a;font-size:12px!important}.two-factor-setup p,.recovery-card p{margin:5px 0;color:#64748b;font-size:10.5px!important;line-height:1.4}.two-factor-setup code{word-break:break-all;color:#1d4ed8;font-size:10px}.confirm-code{display:flex;gap:7px;margin-top:10px}.confirm-code input{width:115px;height:32px;padding:0 8px;font-size:12px;text-align:center;letter-spacing:.12em}.confirm-code button{height:32px;padding:0 10px;border:0;border-radius:8px;background:#2563eb;color:#fff;font-size:10px!important;font-weight:800;cursor:pointer}.confirm-code button:disabled{opacity:.5}.recovery-card{margin:12px 15px;padding:14px;border:1px solid #fde68a;border-radius:12px;background:#fffbeb}.recovery-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:10px}.recovery-grid code{padding:6px 8px;border:1px dashed #f59e0b;border-radius:7px;background:#fff;color:#92400e;font-size:10px;text-align:center}
 @media (max-width:1100px){.settings-v2{grid-template-columns:1fr}.left-card{position:static}.form-grid,.appearance-grid,.preview-card,.stats{grid-template-columns:1fr}.panel-head{align-items:flex-start;flex-direction:column}.row{align-items:flex-start}.switch{margin-top:4px}}
+
+/* DARK MODE OVERRIDES FOR CAI DAT HE THONG */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .left-card,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .panel {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .menu-item {
+  background: transparent !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .menu-item:hover {
+  background: #222a36 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .menu-item.active {
+  background: rgba(37, 99, 235, 0.2) !important;
+  border: 1px solid rgba(37, 99, 235, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .settings-v2 .left-card button.menu-item > div > b {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .settings-v2 .left-card button.menu-item > div > span {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .menu-item.active b,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .menu-item.active span {
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .panel-head,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .row {
+  border-bottom-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .panel-head h3,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .meta b {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .panel-head p,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .meta p,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) label span {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) input,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) select {
+  background: #13171f !important;
+  border-color: #28303d !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) select option {
+  background: #181d24 !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .ghost-btn {
+  background: #1f2937 !important;
+  border-color: #374151 !important;
+  color: #e5e7eb !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .preview-card {
+  border-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .preview-side {
+  background: #13171f !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .preview-side strong {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .preview-side p {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .two-factor-setup {
+  background: rgba(30, 58, 138, 0.25) !important;
+  border-color: rgba(59, 130, 246, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .two-factor-setup b,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .recovery-card > b {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .two-factor-setup p,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .recovery-card p {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .recovery-card {
+  background: rgba(120, 53, 15, 0.25) !important;
+  border-color: rgba(245, 158, 11, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .recovery-grid code {
+  background: #181d24 !important;
+  border-color: rgba(245, 158, 11, 0.5) !important;
+  color: #fbbf24 !important;
+}
 </style>

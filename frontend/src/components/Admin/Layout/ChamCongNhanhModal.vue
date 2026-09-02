@@ -365,4 +365,118 @@ header{display:flex;justify-content:space-between;gap:16px;margin-bottom:14px}he
 .quick-status{position:absolute;left:12px;right:12px;bottom:12px;padding:10px 12px;border-radius:10px;background:rgba(15,23,42,.9);color:#fff;text-align:center;font-size:12px;font-weight:700}.quick-status span{display:inline-block;width:7px;height:7px;margin-right:7px;border-radius:50%;background:#60a5fa}.quick-status.success,.quick-status.face-ready{background:rgba(5,150,105,.95)}.quick-status.success span,.quick-status.face-ready span{background:#bbf7d0}.quick-status.error,.quick-status.no-face,.quick-status.multiple{background:rgba(220,38,38,.95)}.quick-status.error span,.quick-status.no-face span,.quick-status.multiple span{background:#fecaca}.quick-status.warning{background:rgba(217,119,6,.95)}.quick-status.warning span{background:#fef3c7}.quick-loading{position:absolute;inset:0;display:grid;place-items:center;background:rgba(2,6,23,.72);color:#fff;font-weight:700}
 .recognized-employee{display:grid;grid-template-columns:42px 1fr auto;align-items:center;gap:10px;margin-top:12px;padding:10px;border:1px solid #bbf7d0;border-radius:12px;background:#f0fdf4}.recognized-employee img{width:42px;height:42px;border-radius:50%;object-fit:cover}.recognized-employee div{display:flex;min-width:0;flex-direction:column}.recognized-employee span,.recognized-employee small{color:#64748b;font-size:10px}.recognized-employee strong{color:#0f172a;font-size:13px}.recognized-employee b{padding:5px 8px;border-radius:7px;background:#dcfce7;color:#15803d;font-size:10px}
 .quick-check-button{width:100%;min-height:46px;margin-top:12px;border:0;border-radius:11px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 8px 20px rgba(37,99,235,.24)}.quick-check-button:disabled{opacity:.55;cursor:not-allowed}.privacy-note{display:block;margin-top:8px;color:#94a3b8;text-align:center;font-size:10px}
+
+/* DARK MODE OVERRIDES FOR QUICK ATTENDANCE MODAL */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .quick-attendance-modal {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .quick-attendance-modal h3 {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .quick-attendance-modal header p {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .quick-attendance-modal .modal-close {
+  background: rgba(239, 68, 68, 0.12) !important;
+  border-color: rgba(239, 68, 68, 0.25) !important;
+  color: #f87171 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .quick-attendance-modal .modal-close:hover {
+  background: #dc2626 !important;
+  color: #ffffff !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .quick-attendance-modal .recognized-employee {
+  background: rgba(34, 197, 94, 0.08) !important;
+  border-color: rgba(34, 197, 94, 0.25) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .quick-attendance-modal .recognized-employee strong {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .quick-attendance-modal .recognized-employee span,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .quick-attendance-modal .recognized-employee small {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .quick-attendance-modal .privacy-note {
+  color: #64748b !important;
+}
 </style>

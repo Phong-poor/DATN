@@ -2215,15 +2215,17 @@ const promoStatusMap = {
   <div class="page">
 
     <!-- Global toast -->
-    <transition name="toast">
-      <div class="toast" v-if="toast.show">
-        <svg viewBox="0 0 24 24" fill="none">
-          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-          <polyline points="22 4 12 14.01 9 11.01" />
-        </svg>
-        {{ toast.msg }}
-      </div>
-    </transition>
+    <Teleport to="body">
+      <transition name="toast">
+        <div class="toast" v-if="toast.show">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+            <polyline points="22 4 12 14.01 9 11.01" />
+          </svg>
+          {{ toast.msg }}
+        </div>
+      </transition>
+    </Teleport>
 
     <!-- Order detail modal -->
     <Teleport to="body">
@@ -5736,7 +5738,7 @@ const promoStatusMap = {
   position: fixed;
   top: 24px;
   right: 24px;
-  z-index: 9999;
+  z-index: 9999999 !important;
   background: #0f1c30;
   border: 1px solid rgba(56, 189, 248, 0.25);
   color: #ffffff;

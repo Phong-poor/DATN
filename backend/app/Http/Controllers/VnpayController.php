@@ -105,6 +105,10 @@ class VnpayController extends Controller
                         'thanh_toan_luc' => now(),
                     ]);
 
+                    try {
+                        app(\App\Services\DemoShipmentService::class)->syncDueShipments();
+                    } catch (\Throwable $t) {}
+
                     // Broadcast to Admin
                     event(new OrderStatusUpdated($order));
                     event(new NewOrderPlaced($order));
@@ -162,6 +166,10 @@ class VnpayController extends Controller
                         'nha_cung_cap_thanh_toan' => 'vnpay',
                         'thanh_toan_luc' => now(),
                     ]);
+
+                    try {
+                        app(\App\Services\DemoShipmentService::class)->syncDueShipments();
+                    } catch (\Throwable $t) {}
 
                     event(new OrderStatusUpdated($order));
                     event(new NewOrderPlaced($order));

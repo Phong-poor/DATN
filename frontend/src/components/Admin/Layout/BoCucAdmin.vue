@@ -498,6 +498,7 @@ const filteredMenuConfig = computed(() => {
     '/admin/bien-the-san-pham': ['bien_the_xem', 'bien_the_sua'],
 
     '/admin/quan-ly-don-hang': ['don_hang_xem', 'don_hang_sua', 'hoa_don_xem'],
+    '/admin/thong-ke-doanh-so-nhan-vien': 'doanh_so_nhan_vien',
 
     '/admin/quan-ly-khuyen-mai': 'marketing_quan_ly',
     '/admin/gui-ma-sinh-nhat': 'marketing_quan_ly',
@@ -523,10 +524,16 @@ const filteredMenuConfig = computed(() => {
     '/admin/xu': 'xu_quan_ly',
     '/admin/quan-ly-cham-cong': 'quan_ly_cham_cong',
     '/admin/quan-ly-don-xin-nghi': 'quan_ly_cham_cong',
+    '/admin/cham-cong-camera': 'xac_thuc_nhan_vien',
   }
 
   return menuConfig.map(item => {
     if (item.path === '/admin' && !isAdmin) return null
+    // Ngoại trừ Tổng quan và Xin nghỉ phép thì nhân viên nào cũng thấy trên sidebar
+    if (['/admin/bang-dieu-khien', '/admin/xin-nghi-phep'].includes(item.path)) {
+      return item
+    }
+
     if (!item.isDropdown) {
       const required = pathPermissionMap[item.path]
       if (required && !hasPerm(required)) return null
@@ -3227,24 +3234,25 @@ a {
   color: #ffffff !important;
 }
 
-/* Khuyến mãi: bảo đảm chữ rõ trên nền badge và nút của thẻ gradient. */
-.admin-layout .main :deep(.discount-tag.discount-percent),
-.admin-layout .main :deep(.discount-tag.discount-maxprice) {
-  border: 1px solid #f4cf67 !important;
-  background: #fff3bf !important;
-  color: #713b08 !important;
+/* Khuyến mãi trong Light Mode */
+:is(.admin-layout:not(.theme-dark):not(.dark)) .main :deep(.discount-tag.discount-percent),
+:is(.admin-layout:not(.theme-dark):not(.dark)) .main :deep(.discount-tag.discount-maxprice) {
+  border: 1px solid #fde68a !important;
+  background: #fef3c7 !important;
+  color: #b45309 !important;
 }
 
-.admin-layout .main :deep(.discount-tag.discount-fixed) {
-  border: 1px solid #93c5fd !important;
-  background: #dbeafe !important;
-  color: #1e3a8a !important;
+:is(.admin-layout:not(.theme-dark):not(.dark)) .main :deep(.discount-tag.discount-fixed) {
+  border: 1px solid #bfdbfe !important;
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
 }
 
-.admin-layout .main :deep(.discount-tag.discount-freeship) {
-  border: 1px solid #86efac !important;
+:is(.admin-layout:not(.theme-dark):not(.dark)) .main :deep(.discount-tag.discount-freeship),
+:is(.admin-layout:not(.theme-dark):not(.dark)) .main :deep(.discount-tag.discount-green) {
+  border: 1px solid #bbf7d0 !important;
   background: #dcfce7 !important;
-  color: #14532d !important;
+  color: #15803d !important;
 }
 
 .admin-layout.theme-dark .main :deep(.stat-card-gradient .stat-card-btn) {
@@ -3260,17 +3268,29 @@ a {
   color: #1e40af !important;
 }
 
-.admin-layout.theme-dark .main :deep(td .discount-tag.discount-percent),
-.admin-layout.theme-dark .main :deep(td .discount-tag.discount-maxprice) {
-  color: #713b08 !important;
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .main :deep(.discount-tag.discount-percent),
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .main :deep(.discount-tag.discount-maxprice),
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .main :deep(td .discount-tag.discount-percent),
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .main :deep(td .discount-tag.discount-maxprice) {
+  background: rgba(245, 158, 11, 0.2) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.4) !important;
 }
 
-.admin-layout.theme-dark .main :deep(td .discount-tag.discount-fixed) {
-  color: #1e3a8a !important;
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .main :deep(.discount-tag.discount-fixed),
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .main :deep(td .discount-tag.discount-fixed) {
+  background: rgba(59, 130, 246, 0.2) !important;
+  color: #60a5fa !important;
+  border: 1px solid rgba(59, 130, 246, 0.4) !important;
 }
 
-.admin-layout.theme-dark .main :deep(td .discount-tag.discount-freeship) {
-  color: #14532d !important;
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .main :deep(.discount-tag.discount-freeship),
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .main :deep(.discount-tag.discount-green),
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .main :deep(td .discount-tag.discount-freeship),
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .main :deep(td .discount-tag.discount-green) {
+  background: rgba(34, 197, 94, 0.2) !important;
+  color: #4ade80 !important;
+  border: 1px solid rgba(34, 197, 94, 0.4) !important;
 }
 
 /* Bảng dữ liệu tối đồng nhất: loại bỏ các hàng trắng làm chữ phụ bị chìm. */
@@ -3337,21 +3357,25 @@ a {
 }
 
 .admin-layout.theme-dark .main :deep(.chip-ok) {
-  border-color: #86efac !important;
-  background: #dcfce7 !important;
-  color: #166534 !important;
+  border-color: rgba(34, 197, 94, 0.4) !important;
+  background: rgba(34, 197, 94, 0.2) !important;
+  color: #4ade80 !important;
 }
 
-.admin-layout.theme-dark .main :deep(.status-badge.pending) {
-  border-color: #fde68a !important;
-  background: #fef3c7 !important;
-  color: #854d0e !important;
+.admin-layout.theme-dark .main :deep(.status-badge.pending),
+.admin-layout.theme-dark .main :deep(.status-expired) {
+  border-color: rgba(245, 158, 11, 0.4) !important;
+  background: rgba(245, 158, 11, 0.2) !important;
+  color: #fbbf24 !important;
 }
 
-.admin-layout.theme-dark .main :deep(.badge.badge-success) {
-  border-color: #86efac !important;
-  background: #dcfce7 !important;
-  color: #166534 !important;
+.admin-layout.theme-dark .main :deep(.badge.badge-success),
+.admin-layout.theme-dark .main :deep(.badge-success),
+.admin-layout.theme-dark .main :deep(.badge-green),
+.admin-layout.theme-dark .main :deep(.badge-active-green) {
+  border-color: rgba(34, 197, 94, 0.4) !important;
+  background: rgba(34, 197, 94, 0.2) !important;
+  color: #4ade80 !important;
 }
 
 .admin-layout.theme-dark .main :deep(.moderation-tool h4),

@@ -144,15 +144,20 @@ class Admin extends Authenticatable
 
         $defaults = [
             'inventory' => 'Thủ kho',
+            'thukho' => 'Thủ kho',
+            'thu_kho' => 'Thủ kho',
             'order_manager' => 'Xử lý đơn hàng',
             'marketing' => 'Marketing',
             'affiliate_manager' => 'Quản lý Affiliate',
             'editor' => 'Biên tập viên',
             'support' => 'Tư vấn viên',
             'accountant' => 'Kế toán',
+            'ke_toan' => 'Kế toán',
+            'nhanvien' => 'Nhân viên',
+            'nhan_vien' => 'Nhân viên',
         ];
 
-        return $defaults[strtolower($this->vaitro)] ?? 'Nhân viên';
+        return $defaults[strtolower(trim((string)$this->vaitro))] ?? 'Nhân viên';
     }
 
     public function getAuthPassword()

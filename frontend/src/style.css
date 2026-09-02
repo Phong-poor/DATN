@@ -502,11 +502,14 @@ body {
 }
 
 /* ============================================================
-   GLOBAL POPUP READABILITY
-   SweetAlert renders outside #app, so force readable light popup text here.
+   GLOBAL POPUP READABILITY & HIGHEST Z-INDEX TOASTS
+   SweetAlert and toasts must render above all modals and overlays.
    ============================================================ */
-.swal2-container {
-  z-index: 100000 !important;
+.swal2-container,
+.swal2-toast-popup,
+.toast,
+.premium-toast {
+  z-index: 9999999 !important;
 }
 
 .swal2-custom-popup,
