@@ -42,6 +42,7 @@ const fetchProductCombos = async (productId) => {
 // ===================== STATE GIỎ HÀNG =====================
 const soLuongMua = ref(1)
 const dangThem = ref(false)
+const daThemThanhCong = ref(false)
 const thongBao = ref({ show: false, type: '', message: '' })
 
 const hienThiThongBao = (type, message) => {
@@ -349,11 +350,186 @@ const handleSelectOptionWithReset = (groupName, value) => {
     soLuongMua.value = 1
 }
 
+const isColorAttribute = (attrName) => {
+    const name = String(attrName || '').toLowerCase().trim()
+    return name === 'màu sắc' || name === 'màu' || name === 'color' || name === 'mau sac' || name === 'mau' || name === 'mausac'
+}
+
+const defaultColorHexMap = {
+    'đen': '#000000',
+    'black': '#000000',
+    'đỏ': '#FF0000',
+    'red': '#FF0000',
+    'nâu': '#A62B2B',
+    'brown': '#A62B2B',
+    'vàng': '#FBFF00',
+    'yellow': '#FBFF00',
+    'gold': '#FBFF00',
+    'xanh lá': '#008001',
+    'xanh lá cây': '#008001',
+    'green': '#008001',
+    'trắng': '#FFFFFF',
+    'white': '#FFFFFF',
+    'xanh dương': '#2563eb',
+    'blue': '#2563eb',
+    'xám': '#64748b',
+    'gray': '#64748b',
+    'grey': '#64748b',
+    'hồng': '#ec4899',
+    'pink': '#ec4899',
+    'bạc': '#e2e8f0',
+    'silver': '#e2e8f0',
+    'cam': '#f97316',
+    'tím': '#8b5cf6'
+}
+
+const systemColorsMap = ref({ ...defaultColorHexMap })
+
+const fetchSystemColors = async () => {
+    try {
+        const res = await api.get('/colors', { skipGlobalLoader: true })
+        const list = Array.isArray(res.data?.data) ? res.data.data : (Array.isArray(res.data) ? res.data : [])
+        list.forEach(c => {
+            const name = String(c.ten || c.name || '').toLowerCase().trim()
+            const hex = c.mamau || c.hex || c.ma_mau
+            if (name && hex) {
+                systemColorsMap.value[name] = hex
+            }
+        })
+    } catch (e) {
+        // Fallback map ready
+    }
+}
+
+const getColorHex = (colorName, directMaMau) => {
+    if (directMaMau && directMaMau.startsWith('#')) return directMaMau
+    const key = String(colorName || '').toLowerCase().trim()
+    return systemColorsMap.value[key] || '#94a3b8'
+}
+
+const colorGroup = computed(() => {
+    const variants = product.value.bienThes || []
+    const map = new Map()
+
+    variants.forEach(variant => {
+        const attrs = getVariantAttributes(variant)
+        const colorAttr = attrs.find(a => isColorAttribute(a.ten_thuoctinh))
+        if (colorAttr && !map.has(colorAttr.giatri)) {
+            const hex = getColorHex(colorAttr.giatri, colorAttr.ma_mau || colorAttr.mamau)
+            map.set(colorAttr.giatri, { giatri: colorAttr.giatri, ma_mau: hex })
+        }
+    })
+
+    return Array.from(map.values())
+})
+
+const getVariantSpecLabel = (variant) => {
+    const attrs = getVariantAttributes(variant)
+    const specAttrs = attrs.filter(a => !isColorAttribute(a.ten_thuoctinh))
+    if (specAttrs.length > 0) {
+        return specAttrs.map(a => a.giatri).join(' / ')
+    }
+    return variant.ten_bienthe || 'Cấu hình tiêu chuẩn'
+}
+
+const combinedSpecOptions = computed(() => {
+    const variants = product.value.bienThes || []
+    const map = new Map()
+
+    variants.forEach(variant => {
+        const label = getVariantSpecLabel(variant)
+        if (!map.has(label)) {
+            map.set(label, { label, variant })
+        }
+    })
+
+    return Array.from(map.values())
+})
+
+const selectedCombinedSpecLabel = computed(() => {
+    if (!selectedVariant.value) return ''
+    return getVariantSpecLabel(selectedVariant.value)
+})
+
+const getCombinedSpecInfo = (specLabel) => {
+    const variants = product.value.bienThes || []
+    const currentColor = selectedOptions.value['Màu sắc'] || selectedOptions.value['Color'] || selectedOptions.value['Màu'] || selectedOptions.value['mau']
+
+    let matched = null
+    if (currentColor) {
+        matched = variants.find(v => {
+            const attrs = getVariantAttributes(v)
+            const cAttr = attrs.find(a => isColorAttribute(a.ten_thuoctinh))
+            const matchColor = cAttr && cAttr.giatri === currentColor
+            const matchSpec = getVariantSpecLabel(v) === specLabel
+            return matchColor && matchSpec
+        })
+    }
+
+    if (!matched) {
+        matched = variants.find(v => getVariantSpecLabel(v) === specLabel)
+    }
+
+    if (!matched) {
+        return { isAvailable: false, priceText: 'Hết hàng', price: 0 }
+    }
+
+    const stock = Number(matched.soluong ?? 0)
+    const isAvailable = stock > 0 && matched.enabled !== false
+
+    return {
+        variant: matched,
+        isAvailable,
+        price: matched.gia,
+        priceText: isAvailable ? formatPrice(matched.gia) : 'Tạm hết hàng'
+    }
+}
+
+const handleSelectColor = (colorVal) => {
+    selectedOptions.value = { ...selectedOptions.value, 'Màu sắc': colorVal }
+    const currentSpecLabel = selectedCombinedSpecLabel.value
+    let matched = null
+    if (currentSpecLabel) {
+        matched = getCombinedSpecInfo(currentSpecLabel).variant
+    }
+    if (!matched) {
+        const variants = product.value.bienThes || []
+        matched = variants.find(v => {
+            const attrs = getVariantAttributes(v)
+            return attrs.some(a => isColorAttribute(a.ten_thuoctinh) && a.giatri === colorVal)
+        })
+    }
+    if (matched) {
+        applySelectedVariant(matched)
+    }
+    soLuongMua.value = 1
+}
+
+const handleSelectSpec = (specLabel) => {
+    const info = getCombinedSpecInfo(specLabel)
+    if (info.variant) {
+        applySelectedVariant(info.variant)
+    }
+    soLuongMua.value = 1
+}
+
 // ===================== SỐ LƯỢNG MUA =====================
 const giamSoLuong = () => { if (soLuongMua.value > 1) soLuongMua.value-- }
 const tangSoLuong = () => {
     const maxTonKho = Number(selectedVariant.value?.soluong ?? 999)
     if (soLuongMua.value < maxTonKho) soLuongMua.value++
+}
+const onInputSoLuongMua = (e) => {
+    let val = parseInt(e.target.value, 10)
+    const maxTonKho = Number(selectedVariant.value?.soluong ?? 999)
+    if (isNaN(val) || val < 1) {
+        val = 1
+    } else if (val > maxTonKho) {
+        val = maxTonKho
+        hienThiThongBao('error', `Kho chỉ còn ${maxTonKho} sản phẩm.`)
+    }
+    soLuongMua.value = val
+    e.target.value = val
 }
 
 // THÊM GIỎ HÀNG
@@ -369,6 +545,7 @@ const themVaoGioHang = async () => {
     if (!token) {
         hienThiThongBao('error', 'Vui lòng đăng nhập trước!')
         if (selectedVariant.value) {
+            localStorage.removeItem('pendingBuyNow')
             localStorage.setItem('pendingCartItem', JSON.stringify({
                 id_bienthe: variantForApi.id_bienthe,
                 soluong: soLuongMua.value,
@@ -403,6 +580,8 @@ const themVaoGioHang = async () => {
         })
 
         hienThiThongBao('success', '✅ Đã thêm vào giỏ hàng!')
+        daThemThanhCong.value = true
+        setTimeout(() => { daThemThanhCong.value = false }, 2500)
 
         // 🔥 cập nhật badge header
         window.dispatchEvent(new Event('cart-updated'))
@@ -427,6 +606,7 @@ const muaNgay = async () => {
     if (!token) {
         hienThiThongBao('error', 'Vui lòng đăng nhập để tiến hành mua ngay!')
         if (selectedVariant.value) {
+            localStorage.setItem('pendingBuyNow', '1')
             localStorage.setItem('pendingCartItem', JSON.stringify({
                 id_bienthe: variantForApi.id_bienthe,
                 soluong: soLuongMua.value,
@@ -856,6 +1036,7 @@ const benchmarkData = computed(() => {
 onMounted(() => {
     showStickyBar.value = false
     window.scrollTo(0, 0)
+    fetchSystemColors()
     loadPageData()
     window.addEventListener('scroll', handleScrollSticky, { passive: true })
     document.addEventListener('click', closeAllDropdowns)
@@ -1312,6 +1493,12 @@ const openCompareModal = () => {
     showCompareModal.value = true
 }
 
+onMounted(() => {
+    if (String(route.query.compare || '') === '1') {
+        window.setTimeout(openCompareModal, 0)
+    }
+})
+
 const closeCompareModal = () => { showCompareModal.value = false; compareSelection.value = [] }
 
 const compareProducts = computed(() => {
@@ -1421,8 +1608,12 @@ const handleSelectVariantById = (idBienThe) => {
                         {{ selectedVariant ? formatPrice(selectedVariant.gia) : formatPrice(product.gia) }}
                     </div>
                     <template v-if="selectedVariant && Number(selectedVariant.soluong) > 0">
-                        <button class="btn btn-premium-glass sticky-cart-icon-btn" @click="themVaoGioHang" :disabled="dangThem" aria-label="Thêm vào giỏ hàng" title="Thêm vào giỏ hàng">
-                            <svg class="sticky-cart-icon" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <button class="btn btn-premium-glass sticky-cart-icon-btn" :class="{ 'added-success': daThemThanhCong }" @click.stop.prevent="themVaoGioHang" :disabled="dangThem" aria-label="Thêm vào giỏ hàng" title="Thêm vào giỏ hàng">
+                            <span v-if="dangThem" class="loading-spin-circle" style="width: 18px; height: 18px; border: 2px solid rgba(37,99,235,0.2); border-top-color: #2563eb; border-radius: 50%; display: inline-block; animation: spin 0.8s linear infinite;"></span>
+                            <svg v-else-if="daThemThanhCong" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="pointer-events: none;">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <svg v-else class="sticky-cart-icon" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="pointer-events: none;">
                                 <circle cx="9" cy="21" r="1"></circle>
                                 <circle cx="20" cy="21" r="1"></circle>
                                 <path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"></path>
@@ -1442,11 +1633,13 @@ const handleSelectVariantById = (idBienThe) => {
         </div>
     </transition>
 
-    <transition name="slide-down">
-        <div v-if="thongBao.show" :class="['toast', thongBao.type]">
-            {{ thongBao.message }}
-        </div>
-    </transition>
+    <Teleport to="body">
+        <transition name="slide-down">
+            <div v-if="thongBao.show" :class="['toast', thongBao.type]">
+                {{ thongBao.message }}
+            </div>
+        </transition>
+    </Teleport>
 
     <!-- TOP GLOW DECORATOR -->
     <div class="tech-glow-top"></div>
@@ -1556,43 +1749,63 @@ const handleSelectVariantById = (idBienThe) => {
                             </div>
                             <div class="price-badges-row">
                                 <span class="premium-badge-check">✓ Trả góp 0%</span>
-                                <span class="premium-badge-check">✓ Miễn phí giao hàng</span>
+                                <span class="premium-badge-check">✓ Phí giao hàng 30.000đ</span>
                             </div>
                         </div>
 
-                        <!-- Variant Selectors Option Groups -->
+                        <!-- Variant Selectors Option Groups (Hàng 1: Màu sắc | Hàng 2: Gộp Cấu hình kiểu Shopee) -->
                         <div class="premium-selectors-wrapper" v-if="product.bienThes && product.bienThes.length > 0">
-                            <div class="premium-option-group" v-for="group in variantGroups" :key="group.name">
+                            
+                            <!-- HÀNG 1: MÀU SẮC (NẾU CÓ) -->
+                            <div class="premium-option-group" v-if="colorGroup.length > 0">
                                 <div class="option-header-row">
-                                    <span class="option-label-title">{{ group.name }}</span>
-                                    <span v-if="group.values.length > 1" class="option-selected-value">{{ selectedOptions[group.name] }}</span>
+                                    <span class="option-label-title">Chọn Màu sắc</span>
+                                    <span class="option-selected-value">{{ selectedOptions['Màu sắc'] || selectedOptions['Color'] }}</span>
                                 </div>
-
-                                <div class="premium-variant-dropdown">
-                                    <div class="dropdown-trigger" @click.stop="toggleDropdown(group.name)" :class="{ active: activeDropdown === group.name }">
-                                        <div class="selected-info-container">
-                                            <span v-if="group.name === 'Màu sắc' && selectedOptions[group.name]" class="selected-color-dot" :style="{ backgroundColor: (group.values.find(v => v.giatri === selectedOptions[group.name])?.ma_mau || '#ccc') }"></span>
-                                            <span class="selected-value-text">{{ selectedOptions[group.name] || 'Chọn ' + group.name }}</span>
-                                        </div>
-                                        <span class="dropdown-arrow-icon">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 14px; height: 14px;">
-                                                <polyline points="6 9 12 15 18 9"></polyline>
-                                            </svg>
-                                        </span>
-                                    </div>
-                                    <transition name="dropdown-fade">
-                                        <div class="dropdown-menu-list" v-show="activeDropdown === group.name">
-                                            <div v-for="item in group.values" :key="item.giatri"
-                                                 :class="['dropdown-item-option', { active: selectedOptions[group.name] === item.giatri }]"
-                                                 @click="selectOptionAndClose(group.name, item.giatri)">
-                                                <span v-if="group.name === 'Màu sắc'" class="item-color-dot" :style="{ backgroundColor: item.ma_mau || '#ccc' }"></span>
-                                                <span class="item-text-label">{{ item.giatri }}</span>
-                                                <span v-if="selectedOptions[group.name] === item.giatri" class="checkmark-active">✓</span>
-                                            </div>
-                                        </div>
-                                    </transition>
+                                <div class="color-swatch-flex">
+                                    <button v-for="c in colorGroup" :key="c.giatri"
+                                            type="button"
+                                            :class="['color-swatch-card', { active: (selectedOptions['Màu sắc'] === c.giatri || selectedOptions['Color'] === c.giatri) }]"
+                                            @click="handleSelectColor(c.giatri)">
+                                        <span class="swatch-color-dot" :style="{ backgroundColor: getColorHex(c.giatri, c.ma_mau) }"></span>
+                                        <span class="swatch-name-text">{{ c.giatri }}</span>
+                                        <span v-if="selectedOptions['Màu sắc'] === c.giatri || selectedOptions['Color'] === c.giatri" class="swatch-card-check">✓</span>
+                                    </button>
                                 </div>
                             </div>
+
+                            <!-- HÀNG 2: CẤU HÌNH GỘP (SHOPEE STYLE WITH PRICE) -->
+                            <div class="premium-option-group" v-if="combinedSpecOptions.length > 0">
+                                <div class="option-header-row">
+                                    <span class="option-label-title">Chọn Cấu hình (RAM / SSD / CPU)</span>
+                                    <span class="option-selected-value">{{ selectedCombinedSpecLabel }}</span>
+                                </div>
+                                <div class="spec-card-grid">
+                                    <button v-for="spec in combinedSpecOptions" :key="spec.label"
+                                            type="button"
+                                            :class="[
+                                                'spec-card-btn',
+                                                { active: selectedCombinedSpecLabel === spec.label },
+                                                { disabled: !getCombinedSpecInfo(spec.label).isAvailable }
+                                            ]"
+                                            :disabled="!getCombinedSpecInfo(spec.label).isAvailable"
+                                            @click="handleSelectSpec(spec.label)">
+                                        <div class="card-left-info">
+                                            <span class="card-title-text">{{ spec.label }}</span>
+                                        </div>
+                                        <div class="card-right-price">
+                                            <span class="card-price-text" v-if="getCombinedSpecInfo(spec.label).isAvailable">
+                                                {{ getCombinedSpecInfo(spec.label).priceText }}
+                                            </span>
+                                            <span class="card-out-text" v-else>
+                                                Tạm hết hàng
+                                            </span>
+                                        </div>
+                                        <span v-if="selectedCombinedSpecLabel === spec.label" class="spec-card-check">✓</span>
+                                    </button>
+                                </div>
+                            </div>
+
                         </div>
 
                         <!-- Option Group fallback if none -->
@@ -1621,7 +1834,7 @@ const handleSelectVariantById = (idBienThe) => {
                                         <line x1="5" y1="12" x2="19" y2="12"></line>
                                     </svg>
                                 </button>
-                                <span class="stepper-value">{{ soLuongMua }}</span>
+                                <input type="number" min="1" :max="Number(selectedVariant?.soluong || 999)" class="stepper-input" :value="soLuongMua" @focus="$event.target.select()" @change="onInputSoLuongMua" @blur="onInputSoLuongMua" @keyup.enter="$event.target.blur()" />
                                 <button @click="tangSoLuong" :disabled="soLuongMua >= Number(selectedVariant.soluong)" class="stepper-btn" aria-label="Tăng số lượng">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
                                         <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -1754,7 +1967,7 @@ const handleSelectVariantById = (idBienThe) => {
                                             <circle cx="18.5" cy="18.5" r="2.5"/>
                                         </svg>
                                     </span>
-                                    <span class="benefit-text">Miễn phí giao hàng toàn quốc hoặc <b>Giao nhanh Hỏa Tốc trong vòng 2H</b>.</span>
+                                    <span class="benefit-text">Phí giao hàng toàn quốc 30.000đ hoặc <b>Giao nhanh Hỏa Tốc</b>.</span>
                                 </li>
                             </ul>
                         </div>
@@ -2605,6 +2818,35 @@ const handleSelectVariantById = (idBienThe) => {
 
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
 
+.stepper-input {
+    width: 48px;
+    height: 32px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-1, #1e293b);
+    border: none;
+    border-left: 1px solid var(--border, #e2e8f0);
+    border-right: 1px solid var(--border, #e2e8f0);
+    background: #ffffff;
+    outline: none;
+    padding: 0;
+    transition: all 0.2s ease;
+    -moz-appearance: textfield;
+}
+.stepper-input:focus {
+    background: #eff6ff;
+    color: #2563eb;
+    border-left-color: #2563eb;
+    border-right-color: #2563eb;
+    box-shadow: inset 0 0 0 1.5px #2563eb;
+}
+.stepper-input::-webkit-outer-spin-button,
+.stepper-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
 /* ==================== STICKY BUY BAR & NEW CONVERSION SECTIONS ==================== */
 .sticky-buy-bar {
     position: fixed;
@@ -2704,9 +2946,24 @@ const handleSelectVariantById = (idBienThe) => {
     justify-content: center;
     border-radius: 12px;
     color: #2563EB;
-    background: var(--tn-surface);
-    border: 1px solid #dbeafe;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
     overflow: visible;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sticky-cart-icon-btn:hover:not(:disabled) {
+    background: #dbeafe;
+    border-color: #3b82f6;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+.sticky-cart-icon-btn.added-success {
+    background: #dcfce7 !important;
+    border-color: #86efac !important;
+    color: #16a34a !important;
 }
 
 .sticky-cart-icon {
@@ -2714,6 +2971,7 @@ const handleSelectVariantById = (idBienThe) => {
     height: 22px;
     display: block;
     flex: 0 0 auto;
+    pointer-events: none;
     opacity: 1;
     stroke: #2563eb;
     fill: none;
@@ -2998,7 +3256,7 @@ const handleSelectVariantById = (idBienThe) => {
     position: fixed;
     top: 24px;
     right: 24px;
-    z-index: 10000;
+    z-index: 9999999 !important;
     padding: 16px 24px;
     border-radius: 16px;
     font-family: var(--font-heading);
@@ -3399,57 +3657,41 @@ const handleSelectVariantById = (idBienThe) => {
 
 /* ==================== SELECTORS ==================== */
 .premium-selectors-wrapper {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-    margin: 10px 0 12px;
-}
-.premium-option-group {
-    display: grid;
-    grid-template-columns: minmax(64px, 0.62fr) minmax(0, 1.38fr);
-    align-items: center;
-    gap: 6px 8px;
-    min-height: 46px;
-    padding: 8px 10px;
-    border: 1px solid #dbe5f0;
-    border-radius: 10px;
-    background: #ffffff;
-}
-
-@media (max-width: 1280px) {
-    .premium-selectors-wrapper {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 760px) {
-    .premium-selectors-wrapper {
-        grid-template-columns: 1fr;
-    }
-}
-.option-header-row {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    justify-content: center;
-    gap: 2px;
-    min-width: 0;
-    font-size: 11.5px;
-    font-weight: 750;
+    gap: 16px;
+    margin: 12px 0 16px;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+}
+.premium-option-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.option-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13.5px;
+    font-weight: 700;
 }
 .option-label-title {
-    overflow: hidden;
-    max-width: 100%;
-    color: var(--text-primary);
-    font-weight: 850;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    color: #0f172a;
+    font-weight: 800;
+    font-size: 14px;
 }
 .option-selected-value {
-    color: var(--primary);
-    font-size: 10.5px;
-    font-weight: 800;
-    line-height: 1.25;
+    color: #2563eb;
+    font-size: 13px;
+    font-weight: 700;
 }
 
 .premium-color-selectors {
@@ -6266,5 +6508,337 @@ const handleSelectVariantById = (idBienThe) => {
 
 .empty-reviews-state h4 {
     color: #0f172a;
+}
+
+/* Color Swatch Flex Styles */
+.color-swatch-flex {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.color-swatch-card {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: #ffffff;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    outline: none;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.color-swatch-card:hover {
+    border-color: #3b82f6;
+    background: #f0f9ff;
+}
+
+.color-swatch-card.active {
+    border-color: #2563eb;
+    background: #eff6ff;
+    color: #1d4ed8;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+}
+
+.swatch-color-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    display: inline-block;
+}
+
+.swatch-card-check {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 16px;
+    height: 16px;
+    background: #2563eb;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 900;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Card Spec Grid Styles - Shopee Style with Price */
+.spec-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+    width: 100%;
+}
+
+.spec-card-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 4px;
+    padding: 10px 14px;
+    background: #ffffff;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    text-align: left;
+    outline: none;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.spec-card-btn:hover:not(.disabled) {
+    border-color: #2563eb;
+    background: #f0f9ff;
+    transform: translateY(-1px);
+}
+
+.spec-card-btn.active {
+    border-color: #2563eb;
+    background: #eff6ff;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+}
+
+.spec-card-btn.disabled {
+    opacity: 0.5;
+    background: #f8fafc;
+    border-color: #e2e8f0;
+    cursor: not-allowed;
+    filter: grayscale(0.5);
+}
+
+.card-left-info {
+    width: 100%;
+}
+
+.card-title-text {
+    font-size: 13.5px;
+    font-weight: 750;
+    color: #0f172a;
+    line-height: 1.3;
+}
+
+.spec-card-btn.active .card-title-text {
+    color: #1d4ed8;
+}
+
+.spec-card-btn.disabled .card-title-text {
+    color: #94a3b8;
+    text-decoration: line-through;
+}
+
+.card-right-price {
+    width: 100%;
+    margin-top: 2px;
+}
+
+.card-price-text {
+    font-size: 13px;
+    font-weight: 800;
+    color: #2563eb;
+}
+
+.card-out-text {
+    font-size: 11px;
+    font-weight: 600;
+    color: #ef4444;
+    background: #fee2e2;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.spec-card-check {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 18px;
+    height: 18px;
+    background: #2563eb;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 900;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4);
+}
+/* Complete mobile layout for product detail. */
+@media (max-width: 640px) {
+    .product-detail-wrapper,
+    .product-detail-wrapper .page,
+    .product-detail-wrapper .premium-hero-container {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: clip;
+    }
+
+    .product-detail-wrapper .container {
+        width: 100% !important;
+        max-width: none !important;
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+        box-sizing: border-box;
+    }
+
+    .product-detail-wrapper .detail-hero-grid {
+        width: 100%;
+        grid-template-columns: minmax(0, 1fr) !important;
+        gap: 18px;
+    }
+
+    .product-detail-wrapper .gallery-column,
+    .product-detail-wrapper .purchase-column,
+    .product-detail-wrapper .main-image-viewport,
+    .product-detail-wrapper .premium-thumbs-container {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        box-sizing: border-box;
+    }
+
+    .product-detail-wrapper .main-image-viewport {
+        min-height: 285px;
+        padding: 16px;
+    }
+
+    .product-detail-wrapper .main-showcase-image {
+        width: 100%;
+        max-width: 250px;
+        height: 220px;
+        object-fit: contain;
+    }
+
+    .product-detail-wrapper .gallery-nav-arrow {
+        width: 38px;
+        height: 38px;
+    }
+
+    .product-detail-wrapper .arrow-left { left: 8px; }
+    .product-detail-wrapper .arrow-right { right: 8px; }
+
+    .product-detail-wrapper .premium-thumbs-container {
+        padding: 8px;
+        gap: 5px;
+    }
+
+    .product-detail-wrapper .premium-thumbs-scroll {
+        min-width: 0;
+        overflow-x: auto;
+    }
+
+    .product-detail-wrapper .tech-spec-badges,
+    .product-detail-wrapper .price-badges-row,
+    .product-detail-wrapper .color-swatch-flex {
+        flex-wrap: wrap;
+    }
+
+    .product-detail-wrapper .premium-product-title {
+        font-size: clamp(24px, 8vw, 32px);
+        line-height: 1.12;
+        overflow-wrap: anywhere;
+    }
+
+    .product-detail-wrapper .premium-price-container,
+    .product-detail-wrapper .premium-selectors-wrapper,
+    .product-detail-wrapper .purchase-actions-box {
+        width: 100%;
+        box-sizing: border-box;
+        padding-left: 14px;
+        padding-right: 14px;
+    }
+
+    .product-detail-wrapper .price-value-glow {
+        font-size: clamp(27px, 9vw, 38px);
+        overflow-wrap: anywhere;
+    }
+
+    .product-detail-wrapper .spec-card-grid {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    .product-detail-wrapper .actions-grid {
+        grid-template-columns: minmax(0, 1fr) !important;
+        gap: 9px;
+    }
+
+    .product-detail-wrapper .sticky-buy-bar .container,
+    .product-detail-wrapper .sticky-bar-flex {
+        gap: 8px;
+    }
+
+    .product-detail-wrapper .sticky-info-left,
+    .product-detail-wrapper .sticky-meta {
+        min-width: 0;
+    }
+
+    .product-detail-wrapper .sticky-title {
+        max-width: 110px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .product-detail-wrapper .sticky-thumb,
+    .product-detail-wrapper .sticky-variant-name {
+        display: none;
+    }
+
+    .product-detail-wrapper .sticky-actions-right {
+        gap: 6px;
+    }
+
+    .product-detail-wrapper .sticky-price-glow {
+        font-size: 14px;
+    }
+
+    .product-detail-wrapper .premium-specs-section,
+    .product-detail-wrapper .premium-highlights-section,
+    .product-detail-wrapper .premium-reviews-section,
+    .product-detail-wrapper .premium-related-products-section {
+        width: 100%;
+        overflow: hidden;
+    }
+}
+
+@media (max-width: 330px) {
+    .product-detail-wrapper .main-image-viewport {
+        min-height: 255px;
+    }
+
+    .product-detail-wrapper .main-showcase-image {
+        height: 190px;
+    }
+}
+
+/* Related products follow the same two-card mobile grid as /laptop. */
+@media (max-width: 640px) {
+    .product-detail-wrapper .related-products-grid {
+        width: 100%;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 10px !important;
+    }
+
+    .product-detail-wrapper .related-product-card {
+        min-width: 0;
+        border-radius: 16px;
+        overflow: hidden;
+    }
+
+    .product-detail-wrapper .related-product-card img {
+        width: 100%;
+        height: 120px;
+        object-fit: contain;
+    }
 }
 </style>

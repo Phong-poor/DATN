@@ -25,8 +25,15 @@ class User extends Authenticatable
         'name',
         'email',
         'sodienthoai',
+        'so_cccd',
+        'ngay_cap_cccd',
+        'noi_cap_cccd',
+        'anh_cccd_mat_truoc',
+        'anh_cccd_mat_sau',
         'ngaysinh',
         'gioitinh',
+        'quoc_tich',
+        'dia_chi_thuong_tru',
         'anhdaidien',
         'matkhau',
         'vaitro',
@@ -274,18 +281,4 @@ class User extends Authenticatable
         $this->attributes['hoat_dong_cuoi_luc'] = $value;
     }
 
-    public function chamCongs()
-    {
-        return $this->hasMany(ChamCong::class, 'id_nhanvien');
-    }
-
-    public function lichLamNhanVien()
-    {
-        return $this->hasOne(LichLamNhanVien::class, 'id_nhanvien');
-    }
-
-    public function donXinNghis()
-    {
-        return $this->hasMany(DonXinNghi::class, 'id_nhanvien');
-    }
 }

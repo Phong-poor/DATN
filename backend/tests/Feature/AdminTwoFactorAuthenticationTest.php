@@ -3,11 +3,13 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Models\Admin;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Fortify\Contracts\TwoFactorAuthenticationProvider;
 use Laravel\Fortify\Fortify;
 use Laravel\Sanctum\Sanctum;
+use PragmaRX\Google2FA\Google2FA;
 use Tests\TestCase;
 
 class AdminTwoFactorAuthenticationTest extends TestCase
@@ -90,11 +92,52 @@ class AdminTwoFactorAuthenticationTest extends TestCase
         $this->getJson('/api/admin/account/two-factor')->assertForbidden();
     }
 
-    private function adminWithTwoFactor(): User
+    public function test_admin_can_cancel_a_pending_two_factor_setup(): void
+    {
+        $admin = $this->adminWithTwoFactor();
+        $admin->forceFill(['two_factor_confirmed_at' => null])->save();
+        Sanctum::actingAs($admin);
+
+        $this->deleteJson('/api/admin/account/two-factor/pending')->assertOk();
+
+        $admin->refresh();
+        $this->assertNull($admin->two_factor_secret);
+        $this->assertNull($admin->two_factor_recovery_codes);
+        $this->assertNull($admin->two_factor_confirmed_at);
+    }
+
+    public function test_pending_cancel_cannot_disable_an_enabled_two_factor_setup(): void
+    {
+        $admin = $this->adminWithTwoFactor();
+        Sanctum::actingAs($admin);
+
+        $this->deleteJson('/api/admin/account/two-factor/pending')->assertUnprocessable();
+        $this->assertTrue($admin->fresh()->hasEnabledTwoFactorAuthentication());
+    }
+
+    public function test_pending_setup_can_be_confirmed_even_if_the_code_was_checked_before(): void
+    {
+        $admin = $this->adminWithTwoFactor();
+        $admin->forceFill(['two_factor_confirmed_at' => null])->save();
+        Sanctum::actingAs($admin);
+
+        $secret = Fortify::currentEncrypter()->decrypt($admin->two_factor_secret);
+        $code = app(Google2FA::class)->getCurrentOtp($secret);
+
+        // Mô phỏng mã đã đi qua bộ nhớ chống phát lại trước bước xác nhận thiết lập.
+        app(TwoFactorAuthenticationProvider::class)->verify($secret, $code);
+
+        $this->postJson('/api/admin/account/two-factor/confirm', ['code' => $code])
+            ->assertOk();
+
+        $this->assertTrue($admin->fresh()->hasEnabledTwoFactorAuthentication());
+    }
+
+    private function adminWithTwoFactor(): Admin
     {
         $provider = app(TwoFactorAuthenticationProvider::class);
 
-        $admin = User::query()->create([
+        $admin = Admin::query()->create([
             'ten' => 'Admin 2FA',
             'email' => 'admin-2fa@example.com',
             'matkhau' => Hash::make('Admin@123'),

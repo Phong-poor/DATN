@@ -377,14 +377,18 @@ class BirthdayCodeController extends Controller
         $settings = $service->getSettings();
         $schedulerLastRun = Cache::get('birthday-scheduler:last-run');
         if (!$schedulerLastRun) {
-            $lastLog = BirthdayCouponLog::orderBy('id', 'desc')->first();
-            if ($lastLog && $lastLog->created_at) {
-                $schedulerLastRun = $lastLog->created_at->toIso8601String();
+            if ($settings && $settings->updated_at) {
+                $schedulerLastRun = $settings->updated_at->toIso8601String();
+            } else {
+                $lastLog = BirthdayCouponLog::orderBy('id', 'desc')->first();
+                if ($lastLog && $lastLog->created_at) {
+                    $schedulerLastRun = $lastLog->created_at->toIso8601String();
+                }
             }
         }
-        // Healthy if cron executed within the last 25 hours (covers daily scheduled scans)
+        // Healthy if cron executed within the last 30 hours (covers daily scheduled scans)
         $schedulerHealthy = $schedulerLastRun
-            && Carbon::parse($schedulerLastRun)->greaterThanOrEqualTo(now()->subHours(25));
+            && Carbon::parse($schedulerLastRun)->greaterThanOrEqualTo(now()->subHours(30));
         // Load active birthday promotions
         $promotions = Promotion::where('danhmuc', 'birthday')
             ->whereIn('trangthai', ['running', 'open'])

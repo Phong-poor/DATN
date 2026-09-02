@@ -58,7 +58,8 @@ const permissionGroups = [
     permissions: [
       { code: 'don_hang_xem', name: 'Xem danh sách đơn hàng', desc: 'Xem danh sách các đơn đặt hàng và hóa đơn.' },
       { code: 'don_hang_sua', name: 'Xử lý và duyệt đơn hàng', desc: 'Duyệt đơn, cập nhật trạng thái đơn hàng và trạng thái thanh toán.' },
-      { code: 'hoa_don_xem', name: 'Xem thống kê doanh thu', desc: 'Truy cập biểu đồ, hóa đơn và doanh thu (Billing).' }
+      { code: 'hoa_don_xem', name: 'Xem thống kê doanh thu', desc: 'Truy cập biểu đồ, hóa đơn và doanh thu (Billing).' },
+      { code: 'doanh_so_nhan_vien', name: 'Doanh số nhân viên', desc: 'Xem báo cáo thống kê doanh số bán hàng của từng nhân viên.' }
     ]
   },
   {
@@ -97,10 +98,24 @@ const permissionGroups = [
       { code: 'tai_khoan_quan_ly', name: 'Quản lý tài khoản nhân viên', desc: 'Tạo mới nhân viên, khóa hoặc mở khóa tài khoản nhân viên.' },
       { code: 'vai_tro_quan_ly', name: 'Quản lý vai trò & quyền', desc: 'Được quyền tạo mới, chỉnh sửa quyền hạn các chức vụ trong hệ thống.' },
       { code: 'nhat_ky_quan_ly', name: 'Xem nhật ký hoạt động', desc: 'Xem lịch sử các thao tác của nhân viên trên hệ thống.' },
-      { code: 'quan_ly_cham_cong', name: 'Quản lý chấm công', desc: 'Cho phép truy cập trang quản lý chấm công, xem lịch sử chấm công của tất cả nhân viên.' }
+      { code: 'quan_ly_cham_cong', name: 'Quản lý chấm công', desc: 'Cho phép truy cập trang quản lý chấm công, xem lịch sử chấm công của tất cả nhân viên.' },
+      { code: 'xac_thuc_nhan_vien', name: 'Xác thực nhân viên', desc: 'Cho phép truy cập trang Xác thực nhân viên (mặc định chỉ dành cho Admin & Kế toán).' }
     ]
   }
 ]
+
+// Helper lấy toàn bộ danh sách các mã quyền từ schema
+const getAllPermissionCodes = () => {
+  const codes = []
+  permissionGroups.forEach(group => {
+    group.permissions.forEach(p => {
+      if (p.code && !codes.includes(p.code)) {
+        codes.push(p.code)
+      }
+    })
+  })
+  return codes
+}
 
 // Fetch data
 const fetchRoles = async () => {
@@ -108,7 +123,13 @@ const fetchRoles = async () => {
   try {
     const res = await api.get('/admin/vaitro')
     if (res.data?.success) {
-      roles.value = res.data.data
+      const allCodes = getAllPermissionCodes()
+      roles.value = (res.data.data || []).map(r => {
+        if (r.ma_vaitro === 'admin') {
+          return { ...r, quyen: allCodes }
+        }
+        return r
+      })
     }
   } catch (err) {
     console.error('Fetch roles failed:', err)
@@ -194,11 +215,13 @@ const openEditModal = (role) => {
   isEditMode.value = true
   editingRoleId.value = role.id_vaitro
   formError.value = ''
+  
+  const isSuperAdmin = role.ma_vaitro === 'admin'
   form.value = {
     ten_vaitro: role.ten_vaitro,
     ma_vaitro: role.ma_vaitro,
     mo_ta: role.mo_ta || '',
-    quyen: Array.isArray(role.quyen) ? [...role.quyen] : []
+    quyen: isSuperAdmin ? getAllPermissionCodes() : (Array.isArray(role.quyen) ? [...role.quyen] : [])
   }
   showModal.value = true
 }
@@ -246,6 +269,11 @@ const submitForm = async () => {
   if (!form.value.ma_vaitro.trim()) {
     formError.value = 'Vui lòng nhập mã vai trò'
     return
+  }
+
+  // Quản trị viên (admin) luôn tự động có tất cả các quyền hạn hệ thống
+  if (form.value.ma_vaitro === 'admin') {
+    form.value.quyen = getAllPermissionCodes()
   }
 
   loading.value = true
@@ -482,7 +510,7 @@ const deleteRole = async (role) => {
 
 <style scoped>
 .roles-management {
-  padding: 24px 0;
+  padding: 24px 32px;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -508,23 +536,24 @@ const deleteRole = async (role) => {
 }
 
 .add-btn {
-  background: #2563eb;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
   color: #fff;
   border: none;
-  padding: 10px 18px;
-  border-radius: 8px;
+  padding: 10px 20px;
+  border-radius: 10px;
   font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.18);
+  gap: 8px;
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.22);
   transition: all 0.2s ease;
 }
 
 .add-btn:hover {
-  background: #1d4ed8;
+  background: linear-gradient(135deg, #1d4ed8, #1e40af);
   transform: translateY(-1px);
 }
 
@@ -534,8 +563,8 @@ const deleteRole = async (role) => {
   justify-content: space-between;
   gap: 16px;
   background: #ffffff;
-  padding: 12px 16px;
-  border-radius: 10px;
+  padding: 14px 20px;
+  border-radius: 12px;
   border: 1px solid rgba(15, 23, 42, 0.05);
 }
 
@@ -956,5 +985,298 @@ code {
 .fade-scale-leave-to {
   opacity: 0;
   transform: scale(0.95);
+}
+
+/* DARK MODE OVERRIDES FOR ROLE MANAGEMENT (QuanLyVaiTro) */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .filter-bar {
+  background: #1e293b !important;
+  border: 1px solid #334155 !important;
+  padding: 14px 20px !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .table-card {
+  background: #1e293b !important;
+  border: 1px solid #334155 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .search-wrap input {
+  background: #13171f !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .search-wrap input::placeholder {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) th {
+  background: #181d24 !important;
+  color: #94a3b8 !important;
+  border-bottom-color: #334155 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) td {
+  border-bottom-color: #28303d !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) tr:hover td {
+  background: #253346 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .role-name-badge {
+  background: rgba(20, 184, 166, 0.2) !important;
+  color: #2dd4bf !important;
+  border: 1px solid rgba(20, 184, 166, 0.45) !important;
+  font-weight: 700 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .role-name-badge.admin-badge {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #f87171 !important;
+  border: 1px solid rgba(239, 68, 68, 0.45) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) code {
+  background: #253346 !important;
+  color: #f8fafc !important;
+  border: 1px solid #334155 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .mo-ta-text {
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .perms-count-badge {
+  background: rgba(99, 102, 241, 0.2) !important;
+  color: #818cf8 !important;
+  border: 1px solid rgba(99, 102, 241, 0.45) !important;
+  font-weight: 700 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .actions .act-btn {
+  background: #253346 !important;
+  border-color: #334155 !important;
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .actions .act-btn.btn-delete {
+  background: rgba(239, 68, 68, 0.2) !important;
+  border-color: rgba(239, 68, 68, 0.45) !important;
+  color: #f87171 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .modal-container {
+  background: #181d24 !important;
+  border: 1.5px solid #334155 !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(59, 130, 246, 0.25) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .modal-header,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .modal-footer {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .modal-header h3 {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .close-btn {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .form-group input,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .form-group textarea {
+  background: #13171f !important;
+  border-color: #28303d !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .perm-group {
+  background: #13171f !important;
+  border: 1px solid #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .group-header h4 {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .btn-cancel {
+  background: #253346 !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
 }
 </style>

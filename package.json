@@ -1,0 +1,8 @@
+{
+  "devDependencies": {
+    "vite-plugin-vue-inspector": "^7.0.0"
+  },
+  "dependencies": {
+    "@vladmandic/face-api": "^1.7.15"
+  }
+}

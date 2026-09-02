@@ -1,9 +1,10 @@
 <script setup>
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import api from '@/services/api'
 import swal from '@/services/swal'
 import { storageUrl } from '@/services/urls'
 import { getUser } from '@/services/auth'
+import { vietnamBanks } from '@/constants/vietnamBanks'
 import {
   Users,
   DollarSign,
@@ -21,7 +22,10 @@ import {
   Video,
   UploadCloud,
   Trash2,
-  Pencil
+  Pencil,
+  Building2,
+  ChevronDown,
+  Search
 } from 'lucide-vue-next'
 
 const loading = ref(true)
@@ -49,11 +53,13 @@ const withdrawForm = ref({
   bank_name: '',
   bank_account_name: '',
   bank_account_number: '',
+  sms_phone: '',
 })
 const videoForm = ref({
   title: '',
   description: '',
   product_id: '',
+  product_ids: [],
   video_url: '',
   video: null,
   thumbnail: null,
@@ -63,6 +69,11 @@ const thumbnailPreviewUrl = ref('')
 const videoSubmitting = ref(false)
 const editingAffiliateVideoId = ref(null)
 const withdrawLoading = ref(false)
+const cancellingWithdrawId = ref(null)
+const countdownNow = ref(Date.now())
+let withdrawCountdownTimer = null
+const bankDropdownOpen = ref(false)
+const bankSearch = ref('')
 const error = ref('')
 const copied = ref(false)
 
@@ -72,6 +83,24 @@ const customLinkInput = ref('')
 const selectedProductId = ref('')
 const generatedLink = ref('')
 const genCopied = ref(false)
+
+const filteredBanks = computed(() => {
+  const keyword = bankSearch.value.trim().toLocaleLowerCase('vi')
+  if (!keyword) return vietnamBanks
+  return vietnamBanks.filter(bank => bank.toLocaleLowerCase('vi').includes(keyword))
+})
+
+const selectBank = (bank) => {
+  withdrawForm.value.bank_name = bank
+  bankSearch.value = ''
+  bankDropdownOpen.value = false
+}
+
+const closeBankDropdown = (event) => {
+  if (event?.currentTarget?.contains(event.relatedTarget)) return
+  bankDropdownOpen.value = false
+  bankSearch.value = ''
+}
 
 const affiliateUser = computed(() => data.value.profile?.user || currentUser.value || {})
 const affiliateUserName = computed(() => affiliateUser.value?.name || affiliateUser.value?.ten || 'NextGen')
@@ -241,9 +270,13 @@ const summaryCards = computed(() => [
   { label: 'Đã thanh toán', value: formatMoney(data.value.stats.paid_commission) },
 ])
 
-const selectedVideoProduct = computed(() => {
-  if (!videoForm.value.product_id) return null
-  return shopProducts.value.find(p => String(p.id_sanpham) === String(videoForm.value.product_id)) || null
+const selectedVideoProducts = computed(() => {
+  const ids = Array.isArray(videoForm.value.product_ids) && videoForm.value.product_ids.length
+    ? videoForm.value.product_ids
+    : (videoForm.value.product_id ? [videoForm.value.product_id] : [])
+
+  if (!ids.length) return []
+  return shopProducts.value.filter(product => ids.includes(String(product.id_sanpham)))
 })
 
 const loadAll = async () => {
@@ -262,6 +295,10 @@ const loadAll = async () => {
     commissions.value = comRes.data
     withdraws.value = wdRes.data
     affiliateVideos.value = videoRes.data
+
+    if (!withdrawForm.value.sms_phone) {
+      withdrawForm.value.sms_phone = affiliateUser.value?.phone || affiliateUser.value?.sodienthoai || ''
+    }
 
     if (data.value.active && data.value.profile?.affiliate_code) {
       fetchShopProducts()
@@ -288,15 +325,22 @@ const submitWithdraw = async () => {
     !withdrawForm.value.amount ||
     !withdrawForm.value.bank_name ||
     !withdrawForm.value.bank_account_name ||
-    !withdrawForm.value.bank_account_number
+    !withdrawForm.value.bank_account_number ||
+    !withdrawForm.value.sms_phone
   ) {
     swal.error('Lỗi nhập liệu', 'Vui lòng điền đầy đủ tất cả thông tin yêu cầu rút tiền.')
     return
   }
 
   const amountNum = Number(withdrawForm.value.amount || 0)
-  if (amountNum < 10000) {
-    swal.error('Số tiền không hợp lệ', 'Số tiền rút tối thiểu phải từ 10.000đ trở lên.')
+  const normalizedSmsPhone = String(withdrawForm.value.sms_phone || '').replace(/[\s.-]/g, '')
+  if (!/^(?:\+?84|0)(?:3|5|7|8|9)\d{8}$/.test(normalizedSmsPhone)) {
+    swal.error('Số điện thoại không hợp lệ', 'Vui lòng nhập đúng số điện thoại Việt Nam để nhận thông báo SMS.')
+    return
+  }
+  const minimumWithdrawal = Number(data.value.rules?.minimum_withdrawal || 100000)
+  if (amountNum < minimumWithdrawal) {
+    swal.error('Số tiền không hợp lệ', `Số tiền rút tối thiểu phải từ ${formatMoney(minimumWithdrawal)} trở lên.`)
     return
   }
 
@@ -319,12 +363,14 @@ const submitWithdraw = async () => {
       bank_name: withdrawForm.value.bank_name,
       bank_account_name: withdrawForm.value.bank_account_name,
       bank_account_number: withdrawForm.value.bank_account_number,
+      sms_phone: normalizedSmsPhone,
     })
     withdrawForm.value = {
       amount: '',
       bank_name: '',
       bank_account_name: '',
       bank_account_number: '',
+      sms_phone: affiliateUser.value?.phone || affiliateUser.value?.sodienthoai || '',
     }
     await loadAll()
     swal.success('Đã gửi yêu cầu!', 'Yêu cầu rút tiền của bạn đã được tiếp nhận và chờ phê duyệt.')
@@ -354,6 +400,7 @@ const resetAffiliateVideoForm = () => {
     title: '',
     description: '',
     product_id: '',
+    product_ids: [],
     video_url: '',
     video: null,
     thumbnail: null,
@@ -367,10 +414,19 @@ const resetAffiliateVideoForm = () => {
 
 const editAffiliateVideo = (video) => {
   editingAffiliateVideoId.value = video.id
+  const rawProductIds = Array.isArray(video.product_ids)
+    ? video.product_ids
+    : (Array.isArray(video.products) ? video.products.map(product => String(product.id_sanpham)) : [])
+
+  const normalizedProductIds = rawProductIds.length
+    ? rawProductIds.map(String)
+    : (video.product_id || video.id_sanpham ? [String(video.product_id || video.id_sanpham)] : [])
+
   videoForm.value = {
     title: video.title || video.tieu_de || '',
     description: video.description || video.mo_ta || '',
-    product_id: video.product_id || video.id_sanpham || '',
+    product_id: normalizedProductIds[0] || '',
+    product_ids: normalizedProductIds,
     video_url: video.video_url || (!isPlayableVideoSrc(video.video_src) ? (video.video_src || '') : ''),
     video: null,
     thumbnail: null,
@@ -400,10 +456,22 @@ const submitAffiliateVideo = async () => {
     return
   }
 
+  const selectedProductIds = Array.from(new Set((videoForm.value.product_ids || []).map(id => String(id)).filter(Boolean)))
+  const fallbackProductIds = videoForm.value.product_id ? [String(videoForm.value.product_id)] : []
+  const finalProductIds = selectedProductIds.length ? selectedProductIds : fallbackProductIds
+
   const formData = new FormData()
   formData.append('title', videoForm.value.title.trim())
   formData.append('description', videoForm.value.description.trim())
-  if (videoForm.value.product_id) formData.append('product_id', videoForm.value.product_id)
+
+  finalProductIds.forEach((productId) => {
+    formData.append('product_ids[]', productId)
+  })
+
+  if (finalProductIds.length === 1) {
+    formData.append('product_id', finalProductIds[0])
+  }
+
   if (videoForm.value.video_url.trim()) formData.append('video_url', videoForm.value.video_url.trim())
   if (isFileObject(videoForm.value.video)) formData.append('video', videoForm.value.video)
   if (isFileObject(videoForm.value.thumbnail)) formData.append('thumbnail', videoForm.value.thumbnail)
@@ -453,7 +521,7 @@ const activate = async () => {
   try {
     await api.post('/affiliate/activate')
     await loadAll()
-    swal.success('Kích hoạt thành công', 'Chào mừng bạn đến với mạng lưới đối tác của NextGen!')
+    swal.success('Đã gửi đăng ký', 'Hồ sơ affiliate đang chờ quản trị viên duyệt trước khi hoạt động.')
   } catch (e) {
     swal.error('Lỗi kích hoạt', e?.response?.data?.message || 'Kích hoạt tiếp thị liên kết thất bại.')
   } finally {
@@ -504,7 +572,9 @@ const getStatIconClass = (index) => {
 const getCommissionStatusClass = (status) => {
   if (status === 'pending') return 'status-warning'
   if (status === 'approved') return 'status-success'
+  if (status === 'processing') return 'status-warning'
   if (status === 'paid') return 'status-info'
+  if (status === 'rejected') return 'status-danger'
   return ''
 }
 
@@ -519,14 +589,52 @@ const getWithdrawStatusClass = (status) => {
   if (status === 'pending') return 'status-warning'
   if (status === 'approved') return 'status-success'
   if (status === 'paid') return 'status-info'
+  if (status === 'cancelled' || status === 'rejected') return 'status-danger'
   return ''
 }
 
 const getWithdrawStatusLabel = (status) => {
-  if (status === 'pending') return 'Đang xử lý'
-  if (status === 'approved') return 'Chấp nhận'
+  if (status === 'pending') return 'Chờ duyệt'
+  if (status === 'approved') return 'Đã duyệt, chờ chi'
+  if (status === 'processing') return 'Đang chuyển tiền'
   if (status === 'paid') return 'Đã chuyển tiền'
+  if (status === 'rejected') return 'Đã từ chối'
+  if (status === 'cancelled') return 'Đã thu hồi'
   return status
+}
+
+const withdrawCancelSeconds = (withdraw) => {
+  if (withdraw?.status !== 'pending' || !withdraw?.created_at) return 0
+  const deadline = new Date(withdraw.created_at).getTime() + 15 * 60 * 1000
+  return Math.max(0, Math.ceil((deadline - countdownNow.value) / 1000))
+}
+
+const formatCountdown = (seconds) => {
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+  return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`
+}
+
+const cancelWithdraw = async (withdraw) => {
+  const seconds = withdrawCancelSeconds(withdraw)
+  if (!seconds || cancellingWithdrawId.value) return
+
+  const confirmed = await swal.confirm(
+    'Thu hồi yêu cầu rút tiền',
+    `Bạn muốn thu hồi yêu cầu ${formatMoney(withdraw.amount)}? Khoản tạm giữ sẽ được trả lại số dư khả dụng.`
+  )
+  if (!confirmed) return
+
+  cancellingWithdrawId.value = withdraw.id
+  try {
+    const response = await api.patch(`/affiliate/withdraws/${withdraw.id}/cancel`)
+    await loadAll()
+    swal.success('Đã thu hồi', response.data?.message || 'Yêu cầu rút tiền đã được thu hồi.')
+  } catch (error) {
+    swal.error('Không thể thu hồi', getApiErrorMessage(error, 'Vui lòng tải lại trang và thử lại.'))
+  } finally {
+    cancellingWithdrawId.value = null
+  }
 }
 
 const getVideoStatusClass = (status) => {
@@ -545,7 +653,16 @@ const getVideoStatusLabel = (status) => {
   return status || '-'
 }
 
-onMounted(loadAll)
+onMounted(() => {
+  loadAll()
+  withdrawCountdownTimer = window.setInterval(() => {
+    countdownNow.value = Date.now()
+  }, 1000)
+})
+
+onBeforeUnmount(() => {
+  if (withdrawCountdownTimer) window.clearInterval(withdrawCountdownTimer)
+})
 </script>
 
 <template>
@@ -598,9 +715,9 @@ onMounted(loadAll)
           <p class="activation-desc">
             Nhận mức chia sẻ hoa hồng ưu đãi trọn đời lên tới <strong>{{ data.profile?.commission_rate || 5 }}%</strong> cho mỗi đơn hàng phát sinh thành công từ mạng lưới tiếp thị của bạn.
           </p>
-          <button class="btn btn-primary btn-lg" :disabled="activating" @click="activate">
+          <button class="btn btn-primary btn-lg" :disabled="activating || data.profile?.status === 'pending'" @click="activate">
             <Award class="icon-inline" v-if="!activating" />
-            <span>{{ activating ? 'Đang kích hoạt...' : 'Kích hoạt tài khoản ngay' }}</span>
+            <span>{{ data.profile?.status === 'pending' ? 'Đang chờ quản trị viên duyệt' : (activating ? 'Đang gửi đăng ký...' : 'Đăng ký làm affiliate') }}</span>
           </button>
         </div>
 
@@ -826,9 +943,8 @@ onMounted(loadAll)
 
                     <label class="input-group">
                       <span>Sản phẩm gắn kèm</span>
-                      <select v-model="videoForm.product_id">
-                        <option value="">-- Chọn sản phẩm muốn tiếp thị --</option>
-                        <option v-for="prod in shopProducts" :key="prod.id_sanpham" :value="prod.id_sanpham">
+                      <select v-model="videoForm.product_ids" multiple size="6">
+                        <option v-for="prod in shopProducts" :key="prod.id_sanpham" :value="String(prod.id_sanpham)">
                           {{ prod.tenSP }}
                         </option>
                       </select>
@@ -855,12 +971,12 @@ onMounted(loadAll)
                     </label>
                   </div>
 
-                  <div v-if="videoPreviewUrl || thumbnailPreviewUrl || selectedVideoProduct" class="video-preview-box">
+                  <div v-if="videoPreviewUrl || thumbnailPreviewUrl || selectedVideoProducts.length" class="video-preview-box">
                     <video v-if="videoPreviewUrl" :src="videoPreviewUrl" controls></video>
                     <img v-else-if="thumbnailPreviewUrl" :src="thumbnailPreviewUrl" alt="Thumbnail preview" />
                     <div class="preview-meta">
                       <strong>{{ videoForm.title || 'Video affiliate mới' }}</strong>
-                      <span v-if="selectedVideoProduct">Sản phẩm: {{ selectedVideoProduct.tenSP }}</span>
+                      <span v-if="selectedVideoProducts.length">Sản phẩm: {{ selectedVideoProducts.map(product => product.tenSP).join(', ') }}</span>
                       <span>Trạng thái sau khi gửi: Chờ admin duyệt</span>
                     </div>
                   </div>
@@ -911,7 +1027,11 @@ onMounted(loadAll)
                         </div>
                         <p>{{ video.description || video.mo_ta || 'Chưa có mô tả.' }}</p>
                         <small>
-                          {{ video.product?.tenSP || 'Chưa gắn sản phẩm' }} · {{ video.views || 0 }} lượt xem · {{ video.clicks || 0 }} click
+                          {{
+                            (Array.isArray(video.products) && video.products.length)
+                              ? video.products.map(product => product.tenSP).join(', ')
+                              : (video.product?.tenSP || 'Chưa gắn sản phẩm')
+                          }} · {{ video.views || 0 }} lượt xem · {{ video.clicks || 0 }} click
                         </small>
                         <small v-if="video.reject_reason" class="reject-note">Lý do từ chối: {{ video.reject_reason }}</small>
                       </div>
@@ -951,14 +1071,51 @@ onMounted(loadAll)
                     <div class="input-group">
                       <label>Số tiền rút (VNĐ) <span class="required">*</span></label>
                       <div class="input-wrapper">
-                        <DollarSign class="input-icon" />
-                        <input v-model="withdrawForm.amount" type="number" min="10000" placeholder="Số tiền rút (tối thiểu 10.000đ)" />
+                        <input v-model="withdrawForm.amount" type="number" :min="data.rules?.minimum_withdrawal || 100000" placeholder="Số tiền rút (tối thiểu 100.000đ)" />
+                        <span class="currency-suffix" aria-hidden="true">đ</span>
                       </div>
                     </div>
 
                     <div class="input-group">
                       <label>Tên Ngân hàng <span class="required">*</span></label>
-                      <input v-model="withdrawForm.bank_name" placeholder="Ví dụ: Vietcombank, Techcombank..." />
+                      <div class="bank-select" :class="{ open: bankDropdownOpen }" @focusout="closeBankDropdown">
+                        <button
+                          type="button"
+                          class="bank-select-trigger"
+                          :aria-expanded="bankDropdownOpen"
+                          @click="bankDropdownOpen = !bankDropdownOpen"
+                        >
+                          <Building2 class="bank-trigger-icon" />
+                          <span :class="{ placeholder: !withdrawForm.bank_name }">
+                            {{ withdrawForm.bank_name || 'Chọn ngân hàng nhận tiền' }}
+                          </span>
+                          <ChevronDown class="bank-chevron" />
+                        </button>
+
+                        <div v-if="bankDropdownOpen" class="bank-dropdown-panel">
+                          <div class="bank-search-box">
+                            <Search />
+                            <input v-model="bankSearch" autofocus placeholder="Tìm tên ngân hàng..." @keydown.esc="bankDropdownOpen = false" />
+                          </div>
+                          <div class="bank-options" role="listbox">
+                            <button
+                              v-for="bank in filteredBanks"
+                              :key="bank"
+                              type="button"
+                              class="bank-option"
+                              :class="{ selected: withdrawForm.bank_name === bank }"
+                              @mousedown.prevent="selectBank(bank)"
+                              @keydown.enter.prevent="selectBank(bank)"
+                              @keydown.space.prevent="selectBank(bank)"
+                            >
+                              <span class="bank-option-logo">{{ bank.charAt(0) }}</span>
+                              <span>{{ bank }}</span>
+                              <Check v-if="withdrawForm.bank_name === bank" class="bank-option-check" />
+                            </button>
+                            <div v-if="filteredBanks.length === 0" class="bank-empty">Không tìm thấy ngân hàng phù hợp</div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
                     <div class="input-group">
@@ -968,7 +1125,20 @@ onMounted(loadAll)
 
                     <div class="input-group">
                       <label>Số tài khoản <span class="required">*</span></label>
-              <input v-model="withdrawForm.bank_account_number" placeholder="Nhập chính xác số tài khoản ngân hàng" />
+                      <input v-model="withdrawForm.bank_account_number" inputmode="numeric" placeholder="Nhập chính xác số tài khoản ngân hàng" />
+                    </div>
+
+                    <div class="input-group">
+                      <label>Số điện thoại nhận thông báo SMS <span class="required">*</span></label>
+                      <input
+                        v-model.trim="withdrawForm.sms_phone"
+                        type="tel"
+                        inputmode="tel"
+                        maxlength="12"
+                        autocomplete="tel"
+                        placeholder="Ví dụ: 0987654321"
+                      />
+                      <small class="field-hint">SMS sẽ được gửi đến số này sau khi yêu cầu được chi trả.</small>
                     </div>
                   </div>
 
@@ -980,9 +1150,13 @@ onMounted(loadAll)
 
                 <!-- Withdraw requests History table -->
                 <div class="withdraw-history-box">
-                  <div class="section-header border-none">
-                    <h3>Yêu cầu rút tiền của bạn</h3>
-                    <p>Theo dõi quá trình phê duyệt và chi trả tiền hoa hồng tiếp thị liên kết.</p>
+                  <div class="withdraw-history-header">
+                    <div class="history-heading-icon"><History /></div>
+                    <div class="history-heading-copy">
+                      <h3>Yêu cầu rút tiền của bạn</h3>
+                      <p>Theo dõi quá trình phê duyệt và chi trả tiền hoa hồng tiếp thị liên kết.</p>
+                    </div>
+                    <span class="history-count">{{ withdraws.length }} yêu cầu</span>
                   </div>
                   <div class="table-container">
                     <table class="modern-table">
@@ -996,7 +1170,10 @@ onMounted(loadAll)
                       </thead>
                       <tbody>
                         <tr v-for="w in withdraws" :key="w.id">
-                          <td class="font-bold text-dark">{{ formatMoney(w.amount) }}</td>
+                          <td class="font-bold text-dark">
+                            {{ formatMoney(w.amount) }}
+                            <small class="d-block">{{ w.request_code || `AFF-${w.id}` }}</small>
+                          </td>
                           <td>
                             <div class="bank-meta-text">
                               <strong>{{ w.bank_name }}</strong>
@@ -1007,13 +1184,27 @@ onMounted(loadAll)
                             <span :class="['badge-status', getWithdrawStatusClass(w.status)]">
                               {{ getWithdrawStatusLabel(w.status) }}
                             </span>
+                            <div v-if="w.status === 'pending'" class="withdraw-cancel-window">
+                              <template v-if="withdrawCancelSeconds(w) > 0">
+                                <small>Có thể thu hồi trong {{ formatCountdown(withdrawCancelSeconds(w)) }}</small>
+                                <button type="button" :disabled="cancellingWithdrawId === w.id" @click="cancelWithdraw(w)">
+                                  {{ cancellingWithdrawId === w.id ? 'Đang thu hồi...' : 'Thu hồi yêu cầu' }}
+                                </button>
+                              </template>
+                              <small v-else>Đã chuyển sang hàng chờ xử lý</small>
+                            </div>
+                            <small v-if="w.transaction_id" class="d-block">GD: {{ w.transaction_id }}</small>
                           </td>
                           <td>{{ new Date(w.created_at).toLocaleString('vi-VN') }}</td>
                         </tr>
                         <tr v-if="withdraws.length === 0">
                           <td colspan="4" class="table-empty">
-                            <History class="empty-icon" />
-                            <p>Bạn chưa gửi yêu cầu rút tiền nào.</p>
+                            <div class="withdraw-empty-state">
+                              <div class="withdraw-empty-icon"><History /></div>
+                              <h4>Chưa có yêu cầu rút tiền</h4>
+                              <p>Các yêu cầu bạn gửi sẽ xuất hiện tại đây để tiện theo dõi trạng thái xử lý.</p>
+                              <span>Hãy điền thông tin bên cạnh để tạo yêu cầu đầu tiên.</span>
+                            </div>
                           </td>
                         </tr>
                       </tbody>
@@ -1896,6 +2087,37 @@ onMounted(loadAll)
   background: #fee2e2;
   color: #991b1b;
 }
+.withdraw-cancel-window {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+.withdraw-cancel-window small {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+}
+.withdraw-cancel-window button {
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fff;
+  color: #dc2626;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 750;
+  padding: 6px 9px;
+  transition: background .2s ease, border-color .2s ease;
+}
+.withdraw-cancel-window button:hover:not(:disabled) {
+  border-color: #f87171;
+  background: #fef2f2;
+}
+.withdraw-cancel-window button:disabled {
+  cursor: wait;
+  opacity: .6;
+}
 
 /* Withdraw Layout Panels */
 .withdraw-dashboard {
@@ -1908,19 +2130,134 @@ onMounted(loadAll)
   background: #ffffff;
   border: 1px solid #dbeafe;
   border-radius: 14px;
-  padding: 20px;
+  padding: 16px;
   box-shadow: 0 4px 6px -1px rgba(0,0,0,0.01);
+}
+.withdraw-history-box {
+  overflow: hidden;
+  border: 1px solid #dbeafe;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.06);
+}
+.withdraw-history-header {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 20px 22px;
+  border-bottom: 1px solid #e8eef7;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+}
+.history-heading-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  place-items: center;
+  border-radius: 12px;
+  background: #eaf2ff;
+  color: #2563eb;
+}
+.history-heading-icon svg {
+  width: 21px;
+  height: 21px;
+}
+.history-heading-copy {
+  min-width: 0;
+  flex: 1;
+}
+.history-heading-copy h3 {
+  margin: 0 0 4px;
+  color: #0f172a;
+  font-size: 18px;
+  font-weight: 800;
+}
+.history-heading-copy p {
+  margin: 0;
+  color: #64748b;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.history-count {
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 11px;
+  font-weight: 700;
+}
+.withdraw-history-box .table-container {
+  border: 0;
+  border-radius: 0;
+}
+.withdraw-history-box .modern-table th {
+  padding-top: 15px;
+  padding-bottom: 15px;
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.withdraw-history-box .table-empty {
+  padding: 0 !important;
+  background: #fff !important;
+}
+.withdraw-empty-state {
+  display: flex;
+  min-height: 245px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 34px 24px;
+  text-align: center;
+}
+.withdraw-empty-icon {
+  display: grid;
+  width: 62px;
+  height: 62px;
+  margin-bottom: 16px;
+  place-items: center;
+  border: 1px solid #dbeafe;
+  border-radius: 20px;
+  background: linear-gradient(145deg, #eff6ff, #fff);
+  color: #3b82f6;
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.1);
+}
+.withdraw-empty-icon svg {
+  width: 29px;
+  height: 29px;
+}
+.withdraw-empty-state h4 {
+  margin: 0 0 7px;
+  color: #0f172a;
+  font-size: 16px;
+  font-weight: 800;
+}
+.withdraw-empty-state p {
+  max-width: 430px;
+  margin: 0 0 10px;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.withdraw-empty-state > span {
+  color: #2563eb;
+  font-size: 11.5px;
+  font-weight: 650;
 }
 .withdraw-balance-box {
   background: #f8fbff;
   border: 1px solid #dbeafe;
   border-radius: 12px;
-  padding: 16px 20px;
+  padding: 12px 16px;
   color: #0f172a;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
   box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
 .balance-label {
@@ -1944,13 +2281,18 @@ onMounted(loadAll)
 .withdraw-inputs {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  margin-bottom: 20px;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.withdraw-form-card > .btn-lg {
+  min-height: 42px;
+  padding: 10px 20px;
+  border-radius: 10px;
 }
 .input-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 .input-group label {
   font-size: 12px;
@@ -1959,6 +2301,13 @@ onMounted(loadAll)
 }
 .required {
   color: #ef4444;
+}
+.field-hint {
+  display: block;
+  margin-top: 3px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.4;
 }
 .input-wrapper {
   position: relative;
@@ -1972,10 +2321,10 @@ onMounted(loadAll)
   height: 16px;
   color: #64748b;
 }
-.input-group input, .input-wrapper input {
+.input-group input, .input-group select, .input-wrapper input {
   width: 100% !important;
-  height: 42px !important;
-  max-height: 42px !important;
+  height: 38px !important;
+  max-height: 38px !important;
   box-sizing: border-box !important;
   border: 1px solid #cbd5e1 !important;
   border-radius: 8px !important;
@@ -1987,11 +2336,172 @@ onMounted(loadAll)
   transition: all 0.2s ease !important;
 }
 .input-wrapper input {
-  padding-left: 36px;
+  padding-left: 12px !important;
+  padding-right: 48px !important;
 }
-.input-group input:focus, .input-wrapper input:focus {
+.input-group input:focus, .input-group select:focus, .input-wrapper input:focus {
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.currency-suffix {
+  position: absolute !important;
+  top: 50% !important;
+  right: 30px !important;
+  left: auto !important;
+  z-index: 2;
+  width: 14px;
+  height: 18px;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  color: #64748b;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.bank-select {
+  position: relative;
+  z-index: 20;
+}
+.bank-select.open {
+  z-index: 50;
+}
+.bank-select-trigger {
+  display: flex;
+  width: 100%;
+  height: 38px;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+  color: #0f172a;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.bank-select.open .bank-select-trigger {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.11);
+}
+.bank-select-trigger span {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bank-select-trigger .placeholder {
+  color: #94a3b8;
+}
+.bank-trigger-icon,
+.bank-chevron {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  color: #64748b;
+}
+.bank-chevron {
+  transition: transform 0.2s ease;
+}
+.bank-select.open .bank-chevron {
+  transform: rotate(180deg);
+  color: #2563eb;
+}
+.bank-dropdown-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  left: 0;
+  overflow: hidden;
+  border: 1px solid #dbe4f0;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.18);
+  animation: bankDropdownIn 0.16s ease-out;
+}
+.bank-search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px;
+  padding: 0 11px;
+  border: 1px solid #dbe4f0;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+.bank-search-box svg {
+  width: 16px;
+  color: #64748b;
+}
+.bank-search-box input {
+  height: 38px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.bank-options {
+  max-height: 250px;
+  overflow-y: auto;
+  padding: 0 7px 8px;
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 transparent;
+}
+.bank-option {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #334155;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.bank-option:hover {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+.bank-option.selected {
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-weight: 700;
+}
+.bank-option-logo {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  place-items: center;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #2563eb, #60a5fa);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+}
+.bank-option-check {
+  width: 16px;
+  height: 16px;
+  margin-left: auto;
+  color: #2563eb;
+}
+.bank-empty {
+  padding: 22px 12px;
+  color: #94a3b8;
+  font-size: 13px;
+  text-align: center;
+}
+@keyframes bankDropdownIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 .btn-block {
   width: 100%;
@@ -2104,21 +2614,52 @@ onMounted(loadAll)
     max-height: 440px;
   }
   .heading-banner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 58px;
+    grid-template-rows: auto auto auto;
     align-items: flex-start;
-    padding: 30px 20px;
-    gap: 18px;
+    padding: 20px 16px;
+    column-gap: 10px;
+    row-gap: 0;
+    margin-bottom: 16px;
   }
   .heading-avatar {
-    width: 82px;
-    height: 82px;
-    border-radius: 18px;
-    font-size: 34px;
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    width: 58px;
+    height: 58px;
+    border-radius: 15px;
+    font-size: 27px;
+    border-width: 1.5px;
+  }
+  .heading-avatar img {
+    border-radius: 12px;
+  }
+  .heading-content {
+    display: contents;
+  }
+  .badge-tag {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start;
+    padding: 5px 12px;
+    margin-bottom: 10px;
+    font-size: 10px;
+    letter-spacing: 0.7px;
   }
   .heading-content h1 {
-    font-size: 28px;
+    grid-column: 1;
+    grid-row: 2;
+    font-size: 25px;
+    line-height: 1.15;
+    margin-bottom: 7px;
   }
   .heading-content p {
-    font-size: 14px;
+    grid-column: 1 / -1;
+    grid-row: 3;
+    margin-top: 10px;
+    font-size: 13px;
+    line-height: 1.45;
   }
   .dashboard-tabs {
     grid-template-columns: 1fr;

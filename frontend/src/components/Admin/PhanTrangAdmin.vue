@@ -74,54 +74,46 @@ const paginationItems = computed(() => {
   const current = props.currentPage
   const items = []
 
-  // Nếu tổng số trang <= 7: Hiện toàn bộ 1 .. total
-  if (total <= 7) {
+  // Nếu tổng số trang <= 5: Hiện toàn bộ 1 .. total
+  if (total <= 5) {
     for (let i = 1; i <= total; i++) {
       items.push({ type: 'page', value: i })
     }
     return items
   }
 
-  // Khi total > 7:
-  // 1) Gần đầu (current <= 4): Không cần left-ellipsis
-  if (current <= 4) {
-    const endWindow = Math.max(3, current + 1)
-    for (let i = 1; i <= endWindow; i++) {
-      items.push({ type: 'page', value: i })
-    }
-    items.push({ type: 'ellipsis', key: 'right-ellipsis' })
-    for (let i = total - 1; i <= total; i++) {
-      items.push({ type: 'page', value: i })
-    }
-    return items
+  // Luôn hiển thị trang đầu tiên (Trang 1)
+  items.push({ type: 'page', value: 1 })
+
+  // Xác định khoảng trang ở giữa xung quanh trang hiện tại
+  let start = Math.max(2, current - 1)
+  let end = Math.min(total - 1, current + 1)
+
+  // Điều chỉnh để đảm bảo luôn hiển thị tối thiểu 3 trang ở giữa nếu gần biên
+  if (current <= 3) {
+    end = Math.min(total - 1, 4)
+  }
+  if (current >= total - 2) {
+    start = Math.max(2, total - 3)
   }
 
-  // 2) Gần cuối (current >= total - 3): Không cần right-ellipsis
-  if (current >= total - 3) {
-    for (let i = 1; i <= 2; i++) {
-      items.push({ type: 'page', value: i })
-    }
+  // Dấu ba chấm bên trái
+  if (start > 2) {
     items.push({ type: 'ellipsis', key: 'left-ellipsis' })
-    const startWindow = Math.min(total - 2, current - 1)
-    for (let i = startWindow; i <= total; i++) {
-      items.push({ type: 'page', value: i })
-    }
-    return items
   }
 
-  // 3) Ở giữa (4 < current < total - 3): Cần cả 2 ellipsis
-  // VD: total = 50, current = 25 -> [1, 2, '...', 24, 25, 26, '...', 49, 50]
-  for (let i = 1; i <= 2; i++) {
+  // Các trang ở giữa
+  for (let i = start; i <= end; i++) {
     items.push({ type: 'page', value: i })
   }
-  items.push({ type: 'ellipsis', key: 'left-ellipsis' })
-  items.push({ type: 'page', value: current - 1 })
-  items.push({ type: 'page', value: current })
-  items.push({ type: 'page', value: current + 1 })
-  items.push({ type: 'ellipsis', key: 'right-ellipsis' })
-  for (let i = total - 1; i <= total; i++) {
-    items.push({ type: 'page', value: i })
+
+  // Dấu ba chấm bên phải
+  if (end < total - 1) {
+    items.push({ type: 'ellipsis', key: 'right-ellipsis' })
   }
+
+  // Luôn hiển thị trang cuối cùng
+  items.push({ type: 'page', value: total })
 
   return items
 })
@@ -362,5 +354,105 @@ const handleJumpKeyDown = (e) => {
     flex-direction: column;
     align-items: center;
   }
+}
+
+/* ==========================================================================
+   DARK MODE OVERRIDES FOR PHAN TRANG ADMIN
+   ========================================================================== */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .admin-pagination-info {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .nav-btn,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .page-btn,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .dots-btn {
+  background: #253346 !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+  box-shadow: none !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .nav-btn:hover:not(:disabled),
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .page-btn:hover:not(:disabled),
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .dots-btn:hover {
+  background: #1e293b !important;
+  color: #60a5fa !important;
+  border-color: #3b82f6 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .page-btn.active {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .nav-btn:disabled {
+  background: #1e2430 !important;
+  border-color: #28303d !important;
+  color: #475569 !important;
 }
 </style>

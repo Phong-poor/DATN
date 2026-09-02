@@ -30,7 +30,7 @@ class AdminActivityLog extends Model
 
     public function user()
     {
-        return $this->belongsTo(User::class, 'id_khachhang');
+        return $this->belongsTo(Admin::class, 'id_khachhang');
     }
 
     public function getActionAttribute()

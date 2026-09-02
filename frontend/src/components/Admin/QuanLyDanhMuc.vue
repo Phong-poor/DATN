@@ -1,40 +1,57 @@
 <template>
   <div class="page">
-    <div class="hero">
-      <div class="hero-actions">
-        <div class="search-box">
-          <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-          <input type="text" placeholder="Tìm kiếm danh mục..." v-model="searchQuery"/>
-        </div>
-        <button v-if="activeTab === 'parent' && hasPermission('danh_muc_sua')" class="btn-primary" @click="openCreateParent">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-          Tạo Danh mục Gốc
+    <!-- BREADCRUMB -->
+    <div class="breadcrumb">
+      <span>Admin</span>
+      <span class="sep">›</span>
+      <span class="active-crumb">Quản lý danh mục</span>
+    </div>
+
+    <!-- CATEGORY TABS BAR (STYLED EXACTLY LIKE QUẢN LÝ ĐƠN HÀNG HÌNH 2) -->
+    <div class="category-tabs">
+      <div class="category-tab-list">
+        <button :class="['cat-tab', { active: activeTab === 'child' }]" @click="activeTab = 'child'">
+          Danh mục Con (Cấp 2)
         </button>
-        <button v-if="activeTab === 'child' && hasPermission('danh_muc_sua')" class="btn-primary" @click="openCreateChild">
-          <svg viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Tạo Danh mục Con
+        <button :class="['cat-tab', { active: activeTab === 'parent' }]" @click="activeTab = 'parent'">
+          Danh mục Gốc (Cấp 1)
         </button>
+      </div>
+
+      <div class="search-box-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input type="text" placeholder="Tìm kiếm danh mục..." v-model="searchQuery"/>
       </div>
     </div>
 
-    <BulkDeleteToolbar
-      :selected-count="selectedIds.length"
-      :total-count="filteredCategories.length"
-      label="danh mục"
-      :loading="isBulkDeleting"
-      @clear="clearSelection"
-      @delete-selected="removeSelected"
-      @delete-all="removeAllFiltered"
-    />
-
-    <div class="category-tabs">
-      <button :class="['cat-tab', { active: activeTab === 'child' }]" @click="activeTab = 'child'">
-        Danh mục Con (Cấp 2)
+    <!-- CREATE BUTTON ROW (STANDING BELOW SEARCH BOX ON THE RIGHT) -->
+    <div class="create-btn-row">
+      <button v-if="activeTab === 'parent' && hasPermission('danh_muc_sua')" class="btn-primary" @click="openCreateParent">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Tạo Danh mục Gốc
       </button>
-      <button :class="['cat-tab', { active: activeTab === 'parent' }]" @click="activeTab = 'parent'">
-        Danh mục Gốc (Cấp 1)
+      <button v-if="activeTab === 'child' && hasPermission('danh_muc_sua')" class="btn-primary" @click="openCreateChild">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Tạo Danh mục Con
       </button>
     </div>
+
+    <!-- BULK SELECTION TOOLBAR (CHỈ HIỂN THỊ KHI CÓ DÒNG ĐƯỢC CHỌN) -->
+    <transition name="fade">
+      <BulkDeleteToolbar
+        v-if="selectedIds.length > 0"
+        :selected-count="selectedIds.length"
+        :total-count="filteredCategories.length"
+        label="danh mục"
+        :loading="isBulkDeleting"
+        @clear="clearSelection"
+        @delete-selected="removeSelected"
+        @delete-all="removeAllFiltered"
+      />
+    </transition>
 
     <div class="table-card">
       <table>
@@ -50,7 +67,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(dm, index) in filteredCategories" :key="dm.id_danhmuc" :class="{ 'row-selected': selectedIds.includes(dm.id_danhmuc) }">
+          <tr v-for="(dm, index) in filteredCategories" :key="dm.id" :class="{ 'row-selected': selectedIds.includes(dm.id) }">
             <td class="select-col">
               <input type="checkbox" :checked="selectedIds.includes(dm.id)" @change="toggleItemSelection(dm.id)" />
             </td>
@@ -387,11 +404,155 @@ const deleteCategory = async (id) => {
 .hero-accent { color: #2563eb; }
 .hero-text p { font-size: 13.5px; color: #64748b; line-height: 1.7; }
 
-/* Tabs */
-.category-tabs { display: flex; gap: 12px; margin-bottom: -4px; border-bottom: 2px solid #e2e8f0; padding-bottom: 0; }
-.cat-tab { background: transparent; border: none; padding: 12px 20px; font-size: 14px; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
-.cat-tab:hover { color: #2563eb; }
-.cat-tab.active { color: #2563eb; border-bottom-color: #2563eb; }
+/* CATEGORY TABS BAR - MATCHING QUẢN LÝ ĐƠN HÀNG HÌNH 2 */
+.category-tabs {
+  position: sticky !important;
+  top: 0px !important;
+  z-index: 50 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  width: calc(100% + 48px) !important;
+  margin: -24px -24px 20px -24px !important;
+  padding: 10px 24px 12px 24px !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.92) !important;
+  background: rgba(244, 247, 251, 0.94) !important;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  transition: top 0.28s cubic-bezier(.4, 0, .2, 1), background-color 0.28s ease, border-color 0.28s ease !important;
+  isolation: isolate;
+  border-radius: 0 !important;
+}
+
+.category-tab-list {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+.cat-tab {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 10px !important;
+  padding: 9px 20px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: #64748b !important;
+  cursor: pointer !important;
+  height: 40px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
+  box-shadow: none !important;
+}
+
+.cat-tab:hover {
+  color: #2563eb !important;
+  border-color: #2563eb !important;
+  background: rgba(37, 99, 235, 0.06) !important;
+}
+
+.cat-tab.active {
+  color: #ffffff !important;
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25) !important;
+}
+/* SEARCH BOX OPPOSITE TABS (LIGHT & DARK MODE ADAPTIVE) */
+/* SEARCH BOX OPPOSITE TABS (LIGHT & DARK MODE ADAPTIVE) */
+.search-box-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 0 14px;
+  width: 320px;
+  height: 40px;
+  transition: all 0.2s ease;
+}
+
+.search-box-header svg {
+  width: 16px;
+  height: 16px;
+  stroke: #64748b;
+  flex-shrink: 0;
+}
+
+.search-box-header input {
+  border: none !important;
+  outline: none !important;
+  font-size: 13.5px !important;
+  color: #1e293b !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .search-box-header {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .search-box-header svg {
+  stroke: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .search-box-header input {
+  color: #f8fafc !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .search-box-header input::placeholder {
+  color: #64748b !important;
+}
+
+/* CREATE BTN ROW (STANDING BELOW SEARCH BOX ON THE RIGHT) */
+.create-btn-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+  margin-bottom: 12px;
+}
 
 .btn-secondary { display: flex; align-items: center; gap: 7px; padding: 10px 20px; border-radius: 10px; border: 1px solid #e2e8f0; background: #fff; color: #475569; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
 .btn-secondary:hover { background: #f8fafc; border-color: #cbd5e1; }
@@ -449,6 +610,8 @@ td { padding: 16px 20px; vertical-align: middle; }
 .action-delete:hover { background: #fef2f2; border-color: #fca5a5; }
 .action-delete:hover svg { stroke: #ef4444; }
 .empty-row { text-align: center; color: #94a3b8; font-size: 13px; padding: 30px; }
+@media (max-width: 820px) { .page { padding: 16px; } .hero-actions, .hero-actions .search-box { width: 100%; } .btn-primary { flex: 1; justify-content: center; } .table-card { overflow-x: auto; } table { min-width: 680px; } }
+@media (max-width: 520px) { .category-tabs { overflow-x: auto; } .cat-tab { white-space: nowrap; } }
 
 /* MODAL CSS */
 .overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(4px); z-index: 1050; display: flex; align-items: center; justify-content: center; padding: 20px; }

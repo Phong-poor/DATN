@@ -27,7 +27,10 @@ import {
   Heart,
   BadgeAlert,
   Gift,
+  ChevronLeft,
   ChevronRight,
+  ChevronUp,
+  Grid,
   Laptop,
   Apple as AppleIcon,
   Briefcase,
@@ -135,9 +138,19 @@ const hasValidPrice = (product) => toFiniteNumber(product?.gia) > 0
 const getOriginalPrice = (combo) => {
   if (!combo.products) return 0
   return combo.products.reduce((sum, p) => {
-    const firstVariantPrice = p.bien_thes?.[0]?.gia || 0
+    const firstVariantPrice = p.bien_thes?.[0]?.gia || p.gia || 0
     return sum + Number(firstVariantPrice)
   }, 0)
+}
+
+const getComboDiscountPercent = (combo) => {
+  const orig = getOriginalPrice(combo)
+  if (!orig || orig <= combo.giakhuyenmai) return 0
+  return Math.round(((orig - combo.giakhuyenmai) / orig) * 100)
+}
+
+const getItemPrice = (item) => {
+  return item.gia || item.giaSP || item.bien_thes?.[0]?.gia || 0
 }
 
 // Flash Sale State & Helpers
@@ -224,6 +237,22 @@ const magazineArticles = computed(() => {
   })
 })
 
+const formatNewsDateTime = (dateStr) => {
+  if (!dateStr) return ''
+  try {
+    const d = new Date(dateStr)
+    if (isNaN(d.getTime())) return String(dateStr)
+    const hh = String(d.getHours()).padStart(2, '0')
+    const mm = String(d.getMinutes()).padStart(2, '0')
+    const DD = String(d.getDate()).padStart(2, '0')
+    const MM = String(d.getMonth() + 1).padStart(2, '0')
+    const YYYY = d.getFullYear()
+    return `${hh}:${mm} - ${DD}/${MM}/${YYYY}`
+  } catch {
+    return String(dateStr)
+  }
+}
+
 const goToNewsDetail = (id) => {
   if (id) {
     router.push(`/tin-tuc/${id}`)
@@ -249,8 +278,11 @@ onMounted(() => {
 
 watch(() => route.query.section, scrollToPromotionSection)
 
+let scrollRevealListener = null
+
 onUnmounted(() => {
   if (countdownInterval) clearInterval(countdownInterval)
+  if (scrollRevealListener) window.removeEventListener('scroll', scrollRevealListener)
 })
 
 // ===================== DATA FETCHING =====================
@@ -538,6 +570,45 @@ const allVouchers = computed(() => {
   })
 })
 
+// ===================== VOUCHER SLIDE & VIEW ALL PAGINATION =====================
+const isViewAllVouchers = ref(false)
+const currentVoucherSlide = ref(0)
+const voucherItemsPerPage = 4
+
+const totalVoucherSlides = computed(() => {
+  if (!allVouchers.value || allVouchers.value.length === 0) return 1
+  return Math.ceil(allVouchers.value.length / voucherItemsPerPage)
+})
+
+const currentSlideVouchers = computed(() => {
+  if (isViewAllVouchers.value) return allVouchers.value
+  const start = currentVoucherSlide.value * voucherItemsPerPage
+  return allVouchers.value.slice(start, start + voucherItemsPerPage)
+})
+
+const nextVoucherSlide = () => {
+  if (currentVoucherSlide.value < totalVoucherSlides.value - 1) {
+    currentVoucherSlide.value++
+  } else {
+    currentVoucherSlide.value = 0
+  }
+}
+
+const prevVoucherSlide = () => {
+  if (currentVoucherSlide.value > 0) {
+    currentVoucherSlide.value--
+  } else {
+    currentVoucherSlide.value = totalVoucherSlides.value - 1
+  }
+}
+
+const toggleViewAllVouchers = () => {
+  isViewAllVouchers.value = !isViewAllVouchers.value
+  if (!isViewAllVouchers.value) {
+    currentVoucherSlide.value = 0
+  }
+}
+
 const filteredProducts = computed(() => {
   if (activeCategoryTab.value === 'all') return products.value
   return products.value.filter(p => {
@@ -693,7 +764,7 @@ const toggleWishlist = async (product) => {
       await api.delete(`/yeu-thich/xoa/${existing.id}`)
       await fetchWishlistState()
       window.dispatchEvent(new Event('wishlist-updated'))
-      swal.success('Đã xóa yêu thích', 'Sản phẩm đã được bỏ khỏi danh sách yêu thích.')
+      swal.toast('Đã bỏ sản phẩm khỏi danh sách yêu thích', 'success')
       return
     }
 
@@ -704,7 +775,7 @@ const toggleWishlist = async (product) => {
     })
     await fetchWishlistState()
     window.dispatchEvent(new Event('wishlist-updated'))
-    swal.success('Yêu thích', 'Đã thêm vào danh sách yêu thích!')
+    swal.toast('Đã thêm vào sản phẩm yêu thích', 'success')
   } catch (err) {
     console.error('Lỗi yêu thích:', err)
     swal.error('Thông báo', err.response?.data?.message || 'Đã xảy ra sự cố.')
@@ -832,7 +903,7 @@ const animateCounters = () => {
 const initScrollReveal = () => {
   const revealElements = document.querySelectorAll('.scroll-reveal')
   
-  const revealOnScroll = () => {
+  scrollRevealListener = () => {
     revealElements.forEach(el => {
       const rect = el.getBoundingClientRect()
       const windowHeight = window.innerHeight
@@ -842,12 +913,8 @@ const initScrollReveal = () => {
     })
   }
 
-  window.addEventListener('scroll', revealOnScroll)
-  setTimeout(revealOnScroll, 100)
-
-  onUnmounted(() => {
-    window.removeEventListener('scroll', revealOnScroll)
-  })
+  window.addEventListener('scroll', scrollRevealListener)
+  setTimeout(scrollRevealListener, 100)
 }
 </script>
 
@@ -866,8 +933,8 @@ const initScrollReveal = () => {
             NextGen Premium Hub
           </span>
           <h1>
-            TRUNG TÂM
-            <span class="gradient-text">ƯU ĐÃI CÔNG NGHỆ</span>
+            Trung tâm
+            <span class="gradient-text">ưu đãi công nghệ</span>
           </h1>
           <p class="hero-description">
             Khám phá hàng trăm ưu đãi đặc quyền dành cho Laptop Gaming, MacBook Pro và Workstation cấu hình cực khủng. Nâng tầm hiệu suất, tối ưu ngân sách.
@@ -880,7 +947,7 @@ const initScrollReveal = () => {
             </a>
             <a href="#flash-sale" class="btn btn-secondary-neon">
               <Flame class="btn-icon" />
-              Săn Flash Sale
+              Săn flash sale
             </a>
           </div>
         </div>
@@ -921,7 +988,7 @@ const initScrollReveal = () => {
           </div>
           <div class="stat-info">
             <h3>{{ displayedVouchersCount > 0 ? `${displayedVouchersCount}+` : '0+' }}</h3>
-            <p>Voucher Độc Quyền</p>
+            <p>Voucher độc quyền</p>
           </div>
         </div>
 
@@ -940,118 +1007,14 @@ const initScrollReveal = () => {
             <Truck class="stat-icon" style="color: #2563eb;" />
           </div>
           <div class="stat-info">
-            <h3>Miễn Phí Ship</h3>
-            <p>Toàn quốc từ 15 Triệu</p>
+            <h3>Miễn phí ship</h3>
+            <p>Toàn quốc từ 15 triệu</p>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- 3. CATEGORIES SECTION -->
-    <section class="section categories-section">
-      <div class="grid-container">
-        <div class="section-header scroll-reveal reveal-fade-up">
-          <span class="ambient-label">
-            <SlidersHorizontal class="pill-icon" />
-            Danh Mục Khuyến Mãi
-          </span>
-          <h2>SĂN ƯU ĐÃI THEO NHU CẦU</h2>
-          <p class="section-sub" style="color: #f1f5f9 !important; -webkit-text-fill-color: #f1f5f9 !important; opacity: 1 !important;">Những dòng laptop hiệu năng cao, linh kiện chất lượng nhất đang được áp dụng mức giá cực sốc.</p>
-        </div>
 
-        <div class="categories-bento-grid scroll-reveal reveal-stagger">
-          <div class="bento-item gaming-bento" @click="activeCategoryTab = 'gaming'">
-            <div class="bento-image-bg">
-              <img src="https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&q=80" alt="Laptop Gaming Sale" />
-            </div>
-            <div class="bento-content-overlay">
-              <div class="bento-badge">Gaming Pro</div>
-              <h3>Laptop Gaming Sale</h3>
-              <a href="#discount-grid" class="bento-buy-btn" @click.stop="activeCategoryTab = 'gaming'">Mua ngay</a>
-              <span class="bento-link">
-                Khám phá ngay
-                <ChevronRight class="chevron-link-icon" />
-              </span>
-            </div>
-          </div>
-
-          <div class="bento-item mac-bento" @click="activeCategoryTab = 'macbook'">
-            <div class="bento-image-bg">
-              <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=600&q=80" alt="MacBook Pro Sale" />
-            </div>
-            <div class="bento-content-overlay">
-              <div class="bento-badge">Apple Premium</div>
-              <h3>MacBook Pro / Air</h3>
-              <a href="#discount-grid" class="bento-buy-btn" @click.stop="activeCategoryTab = 'macbook'">Mua ngay</a>
-              <span class="bento-link">
-                Khám phá ngay
-                <ChevronRight class="chevron-link-icon" />
-              </span>
-            </div>
-          </div>
-
-          <div class="bento-item office-bento" @click="activeCategoryTab = 'office'">
-            <div class="bento-image-bg">
-              <img src="https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=600&q=80" alt="Laptop Văn Phòng Sale" />
-            </div>
-            <div class="bento-content-overlay">
-              <div class="bento-badge">Office & Student</div>
-              <a href="#discount-grid" class="bento-buy-btn" @click.stop="activeCategoryTab = 'office'">Mua ngay</a>
-              <h3>Laptop Văn Phòng</h3>
-              <span class="bento-link">
-                Khám phá ngay
-                <ChevronRight class="chevron-link-icon" />
-              </span>
-            </div>
-          </div>
-
-          <div class="bento-item workstation-bento" @click="activeCategoryTab = 'workstation'">
-            <div class="bento-image-bg">
-              <img src="/hero_gaming_parts.png" alt="Workstation Sale" />
-            </div>
-            <div class="bento-content-overlay">
-              <div class="bento-badge">Extreme Performance</div>
-              <a href="#discount-grid" class="bento-buy-btn" @click.stop="activeCategoryTab = 'workstation'">Mua ngay</a>
-              <h3>Máy Trạm Đồ Họa</h3>
-              <span class="bento-link">
-                Khám phá ngay
-                <ChevronRight class="chevron-link-icon" />
-              </span>
-            </div>
-          </div>
-
-          <div class="bento-item accessories-bento" @click="activeCategoryTab = 'accessories'">
-            <div class="bento-image-bg">
-              <img src="/elite_accessories.png" alt="Accessories Sale" />
-            </div>
-            <div class="bento-content-overlay">
-              <div class="bento-badge">Accessories Deal</div>
-              <h3>Gaming Accessories</h3>
-              <a href="#discount-grid" class="bento-buy-btn" @click.stop="activeCategoryTab = 'accessories'">Mua ngay</a>
-              <span class="bento-link">
-                Khám phá ngay
-                <ChevronRight class="chevron-link-icon" />
-              </span>
-            </div>
-          </div>
-
-          <div class="bento-item setup-bento" @click="activeCategoryTab = 'accessories'">
-            <div class="bento-image-bg">
-              <img src="/elite_unboxing.png" alt="Setup bundle sale" />
-            </div>
-            <div class="bento-content-overlay">
-              <div class="bento-badge">Setup Bundle</div>
-              <h3>Setup Gear Sale</h3>
-              <a href="#discount-grid" class="bento-buy-btn" @click.stop="activeCategoryTab = 'accessories'">Mua ngay</a>
-              <span class="bento-link">
-                Khám phá ngay
-                <ChevronRight class="chevron-link-icon" />
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
 
     <!-- 4. FLASH SALE TODAY -->
     <section id="flash-sale" class="section flash-sale-dark-section" v-if="isFlashSaleActive && flashSaleProducts && flashSaleProducts.length">
@@ -1060,13 +1023,13 @@ const initScrollReveal = () => {
           <div class="flash-header-left">
             <span class="ambient-label flash-badge">
               <Flame class="pill-icon" />
-              Flash Sale Hôm Nay
+              Flash sale hôm nay
             </span>
-            <h2>CƠ HỘI CUỐI - CHỚP MẮT LÀ BỎ LỠ</h2>
+            <h2>Cơ hội cuối - chớp mắt là bỏ lỡ</h2>
           </div>
 
           <div class="countdown-clock">
-            <span class="clock-label">KẾT THÚC SAU:</span>
+            <span class="clock-label">Kết thúc sau:</span>
             <div class="timer-numbers">
               <span class="timer-segment">{{ fsDays }}</span>
               <span class="timer-colon">:</span>
@@ -1113,7 +1076,7 @@ const initScrollReveal = () => {
                 :disabled="!prod.inStock"
               >
                 <ShoppingBag class="cart-btn-icon" />
-                {{ prod.inStock ? 'Săn Ngay' : 'Hết Hàng' }}
+                {{ prod.inStock ? 'Săn ngay' : 'Hết hàng' }}
               </button>
             </div>
           </div>
@@ -1129,81 +1092,110 @@ const initScrollReveal = () => {
             <Tag class="pill-icon" />
             Voucher Center
           </span>
-          <h2>TRUNG TÂM MÃ GIẢM GIÁ</h2>
-          <p class="section-sub" style="color: #f1f5f9 !important; -webkit-text-fill-color: #f1f5f9 !important; opacity: 1 !important;">Nhấn <strong style="color: #ffffff !important; -webkit-text-fill-color: #ffffff !important;">Nhận Voucher</strong> để lưu mã vào tài khoản và áp dụng ở bước thanh toán để nhận thêm ưu đãi cực kỳ hấp dẫn.</p>
+          <h2>Trung tâm mã giảm giá</h2>
+          <p class="section-sub">Nhấn <strong style="color: #60a5fa !important; -webkit-text-fill-color: #60a5fa !important;">Nhận voucher</strong> để lưu mã vào tài khoản và áp dụng ở bước thanh toán để nhận thêm ưu đãi cực kỳ hấp dẫn.</p>
+
+          <div class="voucher-toolbar-actions" style="margin-top: 16px; justify-content: center;">
+            <!-- Nút Slide Controls: chỉ hiện khi ở chế độ Slide & có hơn 1 slide -->
+            <div v-if="!isViewAllVouchers && totalVoucherSlides > 1" class="voucher-slide-nav">
+              <button 
+                type="button" 
+                class="slide-nav-btn" 
+                @click="prevVoucherSlide"
+                title="Slide trước"
+              >
+                <ChevronLeft />
+              </button>
+
+              <span class="slide-indicator">
+                <strong>{{ currentVoucherSlide + 1 }}</strong> / {{ totalVoucherSlides }}
+              </span>
+
+              <button 
+                type="button" 
+                class="slide-nav-btn" 
+                @click="nextVoucherSlide"
+                title="Slide sau"
+              >
+                <ChevronRight />
+              </button>
+            </div>
+
+            <!-- Nút Xem Tất Cả -->
+            <button 
+              type="button" 
+              class="btn-view-all-vouchers"
+              @click="toggleViewAllVouchers"
+            >
+              <span>{{ isViewAllVouchers ? 'Thu gọn (Xem slide)' : 'Xem tất cả' }}</span>
+              <component :is="isViewAllVouchers ? ChevronUp : Grid" class="view-all-icon" />
+            </button>
+          </div>
         </div>
 
         <div v-if="allVouchers.length === 0" style="text-align:center; padding: 40px 0; color: #94a3b8; font-size: 15px;">
           Hiện không có voucher nào phù hợp.
         </div>
 
-        <div class="vouchers-glass-grid scroll-reveal reveal-stagger">
-          <article v-for="v in allVouchers" :key="v.id" class="voucher-glass-card" :class="voucherTone(v)">
-            <div class="voucher-glow-accent"></div>
-            <div class="voucher-ticket-side" aria-hidden="true">
-              <span class="voucher-badge">{{ voucherCategoryLabel(v) }}</span>
-              <div class="voucher-ticket-icon">
-                <TicketPercent />
-              </div>
-              <span class="voucher-side-value">{{ voucherValueLabel(v) }}</span>
-            </div>
-
-            <div class="voucher-ticket-content">
-              <div class="voucher-code-row">
-                <span class="voucher-code-caption">Mã voucher</span>
-                <button
-                  type="button"
-                  class="voucher-copy-button"
-                  :class="{ copied: copiedVoucherCode === v.code }"
-                  :title="copiedVoucherCode === v.code ? 'Đã sao chép' : 'Sao chép mã'"
-                  @click.stop="copyVoucherCode(v)"
-                >
-                  <Check v-if="copiedVoucherCode === v.code" />
-                  <Copy v-else />
-                </button>
-              </div>
-
-              <h3 class="voucher-code">{{ v.code }}</h3>
-              <p class="voucher-name">{{ v.ten || v.name }}</p>
-
-              <div class="voucher-meta-grid">
-                <div class="voucher-meta-item">
-                  <Tag />
-                  <span>Giá trị ưu đãi<strong>{{ voucherValueLabel(v) }}</strong></span>
+        <transition name="voucher-fade-slide" mode="out-in">
+          <div :key="isViewAllVouchers ? 'grid' : currentVoucherSlide" class="vouchers-glass-grid scroll-reveal active">
+            <article v-for="v in currentSlideVouchers" :key="v.id" class="voucher-glass-card" :class="voucherTone(v)">
+              <div class="voucher-glow-accent"></div>
+              <div class="voucher-ticket-side" aria-hidden="true">
+                <span class="voucher-badge">{{ voucherCategoryLabel(v) }}</span>
+                <div class="voucher-ticket-icon">
+                  <TicketPercent />
                 </div>
-                <div class="voucher-meta-separator"></div>
-                <div class="voucher-meta-item">
-                  <Clock />
-                  <span>Hạn sử dụng<strong>{{ voucherEndDate(v) ? formatDate(voucherEndDate(v)) : 'Không giới hạn' }}</strong></span>
+                <span class="voucher-side-value">{{ voucherValueLabel(v) }}</span>
+              </div>
+
+              <div class="voucher-ticket-content">
+                <div class="voucher-code-row">
+                  <span class="voucher-code-caption">Mã voucher</span>
+                </div>
+
+                <h3 class="voucher-code">{{ v.code }}</h3>
+                <p class="voucher-name">{{ v.ten || v.name }}</p>
+
+                <div class="voucher-meta-grid">
+                  <div class="voucher-meta-item">
+                    <Tag />
+                    <span>Giá trị ưu đãi<strong>{{ voucherValueLabel(v) }}</strong></span>
+                  </div>
+                  <div class="voucher-meta-separator"></div>
+                  <div class="voucher-meta-item">
+                    <Clock />
+                    <span>Hạn sử dụng<strong>{{ voucherEndDate(v) ? formatDate(voucherEndDate(v)) : 'Không giới hạn' }}</strong></span>
+                  </div>
+                </div>
+
+                <p class="voucher-description">{{ v.mota || v.desc || 'Áp dụng theo điều kiện của chương trình.' }}</p>
+
+                <div class="voucher-footer">
+                  <button
+                    @click="claimVoucher(v)"
+                    class="btn-copy-code"
+                    :class="{ 'copied': claimedVoucherId === v.id, 'loading': claimingId === v.id }"
+                    :disabled="claimingId === v.id"
+                  >
+                    <template v-if="claimedVoucherId === v.id">
+                      <Check class="copy-icon" />
+                      Đã nhận voucher
+                    </template>
+                    <template v-else-if="claimingId === v.id">
+                      <span class="voucher-button-spinner"></span>
+                      Đang xử lý...
+                    </template>
+                    <template v-else>
+                      <Gift class="copy-icon" />
+                      Nhận voucher
+                    </template>
+                  </button>
                 </div>
               </div>
-
-              <p class="voucher-description">{{ v.mota || v.desc || 'Áp dụng theo điều kiện của chương trình.' }}</p>
-
-              <div class="voucher-footer">
-                <button
-                  @click="claimVoucher(v)"
-                  class="btn-copy-code"
-                  :class="{ 'copied': claimedVoucherId === v.id, 'loading': claimingId === v.id }"
-                  :disabled="claimingId === v.id"
-                >
-                  <template v-if="claimedVoucherId === v.id">
-                    <Check class="copy-icon" />
-                    Đã nhận voucher
-                  </template>
-                  <template v-else-if="claimingId === v.id">
-                    <span class="voucher-button-spinner"></span>
-                    Đang xử lý...
-                  </template>
-                  <template v-else>
-                    <Gift class="copy-icon" />
-                    Nhận Voucher
-                  </template>
-                </button>
-              </div>
-            </div>
-          </article>
-        </div>
+            </article>
+          </div>
+        </transition>
       </div>
     </section>
 
@@ -1213,46 +1205,70 @@ const initScrollReveal = () => {
         <div class="section-header scroll-reveal reveal-fade-up">
           <span class="ambient-label">
             <Gift class="pill-icon" />
-            Combo Độc Quyền
+            Combo độc quyền
           </span>
-          <h2>MUA KÈM GIÁ SỐC - TIẾT KIỆM TỐI ĐA</h2>
+          <h2>Mua kèm giá sốc - tiết kiệm tối đa</h2>
           <p class="section-sub" style="color: #f1f5f9 !important; -webkit-text-fill-color: #f1f5f9 !important; opacity: 1 !important;">Sở hữu trọn bộ trang bị chuyên nghiệp cho lập trình viên và game thủ với mức chiết khấu cực sâu.</p>
         </div>
 
         <div class="combos-bento-layout scroll-reveal reveal-stagger" v-if="combos && combos.length">
           <div v-for="combo in combos" :key="combo.id_combo" class="combo-bento-card">
+            <div class="combo-card-glow"></div>
             <div class="combo-main-content">
               <div class="combo-details">
-                <span class="combo-discount-badge" v-if="getOriginalPrice(combo) > combo.giakhuyenmai">
-                  Tiết kiệm {{ formatCurrency(getOriginalPrice(combo) - combo.giakhuyenmai) }}
-                </span>
-                <h3>{{ combo.ten_combo }}</h3>
-                <p>{{ combo.mota }}</p>
+                <div class="combo-header-badges">
+                  <span class="combo-discount-badge" v-if="getOriginalPrice(combo) > combo.giakhuyenmai">
+                    <Flame class="badge-icon" />
+                    Tiết kiệm {{ formatCurrency(getOriginalPrice(combo) - combo.giakhuyenmai) }}
+                  </span>
+                  <span class="combo-percent-badge" v-if="getComboDiscountPercent(combo) > 0">
+                    -{{ getComboDiscountPercent(combo) }}%
+                  </span>
+                </div>
+
+                <h3 class="combo-title">{{ combo.ten_combo }}</h3>
+                <p class="combo-desc">{{ combo.mota }}</p>
                 
+                <div class="combo-perks-list">
+                  <span class="perk-item"><Check class="perk-icon" /> Hàng chính hãng</span>
+                  <span class="perk-item"><Truck class="perk-icon" /> Giao nhanh 2h</span>
+                  <span class="perk-item"><ShieldCheck class="perk-icon" /> Đổi trả 7 ngày</span>
+                </div>
+
                 <div class="combo-pricing-group">
                   <div class="price-block">
-                    <span class="price-label">Giá Combo:</span>
+                    <span class="price-label">Giá Combo Ưu Đãi</span>
                     <span class="price-val">{{ formatCurrency(combo.giakhuyenmai) }}</span>
                   </div>
                   <div class="price-block old-price-block" v-if="getOriginalPrice(combo) > combo.giakhuyenmai">
-                    <span class="price-label">Tổng Giá gốc:</span>
+                    <span class="price-label">Tổng Giá Gốc</span>
                     <span class="price-val-old">{{ formatCurrency(getOriginalPrice(combo)) }}</span>
                   </div>
                 </div>
 
-                <button type="button" class="btn btn-primary-glass combo-action-btn" @click="openCombo(combo)">
-                  Mua Trọn Bộ Combo
+                <button type="button" class="combo-action-btn" @click="openCombo(combo)">
+                  <span>Mua trọn bộ combo</span>
                   <ChevronRight class="btn-chevron" />
                 </button>
               </div>
 
               <div class="combo-visual-connector" v-if="combo.products && combo.products.length">
-                <div v-for="(item, itemIdx) in combo.products" :key="itemIdx" class="connector-node">
-                  <div class="node-image-box">
-                    <img :src="item.hinhanh || productImageUrl(item, null, 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500')" :alt="item.tenSP" />
+                <div v-for="(item, itemIdx) in combo.products" :key="itemIdx" class="connector-node-wrapper">
+                  <div class="connector-node">
+                    <div class="node-image-box">
+                      <img
+                        :src="productImageUrl(item)"
+                        :alt="item.tenSP"
+                        loading="lazy"
+                        @error="handleImageFallback"
+                      />
+                    </div>
+                    <span class="node-title" :title="item.tenSP">{{ item.tenSP }}</span>
+                    <span class="node-price" v-if="getItemPrice(item)">{{ formatCurrency(getItemPrice(item)) }}</span>
                   </div>
-                  <span class="node-title">{{ item.tenSP }}</span>
-                  <div v-if="itemIdx < combo.products.length - 1" class="node-plus-sign">+</div>
+                  <div v-if="itemIdx < combo.products.length - 1" class="node-plus-sign">
+                    <span>+</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1273,19 +1289,19 @@ const initScrollReveal = () => {
         <div class="section-header scroll-reveal reveal-fade-up">
           <span class="ambient-label">
             <ShoppingBag class="pill-icon" />
-            Danh Sách Ưu Đãi
+            Danh sách ưu đãi
           </span>
-          <h2>SẢN PHẨM KHUYẾN MÃI NỔI BẬT</h2>
+          <h2>Sản phẩm khuyến mãi nổi bật</h2>
           <p class="section-sub" style="color: #f1f5f9 !important; -webkit-text-fill-color: #f1f5f9 !important; opacity: 1 !important;">Tất cả dòng máy chính hãng cao cấp từ ASUS, Apple, Dell, Lenovo và MSI đều đang sale chạm đáy.</p>
         </div>
 
         <div class="filter-bar-navigation scroll-reveal reveal-fade-up">
           <button
             v-for="tab in [
-              { id: 'all', label: 'Tất Cả', icon: ShoppingBag },
+              { id: 'all', label: 'Tất cả', icon: ShoppingBag },
               { id: 'gaming', label: 'Gaming Laptop', icon: Laptop },
               { id: 'macbook', label: 'MacBook Pro/Air', icon: AppleIcon },
-              { id: 'office', label: 'Văn Phòng', icon: Briefcase },
+              { id: 'office', label: 'Văn phòng', icon: Briefcase },
               { id: 'workstation', label: 'Workstation', icon: Monitor },
               { id: 'accessories', label: 'Accessories', icon: Gift }
             ]"
@@ -1372,7 +1388,7 @@ const initScrollReveal = () => {
             <Sparkles class="pill-icon" />
             Tech Insights Magazine
           </span>
-          <h2>TIN TỨC CÔNG NGHỆ</h2>
+          <h2>Tin tức công nghệ</h2>
           <p class="section-sub" style="color: #f1f5f9 !important; -webkit-text-fill-color: #f1f5f9 !important; opacity: 1 !important;">Những bài đánh giá chuyên sâu và cẩm nang bổ ích giúp bạn lựa chọn thiết bị phù hợp nhất.</p>
         </div>
 
@@ -1390,9 +1406,15 @@ const initScrollReveal = () => {
                   Xem chi tiết bài viết
                   <ArrowRight class="art-arrow-icon" />
                 </RouterLink>
-                <span class="art-views-badge" v-if="magazineArticles[0].views > 0">
-                  👁 {{ magazineArticles[0].views.toLocaleString() }} lượt xem
-                </span>
+                <div class="art-meta-right" style="display: flex; align-items: center; gap: 12px;">
+                  <span class="art-date-badge" v-if="magazineArticles[0].date" style="font-size: 12px; color: #94a3b8; font-weight: 500; display: inline-flex; align-items: center; gap: 4px;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    {{ formatNewsDateTime(magazineArticles[0].date) }}
+                  </span>
+                  <span class="art-views-badge" v-if="magazineArticles[0].views > 0">
+                    👁 {{ magazineArticles[0].views.toLocaleString() }} lượt xem
+                  </span>
+                </div>
               </div>
             </div>
           </article>
@@ -1403,9 +1425,15 @@ const initScrollReveal = () => {
                 <img :src="n.img" :alt="n.title" />
               </div>
               <div class="mini-art-info">
-                <div class="mini-tag-row">
+                <div class="mini-tag-row" style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
                   <span class="mini-tag">{{ n.category }}</span>
-                  <span class="mini-views-count" v-if="n.views > 0">👁 {{ n.views.toLocaleString() }}</span>
+                  <div class="mini-meta-right" style="display: flex; align-items: center; gap: 8px;">
+                    <span class="mini-date-badge" v-if="n.date" style="font-size: 10px; color: #94a3b8; font-weight: 500; display: inline-flex; align-items: center; gap: 3px;">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                      {{ formatNewsDateTime(n.date) }}
+                    </span>
+                    <span class="mini-views-count" v-if="n.views > 0">👁 {{ n.views.toLocaleString() }}</span>
+                  </div>
                 </div>
                 <h3>{{ n.title }}</h3>
                 <RouterLink :to="`/tin-tuc/${n.id}`" class="mini-art-link" @click.stop>
@@ -1419,35 +1447,7 @@ const initScrollReveal = () => {
       </div>
     </section>
 
-    <!-- 9. NEWSLETTER -->
-    <section class="section newsletter-section">
-      <div class="grid-container">
-        <div class="newsletter-glass-card scroll-reveal reveal-fade-up">
-          <div class="newsletter-glow-orb"></div>
-          <div class="newsletter-layout">
-            <div class="newsletter-headline">
-              <h2>KHÔNG BỎ LỠ CƠ HỘI NÀO!</h2>
-              <p style="color: #f1f5f9 !important; -webkit-text-fill-color: #f1f5f9 !important; opacity: 1 !important;">Để lại email của bạn, chúng tôi sẽ gửi trực tiếp các chương trình khuyến mãi độc quyền và các mã giảm giá cá nhân sớm nhất.</p>
-            </div>
 
-            <div class="newsletter-form-group">
-              <form @submit.prevent="submitNewsletter" class="newsletter-interactive-form">
-                <input
-                  v-model="newsletterEmail"
-                  type="email"
-                  placeholder="Nhập email của bạn..."
-                  required
-                  style="color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; background: transparent !important; border: none !important; outline: none !important;"
-                />
-                <button type="submit" class="btn-newsletter-submit">
-                  Đăng ký ngay
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
 
     <!-- Combo Selection variant modal -->
     <ComboSelectionModal
@@ -2220,6 +2220,114 @@ const initScrollReveal = () => {
   background: var(--bg-dark);
 }
 
+.voucher-header-flex {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+.voucher-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.voucher-slide-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  padding: 4px 10px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+.slide-nav-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.slide-nav-btn:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+  transform: scale(1.08);
+}
+
+.slide-nav-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.slide-indicator {
+  font-size: 13px;
+  color: #94a3b8;
+  padding: 0 6px;
+  user-select: none;
+}
+
+.slide-indicator strong {
+  color: #60a5fa;
+}
+
+.btn-view-all-vouchers {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.25) 0%, rgba(59, 130, 246, 0.15) 100%);
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  color: #f8fafc;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.15);
+}
+
+.btn-view-all-vouchers:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
+  transform: translateY(-2px);
+}
+
+.view-all-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.voucher-fade-slide-enter-active,
+.voucher-fade-slide-leave-active {
+  transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.voucher-fade-slide-enter-from {
+  opacity: 0;
+  transform: translateY(16px) scale(0.98);
+}
+
+.voucher-fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-16px) scale(0.98);
+}
+
 .vouchers-glass-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -2331,7 +2439,7 @@ const initScrollReveal = () => {
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.04em;
-  text-transform: uppercase;
+  text-transform: none;
   box-shadow: 0 6px 16px rgba(0, 28, 91, 0.22);
 }
 
@@ -2384,7 +2492,7 @@ const initScrollReveal = () => {
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.11em;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .voucher-code-caption::before,
@@ -2520,9 +2628,9 @@ const initScrollReveal = () => {
 .btn-copy-code {
   width: 100%;
   min-height: 34px;
-  border: 1px solid rgba(133, 177, 255, 0.56);
+  border: 1px solid #ffb04a;
   border-radius: 12px;
-  background: linear-gradient(135deg, var(--ticket-accent), #244eea);
+  background: linear-gradient(135deg, #ff8a00, #f45d0b);
   color: #fff !important;
   padding: 6px 10px;
   font-size: 12px;
@@ -2532,14 +2640,14 @@ const initScrollReveal = () => {
   align-items: center;
   justify-content: center;
   gap: 9px;
-  box-shadow: 0 9px 24px rgba(var(--ticket-accent-rgb), 0.29), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  box-shadow: 0 10px 24px rgba(249, 115, 22, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.3);
   transition: all 0.22s ease;
 }
 
 .btn-copy-code:hover:not(:disabled) {
-  filter: brightness(1.1);
+  background: linear-gradient(135deg, #ff9f1c, #ff6b00);
   transform: translateY(-2px);
-  box-shadow: 0 12px 28px rgba(var(--ticket-accent-rgb), 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  box-shadow: 0 14px 30px rgba(249, 115, 22, 0.46), 0 0 0 2px rgba(255, 178, 71, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.34);
 }
 
 .btn-copy-code.copied {
@@ -2637,37 +2745,53 @@ const initScrollReveal = () => {
    6. COMBO SECTION
    ============================================================ */
 .combo-section {
-  background: #050d1a;
+  background: #030816;
   border-top: 1px solid var(--border-glass);
   border-bottom: 1px solid var(--border-glass);
+  position: relative;
 }
 
 .combos-bento-layout {
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 36px;
 }
 
 .combo-bento-card {
-  background: #081529;
+  background: linear-gradient(145deg, rgba(13, 27, 46, 0.95) 0%, rgba(8, 17, 32, 0.98) 100%);
   border-radius: 24px;
-  border: 1px solid var(--border-glass);
-  padding: 32px;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  padding: 36px;
   overflow: hidden;
   position: relative;
-  transition: all 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .combo-bento-card:hover {
-  border-color: rgba(59, 130, 246, 0.25);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  border-color: rgba(99, 102, 241, 0.5);
+  box-shadow: 0 20px 45px rgba(37, 99, 235, 0.25), 0 0 30px rgba(99, 102, 241, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transform: translateY(-3px);
+}
+
+.combo-card-glow {
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.18) 0%, rgba(0, 0, 0, 0) 70%);
+  pointer-events: none;
+  filter: blur(40px);
 }
 
 .combo-main-content {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 48px;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 40px;
   align-items: center;
+  position: relative;
+  z-index: 2;
 }
 
 .combo-details {
@@ -2677,71 +2801,146 @@ const initScrollReveal = () => {
   text-align: left;
 }
 
-.combo-discount-badge {
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  color: white;
-  font-size: 11px;
-  font-weight: 800;
-  padding: 5px 12px;
-  border-radius: 30px;
-  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.35);
+.combo-header-badges {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.combo-discount-badge {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
   letter-spacing: 0.02em;
 }
 
-.combo-details h3 {
-  font-size: 26px;
-  font-weight: 850;
-  margin: 0 0 10px 0;
-  color: var(--text-light);
-  letter-spacing: -0.02em;
+.badge-icon {
+  width: 14px;
+  height: 14px;
+  color: #fff;
 }
 
-.combo-details p {
+.combo-percent-badge {
+  background: rgba(234, 179, 8, 0.15);
+  border: 1px solid rgba(234, 179, 8, 0.4);
+  color: #facc15;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 5px 12px;
+  border-radius: 20px;
+}
+
+.combo-title {
+  font-size: 24px;
+  font-weight: 800;
+  margin: 0 0 10px 0;
+  color: #f8fafc;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.combo-desc {
   font-size: 14px;
   line-height: 1.6;
   color: #94a3b8;
-  margin-bottom: 24px;
+  margin-bottom: 18px;
+}
+
+.combo-perks-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.perk-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #cbd5e1;
+  font-weight: 500;
+}
+
+.perk-icon {
+  width: 13px;
+  height: 13px;
+  color: #38bdf8;
 }
 
 .combo-pricing-group {
   display: flex;
-  gap: 32px;
-  margin-bottom: 28px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  padding-top: 20px;
+  align-items: flex-end;
+  gap: 24px;
+  margin-bottom: 24px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 14px 20px;
+  border-radius: 14px;
   width: 100%;
 }
 
 .price-block {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .price-label {
   font-size: 11px;
   font-weight: 600;
   color: #64748b;
-  text-transform: capitalize;
+  text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .price-val {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 850;
-  color: var(--highlight);
+  color: #38bdf8;
+  text-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
 }
 
 .price-val-old {
-  font-size: 20px;
-  font-weight: 700;
-  color: #475569;
+  font-size: 18px;
+  font-weight: 600;
+  color: #64748b;
   text-decoration: line-through;
 }
 
 .combo-action-btn {
-  padding: 12px 28px;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 14px 28px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+}
+
+.combo-action-btn:hover {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  box-shadow: 0 8px 25px rgba(37, 99, 235, 0.6);
+  transform: translateY(-2px);
 }
 
 .btn-chevron {
@@ -2758,65 +2957,102 @@ const initScrollReveal = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 24px;
+  gap: 12px;
   position: relative;
-  background: rgba(7, 14, 27, 0.45);
-  border: 1px solid var(--border-glass);
-  padding: 30px 28px;
-  border-radius: 22px;
-  min-height: 208px;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.7) 0%, rgba(30, 41, 59, 0.5) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 24px 20px;
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+  min-height: 220px;
+  width: 100%;
+}
+
+.connector-node-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
 }
 
 .connector-node {
   display: flex;
   flex-direction: column;
   align-items: center;
+  text-align: center;
   position: relative;
   flex: 1;
-  min-width: 104px;
+  min-width: 0;
+  transition: transform 0.3s ease;
+}
+
+.connector-node:hover {
+  transform: translateY(-4px);
 }
 
 .node-image-box {
-  width: 100px;
-  height: 100px;
-  border-radius: 14px;
-  background: var(--tn-surface);
-  padding: 8px;
+  width: 110px;
+  height: 110px;
+  border-radius: 16px;
+  background: #ffffff;
+  padding: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.connector-node:hover .node-image-box {
+  border-color: #38bdf8;
+  box-shadow: 0 12px 30px rgba(56, 189, 248, 0.3);
 }
 
 .node-image-box img {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
 }
 
 .node-title {
-  font-size: 12.5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-top: 10px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  max-width: 130px;
+}
+
+.node-price {
+  font-size: 11px;
   font-weight: 700;
   color: #94a3b8;
-  margin-top: 12px;
-  text-align: center;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  height: 38px;
-  line-height: 1.5;
+  margin-top: 2px;
 }
 
 .node-plus-sign {
-  position: absolute;
-  right: -25px;
-  top: 36px;
-  font-size: 22px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.25) 0%, rgba(99, 102, 241, 0.35) 100%);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #38bdf8;
+  font-size: 18px;
   font-weight: 800;
-  color: var(--accent);
+  flex-shrink: 0;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
 }
 
 /* ============================================================

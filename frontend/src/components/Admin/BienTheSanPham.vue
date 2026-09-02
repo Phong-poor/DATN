@@ -23,20 +23,28 @@ const formError = ref('')
 const loading = ref(false)
 
 const typePalette = [
-  { bg: '#dbeafe', color: '#1d4ed8' },
-  { bg: '#dcfce7', color: '#1d4ed8' },
-  { bg: '#ede9fe', color: '#1d4ed8' },
-  { bg: '#fef3c7', color: '#b45309' },
-  { bg: '#fee2e2', color: '#b91c1c' },
-  { bg: '#e0f2fe', color: '#0369a1' },
+  { bg: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa', borderColor: 'rgba(59, 130, 246, 0.4)' },
+  { bg: 'rgba(168, 85, 247, 0.2)', color: '#c084fc', borderColor: 'rgba(168, 85, 247, 0.4)' },
+  { bg: 'rgba(245, 158, 11, 0.2)', color: '#fbbf24', borderColor: 'rgba(245, 158, 11, 0.4)' },
+  { bg: 'rgba(20, 184, 166, 0.2)', color: '#2dd4bf', borderColor: 'rgba(20, 184, 166, 0.4)' },
+  { bg: 'rgba(236, 72, 153, 0.2)', color: '#f472b6', borderColor: 'rgba(236, 72, 153, 0.4)' },
+  { bg: 'rgba(34, 197, 94, 0.2)', color: '#4ade80', borderColor: 'rgba(34, 197, 94, 0.4)' },
+  { bg: 'rgba(239, 68, 68, 0.2)', color: '#f87171', borderColor: 'rgba(239, 68, 68, 0.4)' },
 ]
 
 const getTypeStyle = (name) => {
-  if (!name) return { bg: '#e5e7eb', color: '#374151' }
-  const index =
-    String(name)
-      .split('')
-      .reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % typePalette.length
+  if (!name) return typePalette[0]
+  const str = String(name).trim()
+  const lower = str.toLowerCase()
+  if (lower.includes('ram')) return typePalette[0]
+  if (lower.includes('cpu')) return typePalette[1]
+  if (lower.includes('gpu')) return typePalette[2]
+  if (lower.includes('ssd') || lower.includes('o cung') || lower.includes('ổ cứng')) return typePalette[3]
+  if (lower.includes('mau') || lower.includes('màu')) return typePalette[4]
+  if (lower.includes('kich thuoc') || lower.includes('kích thước') || lower.includes('man hinh') || lower.includes('màn hình')) return typePalette[5]
+  if (lower.includes('do phan giai') || lower.includes('độ phân giải') || lower.includes('pin')) return typePalette[6]
+
+  const index = str.split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % typePalette.length
   return typePalette[index]
 }
 
@@ -104,6 +112,43 @@ const parentCategories = ref([])
 const childCategories = ref([])
 const categories = ref([])
 
+// ── Slider Phân Trang Bảng Màu ──
+const COLOR_PER_PAGE = 5
+const colorSlideIndex = ref(0)
+
+const totalColorSlides = computed(() => {
+  const len = Array.isArray(colors.value) ? colors.value.length : 0
+  return Math.ceil(len / COLOR_PER_PAGE) || 1
+})
+
+const sliderColors = computed(() => {
+  if (!Array.isArray(colors.value)) return []
+  const start = colorSlideIndex.value * COLOR_PER_PAGE
+  return colors.value.slice(start, start + COLOR_PER_PAGE)
+})
+
+const prevColorSlide = () => {
+  if (colorSlideIndex.value > 0) {
+    colorSlideIndex.value--
+  } else {
+    colorSlideIndex.value = totalColorSlides.value - 1
+  }
+}
+
+const nextColorSlide = () => {
+  if (colorSlideIndex.value < totalColorSlides.value - 1) {
+    colorSlideIndex.value++
+  } else {
+    colorSlideIndex.value = 0
+  }
+}
+
+watch([colors, totalColorSlides], () => {
+  if (colorSlideIndex.value >= totalColorSlides.value) {
+    colorSlideIndex.value = Math.max(0, totalColorSlides.value - 1)
+  }
+})
+
 const getCategoryName = (id) => {
   if (!id && id !== 0) return 'N/A'
   const found = categories.value.find(c => 
@@ -143,18 +188,65 @@ const toggleCategorySelection = (id, formObj) => {
   if (!Array.isArray(formObj.danh_muc_ids)) {
     formObj.danh_muc_ids = []
   }
-  const index = formObj.danh_muc_ids.findIndex(item => Number(item) === numId)
-  if (index >= 0) {
-    formObj.danh_muc_ids.splice(index, 1)
+
+  const isParent = parentCategories.value.some(p => Number(p.id_danhmuc) === numId)
+
+  if (isParent) {
+    const childIds = childCategories.value
+      .filter(c => Number(c.id_danhmuc_cha) === numId)
+      .map(c => Number(c.id_danhmuc))
+
+    const isSelected = formObj.danh_muc_ids.map(Number).includes(numId)
+    if (isSelected) {
+      formObj.danh_muc_ids = formObj.danh_muc_ids.filter(i => Number(i) !== numId && !childIds.includes(Number(i)))
+    } else {
+      const set = new Set([...formObj.danh_muc_ids.map(Number), numId, ...childIds])
+      formObj.danh_muc_ids = Array.from(set)
+    }
   } else {
-    formObj.danh_muc_ids.push(numId)
+    const index = formObj.danh_muc_ids.findIndex(item => Number(item) === numId)
+    if (index >= 0) {
+      formObj.danh_muc_ids.splice(index, 1)
+      const childObj = childCategories.value.find(c => Number(c.id_danhmuc) === numId)
+      if (childObj && childObj.id_danhmuc_cha) {
+        const parentId = Number(childObj.id_danhmuc_cha)
+        const pIndex = formObj.danh_muc_ids.findIndex(item => Number(item) === parentId)
+        if (pIndex >= 0) formObj.danh_muc_ids.splice(pIndex, 1)
+      }
+    } else {
+      formObj.danh_muc_ids.push(numId)
+      const childObj = childCategories.value.find(c => Number(c.id_danhmuc) === numId)
+      if (childObj && childObj.id_danhmuc_cha) {
+        const parentId = Number(childObj.id_danhmuc_cha)
+        const siblingIds = childCategories.value
+          .filter(c => Number(c.id_danhmuc_cha) === parentId)
+          .map(c => Number(c.id_danhmuc))
+        const allSiblingsSelected = siblingIds.every(sId => formObj.danh_muc_ids.map(Number).includes(sId))
+        if (allSiblingsSelected && !formObj.danh_muc_ids.map(Number).includes(parentId)) {
+          formObj.danh_muc_ids.push(parentId)
+        }
+      }
+    }
   }
 }
 
 const removeCategorySelection = (id, formObj) => {
   const numId = Number(id)
   if (Array.isArray(formObj.danh_muc_ids)) {
-    formObj.danh_muc_ids = formObj.danh_muc_ids.filter(item => Number(item) !== numId)
+    const isParent = parentCategories.value.some(p => Number(p.id_danhmuc) === numId)
+    if (isParent) {
+      const childIds = childCategories.value
+        .filter(c => Number(c.id_danhmuc_cha) === numId)
+        .map(c => Number(c.id_danhmuc))
+      formObj.danh_muc_ids = formObj.danh_muc_ids.filter(item => Number(item) !== numId && !childIds.includes(Number(item)))
+    } else {
+      formObj.danh_muc_ids = formObj.danh_muc_ids.filter(item => Number(item) !== numId)
+      const childObj = childCategories.value.find(c => Number(c.id_danhmuc) === numId)
+      if (childObj && childObj.id_danhmuc_cha) {
+        const parentId = Number(childObj.id_danhmuc_cha)
+        formObj.danh_muc_ids = formObj.danh_muc_ids.filter(item => Number(item) !== parentId)
+      }
+    }
   }
 }
 const selectedColor = ref(null)
@@ -283,6 +375,37 @@ const colorForm = ref(defaultColorForm())
 const groupForm = ref(defaultGroupForm())
 const attrForm = ref(defaultAttrForm())
 let editingId = null
+
+const colorPresets = [
+  { name: 'Đen nhám (Space Black)', hex: '#1C1C1E' },
+  { name: 'Trắng tuyết (Pure White)', hex: '#FFFFFF' },
+  { name: 'Bạc ánh kim (Silver)', hex: '#E3E4E5' },
+  { name: 'Xám không gian (Space Gray)', hex: '#535558' },
+  { name: 'Vàng Champagne (Gold)', hex: '#D4AF37' },
+  { name: 'Xanh Navy (Deep Ocean)', hex: '#1E3A8A' },
+  { name: 'Đỏ rượu (Crimson Red)', hex: '#991B1B' },
+  { name: 'Xám Đen (Graphite)', hex: '#383838' },
+]
+
+const applyColorPreset = (preset) => {
+  colorForm.value.name = preset.name
+  colorForm.value.hex = preset.hex
+}
+
+const isVariantGlobal = ref(true)
+const isGroupGlobal = ref(true)
+
+watch(isVariantGlobal, (val) => {
+  if (val) {
+    variantForm.value.danh_muc_ids = []
+  }
+})
+
+watch(isGroupGlobal, (val) => {
+  if (val) {
+    groupForm.value.danh_muc_ids = []
+  }
+})
 
 // ── Duplicate Check Helpers ──
 const isDuplicateVariant = (name, type, excludeId = null) => {
@@ -478,7 +601,10 @@ const openModal = (type, item = null) => {
   formError.value = ''
   editingId = item ? Number(item.id ?? item.id_giatri ?? 0) : null
 
-  if (type === 'variant') variantForm.value = defaultVariantForm()
+  if (type === 'variant') {
+    variantForm.value = defaultVariantForm()
+    isVariantGlobal.value = true
+  }
   else if (type === 'editVariant' && item) {
     const rawIds = item.danh_muc_ids || item.danh_mucs || item.danhmucs || item.danhMucIds || []
     const parsedCategoryIds = normalizeCategoryIds(rawIds)
@@ -497,10 +623,14 @@ const openModal = (type, item = null) => {
       gia_cong_them: Number(item.gia_cong_them || 0),
       danh_muc_ids: parsedCategoryIds
     }
+    isVariantGlobal.value = !parsedCategoryIds || parsedCategoryIds.length === 0
   }
   else if (type === 'color') colorForm.value = defaultColorForm()
   else if (type === 'editColor' && item) colorForm.value = { ...item }
-  else if (type === 'group') groupForm.value = defaultGroupForm()
+  else if (type === 'group') {
+    groupForm.value = defaultGroupForm()
+    isGroupGlobal.value = true
+  }
   else if (type === 'editGroup' && item) {
     const rawIds = item.danh_muc_ids || item.danh_mucs || item.danhmucs || item.danhMucIds || []
     const parsedCategoryIds = normalizeCategoryIds(rawIds)
@@ -509,6 +639,7 @@ const openModal = (type, item = null) => {
       name: item.name || item.ten_nhom || '',
       danh_muc_ids: parsedCategoryIds
     }
+    isGroupGlobal.value = !parsedCategoryIds || parsedCategoryIds.length === 0
   }
   else if (type === 'attr') attrForm.value = defaultAttrForm()
   else if (type === 'editAttr' && item) {
@@ -547,6 +678,10 @@ const submitVariant = async () => {
     formError.value = 'Không tìm thấy loại thuộc tính tương ứng.'
     return
   }
+  if (!isVariantGlobal.value && (!variantForm.value.danh_muc_ids || variantForm.value.danh_muc_ids.length === 0)) {
+    formError.value = 'Vui lòng tích chọn ít nhất 1 danh mục bên dưới hoặc bật "Áp dụng Toàn cục".'
+    return
+  }
 
   if (isDuplicateVariant(variantForm.value.name, variantForm.value.type, editingId)) {
     formError.value = `Biến thể "${variantForm.value.name}" đã tồn tại trong loại "${variantForm.value.type}".`
@@ -558,7 +693,7 @@ const submitVariant = async () => {
     giatri: variantForm.value.name,
     gia_cong_them: Number(variantForm.value.gia_cong_them || 0),
     trangthai: variantForm.value.status === 'Hoạt động' ? 1 : 0,
-    danh_muc_ids: variantForm.value.danh_muc_ids
+    danh_muc_ids: isVariantGlobal.value ? [] : variantForm.value.danh_muc_ids
   }
 
   try {
@@ -616,10 +751,14 @@ const submitGroup = async () => {
     formError.value = `Nhóm thuộc tính "${groupForm.value.name}" đã tồn tại.`
     return
   }
+  if (!isGroupGlobal.value && (!groupForm.value.danh_muc_ids || groupForm.value.danh_muc_ids.length === 0)) {
+    formError.value = 'Vui lòng tích chọn ít nhất 1 danh mục cha ở bên dưới hoặc bật "Áp dụng Toàn cục".'
+    return
+  }
   try {
     const payload = { 
       ten_nhom: groupForm.value.name,
-      danh_muc_ids: groupForm.value.danh_muc_ids
+      danh_muc_ids: isGroupGlobal.value ? [] : groupForm.value.danh_muc_ids
     }
     if (modalType.value === 'editGroup') {
       await api.put(`/admin/nhomthuoctinh/${editingId}`, payload)
@@ -963,37 +1102,6 @@ async function handleImportFile(e) {
 
 <template>
   <div class="page">
-    <!-- TOPBAR -->
-    <div class="topbar">
-      <div class="search-box">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <circle cx="11" cy="11" r="8" />
-          <path d="m21 21-4.35-4.35" />
-        </svg>
-        <input placeholder="Tìm kiếm hệ thống..." />
-      </div>
-      <div class="topbar-right">
-        <span class="nav-link">Inventory</span>
-        <span class="nav-link">Orders</span>
-        <span class="nav-link">Analytics</span>
-        <span class="nav-link">Customers</span>
-        <button class="icon-btn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-          </svg>
-          <span class="notif-dot"></span>
-        </button>
-        <button class="icon-btn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="3" />
-            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14" />
-          </svg>
-        </button>
-        <div class="av">AV</div>
-      </div>
-    </div>
-
     <!-- BREADCRUMB -->
     <div class="breadcrumb">
       <span>Hệ thống</span>
@@ -1005,11 +1113,18 @@ async function handleImportFile(e) {
     <div class="page-header">
       <div>
         <h1>Quản lý biến thể &amp; Màu sắc</h1>
-        <p>Cấu hình các thuộc tính kỹ thuật và dải màu sắc dành cho dòng sản phẩm cao cấp VinaTech 2026.</p>
+        <p>Cấu hình các thuộc tính kỹ thuật và dải màu sắc dành cho dòng sản phẩm cao cấp NextGen 2026.</p>
       </div>
     </div>
 
     <!-- ══ TOP TABLES: GROUP + ATTR ══ -->
+    <div class="workflow-hint" aria-label="Quy trình thiết lập biến thể">
+      <span class="workflow-step"><b>1</b> Tạo nhóm thuộc tính</span>
+      <span class="workflow-arrow">→</span>
+      <span class="workflow-step"><b>2</b> Thêm loại thuộc tính</span>
+      <span class="workflow-arrow">→</span>
+      <span class="workflow-step"><b>3</b> Khai báo giá trị hoặc màu</span>
+    </div>
     <div class="top-tables">
       <!-- NHÓM THUỘC TÍNH -->
       <div class="card top-card">
@@ -1125,7 +1240,7 @@ async function handleImportFile(e) {
                   <span class="variant-name">{{ a.name }}</span>
                 </div>
               </td>
-              <td><span class="group-tag">{{ a.group }}</span></td>
+              <td><span class="group-tag" :style="{ background: getTypeStyle(a.group).bg, color: getTypeStyle(a.group).color, borderColor: getTypeStyle(a.group).borderColor }">{{ a.group }}</span></td>
               <td>
                 <span class="status-dot" :class="a.status === 'Hoạt động' ? 'active' : 'draft'">● {{ a.status }}</span>
               </td>
@@ -1232,20 +1347,6 @@ async function handleImportFile(e) {
                   </ul>
                 </transition>
               </div>
-              <div class="card-tools">
-                <button class="tool-btn">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                    <line x1="4" y1="6" x2="20" y2="6" />
-                    <line x1="8" y1="12" x2="16" y2="12" />
-                    <line x1="11" y1="18" x2="13" y2="18" />
-                  </svg>
-                </button>
-                <button class="tool-btn">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                    <path d="M3 6h18M6 12h12M9 18h6" />
-                  </svg>
-                </button>
-              </div>
             </div>
           </div>
           <table>
@@ -1266,7 +1367,7 @@ async function handleImportFile(e) {
                 <td class="variant-name">{{ v.name }}</td>
                 <td>
                   <span class="type-badge"
-                    :style="{ background: getTypeStyle(v.type).bg, color: getTypeStyle(v.type).color }">{{ v.type }}</span>
+                    :style="{ background: getTypeStyle(v.type).bg, color: getTypeStyle(v.type).color, borderColor: getTypeStyle(v.type).borderColor }">{{ v.type }}</span>
                 </td>
                 <td>
                   <span v-if="v.danh_muc_ids && v.danh_muc_ids.length > 0" style="font-size: 12.5px; color: #475569; font-weight: 500;" :title="getCategoryNamesTooltip(v.danh_muc_ids)">
@@ -1311,21 +1412,21 @@ async function handleImportFile(e) {
           <div class="card-header">
             <div class="card-title"><span class="bar purple"></span>Bảng màu sản phẩm</div>
           </div>
-          <table>
+          <table class="color-table">
             <thead>
               <tr>
-                <th>MÀU</th>
-                <th>TÊN</th>
-                <th>THAO TÁC</th>
+                <th class="col-swatch">MÀU</th>
+                <th class="col-name">TÊN MÀU</th>
+                <th class="col-actions">THAO TÁC</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="c in pagedColors" :key="c.id" @click="selectedColor = c" style="cursor:pointer">
-                <td>
+                <td class="col-swatch">
                   <div class="color-swatch-cell" :style="{ background: c.hex || '#E5E7EB' }"></div>
                 </td>
-                <td class="variant-name">{{ c.name || 'Chưa đặt tên' }}</td>
-                <td>
+                <td class="variant-name col-name">{{ c.name || 'Chưa đặt tên' }}</td>
+                <td class="col-actions">
                   <div class="actions">
                     <button v-if="hasPermission('bien_the_sua')" class="act-btn" @click.stop="openModal('editColor', c)">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -1357,9 +1458,12 @@ async function handleImportFile(e) {
 
       <!-- RIGHT SIDEBAR -->
       <div class="right-col">
-        <div class="card side-card">
+        <div class="card side-card color-slider-card">
           <div class="side-header">
-            <div class="card-title" style="font-size:14px"><span class="bar purple"></span>Bảng màu</div>
+            <div class="card-title" style="font-size:14px">
+              <span class="bar purple"></span>Bảng màu
+              <span class="color-count-badge">{{ colors.length }} màu</span>
+            </div>
             <button v-if="hasPermission('bien_the_sua')" class="btn-add-sm" @click="openModal('color')">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                 style="width:11px;height:11px;flex-shrink:0">
@@ -1369,23 +1473,48 @@ async function handleImportFile(e) {
               Thêm màu
             </button>
           </div>
-          <div class="color-list">
-            <div v-for="c in colors" :key="c.id" class="color-row-item"
-              :class="{ 'color-selected': selectedColor?.id === c.id }" @click="selectedColor = c">
-              <div class="color-dot" :style="{ background: c.hex || '#E5E7EB' }"></div>
-              <div class="color-info"><b>{{ c.name || 'Chưa đặt tên' }}</b><span>{{ c.hex || '#E5E7EB' }}</span></div>
-              <div class="color-row-actions">
-                <span :class="c.stock === 'Khả dụng' ? 'stock-ok' : 'stock-out'" style="font-size:11px">
-                  {{ c.stock === 'Khả dụng' ? '●' : '○' }}
-                </span>
-                <button v-if="hasPermission('bien_the_sua')" class="color-del-btn" @click.stop="removeColor(c.id)" title="Xóa màu">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                    <polyline points="3 6 5 6 21 6" />
-                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                    <path d="M10 11v6M14 11v6" />
-                  </svg>
-                </button>
+          
+          <div class="color-slider-wrapper">
+            <div class="color-list color-slide-container">
+              <transition-group name="color-slide" tag="div" class="color-slide-inner">
+                <div v-for="c in sliderColors" :key="c.id" class="color-row-item"
+                  :class="{ 'color-selected': selectedColor?.id === c.id }" @click="selectedColor = c">
+                  <div class="color-dot" :style="{ background: c.hex || '#E5E7EB' }"></div>
+                  <div class="color-info">
+                    <b>{{ c.name || 'Chưa đặt tên' }}</b>
+                    <span>{{ c.hex || '#E5E7EB' }}</span>
+                  </div>
+                  <div class="color-row-actions">
+                    <span :class="c.stock === 'Khả dụng' ? 'stock-ok' : 'stock-out'" style="font-size:11px">
+                      {{ c.stock === 'Khả dụng' ? '●' : '○' }}
+                    </span>
+                    <button v-if="hasPermission('bien_the_sua')" class="color-del-btn" @click.stop="removeColor(c.id)" title="Xóa màu">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                        <path d="M10 11v6M14 11v6" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </transition-group>
+            </div>
+
+            <!-- SLIDER NAVIGATION CONTROLS -->
+            <div v-if="totalColorSlides > 1" class="color-slider-footer">
+              <button class="color-slider-btn prev" @click="prevColorSlide" title="Trang trước">
+                ‹
+              </button>
+              <div class="color-slider-dots">
+                <span v-for="idx in totalColorSlides" :key="idx"
+                  class="color-slider-dot"
+                  :class="{ active: colorSlideIndex === idx - 1 }"
+                  @click="colorSlideIndex = idx - 1"
+                  :title="`Trang ${idx}`"></span>
               </div>
+              <button class="color-slider-btn next" @click="nextColorSlide" title="Trang sau">
+                ›
+              </button>
             </div>
           </div>
         </div>
@@ -1457,19 +1586,6 @@ async function handleImportFile(e) {
           <input ref="importFileRef" type="file" accept=".xlsx,.xls" style="display:none" @change="handleImportFile" />
         </div>
       </div>
-
-      <div class="bottom-card dark-bottom">
-        <div class="bottom-icon white-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 8v4l3 3" />
-          </svg>
-        </div>
-        <div>
-          <h4>Thư viện màu</h4>
-          <p>Quản lý và mở rộng bộ màu sắc toàn bộ thị tác</p>
-        </div>
-      </div>
     </div>
 
     <!-- MODAL -->
@@ -1532,16 +1648,22 @@ async function handleImportFile(e) {
                     <input v-model.number="variantForm.gia_cong_them" type="number" min="0" placeholder="VD: 2000000" />
                   </div>
                   <div class="form-group">
-                    <label style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-                      <span>DANH MỤC ÁP DỤNG</span>
-                      <small style="color:#64748b;font-weight:normal">(Tùy chọn - Bỏ trống để áp dụng cho tất cả)</small>
-                    </label>
+                    <div class="scope-toggle-wrap">
+                      <div>
+                        <strong class="scope-title">Phạm vi áp dụng danh mục</strong>
+                        <small class="scope-sub">Bật để áp dụng biến thể này cho toàn bộ sản phẩm trên hệ thống</small>
+                      </div>
+                      <label class="scope-checkbox-label">
+                        <input type="checkbox" v-model="isVariantGlobal" class="scope-checkbox" />
+                        <span>Áp dụng Toàn cục</span>
+                      </label>
+                    </div>
 
                     <!-- BADGES HIỂN THỊ CÁC DANH MỤC ĐANG CHỌN -->
                     <div class="selected-category-badges-box">
                       <span class="box-title">Đang chọn ({{ variantForm.danh_muc_ids ? variantForm.danh_muc_ids.length : 0 }} danh mục):</span>
                       <div class="badges-wrap">
-                        <template v-if="variantForm.danh_muc_ids && variantForm.danh_muc_ids.length">
+                        <template v-if="!isVariantGlobal && variantForm.danh_muc_ids && variantForm.danh_muc_ids.length">
                           <span 
                             v-for="cat in getSelectedCategoryBadges(variantForm.danh_muc_ids)" 
                             :key="cat.id" 
@@ -1552,14 +1674,17 @@ async function handleImportFile(e) {
                             <button type="button" class="btn-remove-pill" @click="removeCategorySelection(cat.id, variantForm)" title="Bỏ chọn danh mục này">✕</button>
                           </span>
                         </template>
+                        <span v-else-if="!isVariantGlobal" class="warn-notice">
+                          ⚠️ Chưa chọn danh mục nào. Vui lòng tích chọn ở danh sách bên dưới
+                        </span>
                         <span v-else class="all-cats-notice">
-                          ✔ Áp dụng cho <b>TẤT CẢ SẢN PHẨM &amp; DANH MỤC</b>
+                          ✔ Áp dụng Toàn cục cho <b>TẤT CẢ SẢN PHẨM &amp; DANH MỤC</b>
                         </span>
                       </div>
                     </div>
 
-                    <!-- CHECKBOX TREE TÍCH CHỌN NHANH -->
-                    <div class="category-checkbox-tree-box">
+                    <!-- CHECKBOX TREE TÍCH CHỌN NHANH (ẨN KHI ÁP DỤNG TOÀN CỤC) -->
+                    <div v-if="!isVariantGlobal" class="category-checkbox-tree-box">
                       <div v-for="parent in parentCategories" :key="'p_tree_' + parent.id_danhmuc" class="tree-parent-group">
                         <label class="checkbox-row parent-row">
                           <input 
@@ -1615,6 +1740,26 @@ async function handleImportFile(e) {
                   <div class="color-preview-big" :style="{ background: colorForm.hex }">
                     <span class="color-preview-name">{{ colorForm.name || 'Tên màu' }}</span>
                   </div>
+
+                  <!-- 1-CLICK COLOR PRESETS -->
+                  <div class="form-group">
+                    <label class="color-preset-label">
+                      🎨 GỢI Ý MÀU LAPTOP PHỔ BIẾN (CHỌN NHANH 1-CLICK)
+                    </label>
+                    <div class="color-preset-box">
+                      <button
+                        v-for="preset in colorPresets"
+                        :key="preset.hex"
+                        type="button"
+                        @click="applyColorPreset(preset)"
+                        class="color-preset-btn"
+                      >
+                        <span :style="{ background: preset.hex }" class="color-preset-dot"></span>
+                        <span>{{ preset.name }}</span>
+                      </button>
+                    </div>
+                  </div>
+
                   <div class="form-row">
                     <div class="form-group">
                       <label>TÊN MÀU <span class="req">*</span></label>
@@ -1664,15 +1809,22 @@ async function handleImportFile(e) {
                     <input v-model="groupForm.name" placeholder="VD: Cấu hình Laptop" />
                   </div>
                   <div class="form-group">
-                    <label style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-                      <span>ÁP DỤNG CHO DANH MỤC CHA <span class="req">*</span></span>
-                    </label>
+                    <div class="scope-toggle-wrap">
+                      <div>
+                        <strong class="scope-title">Phạm vi áp dụng danh mục cha</strong>
+                        <small class="scope-sub">Bật để nhóm thuộc tính này áp dụng cho toàn bộ danh mục</small>
+                      </div>
+                      <label class="scope-checkbox-label">
+                        <input type="checkbox" v-model="isGroupGlobal" class="scope-checkbox" />
+                        <span>Áp dụng Toàn cục</span>
+                      </label>
+                    </div>
 
                     <!-- BADGES HIỂN THỊ CÁC DANH MỤC CHA ĐANG CHỌN -->
                     <div class="selected-category-badges-box">
                       <span class="box-title">Danh mục cha đang chọn:</span>
                       <div class="badges-wrap">
-                        <template v-if="groupForm.danh_muc_ids && groupForm.danh_muc_ids.length">
+                        <template v-if="!isGroupGlobal && groupForm.danh_muc_ids && groupForm.danh_muc_ids.length">
                           <span 
                             v-for="cat in getSelectedCategoryBadges(groupForm.danh_muc_ids)" 
                             :key="cat.id" 
@@ -1682,14 +1834,17 @@ async function handleImportFile(e) {
                             <button type="button" class="btn-remove-pill" @click="removeCategorySelection(cat.id, groupForm)" title="Bỏ chọn danh mục này">✕</button>
                           </span>
                         </template>
-                        <span v-else class="warn-notice">
-                          ⚠️ Vui lòng tích chọn ít nhất 1 danh mục cha ở danh sách bên dưới
+                        <span v-else-if="!isGroupGlobal" class="warn-notice">
+                          ⚠️ Chưa chọn danh mục nào. Vui lòng tích chọn danh mục cha bên dưới
+                        </span>
+                        <span v-else class="all-cats-notice">
+                          ✔ Áp dụng Toàn cục cho <b>TẤT CẢ DANH MỤC CHA</b>
                         </span>
                       </div>
                     </div>
 
-                    <!-- CHECKBOX TICK CHỌN DANH MỤC CHA -->
-                    <div class="category-checkbox-tree-box">
+                    <!-- CHECKBOX TICK CHỌN DANH MỤC CHA (ẨN KHI ÁP DỤNG TOÀN CỤC) -->
+                    <div v-if="!isGroupGlobal" class="category-checkbox-tree-box">
                       <label v-for="parent in parentCategories" :key="'p_group_tree_' + parent.id_danhmuc" class="checkbox-row parent-row">
                         <input 
                           type="checkbox" 
@@ -1776,6 +1931,13 @@ async function handleImportFile(e) {
   font-family: 'Be Vietnam Pro', sans-serif;
   padding-bottom: 40px;
 }
+
+/* Trang đã nằm trong bố cục Admin, không lặp lại thanh điều hướng và breadcrumb. */
+.topbar, .breadcrumb { display: none; }
+.workflow-hint { display: flex; align-items: center; gap: 10px; margin: 0 32px 16px; padding: 12px 16px; overflow-x: auto; border: 1px solid #dbeafe; border-radius: 14px; background: #eff6ff; color: #334155; font-size: 12px; white-space: nowrap; }
+.workflow-step { display: inline-flex; align-items: center; gap: 7px; }
+.workflow-step b { display: inline-grid; width: 24px; height: 24px; place-items: center; border-radius: 50%; background: #2563eb; color: #fff; }
+.workflow-arrow { color: #93c5fd; font-size: 18px; }
 
 .topbar {
   display: flex;
@@ -2398,12 +2560,56 @@ tbody td {
 }
 
 .status-dot {
-  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
   font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  line-height: 1.2;
+  transition: all 0.2s ease;
 }
 
-.status-dot.active { color: #2563eb; }
-.status-dot.draft { color: #d97706; }
+.status-dot.active {
+  background: rgba(34, 197, 94, 0.12);
+  color: #166534;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.status-dot.draft {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .status-dot.active {
+  background: rgba(74, 222, 128, 0.15) !important;
+  color: #4ade80 !important;
+  border: 1px solid rgba(74, 222, 128, 0.35) !important;
+  box-shadow: 0 0 10px rgba(74, 222, 128, 0.2) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .status-dot.draft {
+  background: rgba(251, 191, 36, 0.15) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(251, 191, 36, 0.35) !important;
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.2) !important;
+}
 
 .color-swatch-cell {
   width: 30px;
@@ -2562,7 +2768,24 @@ tbody td {
   background: transparent;
 }
 
-.side-card { padding: 16px; }
+.right-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.side-card {
+  padding: 16px;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  border-bottom: none !important;
+}
+
+.preview-card {
+  padding: 14px;
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+}
 
 .side-header {
   display: flex;
@@ -2683,10 +2906,58 @@ tbody td {
   color: #ef4444;
 }
 
-.stock-ok { color: #2563eb; font-size: 12px; font-weight: 600; }
-.stock-out { color: #dc2626; font-size: 12px; font-weight: 600; }
+.stock-ok {
+  color: #15803d;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  padding: 2px 7px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+}
 
-.preview-card { padding: 14px; }
+.stock-out {
+  color: #b91c1c;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  padding: 2px 7px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .stock-ok {
+  color: #4ade80 !important;
+  background: rgba(74, 222, 128, 0.15) !important;
+  border-color: rgba(74, 222, 128, 0.35) !important;
+  box-shadow: 0 0 8px rgba(74, 222, 128, 0.2) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .stock-out {
+  color: #f87171 !important;
+  background: rgba(248, 113, 113, 0.15) !important;
+  border-color: rgba(248, 113, 113, 0.35) !important;
+  box-shadow: 0 0 8px rgba(248, 113, 113, 0.2) !important;
+}
+
 .preview-label {
   font-size: 9px;
   font-weight: 700;
@@ -2772,7 +3043,7 @@ tbody td {
 
 .bottom-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 14px;
   padding: 16px 32px 0;
 }
@@ -3382,6 +3653,991 @@ tbody td {
 .child-row {
   color: #475569;
   font-weight: 500;
+}
+</style>
+
+<style>
+/* UN-SCOPED DARK MODE OVERRIDES FOR PRODUCT VARIANTS & COLORS MODAL */
+html[data-admin-theme='dark'] .selected-category-badges-box,
+.admin-layout.theme-dark .selected-category-badges-box,
+.admin-layout.dark .selected-category-badges-box,
+.dark .selected-category-badges-box {
+  background: #111827 !important;
+  border-color: #374151 !important;
+  color: #f9fafb !important;
+}
+
+html[data-admin-theme='dark'] .selected-category-badges-box .box-title,
+.admin-layout.theme-dark .selected-category-badges-box .box-title,
+.admin-layout.dark .selected-category-badges-box .box-title,
+.dark .selected-category-badges-box .box-title {
+  color: #9ca3af !important;
+}
+
+html[data-admin-theme='dark'] .cat-pill-badge.parent-pill,
+.admin-layout.theme-dark .cat-pill-badge.parent-pill,
+.admin-layout.dark .cat-pill-badge.parent-pill,
+.dark .cat-pill-badge.parent-pill {
+  background: #1e3a8a !important;
+  color: #93c5fd !important;
+  border-color: #1d4ed8 !important;
+}
+
+html[data-admin-theme='dark'] .cat-pill-badge.child-pill,
+.admin-layout.theme-dark .cat-pill-badge.child-pill,
+.admin-layout.dark .cat-pill-badge.child-pill,
+.dark .cat-pill-badge.child-pill {
+  background: #374151 !important;
+  color: #e5e7eb !important;
+  border-color: #4b5563 !important;
+}
+
+html[data-admin-theme='dark'] .category-checkbox-tree-box,
+.admin-layout.theme-dark .category-checkbox-tree-box,
+.admin-layout.dark .category-checkbox-tree-box,
+.dark .category-checkbox-tree-box {
+  background: #111827 !important;
+  border-color: #374151 !important;
+  color: #f9fafb !important;
+}
+
+html[data-admin-theme='dark'] .parent-row,
+.admin-layout.theme-dark .parent-row,
+.admin-layout.dark .parent-row,
+.dark .parent-row {
+  color: #f9fafb !important;
+}
+
+html[data-admin-theme='dark'] .child-row,
+.admin-layout.theme-dark .child-row,
+.admin-layout.dark .child-row,
+.dark .child-row {
+  color: #d1d5db !important;
+}
+
+html[data-admin-theme='dark'] .checkbox-row:hover,
+.admin-layout.theme-dark .checkbox-row:hover,
+.admin-layout.dark .checkbox-row:hover,
+.dark .checkbox-row:hover {
+  background: #1f2937 !important;
+}
+
+html[data-admin-theme='dark'] .color-input-wrap,
+.admin-layout.theme-dark .color-input-wrap,
+.admin-layout.dark .color-input-wrap,
+.dark .color-input-wrap {
+  background: #111827 !important;
+  border-color: #374151 !important;
+}
+
+html[data-admin-theme='dark'] .color-input-wrap input[type="text"],
+.admin-layout.theme-dark .color-input-wrap input[type="text"],
+.admin-layout.dark .color-input-wrap input[type="text"],
+.dark .color-input-wrap input[type="text"],
+html[data-admin-theme='dark'] .color-input-wrap .native-color,
+.admin-layout.theme-dark .color-input-wrap .native-color,
+.admin-layout.dark .color-input-wrap .native-color,
+.dark .color-input-wrap .native-color {
+  color: #f9fafb !important;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+html[data-admin-theme='dark'] .preview-row,
+.admin-layout.theme-dark .preview-row,
+.admin-layout.dark .preview-row,
+.dark .preview-row {
+  background: #111827 !important;
+  border-color: #374151 !important;
+}
+
+html[data-admin-theme='dark'] .green-preview,
+.admin-layout.theme-dark .green-preview,
+.admin-layout.dark .green-preview,
+.dark .green-preview {
+  background: rgba(16, 185, 129, 0.12) !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+html[data-admin-theme='dark'] .purple-preview,
+.admin-layout.theme-dark .purple-preview,
+.admin-layout.dark .purple-preview,
+.dark .purple-preview {
+  background: rgba(124, 58, 237, 0.12) !important;
+  border-color: rgba(124, 58, 237, 0.3) !important;
+}
+
+html[data-admin-theme='dark'] .prev-name,
+.admin-layout.theme-dark .prev-name,
+.admin-layout.dark .prev-name,
+.dark .prev-name {
+  color: #f9fafb !important;
+}
+
+html[data-admin-theme='dark'] .prev-desc,
+.admin-layout.theme-dark .prev-desc,
+.admin-layout.dark .prev-desc,
+.dark .prev-desc {
+  color: #9ca3af !important;
+}
+
+html[data-admin-theme='dark'] .purple-icon-prev,
+.admin-layout.theme-dark .purple-icon-prev,
+.admin-layout.dark .purple-icon-prev,
+.dark .purple-icon-prev {
+  background: rgba(124, 58, 237, 0.25) !important;
+}
+
+html[data-admin-theme='dark'] .purple-icon-prev svg,
+.admin-layout.theme-dark .purple-icon-prev svg,
+.admin-layout.dark .purple-icon-prev svg,
+.dark .purple-icon-prev svg {
+  stroke: #a78bfa !important;
+}
+
+html[data-admin-theme='dark'] .toggle-btn,
+.admin-layout.theme-dark .toggle-btn,
+.admin-layout.dark .toggle-btn,
+.dark .toggle-btn {
+  background: #111827 !important;
+  border-color: #374151 !important;
+  color: #9ca3af !important;
+}
+
+html[data-admin-theme='dark'] .toggle-btn.tg-green,
+.admin-layout.theme-dark .toggle-btn.tg-green,
+.admin-layout.dark .toggle-btn.tg-green,
+.dark .toggle-btn.tg-green {
+  background: rgba(16, 185, 129, 0.15) !important;
+  border-color: #10b981 !important;
+  color: #34d399 !important;
+}
+
+html[data-admin-theme='dark'] .toggle-btn.tg-yellow,
+.admin-layout.theme-dark .toggle-btn.tg-yellow,
+.admin-layout.dark .toggle-btn.tg-yellow,
+.dark .toggle-btn.tg-yellow {
+  background: rgba(245, 158, 11, 0.15) !important;
+  border-color: #f59e0b !important;
+  color: #fbbf24 !important;
+}
+
+html[data-admin-theme='dark'] .toggle-btn.tg-red,
+.admin-layout.theme-dark .toggle-btn.tg-red,
+.admin-layout.dark .toggle-btn.tg-red,
+.dark .toggle-btn.tg-red {
+  background: rgba(239, 68, 68, 0.15) !important;
+  border-color: #ef4444 !important;
+  color: #f87171 !important;
+}
+
+html[data-admin-theme='dark'] .form-group label,
+.admin-layout.theme-dark .form-group label,
+.admin-layout.dark .form-group label,
+.dark .form-group label {
+  color: #9ca3af !important;
+}
+
+html[data-admin-theme='dark'] .form-group input,
+html[data-admin-theme='dark'] .form-group select,
+html[data-admin-theme='dark'] .form-group textarea,
+.admin-layout.theme-dark .form-group input,
+.admin-layout.theme-dark .form-group select,
+.admin-layout.theme-dark .form-group textarea,
+.admin-layout.dark .form-group input,
+.admin-layout.dark .form-group select,
+.admin-layout.dark .form-group textarea,
+.dark .form-group input,
+.dark .form-group select,
+.dark .form-group textarea {
+  background: #111827 !important;
+  border-color: #374151 !important;
+  color: #f9fafb !important;
+}
+
+html[data-admin-theme='dark'] .form-group input:focus,
+html[data-admin-theme='dark'] .form-group select:focus,
+html[data-admin-theme='dark'] .form-group textarea:focus,
+.admin-layout.theme-dark .form-group input:focus,
+.admin-layout.theme-dark .form-group select:focus,
+.admin-layout.theme-dark .form-group textarea:focus,
+.admin-layout.dark .form-group input:focus,
+.admin-layout.dark .form-group select:focus,
+.admin-layout.dark .form-group textarea:focus,
+.dark .form-group input:focus,
+.dark .form-group select:focus,
+.dark .form-group textarea:focus {
+  border-color: #3b82f6 !important;
+  background: #0f172a !important;
+}
+
+html[data-admin-theme='dark'] .form-error,
+.admin-layout.theme-dark .form-error,
+.admin-layout.dark .form-error,
+.dark .form-error {
+  background: rgba(239, 68, 68, 0.15) !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  color: #f87171 !important;
+}
+
+/* SCOPE TOGGLE & PRESET STYLES (LIGHT MODE DEFAULTS) */
+.scope-toggle-wrap {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  background: #f8fafc;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.scope-title {
+  font-size: 13px;
+  color: #1e293b;
+  display: block;
+}
+
+.scope-sub {
+  color: #64748b;
+  font-size: 11.5px;
+}
+
+.scope-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #2563eb;
+}
+
+.scope-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.all-cats-notice {
+  font-size: 12px;
+  color: #059669;
+  font-weight: 600;
+  background: transparent !important;
+}
+
+.all-cats-notice b {
+  color: inherit !important;
+  background: transparent !important;
+}
+
+.warn-notice {
+  font-size: 12px;
+  color: #d97706;
+  font-weight: 600;
+  background: transparent !important;
+}
+
+.color-preset-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+  font-weight: 600;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.color-preset-box {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+  background: #f8fafc;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.color-preset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  font-size: 12px;
+  font-weight: 500;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.color-preset-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,0,0,0.2);
+  display: inline-block;
+}
+
+/* SCOPE TOGGLE & PRESET DARK MODE OVERRIDES */
+html[data-admin-theme='dark'] .scope-toggle-wrap,
+.admin-layout.theme-dark .scope-toggle-wrap,
+.admin-layout.dark .scope-toggle-wrap,
+.dark .scope-toggle-wrap {
+  background: #111827 !important;
+  border-color: #374151 !important;
+}
+
+html[data-admin-theme='dark'] .scope-title,
+.admin-layout.theme-dark .scope-title,
+.admin-layout.dark .scope-title,
+.dark .scope-title {
+  color: #f9fafb !important;
+}
+
+html[data-admin-theme='dark'] .scope-sub,
+.admin-layout.theme-dark .scope-sub,
+.admin-layout.dark .scope-sub,
+.dark .scope-sub {
+  color: #9ca3af !important;
+}
+
+html[data-admin-theme='dark'] .scope-checkbox-label,
+.admin-layout.theme-dark .scope-checkbox-label,
+.admin-layout.dark .scope-checkbox-label,
+.dark .scope-checkbox-label {
+  color: #60a5fa !important;
+}
+
+html[data-admin-theme='dark'] .all-cats-notice,
+.admin-layout.theme-dark .all-cats-notice,
+.admin-layout.dark .all-cats-notice,
+.dark .all-cats-notice {
+  color: #34d399 !important;
+  background: transparent !important;
+}
+
+html[data-admin-theme='dark'] .all-cats-notice b,
+.admin-layout.theme-dark .all-cats-notice b,
+.admin-layout.dark .all-cats-notice b,
+.dark .all-cats-notice b {
+  color: #34d399 !important;
+  background: transparent !important;
+}
+
+html[data-admin-theme='dark'] .warn-notice,
+.admin-layout.theme-dark .warn-notice,
+.admin-layout.dark .warn-notice,
+.dark .warn-notice {
+  color: #fbbf24 !important;
+  background: transparent !important;
+}
+
+html[data-admin-theme='dark'] .color-preset-label,
+.admin-layout.theme-dark .color-preset-label,
+.admin-layout.dark .color-preset-label,
+.dark .color-preset-label {
+  color: #9ca3af !important;
+}
+
+html[data-admin-theme='dark'] .color-preset-box,
+.admin-layout.theme-dark .color-preset-box,
+.admin-layout.dark .color-preset-box,
+.dark .color-preset-box {
+  background: #111827 !important;
+  border-color: #374151 !important;
+}
+
+html[data-admin-theme='dark'] .color-preset-btn,
+.admin-layout.theme-dark .color-preset-btn,
+.admin-layout.dark .color-preset-btn,
+.dark .color-preset-btn {
+  background: #1f2937 !important;
+  border-color: #4b5563 !important;
+  color: #e5e7eb !important;
+}
+
+/* COLOR TABLE ALIGNMENT */
+.color-table .col-swatch {
+  width: 180px;
+  text-align: center;
+}
+
+.color-table .col-swatch .color-swatch-cell {
+  margin: 0 auto;
+}
+
+.color-table .col-name {
+  text-align: left;
+}
+
+.color-table .col-actions {
+  width: 140px;
+  text-align: right;
+}
+
+.color-table .col-actions .actions {
+  justify-content: flex-end;
+}
+
+/* ATTRIBUTE FILTER DROPDOWN DARK MODE OVERRIDES */
+html[data-admin-theme='dark'] .attribute-filter-dropdown .dropdown-menu,
+.admin-layout.theme-dark .attribute-filter-dropdown .dropdown-menu,
+.admin-layout.dark .attribute-filter-dropdown .dropdown-menu,
+.dark .attribute-filter-dropdown .dropdown-menu {
+  background: #111827 !important;
+  border-color: #374151 !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+}
+
+html[data-admin-theme='dark'] .attribute-filter-dropdown .dropdown-search,
+.admin-layout.theme-dark .attribute-filter-dropdown .dropdown-search,
+.admin-layout.dark .attribute-filter-dropdown .dropdown-search,
+.dark .attribute-filter-dropdown .dropdown-search {
+  border-bottom-color: #374151 !important;
+}
+
+html[data-admin-theme='dark'] .attribute-filter-dropdown .dropdown-search input,
+.admin-layout.theme-dark .attribute-filter-dropdown .dropdown-search input,
+.admin-layout.dark .attribute-filter-dropdown .dropdown-search input,
+.dark .attribute-filter-dropdown .dropdown-search input {
+  background: #1f2937 !important;
+  border-color: #374151 !important;
+  color: #f9fafb !important;
+}
+
+html[data-admin-theme='dark'] .attribute-filter-dropdown .dropdown-search input:focus,
+.admin-layout.theme-dark .attribute-filter-dropdown .dropdown-search input:focus,
+.admin-layout.dark .attribute-filter-dropdown .dropdown-search input:focus,
+.dark .attribute-filter-dropdown .dropdown-search input:focus {
+  border-color: #3b82f6 !important;
+  background: #0f172a !important;
+}
+
+html[data-admin-theme='dark'] .attribute-filter-dropdown .dropdown-menu li,
+.admin-layout.theme-dark .attribute-filter-dropdown .dropdown-menu li,
+.admin-layout.dark .attribute-filter-dropdown .dropdown-menu li,
+.dark .attribute-filter-dropdown .dropdown-menu li {
+  color: #d1d5db !important;
+}
+
+html[data-admin-theme='dark'] .attribute-filter-dropdown .dropdown-menu li:hover,
+.admin-layout.theme-dark .attribute-filter-dropdown .dropdown-menu li:hover,
+.admin-layout.dark .attribute-filter-dropdown .dropdown-menu li:hover,
+.dark .attribute-filter-dropdown .dropdown-menu li:hover {
+  background: #1f2937 !important;
+  color: #ffffff !important;
+}
+
+html[data-admin-theme='dark'] .attribute-filter-dropdown .dropdown-menu li.active,
+.admin-layout.theme-dark .attribute-filter-dropdown .dropdown-menu li.active,
+.admin-layout.dark .attribute-filter-dropdown .dropdown-menu li.active,
+.dark .attribute-filter-dropdown .dropdown-menu li.active {
+  background: #3b82f6 !important;
+  color: #ffffff !important;
+}
+
+html[data-admin-theme='dark'] .attribute-filter-dropdown .dropdown-group-title,
+.admin-layout.theme-dark .attribute-filter-dropdown .dropdown-group-title,
+.admin-layout.dark .attribute-filter-dropdown .dropdown-group-title,
+.dark .attribute-filter-dropdown .dropdown-group-title {
+  background: #1f2937 !important;
+  color: #9ca3af !important;
+}
+
+html[data-admin-theme='dark'] .attribute-filter-dropdown .dropdown-group-title:hover,
+.admin-layout.theme-dark .attribute-filter-dropdown .dropdown-group-title:hover,
+.admin-layout.dark .attribute-filter-dropdown .dropdown-group-title:hover,
+.dark .attribute-filter-dropdown .dropdown-group-title:hover {
+  background: #374151 !important;
+  color: #f3f4f6 !important;
+}
+
+html[data-admin-theme='dark'] .attribute-filter-dropdown .dropdown-group-title.active,
+.admin-layout.theme-dark .attribute-filter-dropdown .dropdown-group-title.active,
+.admin-layout.dark .attribute-filter-dropdown .dropdown-group-title.active,
+.dark .attribute-filter-dropdown .dropdown-group-title.active {
+  background: #1e3a8a !important;
+  color: #93c5fd !important;
+}
+
+/* ==========================================================================
+   COMPLETE DARK MODE OVERRIDES FOR BIEN THE SAN PHAM (QUẢN LÝ BIẾN THỂ)
+   ========================================================================== */
+
+/* 1. SỐ THUỘC TÍNH (.count-badge) */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .count-badge {
+  background: rgba(59, 130, 246, 0.2) !important;
+  color: #60a5fa !important;
+  border: 1px solid rgba(59, 130, 246, 0.4) !important;
+}
+
+/* CELL ICON BOXES IN DARK MODE (.cell-icon) */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .cell-icon {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  box-shadow: none !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .cell-icon.green-icon svg {
+  stroke: #4ade80 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .cell-icon.purple-icon svg {
+  stroke: #c084fc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .group-tag,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .type-badge {
+  box-shadow: none !important;
+  font-weight: 600;
+  border-style: solid;
+  border-width: 1px;
+}
+
+/* 3. STATUS BADGES & PREVIEW CHIP (.chip-ok, .chip-out) */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .chip-ok {
+  background: rgba(34, 197, 94, 0.2) !important;
+  color: #4ade80 !important;
+  border: 1px solid rgba(34, 197, 94, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .chip-out {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #f87171 !important;
+  border: 1px solid rgba(239, 68, 68, 0.4) !important;
+}
+
+/* 4. BOTTOM CARDS ICON BOXES & FILE BUTTONS (.bottom-icon, .export-sm-btn, .btn-choose-file) */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .bottom-icon {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .export-sm-btn {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .export-sm-btn:hover {
+  background: #1e293b !important;
+  border-color: #3b82f6 !important;
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .bottom-card label.btn-choose-file,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .bottom-card .btn-choose-file,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .bottom-card button {
+  background: rgba(59, 130, 246, 0.2) !important;
+  color: #60a5fa !important;
+  border: 1px solid rgba(59, 130, 246, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .bottom-card label.btn-choose-file:hover,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .bottom-card .btn-choose-file:hover {
+  background: rgba(59, 130, 246, 0.35) !important;
+  color: #93c5fd !important;
+}
+
+/* 5. COLOR ROW ITEMS (.color-row-item) IN RIGHT SIDEBAR */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .color-row-item {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .color-row-item:hover,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .color-row-item.color-selected {
+  background: #1e293b !important;
+  border-color: #3b82f6 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .color-info b {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .color-info span {
+  color: #94a3b8 !important;
+}
+
+/* 6. TAB BUTTONS (.tab-buttons, .tab) */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .tab-buttons {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  gap: 8px !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .tab {
+  color: #94a3b8 !important;
+  background: rgba(30, 41, 59, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 9px !important;
+  transition: all 0.2s ease !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .tab:hover {
+  background: rgba(30, 41, 59, 0.85) !important;
+  color: #f1f5f9 !important;
+  border-color: rgba(56, 189, 248, 0.3) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .tab.active {
+  background: rgba(56, 189, 248, 0.15) !important;
+  color: #38bdf8 !important;
+  border: 1px solid rgba(56, 189, 248, 0.4) !important;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.25) !important;
+  font-weight: 600 !important;
+}
+
+/* 7. PAGINATION BUTTONS IN DARK MODE FOR ALL TABLES */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .phan-trang-container button,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .pagination-wrap button,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .pg-btn {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .phan-trang-container button:hover:not(:disabled),
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .pagination-wrap button:hover:not(:disabled),
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .pg-btn:hover:not(:disabled) {
+  background: #1e293b !important;
+  color: #60a5fa !important;
+  border-color: #3b82f6 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .phan-trang-container button.active,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .pagination-wrap button.active,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .pg-btn.active {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #2563eb !important;
+}
+
+/* ── Color Slider Aesthetics ── */
+.color-count-badge {
+  font-size: 11px;
+  background: rgba(129, 140, 248, 0.15);
+  color: #818cf8;
+  padding: 2px 7px;
+  border-radius: 10px;
+  margin-left: 6px;
+  font-weight: 600;
+}
+.color-slider-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+.color-slide-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 230px;
+}
+.color-slider-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 10px;
+  margin-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.color-slider-btn {
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #38bdf8;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+.color-slider-btn:hover {
+  background: #38bdf8;
+  color: #0f172a;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+}
+.color-slider-dots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.color-slider-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.color-slider-dot.active {
+  width: 18px;
+  border-radius: 4px;
+  background: #818cf8;
+  box-shadow: 0 0 8px rgba(129, 140, 248, 0.6);
+}
+.color-slide-enter-active,
+.color-slide-leave-active {
+  transition: all 0.25s ease;
+}
+.color-slide-enter-from {
+  opacity: 0;
+  transform: translateX(10px);
+}
+.color-slide-leave-to {
+  opacity: 0;
+  transform: translateX(-10px);
 }
 </style>
 

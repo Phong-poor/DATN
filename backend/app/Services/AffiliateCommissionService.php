@@ -7,9 +7,14 @@ use App\Models\AffiliateProfile;
 use App\Models\AffiliateVideo;
 use App\Models\DatHang;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class AffiliateCommissionService
 {
+    public function __construct(private readonly AffiliateBalanceService $balanceService)
+    {
+    }
+
     public function createPendingFromVideo(DatHang $order, $affiliateVideoId): ?AffiliateCommission
     {
         $affiliateVideoId = (int) $affiliateVideoId;
@@ -109,7 +114,8 @@ class AffiliateCommissionService
             return;
         }
 
-        $isEarned = $order->trangthai === 'done' || $order->trang_thai_thanh_toan === 'paid';
+        $isCompleted = in_array($order->trangthai, ['done', 'completed'], true);
+        $isEarned = $isCompleted && $order->trang_thai_thanh_toan === 'paid';
         if ($isEarned && $commission->trangthai === 'pending') {
             $commission->status = 'approved';
             $commission->approved_at = now();
@@ -134,22 +140,15 @@ class AffiliateCommissionService
 
     public function refreshProfileTotals(int $affiliateUserId): void
     {
-        $profile = AffiliateProfile::where('id_khachhang', $affiliateUserId)->first();
-        if (!$profile) {
-            return;
-        }
-
-        $profile->tong_thu_nhap = (float) AffiliateCommission::where('id_affiliate_khachhang', $affiliateUserId)
-            ->whereIn('trangthai', ['approved', 'paid'])
-            ->sum('so_tien');
-        $profile->tong_da_thanh_toan = (float) AffiliateCommission::where('id_affiliate_khachhang', $affiliateUserId)
-            ->where('trangthai', 'paid')
-            ->sum('so_tien');
-        $profile->save();
+        $this->balanceService->refreshProfileTotals($affiliateUserId);
     }
 
     private function mergeOrderAffiliateData(DatHang $order, array $affiliateData): void
     {
+        if (!Schema::hasColumn($order->getTable(), 'du_lieu_thanh_toan')) {
+            return;
+        }
+
         $paymentData = $order->du_lieu_thanh_toan ?: [];
         if (is_string($paymentData)) {
             $paymentData = json_decode($paymentData, true) ?: [];

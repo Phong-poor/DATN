@@ -14,10 +14,15 @@ class AffiliateWithdrawRequest extends Model
         'bank_name',
         'bank_account_name',
         'bank_account_number',
+        'sms_phone',
         'status',
         'note',
         'approved_at',
         'paid_at',
+        'request_code',
+        'payout_provider',
+        'transaction_id',
+        'processing_at',
     ];
 
     protected $fillable = [
@@ -26,15 +31,23 @@ class AffiliateWithdrawRequest extends Model
         'ten_ngan_hang',
         'ten_chu_tai_khoan',
         'so_tai_khoan',
+        'so_dien_thoai_nhan_sms',
         'trangthai',
         'ghichu',
         'duoc_duyet_luc',
         'duoc_thanh_toan_luc',
+        'ma_yeu_cau',
+        'nha_cung_cap',
+        'ma_giao_dich',
+        'du_lieu_chi_tra',
+        'bat_dau_xu_ly_luc',
     ];
 
     protected $casts = [
         'duoc_duyet_luc' => 'datetime',
         'duoc_thanh_toan_luc' => 'datetime',
+        'du_lieu_chi_tra' => 'array',
+        'bat_dau_xu_ly_luc' => 'datetime',
     ];
 
     public function affiliateUser()
@@ -65,6 +78,11 @@ class AffiliateWithdrawRequest extends Model
     public function getBankAccountNumberAttribute()
     {
         return $this->so_tai_khoan;
+    }
+
+    public function getSmsPhoneAttribute()
+    {
+        return $this->so_dien_thoai_nhan_sms;
     }
 
     public function getStatusAttribute()
@@ -106,4 +124,9 @@ class AffiliateWithdrawRequest extends Model
     {
         $this->attributes['duoc_thanh_toan_luc'] = $value;
     }
+
+    public function getRequestCodeAttribute() { return $this->ma_yeu_cau; }
+    public function getPayoutProviderAttribute() { return $this->nha_cung_cap; }
+    public function getTransactionIdAttribute() { return $this->ma_giao_dich; }
+    public function getProcessingAtAttribute() { return $this->bat_dau_xu_ly_luc; }
 }

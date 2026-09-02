@@ -62,4 +62,33 @@ return [
         'store_name' => env('SEPAY_STORE_NAME', env('APP_NAME', 'NextGen')),
     ],
 
+    'vnpay_payout' => [
+        'endpoint' => env('VNPAY_PAYOUT_ENDPOINT'),
+        'tmn_code' => env('VNPAY_PAYOUT_TMN_CODE'),
+        'hash_secret' => env('VNPAY_PAYOUT_HASH_SECRET'),
+        'command' => env('VNPAY_PAYOUT_COMMAND', 'payout'),
+        'notify_url' => env('VNPAY_PAYOUT_NOTIFY_URL'),
+        'timeout' => env('VNPAY_PAYOUT_TIMEOUT', 20),
+    ],
+
+    'momo_payout' => [
+        'endpoint' => env('MOMO_PAYOUT_ENDPOINT'),
+        'partner_code' => env('MOMO_PAYOUT_PARTNER_CODE'),
+        'access_key' => env('MOMO_PAYOUT_ACCESS_KEY'),
+        'secret_key' => env('MOMO_PAYOUT_SECRET_KEY'),
+        'request_type' => env('MOMO_PAYOUT_REQUEST_TYPE', 'disbursement'),
+        'notify_url' => env('MOMO_PAYOUT_NOTIFY_URL'),
+        'timeout' => env('MOMO_PAYOUT_TIMEOUT', 20),
+    ],
+
+    'sms' => [
+        'enabled' => env('SMS_ENABLED', false),
+        'provider' => env('SMS_PROVIDER', 'demo'),
+        'endpoint' => env('SMS_ENDPOINT'),
+        'api_key' => env('SMS_API_KEY'),
+        'secret_key' => env('SMS_SECRET_KEY'),
+        'brandname' => env('SMS_BRANDNAME', 'NEXTGEN'),
+        'type' => (int) env('SMS_TYPE', 4),
+    ],
+
 ];

@@ -22,8 +22,9 @@ import {
 } from 'lucide-vue-next'
 import api from '../../services/api'
 import { getUser, clearAuth, getToken } from '@/services/auth'
-import { productImageUrl, storageUrl, withImageVersion } from '@/services/urls'
+import { handleImageFallback, normalizeImageUrl, productImageUrl, storageUrl, withImageVersion } from '@/services/urls'
 import { prefetchProductsPage, getPrefetchedProductsData } from '@/services/productsPrefetch'
+import { preloadRoute } from '@/services/performanceWarmup'
 
 const router = useRouter()
 const route = useRoute()
@@ -962,13 +963,18 @@ const toggleUser = () => {
   const token = getToken()
   if (!token) { router.push('/login'); return }
   showUser.value = !showUser.value
-  if (showUser.value) showWishlist.value = false
+  if (showUser.value) {
+    showWishlist.value = false
+    if (isAdminAccount.value) warmAdmin()
+  }
 }
 
 const goAdmin = () => {
   showUser.value = false
   router.push('/admin')
 }
+
+const warmAdmin = () => preloadRoute('/admin')
 
 const handleOutside = (e) => {
   if (!e.target.closest('.dropdown-wrap') && !e.target.closest('.mega-nav-item')) {
@@ -988,7 +994,6 @@ const isAdminAccount = computed(() => {
   const role = getUserRole(user.value)
   return Boolean(role && role !== 'user')
 })
-const accountBadge = computed(() => isAdminAccount.value ? 'Quản trị hệ thống' : 'Predator Member')
 
 const avatarUrl = computed(() => {
   const avatarPath = user.value?.avatar || user.value?.anhdaidien
@@ -1016,8 +1021,13 @@ const handleLogout = async () => {
   const isConfirmed = await swal.confirm('Xác nhận đăng xuất', 'Bạn có chắc chắn muốn thoát khỏi hệ thống?')
   if (!isConfirmed) return
   showUser.value = false
-  api.post('/logout').catch((err) => console.log('Logout API lỗi (bỏ qua):', err))
-  clearAuth()
+  try {
+    await api.post('/logout', null, { timeout: 5000 })
+  } catch (err) {
+    console.warn('Không thể xác nhận thu hồi phiên với server:', err?.message)
+  } finally {
+    clearAuth()
+  }
   localStorage.removeItem('remember_email')
   cartCount.value = 0
   wishlistItems.value = []
@@ -1337,7 +1347,11 @@ const openLuckyWheelMobile = () => {
                   <p>Giỏ hàng của bạn đang trống</p>
                 </div>
                 <div class="drop-item" v-for="item in cartItems" :key="item.id_giohang">
-                  <img :src="item.hinh_anh || 'https://placehold.co/60'" :alt="item.ten_san_pham" />
+                  <img
+                    :src="normalizeImageUrl(item.hinh_anh, 'https://placehold.co/60')"
+                    :alt="item.ten_san_pham"
+                    @error="event => handleImageFallback(event, 'https://placehold.co/60')"
+                  />
                   <div class="drop-item-info">
                     <p class="di-name">{{ item.ten_san_pham }}</p>
                     <div class="di-meta" v-if="item.ten_bienthe"><span>{{ item.ten_bienthe }}</span></div>
@@ -1384,12 +1398,12 @@ const openLuckyWheelMobile = () => {
                 <div class="user-card-info">
                   <p class="uc-name">{{ user?.name || 'Khách hàng' }}</p>
                   <p class="uc-email">{{ user?.email }}</p>
-                  <span class="uc-badge">{{ accountBadge }}</span>
                 </div>
               </div>
               <div class="user-menu">
                 <template v-if="isAdminAccount">
-                  <button class="um-item admin" @click="goAdmin">
+                  <button class="um-item admin" @click="goAdmin" @pointerenter="warmAdmin" @focus="warmAdmin"
+                    @touchstart.passive="warmAdmin">
                     <span class="um-left">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3" />
@@ -1404,26 +1418,56 @@ const openLuckyWheelMobile = () => {
                   </button>
                 </template>
                 <template v-else>
+                  <p class="um-section-label">Tài khoản</p>
                   <router-link to="/profile" @click="showUser = false" class="um-item">
                     <span class="um-left">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                        <circle cx="12" cy="7" r="4" />
-                      </svg>
-                      Thông tin cá nhân
+                      <span class="um-icon-box profile">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                          <circle cx="12" cy="7" r="4" />
+                        </svg>
+                      </span>
+                      <span class="um-copy"><strong>Thông tin cá nhân</strong><small>Hồ sơ và bảo mật tài khoản</small></span>
                     </span>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                       <polyline points="9 18 15 12 9 6" />
                     </svg>
                   </router-link>
 
+                  <router-link to="/orderspage" @click="showUser = false" class="um-item">
+                    <span class="um-left">
+                      <span class="um-icon-box orders">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M6 2h12l2 4v16H4V6l2-4Z" />
+                          <path d="M4 7h16M9 11h6" />
+                        </svg>
+                      </span>
+                      <span class="um-copy"><strong>Đơn mua</strong><small>Theo dõi và quản lý đơn hàng</small></span>
+                    </span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6" /></svg>
+                  </router-link>
+
+                  <router-link to="/wishlistpage" @click="showUser = false" class="um-item">
+                    <span class="um-left">
+                      <span class="um-icon-box favorite">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z" />
+                        </svg>
+                      </span>
+                      <span class="um-copy"><strong>Yêu thích</strong><small>{{ wishlistItems.length }} sản phẩm đã lưu</small></span>
+                    </span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6" /></svg>
+                  </router-link>
+
                   <router-link to="/affiliate" @click="showUser = false" class="um-item">
                     <span class="um-left">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="2" y="7" width="20" height="14" rx="2" />
-                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-                      </svg>
-                      Affiliate Center
+                      <span class="um-icon-box affiliate">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <rect x="2" y="7" width="20" height="14" rx="2" />
+                          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                        </svg>
+                      </span>
+                      <span class="um-copy"><strong>Affiliate Center</strong><small>Tiếp thị và quản lý hoa hồng</small></span>
                     </span>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                       <polyline points="9 18 15 12 9 6" />
@@ -2728,8 +2772,8 @@ const openLuckyWheelMobile = () => {
 }
 
 .user-drop {
-  width: 280px;
-  min-width: 260px;
+  width: 304px;
+  min-width: 288px;
 }
 
 /* DROP HEADER */
@@ -2959,15 +3003,17 @@ const openLuckyWheelMobile = () => {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 14px 12px;
-  background: rgba(15, 23, 42, 0.42);
+  padding: 14px;
+  background:
+    radial-gradient(circle at 88% 0%, rgba(59, 130, 246, .22), transparent 42%),
+    linear-gradient(145deg, rgba(18, 36, 60, .96), rgba(8, 18, 32, .88));
   border-bottom: 1px solid rgba(148, 163, 184, 0.16);
 }
 
 .user-card-avatar {
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
   object-fit: cover;
   border: 2px solid rgba(96, 165, 250, 0.75);
   flex-shrink: 0;
@@ -2976,7 +3022,7 @@ const openLuckyWheelMobile = () => {
 
 .uc-name {
   font-family: 'Outfit', sans-serif;
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 900;
   color: #ffffff;
   margin-bottom: 2px;
@@ -2991,20 +3037,7 @@ const openLuckyWheelMobile = () => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 160px;
-}
-
-.uc-badge {
-  font-size: 8.5px;
-  font-weight: 900;
-  letter-spacing: 0.8px;
-  color: #dbeafe;
-  background: rgba(37, 99, 235, 0.38);
-  border: 1px solid rgba(96, 165, 250, 0.55);
-  padding: 2px 7px;
-  border-radius: 20px;
-  text-transform: capitalize;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  max-width: 190px;
 }
 
 /* USER MENU */
@@ -3015,11 +3048,21 @@ const openLuckyWheelMobile = () => {
   gap: 3px;
 }
 
+.um-section-label {
+  margin: 2px 8px 4px;
+  color: #7f91a8;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
 .um-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
+  min-height: 50px;
+  padding: 6px 9px;
   border-radius: 10px;
   font-family: 'Inter', sans-serif;
   font-size: 13.5px;
@@ -3037,6 +3080,48 @@ const openLuckyWheelMobile = () => {
   display: flex;
   align-items: center;
   gap: 9px;
+  min-width: 0;
+}
+
+.um-icon-box {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(148, 163, 184, .2);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .055);
+  color: #cbd5e1;
+  transition: transform .18s ease, border-color .18s ease, background .18s ease;
+}
+
+.um-icon-box.profile { color: #93c5fd; }
+.um-icon-box.orders { color: #c4b5fd; }
+.um-icon-box.favorite { color: #fda4af; }
+.um-icon-box.affiliate { color: #6ee7b7; }
+
+.um-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.um-copy strong {
+  color: inherit;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.2;
+}
+
+.um-copy small {
+  color: #8fa0b5;
+  font-size: 8.8px;
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
 }
 
 .um-left svg {
@@ -3052,28 +3137,54 @@ const openLuckyWheelMobile = () => {
 }
 
 .um-item:hover {
-  background: rgba(37, 99, 235, 0.42);
-  border-color: rgba(96, 165, 250, 0.62);
+  background: linear-gradient(90deg, rgba(37, 99, 235, .24), rgba(37, 99, 235, .1));
+  border-color: rgba(96, 165, 250, .4);
   color: #ffffff;
 }
+
+.um-item:hover .um-icon-box {
+  transform: translateX(2px);
+  border-color: rgba(96, 165, 250, .45);
+  background: rgba(37, 99, 235, .16);
+}
+
+.um-item:hover .um-copy small { color: #bfdbfe; }
 
 .um-item:hover>svg {
   color: #bfdbfe;
 }
 
 .um-item.admin {
-  background: rgba(99, 102, 241, 0.24);
-  border-color: rgba(129, 140, 248, 0.28);
-  color: #ede9fe;
+  min-height: 40px;
+  color: #dbeafe;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.34), rgba(79, 70, 229, 0.28));
+  border-color: rgba(96, 165, 250, 0.48);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 5px 14px rgba(30, 64, 175, 0.14);
+}
+
+.um-item.admin .um-left > svg {
+  color: #bfdbfe;
+  filter: drop-shadow(0 0 5px rgba(96, 165, 250, 0.32));
+}
+
+.um-item.admin > svg {
+  color: #bfdbfe;
 }
 
 .um-item.admin:hover {
-  background: rgba(99, 102, 241, 0.42);
-  border-color: rgba(167, 139, 250, 0.55);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.58), rgba(79, 70, 229, 0.48));
+  border-color: rgba(147, 197, 253, 0.78);
   color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 8px 18px rgba(30, 64, 175, 0.26);
 }
 
 .um-item.logout {
+  min-height: 40px;
   color: #fecaca;
   background: rgba(239, 68, 68, 0.20);
   border-color: rgba(239, 68, 68, 0.34);
@@ -3088,7 +3199,7 @@ const openLuckyWheelMobile = () => {
 .um-divider {
   height: 1px;
   background: rgba(148, 163, 184, 0.18);
-  margin: 4px 0;
+  margin: 5px 2px;
 }
 
 /* DROPDOWN TRANSITION */
@@ -3161,43 +3272,59 @@ const openLuckyWheelMobile = () => {
   top: 0;
   right: 0;
   bottom: 0;
-  width: min(320px, 90vw);
+  width: min(290px, 82vw);
   background: #0d1b2e;
   z-index: 9998;
   display: flex;
   flex-direction: column;
   box-shadow: -16px 0 48px rgba(0, 0, 0, 0.5);
   overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.mob-drawer::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .mob-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 20px 16px;
+  padding: 14px 16px 12px;
   border-bottom: 1px solid #f1f5f9;
   flex-shrink: 0;
+  gap: 12px;
+}
+
+.mob-logo {
+  min-width: 0;
+  flex: 1;
 }
 
 .mob-logo img {
-  width: 285px;
-  max-width: 76vw;
-  height: 66px;
+  width: 180px;
+  max-width: 100%;
+  height: 54px;
   object-fit: contain;
   object-position: left center;
 }
 
 .mob-close {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
   border: 1.5px solid #e2e8f0;
   background: #0d1b2e;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #475569;
+  color: #e2e8f0;
+  flex: 0 0 32px;
   transition: all 0.2s;
 }
 
@@ -3216,18 +3343,18 @@ const openLuckyWheelMobile = () => {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 16px 20px;
-  background: #f1f5f9;
+  margin: 14px 16px 10px;
+  background: #ffffff;
   border: 1.5px solid #e2e8f0;
   border-radius: 12px;
-  padding: 10px 14px;
+  padding: 9px 12px;
   flex-shrink: 0;
 }
 
 .mob-search svg {
   width: 15px;
   height: 15px;
-  color: #94a3b8;
+  color: #64748b;
   flex-shrink: 0;
 }
 
@@ -3237,12 +3364,15 @@ const openLuckyWheelMobile = () => {
   outline: none;
   font-size: 14px;
   flex: 1;
-  color: #e2e8f0;
+  color: #0f172a;
   font-family: 'Inter', sans-serif;
 }
 
 .mob-search input::placeholder {
-  color: #475569;
+  color: #475569 !important;
+  -webkit-text-fill-color: #475569 !important;
+  opacity: 1 !important;
+  font-weight: 500 !important;
 }
 
 .mob-nav {
@@ -3263,7 +3393,7 @@ const openLuckyWheelMobile = () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 11px 12px;
+  padding: 9px 10px;
   border-radius: 12px;
   font-family: 'Outfit', sans-serif;
   font-size: 14px;
@@ -3433,28 +3563,154 @@ const openLuckyWheelMobile = () => {
   }
 
   .header-inner {
-    width: calc(100% - 32px);
+    width: calc(100% - 24px);
     padding: 0;
     height: 64px;
   }
 
   .logo-wrap {
-    width: 176px;
-    min-width: 176px;
-    height: 56px;
+    width: 132px;
+    min-width: 132px;
+    height: 48px;
+    margin-left: 0;
   }
-}
 
-@media (max-width: 400px) {
+  .logo-img {
+    transform: scale(1.08);
+  }
+
+  .header-actions {
+    gap: 5px;
+    margin-right: 0;
+    min-width: 0;
+  }
+
   .icon-action {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+  }
+
+  .icon-action svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  .user-avatar {
+    width: 30px;
+    min-width: 30px;
+    height: 30px;
+    border-radius: 8px;
+  }
+
+  .hdr-dropdown,
+  .wishlist-drop,
+  .cart-drop,
+  .user-drop {
+    position: fixed;
+    top: 68px;
+    right: 8px;
+    width: min(270px, calc(100vw - 24px));
+    min-width: 0;
+    border-radius: 14px;
+  }
+
+  .hdr-dropdown::before {
+    display: none;
+  }
+
+  .drop-head {
+    padding: 9px 12px 8px;
+  }
+
+  .drop-body {
+    max-height: 220px;
+    padding: 6px;
+  }
+
+  .drop-empty {
+    padding: 18px 0;
+  }
+
+  .user-card {
+    gap: 9px;
+    padding: 10px;
+  }
+
+  .user-card-avatar {
     width: 36px;
     height: 36px;
     border-radius: 10px;
   }
 
-  .icon-action svg {
-    width: 18px;
+  .uc-name {
+    font-size: 13.5px;
+  }
+
+  .uc-email {
+    max-width: 190px;
+    font-size: 10.5px;
+  }
+
+  .user-menu {
+    padding: 6px;
+    gap: 1px;
+  }
+
+  .um-item {
+    min-height: 42px;
+    padding: 4px 7px;
+    font-size: 12.5px;
+  }
+
+  .um-icon-box {
+    width: 28px;
+    height: 28px;
+    flex-basis: 28px;
+  }
+
+  .um-copy strong {
+    font-size: 11.5px;
+  }
+
+  .um-copy small {
+    font-size: 9px;
+  }
+
+  .hamburger {
+    width: 24px;
     height: 18px;
+    margin-left: 2px;
+  }
+
+  .hamburger span {
+    background: #e2e8f0;
+  }
+}
+
+@media (max-width: 400px) {
+  .icon-action {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+  }
+
+  .icon-action svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .header-actions {
+    gap: 4px;
+  }
+
+  .logo-wrap {
+    width: 116px;
+    min-width: 116px;
+  }
+
+  .hamburger {
+    margin-left: 0;
   }
 }
 </style>

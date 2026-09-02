@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import api from '@/services/api'
 import { normalizeImageUrl } from '@/services/urls'
 
@@ -15,6 +16,23 @@ const pagination = ref({
   current_page: 1,
   last_page: 1,
   total: 0
+})
+
+const visiblePages = computed(() => {
+  const current = pagination.value.current_page
+  const total = pagination.value.last_page
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1)
+  }
+  const pages = []
+  if (current <= 4) {
+    pages.push(1, 2, 3, 4, 5, '...', total)
+  } else if (current >= total - 3) {
+    pages.push(1, '...', total - 4, total - 3, total - 2, total - 1, total)
+  } else {
+    pages.push(1, '...', current - 1, current, current + 1, '...', total)
+  }
+  return pages
 })
 
 // Các danh mục thao tác phục vụ bộ lọc
@@ -116,18 +134,74 @@ function formatDescription(desc) {
   return formatted
 }
 
-// Thiết lập tự động làm mới trạng thái trực tuyến của Admin sau mỗi 30 giây
+import echo from '@/services/echo'
+
+// Thiết lập tự động làm mới & Real-time Presence
 let refreshInterval = null
+let presenceChannel = null
+
 onMounted(() => {
   fetchActiveAdmins()
   fetchLogs(1)
+
+  // Polling fallback 10s
   refreshInterval = setInterval(() => {
     fetchActiveAdmins({ silent: true })
   }, 10000)
+
+  // Realtime WebSockets Presence Listener (Kênh 'admin-presence')
+  if (echo) {
+    try {
+      presenceChannel = echo.join('admin-presence')
+        .here((users) => {
+          const onlineIds = new Set((users || []).map(u => Number(u.id)))
+          if (activeAdmins.value.length) {
+            activeAdmins.value = activeAdmins.value.map(adm => ({
+              ...adm,
+              is_online: onlineIds.has(Number(adm.id))
+            }))
+          }
+        })
+        .joining((user) => {
+          const targetId = Number(user.id)
+          let found = false
+          activeAdmins.value = activeAdmins.value.map(adm => {
+            if (Number(adm.id) === targetId) {
+              found = true
+              return { ...adm, is_online: true }
+            }
+            return adm
+          })
+          if (!found) {
+            fetchActiveAdmins({ silent: true })
+          }
+        })
+        .leaving((user) => {
+          const targetId = Number(user.id)
+          activeAdmins.value = activeAdmins.value.map(adm => {
+            if (Number(adm.id) === targetId) {
+              return { 
+                ...adm, 
+                is_online: false, 
+                last_active_at: new Date().toISOString() 
+              }
+            }
+            return adm
+          })
+        })
+    } catch (err) {
+      console.warn('Presence channel bind error:', err)
+    }
+  }
 })
 
 onUnmounted(() => {
   if (refreshInterval) clearInterval(refreshInterval)
+  if (echo && presenceChannel) {
+    try {
+      echo.leave('admin-presence')
+    } catch (_) {}
+  }
 })
 </script>
 
@@ -277,21 +351,40 @@ onUnmounted(() => {
 
       <!-- Phân trang -->
       <div v-if="pagination.last_page > 1" class="pagination-bar">
-        <button 
-          :disabled="pagination.current_page === 1" 
-          class="btn-page"
-          @click="fetchLogs(pagination.current_page - 1)"
-        >
-          Trang trước
-        </button>
-        <span class="page-indicator">Trang <b>{{ pagination.current_page }}</b> / {{ pagination.last_page }}</span>
-        <button 
-          :disabled="pagination.current_page === pagination.last_page" 
-          class="btn-page"
-          @click="fetchLogs(pagination.current_page + 1)"
-        >
-          Trang sau
-        </button>
+        <div class="pagination-info">
+          Hiển thị trang <span class="highlight-num">{{ pagination.current_page }}</span> / <strong>{{ pagination.last_page }}</strong> (Tổng số <strong>{{ pagination.total }}</strong> bản ghi)
+        </div>
+        <div class="pagination-actions">
+          <button 
+            :disabled="pagination.current_page === 1" 
+            class="page-btn page-nav-btn"
+            @click="fetchLogs(pagination.current_page - 1)"
+          >
+            <ChevronLeft :size="18" />
+            <span>Trang trước</span>
+          </button>
+          
+          <template v-for="(p, index) in visiblePages" :key="index">
+            <span v-if="p === '...'" class="page-dots">...</span>
+            <button 
+              v-else 
+              class="page-btn page-num-btn"
+              :class="{ 'active': p === pagination.current_page }"
+              @click="fetchLogs(p)"
+            >
+              {{ p }}
+            </button>
+          </template>
+
+          <button 
+            :disabled="pagination.current_page === pagination.last_page" 
+            class="page-btn page-nav-btn"
+            @click="fetchLogs(pagination.current_page + 1)"
+          >
+            <span>Trang sau</span>
+            <ChevronRight :size="18" />
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -306,10 +399,8 @@ onUnmounted(() => {
 }
 
 .section-card {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(226, 232, 240, 0.8);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 20px;
   padding: 24px;
   box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.04);
@@ -420,13 +511,29 @@ onUnmounted(() => {
   display: flex;
   gap: 16px;
   overflow-x: auto;
-  padding: 4px 4px 12px 4px;
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
+  padding: 4px 4px 14px 4px;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
 }
 
 .admins-horizontal-row::-webkit-scrollbar {
-  display: none; /* Chrome, Safari and Opera */
+  height: 7px;
+  display: block;
+}
+
+.admins-horizontal-row::-webkit-scrollbar-track {
+  background: rgba(241, 245, 249, 0.7);
+  border-radius: 999px;
+}
+
+.admins-horizontal-row::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+  transition: background 0.2s ease;
+}
+
+.admins-horizontal-row::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .admin-profile-capsule {
@@ -670,45 +777,43 @@ onUnmounted(() => {
 /* Table Design */
 .table-responsive {
   width: 100%;
-  overflow-x: auto;
+  overflow-x: hidden !important;
   border: 1px solid #e2e8f0;
   border-radius: 16px;
+  box-sizing: border-box;
 }
 
 .audit-table {
-  width: 100%;
+  width: 100% !important;
+  table-layout: fixed !important;
   border-collapse: collapse;
   text-align: left;
-  font-size: 14px;
+  font-size: 13.5px;
+  box-sizing: border-box;
 }
 
 .audit-table th {
   background: #f8fafc;
-  padding: 14px 18px;
+  padding: 12px 10px;
   font-weight: 700;
   color: #475569;
   border-bottom: 1px solid #e2e8f0;
-  white-space: nowrap;
   letter-spacing: 0.02em;
+  font-size: 13px;
 }
 
 .audit-table td {
-  padding: 14px 18px;
+  padding: 12px 10px;
   border-bottom: 1px solid #f1f5f9;
   vertical-align: middle;
 }
 
-.audit-table th:nth-child(2),
-.audit-table td.col-action {
-  width: 130px;
-  min-width: 130px;
-}
-
-.audit-table th:nth-child(3),
-.audit-table td.col-model {
-  width: 145px;
-  min-width: 145px;
-}
+.audit-table th:nth-child(1), .audit-table td:nth-child(1) { width: 18%; padding-left: 14px; }
+.audit-table th:nth-child(2), .audit-table td:nth-child(2) { width: 10%; }
+.audit-table th:nth-child(3), .audit-table td:nth-child(3) { width: 10%; }
+.audit-table th:nth-child(4), .audit-table td:nth-child(4) { width: 38%; }
+.audit-table th:nth-child(5), .audit-table td:nth-child(5) { width: 11%; }
+.audit-table th:nth-child(6), .audit-table td:nth-child(6) { width: 13%; padding-right: 14px; white-space: nowrap; }
 
 .audit-table td.col-action,
 .audit-table td.col-model {
@@ -756,6 +861,14 @@ onUnmounted(() => {
   font-weight: 700;
   color: #1e293b;
   font-size: 13.5px;
+}
+
+:global(.admin-layout.dark) .log-user-name,
+:global(.admin-layout.theme-dark) .log-user-name,
+:global(html[data-admin-theme='dark']) .log-user-name,
+:global(.theme-dark) .log-user-name,
+:global(.dark) .log-user-name {
+  color: #f8fafc !important;
 }
 
 .log-user-email {
@@ -822,8 +935,9 @@ onUnmounted(() => {
   color: #334155;
   font-size: 13.5px;
   line-height: 1.55;
-  max-width: 440px;
-  word-wrap: break-word;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+  white-space: normal !important;
 }
 
 /* Dùng v-html styling trong scoped CSS */
@@ -835,6 +949,9 @@ onUnmounted(() => {
   padding: 1px 5px;
   border: 1px solid rgba(191, 219, 254, 0.3);
   font-size: 12.5px;
+  word-break: break-all !important;
+  overflow-wrap: anywhere !important;
+  white-space: normal !important;
 }
 
 :deep(.arrow-indicator) {
@@ -884,42 +1001,108 @@ onUnmounted(() => {
   font-weight: 500;
 }
 
-/* Pagination */
+/* Enlarged Standard Pagination Bar Styling */
 .pagination-bar {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  gap: 16px;
-  margin-top: 20px;
+  gap: 20px;
+  margin-top: 24px;
+  padding: 18px 24px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
+  min-height: 76px;
+  flex-wrap: wrap;
 }
 
-.btn-page {
-  border: 1px solid #cbd5e1;
-  background: #fff;
-  padding: 8px 14px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
+.pagination-info {
+  font-size: 14.5px;
   color: #475569;
-  transition: all 0.2s ease;
+  font-weight: 500;
 }
 
-.btn-page:hover:not(:disabled) {
-  background: #f8fafc;
+.pagination-info .highlight-num {
   color: #2563eb;
+  font-weight: 800;
+  background: #eff6ff;
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid #bfdbfe;
+}
+
+.pagination-info strong {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.pagination-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.page-btn {
+  height: 44px;
+  min-width: 44px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1.5px solid #cbd5e1;
+  background: #ffffff;
+  font-size: 14.5px;
+  font-weight: 700;
+  cursor: pointer;
+  color: #334155;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.04);
+}
+
+.page-nav-btn {
+  padding: 0 18px;
+  font-weight: 700;
+}
+
+.page-num-btn {
+  font-size: 15px;
+}
+
+.page-btn:hover:not(:disabled) {
   border-color: #2563eb;
-  box-shadow: 0 2px 6px rgba(37,99,235,0.08);
+  color: #2563eb;
+  background: #eff6ff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.16);
 }
 
-.btn-page:disabled {
-  opacity: 0.5;
+.page-btn.active {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+  border-color: #2563eb !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.32) !important;
+}
+
+.page-btn:disabled {
+  opacity: 0.45;
   cursor: not-allowed;
+  border-color: #e2e8f0;
+  background: #f8fafc;
+  color: #94a3b8;
+  box-shadow: none;
+  transform: none;
 }
 
-.page-indicator {
-  font-size: 13px;
-  color: #64748b;
+.page-dots {
+  padding: 0 6px;
+  color: #94a3b8;
+  font-weight: 800;
+  font-size: 16px;
 }
 
 .state-placeholder {
@@ -946,4 +1129,241 @@ onUnmounted(() => {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* ==========================================================================
+   DARK MODE OVERRIDES FOR NHẬT KÝ HOẠT ĐỘNG (ACTION TAGS & TABLE UI)
+   ========================================================================== */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .section-card {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .card-header {
+  border-bottom-color: #334155 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .card-header h3 {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .total-count {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .total-count b {
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .btn-refresh {
+  background: #0f172a !important;
+  color: #cbd5e1 !important;
+  border-color: #334155 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .btn-refresh:hover {
+  background: #1e293b !important;
+  color: #60a5fa !important;
+  border-color: #3b82f6 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .admin-profile-capsule {
+  background: rgba(15, 23, 42, 0.7) !important;
+  border-color: rgba(51, 65, 85, 0.8) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .admin-profile-capsule:hover {
+  background: #0f172a !important;
+  border-color: rgba(59, 130, 246, 0.5) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .admin-profile-capsule.online {
+  background: rgba(15, 23, 42, 0.9) !important;
+  border-color: rgba(59, 130, 246, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .admin-name {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .admin-email {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .admin-status-text.online {
+  color: #4ade80 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .admin-status-text.offline {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .filters-bar {
+  background: #0f172a !important;
+  border: 1px solid #334155 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .input-field {
+  background: #1e293b !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .input-field:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .search-icon {
+  color: #64748b !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .btn-secondary {
+  background: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .btn-secondary:hover {
+  background: #475569 !important;
+  color: #ffffff !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .table-responsive {
+  border-color: #334155 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .audit-table th {
+  background: #0f172a !important;
+  color: #94a3b8 !important;
+  border-bottom-color: #334155 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .audit-table td {
+  border-bottom-color: #1e293b !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .log-row:hover {
+  background: rgba(30, 41, 59, 0.5) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .log-user-name {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .log-user-email {
+  color: #94a3b8 !important;
+}
+
+/* Dark Mode Action Tags (Thao tác column) */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .action-tag.action-create {
+  background: rgba(34, 197, 94, 0.18) !important;
+  color: #4ade80 !important;
+  border: 1px solid rgba(74, 222, 128, 0.3) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .action-tag.action-update {
+  background: rgba(56, 189, 248, 0.18) !important;
+  color: #38bdf8 !important;
+  border: 1px solid rgba(56, 189, 248, 0.3) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .action-tag.action-delete {
+  background: rgba(248, 113, 113, 0.18) !important;
+  color: #f87171 !important;
+  border: 1px solid rgba(248, 113, 113, 0.3) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .action-tag.action-default {
+  background: rgba(148, 163, 184, 0.18) !important;
+  color: #cbd5e1 !important;
+  border: 1px solid rgba(148, 163, 184, 0.3) !important;
+}
+
+/* Dark Mode Model Badge (Phân hệ column) */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .model-badge {
+  background: rgba(15, 23, 42, 0.8) !important;
+  color: #cbd5e1 !important;
+  border: 1px solid rgba(51, 65, 85, 0.8) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .log-desc {
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) :deep(.highlight-text) {
+  background: rgba(30, 58, 138, 0.4) !important;
+  color: #93c5fd !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) :deep(.arrow-indicator) {
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .ip-address {
+  background: #0f172a !important;
+  color: #cbd5e1 !important;
+  border-color: #334155 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .user-agent {
+  color: #64748b !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .time-text {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .pagination-bar {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .pagination-info {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .pagination-info .highlight-num {
+  background: rgba(30, 58, 138, 0.5) !important;
+  color: #60a5fa !important;
+  border-color: rgba(59, 130, 246, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .pagination-info strong {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .page-btn {
+  background: #0f172a !important;
+  color: #cbd5e1 !important;
+  border-color: #334155 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .page-btn:hover:not(:disabled) {
+  background: #1e293b !important;
+  color: #60a5fa !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 6px 18px rgba(59, 130, 246, 0.2) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .page-btn.active {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+  border-color: #3b82f6 !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .page-btn:disabled {
+  background: #0f172a !important;
+  border-color: #1e293b !important;
+  color: #475569 !important;
+  box-shadow: none !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .theme-dark, .dark) .page-dots {
+  color: #64748b !important;
+}
 </style>
+

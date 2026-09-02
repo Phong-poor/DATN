@@ -1,6 +1,6 @@
 const SITE_NAME = 'NextGen Laptop'
 const DEFAULT_DESCRIPTION =
-  'Tin tức công nghệ, tư vấn chọn laptop, đánh giá laptop gaming, laptop văn phòng và laptop đồ họa từ VinaTech.'
+  'Tin tức công nghệ, tư vấn chọn laptop, đánh giá laptop gaming, laptop văn phòng và laptop đồ họa từ NextGen.'
 
 const getOrigin = () => {
   if (typeof window === 'undefined') return ''
@@ -62,7 +62,7 @@ export const truncateText = (value = '', max = 260) => {
 export const setSeo = ({
   title = SITE_NAME,
   description = DEFAULT_DESCRIPTION,
-  keywords = 'VinaTech, laptop, laptop gaming, laptop văn phòng, tin tức công nghệ',
+  keywords = 'NextGen, laptop, laptop gaming, laptop văn phòng, tin tức công nghệ',
   image = '/favicon.svg',
   url,
   type = 'website',

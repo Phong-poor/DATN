@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+const { create } = require('zustand');
 
 /**
  * Global Toast Notification Store

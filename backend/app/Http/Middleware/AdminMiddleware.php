@@ -32,8 +32,9 @@ class AdminMiddleware
             ], 403);
         }
 
-        // Quản trị viên tối cao (admin) có toàn quyền
-        if ($user->vaitro !== 'user') {
+        // Chỉ quản trị viên tối cao mới có toàn quyền. Các vai trò nhân viên
+        // phải tiếp tục đi qua bảng ánh xạ quyền ở bên dưới.
+        if ($user->vaitro === 'admin') {
             return $next($request);
         }
 
@@ -41,12 +42,15 @@ class AdminMiddleware
         $method = $request->getMethod();
         $userPerms = $user->cac_quyen ?: [];
 
-        // Các route cơ bản ai cũng được vào (Dashboard, Xem/Sửa Profile cá nhân, Nhật ký thông báo cá nhân)
+        // Các route cơ bản ai cũng được vào (Dashboard, Xem/Sửa Profile cá nhân, Nhật ký thông báo cá nhân, Cài đặt cá nhân/hệ thống)
         $basicPaths = [
             '/api/admin/dashboard',
             '/api/admin/account/profile',
             '/api/admin/account/active-admins',
-            '/api/admin/account/activity-log'
+            '/api/admin/orders/employees-list',
+            '/api/admin/account/activity-log',
+            '/api/admin/account/settings',
+            '/api/admin/account/two-factor',
         ];
         
         foreach ($basicPaths as $bp) {
@@ -176,6 +180,14 @@ class AdminMiddleware
         if ($requiredPermission && !in_array($requiredPermission, $userPerms)) {
             return response()->json([
                 'message' => 'Tài khoản của bạn không có quyền thực hiện hành động này!'
+            ], 403);
+        }
+
+        // Fail closed: một API admin mới chưa được ánh xạ quyền không được tự
+        // động mở cho mọi nhân viên.
+        if (!$requiredPermission) {
+            return response()->json([
+                'message' => 'Tài khoản của bạn không có quyền truy cập chức năng này!'
             ], 403);
         }
 

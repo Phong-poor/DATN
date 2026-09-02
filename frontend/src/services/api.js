@@ -1,7 +1,6 @@
 import axios from 'axios'
-import { clearAuth, getToken, updateUser } from './auth'
+import { clearAuth, getDeviceFingerprint, getToken, updateUser } from './auth'
 import { apiBaseUrl } from './urls'
-import { initOfflineInterceptor, registerSyncSuccessCallback } from './offlineSync'
 
 const api = axios.create({
   baseURL: apiBaseUrl,
@@ -12,17 +11,38 @@ const api = axios.create({
   },
 })
 
-initOfflineInterceptor(api)
+// Offline support is non-critical for first paint. Install it during idle time
+// so it cannot compete with the initial route, CSS, fonts, or hero images.
+const installOfflineSupport = () => {
+  import('./offlineSync')
+    .then(({ initOfflineInterceptor, registerSyncSuccessCallback }) => {
+      initOfflineInterceptor(api)
+      registerSyncSuccessCallback(clearApiGetCache)
+    })
+    .catch(() => {
+      // Online requests keep working when the optional offline module cannot load.
+    })
+}
+
+if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+  window.requestIdleCallback(installOfflineSupport, { timeout: 1800 })
+} else if (typeof window !== 'undefined') {
+  window.setTimeout(installOfflineSupport, 600)
+}
 
 const GET_CACHE_TTL_MS = 5 * 60 * 1000
 const getCache = new Map()
 const inFlightGetRequests = new Map()
+const SESSION_CHECK_INTERVAL_MS = 10000
+let sessionCheckTimer = null
+let authRedirectInProgress = false
 const NO_CACHE_GET_PREFIXES = [
   '/gio-hang',
   '/yeu-thich',
   '/orders',
   '/user/vouchers',
   '/affiliate',
+  '/admin',
 ]
 
 export const clearApiGetCache = () => {
@@ -31,6 +51,21 @@ export const clearApiGetCache = () => {
 }
 
 const shouldShowGlobalLoader = (config = {}) => config.showGlobalLoader === true
+
+const redirectAfterAuthFailure = (target) => {
+  if (typeof window === 'undefined' || authRedirectInProgress) return
+
+  authRedirectInProgress = true
+  if (sessionCheckTimer) {
+    window.clearInterval(sessionCheckTimer)
+    sessionCheckTimer = null
+  }
+
+  // Một màn hình có thể gọi nhiều API đồng thời. Chỉ cho phép phản hồi lỗi đầu
+  // tiên điều hướng để tránh nhiều lệnh location làm trang tải lại liên tục.
+  window.location.replace(target)
+}
+
 const shouldCacheGet = (config = {}) => {
   if (config.method?.toLowerCase?.() !== 'get' || config.cache === false) return false
   const url = String(config.url || '')
@@ -49,6 +84,7 @@ const getCacheKey = (url, config = {}) => {
 }
 
 api.interceptors.request.use((config) => {
+  config.headers['X-Device-Fingerprint'] = getDeviceFingerprint()
   const method = config.method?.toLowerCase?.()
   if (method && method !== 'get' && config.invalidateCache !== false) {
     clearApiGetCache()
@@ -113,12 +149,12 @@ api.interceptors.response.use(
       localStorage.setItem('account_locked_message', message)
       clearAuth()
       if (window.location.pathname !== '/dang-nhap') {
-        window.location.href = '/dang-nhap?account_locked=1'
+        redirectAfterAuthFailure('/dang-nhap?account_locked=1')
       }
     } else if (error.response?.status === 403 && error.response?.data?.code === 'ADMIN_ACCESS_REVOKED') {
       clearAuth()
       if (window.location.pathname.startsWith('/admin')) {
-        window.location.href = '/dang-nhap?admin_revoked=1'
+        redirectAfterAuthFailure('/dang-nhap?admin_revoked=1')
       }
     } else if (error.response?.status === 401) {
       clearAuth()
@@ -133,10 +169,10 @@ api.interceptors.response.use(
                            
       if (isAdmin) {
         if (path !== '/dang-nhap') {
-          window.location.href = '/dang-nhap'
+          redirectAfterAuthFailure('/dang-nhap')
         }
       } else if (!isPublicPage && !isAuthPage) {
-        window.location.href = '/'
+        redirectAfterAuthFailure('/')
       }
     }
     return Promise.reject(error)
@@ -169,9 +205,6 @@ api.get = (url, config = {}) => {
   inFlightGetRequests.set(key, request)
   return request
 }
-
-const SESSION_CHECK_INTERVAL_MS = 10000
-let sessionCheckTimer = null
 
 const authPages = ['/dang-nhap', '/login', '/login-success', '/dang-nhap-thanh-cong']
 const protectedPages = [
@@ -217,7 +250,7 @@ export const startSessionGuard = () => {
       const role = String(user.vaitro || user.role || '').toLowerCase()
       if (window.location.pathname.startsWith('/admin') && (!role || role === 'user')) {
         clearAuth()
-        window.location.href = '/dang-nhap?admin_revoked=1'
+        redirectAfterAuthFailure('/dang-nhap?admin_revoked=1')
       }
     }).catch(() => {
       // 401/403/423 are handled by the response interceptor, so no extra UI is needed here.
@@ -232,7 +265,5 @@ export const stopSessionGuard = () => {
 }
 
 startSessionGuard()
-
-registerSyncSuccessCallback(clearApiGetCache)
 
 export default api

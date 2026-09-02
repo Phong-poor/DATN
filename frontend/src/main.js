@@ -4,7 +4,6 @@ import './assets/styles/design-system.css'
 import './assets/styles/customer-pages.css'
 import './assets/styles/account-pages.css'
 import './assets/styles/content-pages.css'
-import './assets/styles/admin-pages.css'
 import './assets/styles/widgets-layout.css'
 import './assets/styles/status-pages.css'
 import './assets/styles/text-contrast-fixes.css'
@@ -35,48 +34,144 @@ const FALLBACK_IMAGE =
     </svg>
   `)
 
+const reloadAdminWithCacheBust = (reason = 'runtime') => {
+  if (!window.location.pathname.startsWith('/admin')) return
+
+  const key = `admin-recover-${reason}-once`
+  if (sessionStorage.getItem(key) === '1') return
+
+  sessionStorage.setItem(key, '1')
+  const url = new URL(window.location.href)
+  url.searchParams.set('_recover', String(Date.now()))
+  window.location.replace(url.toString())
+}
+
 const tryRecoverAdminRuntime = (event) => {
   if (!window.location.pathname.startsWith('/admin')) return
   if (event?.target && event.target !== window) return
-  const recovered = sessionStorage.getItem(ADMIN_RECOVERY_KEY)
-  if (recovered === '1') return
+
+  const msg = String(event?.reason?.message || event?.message || event?.reason || '')
+  const shouldRecover = [
+    'Loading chunk',
+    'ChunkLoadError',
+    'Failed to fetch dynamically imported module',
+    'Importing a module script failed',
+    'Failed to load module script',
+    'error loading dynamically imported module',
+  ].some((text) => msg.includes(text))
+
+  if (!shouldRecover) return
+
+  if (sessionStorage.getItem(ADMIN_RECOVERY_KEY) === '1') return
   sessionStorage.setItem(ADMIN_RECOVERY_KEY, '1')
-  window.location.reload()
+  reloadAdminWithCacheBust('chunk')
 }
+const IMAGE_RETRY_DELAYS = [180, 700]
+
+const appendImageRetryVersion = (source, attempt) => {
+  if (!source || source.startsWith('data:') || source.startsWith('blob:')) return source
+
+  try {
+    const url = new URL(source, window.location.href)
+    url.searchParams.set('_image_retry', `${attempt}-${Date.now()}`)
+    return url.href
+  } catch (_) {
+    return source
+  }
+}
+
+const wakeVisibleImages = (root = document) => {
+  const images = root instanceof HTMLImageElement
+    ? [root]
+    : [...(root.querySelectorAll?.('img') || [])]
+
+  images.forEach((image) => {
+    const rect = image.getBoundingClientRect()
+    const nearViewport = rect.bottom >= -window.innerHeight && rect.top <= window.innerHeight * 2
+    if (nearViewport && image.loading === 'lazy' && !image.complete) {
+      image.loading = 'eager'
+    }
+  })
+}
+
+window.addEventListener('load', (event) => {
+  const target = event.target
+  if (!(target instanceof HTMLImageElement)) return
+  if (target.src === FALLBACK_IMAGE) return
+
+  delete target.dataset.imageRetryCount
+  delete target.dataset.imageFailedSrc
+  delete target.dataset.fallbackApplied
+}, true)
 
 window.addEventListener('error', (event) => {
   const target = event.target
   if (!(target instanceof HTMLImageElement)) return
-  if (target.dataset.fallbackApplied === '1') return
 
+  const failedSrc = target.currentSrc || target.src
+  if (!failedSrc || failedSrc === FALLBACK_IMAGE || failedSrc.startsWith('data:') || failedSrc.startsWith('blob:')) {
+    return
+  }
+
+  const attempt = Number(target.dataset.imageRetryCount || 0)
+  target.dataset.imageFailedSrc = failedSrc
+
+  if (attempt < IMAGE_RETRY_DELAYS.length) {
+    target.dataset.imageRetryCount = String(attempt + 1)
+    window.setTimeout(() => {
+      if (!target.isConnected || target.complete && target.naturalWidth > 0) return
+
+      // A component may have supplied its own fallback while we waited.
+      const currentSrc = target.currentSrc || target.src
+      if (currentSrc !== failedSrc && !currentSrc.includes('_image_retry=')) return
+
+      target.src = appendImageRetryVersion(failedSrc, attempt + 1)
+      target.loading = 'eager'
+    }, IMAGE_RETRY_DELAYS[attempt])
+    return
+  }
+
+  if (target.dataset.fallbackApplied === '1') return
   target.dataset.fallbackApplied = '1'
   target.src = FALLBACK_IMAGE
 }, true)
+
+const imageObserver = new MutationObserver((entries) => {
+  entries.forEach((entry) => {
+    entry.addedNodes.forEach((node) => {
+      if (node instanceof HTMLElement) wakeVisibleImages(node)
+    })
+  })
+})
+
+imageObserver.observe(document.documentElement, { childList: true, subtree: true })
+window.addEventListener('DOMContentLoaded', () => wakeVisibleImages())
+window.addEventListener('pageshow', () => window.setTimeout(() => wakeVisibleImages(), 80))
+window.addEventListener('scroll', () => wakeVisibleImages(), { passive: true })
 
 window.addEventListener('error', tryRecoverAdminRuntime)
 window.addEventListener('unhandledrejection', tryRecoverAdminRuntime)
 window.addEventListener('pageshow', () => {
   if (window.location.pathname.startsWith('/admin')) {
-    sessionStorage.removeItem(ADMIN_RECOVERY_KEY)
+    setTimeout(() => {
+      sessionStorage.removeItem(ADMIN_RECOVERY_KEY)
+    }, 5000)
   }
 })
 window.addEventListener('pageshow', (event) => {
   if (!window.location.pathname.startsWith('/admin')) return
-  const appRoot = document.getElementById('app')
-  const isEmpty = !appRoot || appRoot.childElementCount === 0
-  if (event.persisted || isEmpty) {
-    const key = 'admin-bfcache-recover-once'
-    if (sessionStorage.getItem(key) === '1') {
-      sessionStorage.removeItem(key)
-      return
-    }
-    sessionStorage.setItem(key, '1')
-    window.location.reload()
-  } else {
-    sessionStorage.removeItem('admin-bfcache-recover-once')
-  }
-})
 
+  setTimeout(() => {
+    const appRoot = document.getElementById('app')
+    const isEmpty = !appRoot || appRoot.childElementCount === 0 || !appRoot.textContent.trim()
+
+    if (event.persisted || isEmpty) {
+      reloadAdminWithCacheBust('blank')
+    } else {
+      sessionStorage.removeItem('admin-recover-blank-once')
+    }
+  }, 900)
+})
 createApp(App)
   .use(router)
   .mount('#app')
@@ -90,7 +185,9 @@ installI18n(router)
 
 // Đồng bộ đăng nhập/đăng xuất giữa các tab
 window.addEventListener('storage', (event) => {
-  if (event.key === 'logout-event') {
+  // setItem + removeItem emit two storage events. Process only the event that
+  // carries a payload so other tabs do not clear and redirect twice.
+  if (event.key === 'logout-event' && event.newValue) {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     sessionStorage.removeItem('token')

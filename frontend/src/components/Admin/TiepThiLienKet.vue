@@ -31,6 +31,7 @@ import swal from '@/services/swal'
 import { storageUrl } from '@/services/urls'
 
 const loading = ref(true)
+const isLoadingData = ref(false)
 const actionLoading = ref('')
 const activeTab = ref('publishers')
 const searchQuery = ref('')
@@ -39,7 +40,7 @@ const selectedProfile = ref(null)
 const currentPage = ref(1)
 const itemsPerPage = ref(5)
 const hoveredAdminVideoId = ref(null)
-const payload = ref({ profiles: [], commissions: [], withdraw_requests: [], affiliate_videos: [] })
+const payload = ref({ profiles: [], commissions: [], withdraw_requests: [], affiliate_videos: [], rules: {} })
 
 const playInlineVideo = (event, row = {}) => {
   hoveredAdminVideoId.value = row.id || null
@@ -129,8 +130,10 @@ const withdrawStatuses = [
   { value: 'all', label: 'Tất cả trạng thái' },
   { value: 'pending', label: 'Chờ duyệt' },
   { value: 'approved', label: 'Đã duyệt' },
+  { value: 'processing', label: 'Đang chuyển tiền' },
   { value: 'paid', label: 'Đã chi trả' },
   { value: 'rejected', label: 'Từ chối' },
+  { value: 'cancelled', label: 'Người dùng thu hồi' },
 ]
 
 const videoStatuses = [
@@ -147,6 +150,7 @@ const statusLabelMap = {
   suspended: 'Tạm khóa',
   rejected: 'Từ chối',
   approved: 'Đã duyệt',
+  processing: 'Đang chuyển tiền',
   paid: 'Đã thanh toán',
   cancelled: 'Đã hủy',
 }
@@ -197,17 +201,34 @@ const initials = (name = '') => {
 const normalize = (value) => String(value || '').toLowerCase().trim()
 
 const loadData = async () => {
+  if (isLoadingData.value) return
+
+  isLoadingData.value = true
   loading.value = true
+
   try {
-    const [{ data }, videoRes] = await Promise.all([
-      api.get('/admin/affiliates', { cache: false }),
-      api.get('/admin/affiliate-videos', { cache: false }),
+    const [affiliateResult, videoResult] = await Promise.allSettled([
+      api.get('/admin/affiliates', { cache: false, timeout: 10000 }),
+      api.get('/admin/affiliate-videos', { cache: false, timeout: 10000 }),
     ])
+
+    const affiliateData = affiliateResult.status === 'fulfilled'
+      ? affiliateResult.value.data
+      : null
+    const videoData = videoResult.status === 'fulfilled'
+      ? videoResult.value.data
+      : null
+
+    if (!affiliateData && !videoData) {
+      throw affiliateResult.reason || videoResult.reason
+    }
+
     payload.value = {
-      profiles: data.profiles || [],
-      commissions: data.commissions || [],
-      withdraw_requests: data.withdraw_requests || [],
-      affiliate_videos: videoRes.data || [],
+      profiles: affiliateData?.profiles || payload.value.profiles || [],
+      commissions: affiliateData?.commissions || payload.value.commissions || [],
+      withdraw_requests: affiliateData?.withdraw_requests || payload.value.withdraw_requests || [],
+      affiliate_videos: Array.isArray(videoData) ? videoData : (payload.value.affiliate_videos || []),
+      rules: affiliateData?.rules || payload.value.rules || {},
     }
 
     if (!selectedProfile.value && payload.value.profiles.length) {
@@ -215,19 +236,25 @@ const loadData = async () => {
     } else if (selectedProfile.value) {
       selectedProfile.value = payload.value.profiles.find(p => p.id === selectedProfile.value.id) || payload.value.profiles[0] || null
     }
+
+    if (!affiliateData || !videoData) {
+      swal.warning('Tải chưa đầy đủ', 'Một phần dữ liệu affiliate chưa phản hồi, hệ thống đã hiển thị dữ liệu còn lại trước.')
+    }
   } catch (err) {
+    payload.value = { profiles: [], commissions: [], withdraw_requests: [], affiliate_videos: [], rules: {} }
+    selectedProfile.value = null
     swal.error('Không tải được dữ liệu', err?.response?.data?.message || 'Vui lòng kiểm tra lại API affiliate admin.')
   } finally {
     loading.value = false
+    isLoadingData.value = false
   }
 }
-
 const stats = computed(() => {
   const pendingProfiles = profiles.value.filter(p => p.status === 'pending').length
   const activeProfiles = profiles.value.filter(p => p.status === 'active').length
   const pendingCommissions = commissions.value.filter(c => c.status === 'pending')
   const approvedCommissions = commissions.value.filter(c => c.status === 'approved')
-  const paidCommissions = commissions.value.filter(c => c.status === 'paid')
+  const paidWithdraws = withdraws.value.filter(w => w.status === 'paid')
   const pendingWithdraws = withdraws.value.filter(w => w.status === 'pending')
 
   return {
@@ -237,10 +264,11 @@ const stats = computed(() => {
     pendingCommissionCount: pendingCommissions.length,
     pendingCommissionAmount: pendingCommissions.reduce((sum, row) => sum + Number(row.amount || 0), 0),
     approvedAmount: approvedCommissions.reduce((sum, row) => sum + Number(row.amount || 0), 0),
-    paidAmount: paidCommissions.reduce((sum, row) => sum + Number(row.amount || 0), 0),
+    paidAmount: paidWithdraws.reduce((sum, row) => sum + Number(row.amount || 0), 0),
+    paidWithdrawCount: paidWithdraws.length,
     pendingWithdrawCount: pendingWithdraws.length,
     pendingWithdrawAmount: pendingWithdraws.reduce((sum, row) => sum + Number(row.amount || 0), 0),
-    conversionOrders: commissions.value.length,
+    conversionOrders: commissions.value.filter(c => ['pending', 'approved', 'paid'].includes(c.status)).length,
   }
 })
 
@@ -389,8 +417,9 @@ const changeProfileStatus = async (profile, status) => {
 
 const updateRate = async (profile) => {
   const value = Number(profile.commission_rate)
-  if (Number.isNaN(value) || value < 0 || value > 100) {
-    swal.warning('Tỉ lệ không hợp lệ', 'Tỉ lệ hoa hồng phải nằm trong khoảng 0 - 100%.')
+  const maxRate = Number(payload.value.rules?.maximum_commission_rate || 30)
+  if (Number.isNaN(value) || value < 0 || value > maxRate) {
+    swal.warning('Tỉ lệ không hợp lệ', `Tỉ lệ hoa hồng phải nằm trong khoảng 0 - ${maxRate}%.`)
     return
   }
   await updateProfile(profile, { commission_rate: value }, 'Tỉ lệ hoa hồng đã được lưu.')
@@ -507,57 +536,57 @@ onMounted(loadData)
     <section class="ttlk-stats-grid">
       <!-- Card 1 -->
       <div class="ttlk-stat-card">
-        <span class="ttlk-label">NHÀ TIẾP THỊ</span>
-        <div class="ttlk-card-body">
-          <div class="ttlk-left-group">
-            <div class="ttlk-icon-box">
-              <Users :size="20" />
-            </div>
-            <h2 class="ttlk-number">{{ stats.publishers }}</h2>
-          </div>
+        <div class="ttlk-card-header">
+          <span class="ttlk-label">NHÀ TIẾP THỊ</span>
           <span class="ttlk-badge neutral">{{ stats.activeProfiles }} Hoạt động · {{ stats.pendingProfiles }} Chờ</span>
+        </div>
+        <div class="ttlk-card-body">
+          <div class="ttlk-icon-box">
+            <Users :size="20" />
+          </div>
+          <h2 class="ttlk-number">{{ stats.publishers }}</h2>
         </div>
       </div>
 
       <!-- Card 2 -->
       <div class="ttlk-stat-card">
-        <span class="ttlk-label">HOA HỒNG CHỜ DUYỆT</span>
-        <div class="ttlk-card-body">
-          <div class="ttlk-left-group">
-            <div class="ttlk-icon-box">
-              <Clock3 :size="20" />
-            </div>
-            <h2 class="ttlk-number">{{ formatMoney(stats.pendingCommissionAmount) }}</h2>
-          </div>
+        <div class="ttlk-card-header">
+          <span class="ttlk-label">HOA HỒNG CHỜ DUYỆT</span>
           <span class="ttlk-badge warning">{{ stats.pendingCommissionCount }} Cần xử lý</span>
+        </div>
+        <div class="ttlk-card-body">
+          <div class="ttlk-icon-box">
+            <Clock3 :size="20" />
+          </div>
+          <h2 class="ttlk-number">{{ formatMoney(stats.pendingCommissionAmount) }}</h2>
         </div>
       </div>
 
       <!-- Card 3 -->
       <div class="ttlk-stat-card">
-        <span class="ttlk-label">RÚT TIỀN CHỜ DUYỆT</span>
-        <div class="ttlk-card-body">
-          <div class="ttlk-left-group">
-            <div class="ttlk-icon-box">
-              <Banknote :size="20" />
-            </div>
-            <h2 class="ttlk-number">{{ formatMoney(stats.pendingWithdrawAmount) }}</h2>
-          </div>
+        <div class="ttlk-card-header">
+          <span class="ttlk-label">RÚT TIỀN CHỜ DUYỆT</span>
           <span class="ttlk-badge warning">{{ stats.pendingWithdrawCount }} Yêu cầu</span>
+        </div>
+        <div class="ttlk-card-body">
+          <div class="ttlk-icon-box">
+            <Banknote :size="20" />
+          </div>
+          <h2 class="ttlk-number">{{ formatMoney(stats.pendingWithdrawAmount) }}</h2>
         </div>
       </div>
 
       <!-- Card 4 -->
       <div class="ttlk-stat-card">
-        <span class="ttlk-label">ĐÃ THANH TOÁN</span>
+        <div class="ttlk-card-header">
+          <span class="ttlk-label">ĐÃ THANH TOÁN</span>
+          <span class="ttlk-badge success">{{ stats.paidWithdrawCount }} Lượt chi trả</span>
+        </div>
         <div class="ttlk-card-body">
-          <div class="ttlk-left-group">
-            <div class="ttlk-icon-box">
-              <TrendingUp :size="20" />
-            </div>
-            <h2 class="ttlk-number">{{ formatMoney(stats.paidAmount) }}</h2>
+          <div class="ttlk-icon-box">
+            <TrendingUp :size="20" />
           </div>
-          <span class="ttlk-badge success">{{ stats.conversionOrders }} Đơn hoa hồng</span>
+          <h2 class="ttlk-number">{{ formatMoney(stats.paidAmount) }}</h2>
         </div>
       </div>
     </section>
@@ -675,7 +704,7 @@ onMounted(loadData)
             <label class="field">
               <span>Tỉ lệ hoa hồng</span>
               <div class="rate-editor">
-                <input v-model="selectedProfile.commission_rate" type="number" min="0" max="100" step="0.1" />
+                <input v-model="selectedProfile.commission_rate" type="number" min="0" :max="payload.rules?.maximum_commission_rate || 30" step="0.1" />
                 <span class="rate-suffix">%</span>
                 <button type="button" @click="updateRate(selectedProfile)">Lưu</button>
               </div>
@@ -765,15 +794,13 @@ onMounted(loadData)
                 <td><span class="status-pill" :class="row.status">{{ statusLabelMap[row.status] || row.status }}</span></td>
                 <td>
                   <div class="row-actions">
-                    <button type="button" class="mini approve" :disabled="actionLoading === `commission-${row.id}`" @click="updateCommissionStatus(row, 'approved')">
+                    <button v-if="row.status === 'pending'" type="button" title="Duyệt hoa hồng" class="mini approve" :disabled="actionLoading === `commission-${row.id}`" @click="updateCommissionStatus(row, 'approved')">
                       <CheckCircle2 :size="16" />
                     </button>
-                    <button type="button" class="mini paid" :disabled="actionLoading === `commission-${row.id}`" @click="updateCommissionStatus(row, 'paid')">
-                      <ShieldCheck :size="16" />
-                    </button>
-                    <button type="button" class="mini danger" :disabled="actionLoading === `commission-${row.id}`" @click="updateCommissionStatus(row, 'cancelled')">
+                    <button v-if="['pending', 'approved'].includes(row.status)" type="button" title="Hủy hoa hồng" class="mini danger" :disabled="actionLoading === `commission-${row.id}`" @click="updateCommissionStatus(row, 'cancelled')">
                       <XCircle :size="16" />
                     </button>
+                    <span v-if="['paid', 'cancelled'].includes(row.status)">Đã chốt</span>
                   </div>
                 </td>
               </tr>
@@ -845,7 +872,7 @@ onMounted(loadData)
                 <span>Sản phẩm: <strong>{{ row.product?.tenSP || 'Chưa gắn' }}</strong></span>
                 <span>{{ row.views || 0 }} lượt xem · {{ row.clicks || 0 }} click</span>
               </div>
-              <textarea v-model="row.reject_reason" class="reject-input" placeholder="Lý do từ chối nếu cần..."></textarea>
+              <textarea v-if="row.status !== 'approved'" v-model="row.reject_reason" class="reject-input" placeholder="Lý do từ chối nếu cần..."></textarea>
               <div class="row-actions video-actions">
                 <button type="button" class="mini neutral" @click="openAdminVideoSource(row)">
                   <Video :size="16" />
@@ -859,7 +886,7 @@ onMounted(loadData)
                   <ShieldCheck :size="16" />
                   Ẩn
                 </button>
-                <button type="button" class="mini danger" :disabled="actionLoading === `video-${row.id}`" @click="updateVideoStatus(row, 'rejected', false)">
+                <button v-if="row.status !== 'approved'" type="button" class="mini danger" :disabled="actionLoading === `video-${row.id}`" @click="updateVideoStatus(row, 'rejected', false)">
                   <XCircle :size="16" />
                   Từ chối
                 </button>
@@ -928,20 +955,34 @@ onMounted(loadData)
                 <dt>Thời gian</dt>
                 <dd>{{ formatDate(row.created_at) }}</dd>
               </div>
+              <div>
+                <dt>Mã yêu cầu</dt>
+                <dd>{{ row.request_code || `AFF-${row.id}` }}</dd>
+              </div>
+              <div v-if="row.transaction_id">
+                <dt>Mã giao dịch</dt>
+                <dd>{{ row.transaction_id }}</dd>
+              </div>
+              <div v-if="row.payout_provider">
+                <dt>Kênh chi trả</dt>
+                <dd>{{ String(row.payout_provider).toUpperCase() }}</dd>
+              </div>
             </dl>
             <div class="withdraw-actions">
-              <button type="button" class="action approve" :disabled="actionLoading === `withdraw-${row.id}`" @click="updateWithdrawStatus(row, 'approved')">
+              <button v-if="row.status === 'pending'" type="button" class="action approve" :disabled="actionLoading === `withdraw-${row.id}`" @click="updateWithdrawStatus(row, 'approved')">
                 <CheckCircle2 :size="17" />
                 Duyệt
               </button>
-              <button type="button" class="action paid" :disabled="actionLoading === `withdraw-${row.id}`" @click="updateWithdrawStatus(row, 'paid')">
+              <button v-if="row.status === 'approved'" type="button" class="action paid" :disabled="actionLoading === `withdraw-${row.id}`" @click="updateWithdrawStatus(row, 'paid')">
                 <Banknote :size="17" />
-                Đã chuyển
+                Gửi lệnh chi tiền
               </button>
-              <button type="button" class="action danger" :disabled="actionLoading === `withdraw-${row.id}`" @click="updateWithdrawStatus(row, 'rejected')">
+              <button v-if="['pending', 'approved'].includes(row.status)" type="button" class="action danger" :disabled="actionLoading === `withdraw-${row.id}`" @click="updateWithdrawStatus(row, 'rejected')">
                 <XCircle :size="17" />
                 Từ chối
               </button>
+              <span v-if="row.status === 'processing'">Đang chờ nhà cung cấp xác nhận</span>
+              <span v-if="['paid', 'rejected'].includes(row.status)">Yêu cầu đã chốt</span>
             </div>
           </article>
 
@@ -990,19 +1031,21 @@ onMounted(loadData)
 }
 
 .affiliate-toolbar-btn {
-  height: 42px;
-  min-width: 124px;
-  padding: 0 16px;
+  width: auto !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  min-width: 112px !important;
+  padding: 0 13px !important;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 9px;
+  gap: 6px;
   border: 1px solid #d7e0ec;
   border-radius: 10px;
   background: #ffffff;
   color: #1e293b;
   font: inherit;
-  font-size: 13px;
+  font-size: 11.5px;
   font-weight: 750;
   line-height: 1;
   cursor: pointer;
@@ -1011,9 +1054,9 @@ onMounted(loadData)
 }
 
 .affiliate-toolbar-btn svg {
-  width: 17px;
-  height: 17px;
-  flex: 0 0 17px;
+  width: 15px !important;
+  height: 15px !important;
+  flex: 0 0 15px;
   stroke-width: 2.1;
 }
 
@@ -1085,7 +1128,7 @@ onMounted(loadData)
 .btn {
   height: 44px;
   border-radius: 999px;
-  padding: 0 16px;
+  padding: 0 10px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -1106,29 +1149,37 @@ onMounted(loadData)
 
 .ttlk-stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(200px, 1fr));
+  grid-template-columns: repeat(4, minmax(230px, 1fr));
   gap: 16px;
   margin-bottom: 18px;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1366px) {
   .ttlk-stats-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .ttlk-stats-grid {
+    grid-template-columns: 1fr;
   }
 }
 
 .ttlk-stat-card {
   background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%) !important;
   border-radius: 16px;
-  padding: 18px 20px;
+  padding: 16px 20px;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   gap: 12px;
   box-shadow: 0 12px 26px rgba(15, 23, 42, 0.14);
   position: relative;
   overflow: hidden;
   border: none !important;
   transition: all 0.2s ease;
+  min-height: 104px;
 }
 
 .ttlk-stat-card::after {
@@ -1148,35 +1199,36 @@ onMounted(loadData)
   box-shadow: 0 16px 32px rgba(15, 23, 42, 0.2);
 }
 
+.ttlk-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  position: relative;
+  z-index: 1;
+}
+
 .ttlk-label {
   font-size: 11.5px;
   font-weight: 700;
   color: rgba(255, 255, 255, 0.9);
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  position: relative;
-  z-index: 1;
+  white-space: nowrap;
 }
 
 .ttlk-card-body {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   position: relative;
   z-index: 1;
 }
 
-.ttlk-left-group {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
 .ttlk-icon-box {
   width: 42px;
-  height: 42px;
-  border-radius: 12px;
+  height: 34px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1186,23 +1238,25 @@ onMounted(loadData)
 }
 
 .ttlk-number {
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 800;
   color: #ffffff !important;
   line-height: 1;
   margin: 0;
   white-space: nowrap;
+  letter-spacing: -0.5px;
 }
 
 .ttlk-badge {
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 700;
-  padding: 5px 12px;
+  padding: 4px 10px;
   border-radius: 999px;
   white-space: nowrap;
   background: rgba(255, 255, 255, 0.92) !important;
   color: #1d4ed8 !important;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
 }
 
 .ttlk-badge.neutral { color: #1d4ed8 !important; }
@@ -1244,8 +1298,8 @@ onMounted(loadData)
   display: inline-flex;
   align-items: center;
   flex: 0 0 auto;
-  gap: 7px;
-  font-size: 13px;
+  gap: 6px;
+  font-size: 12px;
   font-weight: 700;
   color: #334155;
   border: 1px solid transparent;
@@ -1398,7 +1452,7 @@ onMounted(loadData)
 .card-title-row p {
   margin: 0;
   color: #64748b;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .publisher-list {
@@ -1438,7 +1492,7 @@ onMounted(loadData)
 .avatar,
 .person > span {
   width: 42px;
-  height: 42px;
+  height: 28px;
   border-radius: 999px;
   display: grid;
   place-items: center;
@@ -1461,7 +1515,7 @@ onMounted(loadData)
 .publisher-main span,
 .person small {
   color: #64748b;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .publisher-row code,
@@ -1537,7 +1591,7 @@ onMounted(loadData)
 .profile-head p {
   margin: 0;
   color: #64748b;
-  font-size: 13px;
+  font-size: 12px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1598,6 +1652,12 @@ onMounted(loadData)
 
 .rate-editor input {
   width: 100%;
+  height: 100% !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  border-radius: 0 !important;
   padding: 0 12px 0 14px;
   font-weight: 900;
 }
@@ -1840,7 +1900,7 @@ td {
 .video-admin-body p {
   margin: 0;
   color: #475569;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -1955,7 +2015,7 @@ td {
 
 .pagination-info {
   color: #64748b;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
 }
 
@@ -2027,18 +2087,31 @@ td {
 
 .loading-card,
 .empty-state {
-  min-height: 220px;
+  grid-column: 1 / -1 !important;
+  width: 100% !important;
+  margin: 0 auto !important;
+  min-height: 260px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 12px;
   color: #94a3b8;
   text-align: center;
+  padding: 40px 20px;
 }
 
 .empty-state strong {
-  color: #334155;
+  color: #1e293b;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.empty-state span {
+  color: #64748b;
+  font-size: 13px;
+  max-width: 480px;
+  line-height: 1.5;
 }
 
 .empty-state.compact {
@@ -2126,5 +2199,226 @@ button:disabled {
   .pagination-actions {
     justify-content: flex-start;
   }
+}
+
+/* Dark Mode Overrides for Tiếp Thị Liên Kết (Navy Blue-Black #1e293b) */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .data-card,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .control-panel,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .profile-panel {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .card-title-row,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .profile-head {
+  border-bottom-color: #334155 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .card-title-row h2,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .profile-head h3,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .publisher-main strong,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .profile-stats strong,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .rate {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .publisher-row {
+  background: #1e293b !important;
+  color: #f8fafc !important;
+  border-bottom: 1px solid #334155 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .publisher-row:hover,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .publisher-row.selected {
+  background: #253346 !important;
+  box-shadow: inset 3px 0 0 #3b82f6 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .publisher-row code,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .copy-card strong,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .money,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .positive {
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill.active,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill.approved {
+  background: rgba(34, 197, 94, 0.22) !important;
+  color: #4ade80 !important;
+  border: 1px solid rgba(34, 197, 94, 0.45) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill.pending,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill.suspended {
+  background: rgba(245, 158, 11, 0.22) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.45) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill.rejected,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill.cancelled {
+  background: rgba(239, 68, 68, 0.22) !important;
+  color: #f87171 !important;
+  border: 1px solid rgba(239, 68, 68, 0.45) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill.paid {
+  background: rgba(59, 130, 246, 0.22) !important;
+  color: #60a5fa !important;
+  border: 1px solid rgba(59, 130, 246, 0.45) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .profile-stats div,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .copy-card {
+  background: #172033 !important;
+  border: 1px solid #334155 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .copy-card button {
+  background: #253346 !important;
+  border: 1px solid #334155 !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .rate-editor {
+  background: #172033 !important;
+  border: 1px solid #334155 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .rate-editor input {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .rate-editor button {
+  background: #253346 !important;
+  border-left: 1px solid #334155 !important;
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .action.approve {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .action.warn {
+  background: rgba(245, 158, 11, 0.22) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.5) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .action.danger {
+  background: rgba(239, 68, 68, 0.22) !important;
+  color: #f87171 !important;
+  border: 1px solid rgba(239, 68, 68, 0.5) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .search-box,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .select-box,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-select {
+  background: #172033 !important;
+  border: 1px solid #334155 !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .search-box input,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .select-box select {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .select-box select option {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .search-box svg,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .select-box svg,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .card-title-row svg {
+  color: #cbd5e1 !important;
+  stroke: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .empty-state strong {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .empty-state span {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .empty-state svg {
+  color: #64748b !important;
+}
+
+/* Video Card & Withdrawal Card Overrides in Dark Mode */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .affiliate-video-admin-card,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .withdraw-card {
+  background: #172033 !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .video-admin-body h3,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .withdraw-card dd {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .video-admin-body p {
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .video-admin-meta span,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .withdraw-card dt {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .video-admin-meta strong,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .withdraw-amount {
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .reject-input {
+  background: #11151c !important;
+  border: 1px solid #334155 !important;
+  color: #f8fafc !important;
+}
+
+/* Button variants in Dark Mode */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .mini.neutral {
+  background: #253346 !important;
+  color: #60a5fa !important;
+  border: 1px solid #334155 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .mini.neutral:hover {
+  background: #334155 !important;
+  color: #93c5fd !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .mini.approve,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .action.approve {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border: 1px solid #3b82f6 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .mini.paid,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .action.paid {
+  background: rgba(148, 163, 184, 0.18) !important;
+  color: #cbd5e1 !important;
+  border: 1px solid rgba(148, 163, 184, 0.35) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .mini.paid:hover,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .action.paid:hover {
+  background: rgba(148, 163, 184, 0.3) !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .mini.danger,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .action.danger {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #f87171 !important;
+  border: 1px solid rgba(239, 68, 68, 0.45) !important;
 }
 </style>

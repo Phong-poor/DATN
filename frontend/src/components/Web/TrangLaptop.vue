@@ -1,4 +1,4 @@
-<script setup>
+ <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
@@ -88,7 +88,18 @@ const products = computed(() => {
   }
 })
 
+const LAPTOP_CATEGORY_IDS = new Set([2, 3, 4, 7])
+const ACCESSORY_CATEGORY_IDS = new Set([10, 11, 12, 13, 14, 15])
+const productCategoryId = (product = {}) => Number(
+  product.id_danhmuc
+  || product.danh_muc?.id_danhmuc
+  || product.danhmuc?.id_danhmuc
+  || 0
+)
+
 const isProductAccessory = (product) => {
+  const categoryId = productCategoryId(product)
+  if (ACCESSORY_CATEGORY_IDS.has(categoryId)) return true
   const cat = String(
     product.category || 
     product.danh_muc?.ten_danhmuc || 
@@ -105,6 +116,8 @@ const isProductAccessory = (product) => {
 }
 
 const isProductLaptop = (product) => {
+  const categoryId = productCategoryId(product)
+  if (categoryId) return LAPTOP_CATEGORY_IDS.has(categoryId)
   return !isProductAccessory(product)
 }
 
@@ -119,11 +132,12 @@ const laptopLines = [
 
 const accessoryLines = [
   { key: 'all', label: 'Tất cả phụ kiện', icon: Headphones, q: '' },
-  { key: 'mouse', label: 'Chuột', icon: Zap, q: 'chuot mouse' },
-  { key: 'keyboard', label: 'Bàn phím', icon: Monitor, q: 'ban phim keyboard' },
-  { key: 'headphone', label: 'Tai nghe', icon: Headphones, q: 'tai nghe headphone' },
-  { key: 'pad', label: 'Lót chuột', icon: ShieldCheck, q: 'lot chuot mousepad' },
-  { key: 'other', label: 'Phụ kiện khác', icon: SlidersHorizontal, q: 'o cung ram main nguon case hub cap ugreen' },
+  { key: 'mouse', label: 'Chuột', icon: Mouse, q: 'chuot mouse', image: '/elite_accessories.png' },
+  { key: 'keyboard', label: 'Bàn phím', icon: Keyboard, q: 'ban phim keyboard', image: '/hero_gaming_parts.png' },
+  { key: 'headphone', label: 'Tai nghe', icon: Headphones, q: 'tai nghe headphone', image: '/Gemini_Generated_Image_571jyz571jyz571j.png' },
+  { key: 'pad', label: 'Lót chuột', icon: Monitor, q: 'lot chuot mousepad', image: '/hero_macbook_setup.png' },
+  { key: 'usb', label: 'USB', icon: SlidersHorizontal, q: 'usb adata kioxia sandisk', image: '/elite_workspace.png' },
+  { key: 'other', label: 'Phụ kiện khác', icon: SlidersHorizontal, q: 'o cung ram main nguon case hub cap ugreen', image: '/elite_workspace.png' },
 ]
 
 const activeLinesList = computed(() => isAccessoryPage.value ? accessoryLines : laptopLines.filter(line => line.key !== 'accessory'))
@@ -137,34 +151,30 @@ const tabs = [
 ]
 
 const serviceCards = [
-  { icon: Truck, title: 'Miễn phí vận chuyển', desc: 'Cho đơn hàng từ 499.000đ' },
+  { icon: Truck, title: 'Phí vận chuyển 30.000đ', desc: 'Áp dụng giao hàng toàn quốc' },
   { icon: ShieldCheck, title: 'Đổi trả dễ dàng', desc: 'Đổi trả trong 7 ngày' },
   { icon: BadgeCheck, title: 'Thanh toán an toàn', desc: 'Nhiều phương thức thanh toán' },
   { icon: Headphones, title: 'Hỗ trợ 24/7', desc: 'Hotline: 1900 1234' },
 ]
 
 const heroCategories = [
-  { label: 'Laptop Gaming RTX 4050', icon: Laptop, line: 'gaming', q: 'rtx 4050' },
-  { label: 'Laptop Gaming RTX 4060', icon: Laptop, line: 'gaming', q: 'rtx 4060' },
-  { label: 'Laptop Gaming RTX 4070', icon: Laptop, line: 'gaming', q: 'rtx 4070' },
-  { label: 'Laptop Gaming RTX 4080', icon: Laptop, line: 'gaming', q: 'rtx 4080' },
-  { label: 'Laptop Gaming RTX 4090', icon: Laptop, line: 'gaming', q: 'rtx 4090' },
-  { label: 'ASUS ROG / TUF', icon: ShieldCheck, line: 'gaming', q: 'asus rog tuf' },
-  { label: 'MSI Gaming', icon: Flame, line: 'gaming', q: 'msi gaming' },
-  { label: 'Acer NextGen', icon: BadgeCheck, line: 'gaming', q: 'acer predator' },
-  { label: 'Lenovo Legion', icon: Zap, line: 'gaming', q: 'lenovo legion' },
-  { label: 'Bàn phím cơ Gaming', icon: Keyboard, line: 'accessory', q: 'ban phim gaming' },
-  { label: 'Chuột Gaming', icon: Mouse, line: 'accessory', q: 'chuot gaming' },
-  { label: 'Tai nghe Gaming', icon: Headphones, line: 'accessory', q: 'tai nghe gaming' },
-  { label: 'Lót chuột Gaming', icon: Monitor, line: 'accessory', q: 'lot chuot gaming' },
+  { label: 'Laptop Gaming RTX 4060', icon: Laptop, line: 'gaming', q: '4060' },
+  { label: 'Laptop Gaming RTX 4080 / 4090', icon: Laptop, line: 'gaming', q: '4080' },
+  { label: 'AMD Ryzen Gaming Series', icon: Zap, line: 'gaming', q: 'ryzen' },
+  { label: 'MacBook Apple M Series', icon: Laptop, line: 'all', q: 'macbook' },
+  { label: 'ASUS ROG / TUF', icon: ShieldCheck, line: 'gaming', q: 'asus' },
+  { label: 'MSI Gaming', icon: Flame, line: 'gaming', q: 'msi' },
+  { label: 'Acer NextGen', icon: BadgeCheck, line: 'gaming', q: 'acer' },
+  { label: 'Lenovo Legion', icon: Zap, line: 'gaming', q: 'lenovo' },
+  { label: 'Laptop Văn Phòng - Học Sinh', icon: Laptop, line: 'all', q: '' },
 ]
 
 const heroAccessoryCategories = [
-  { label: 'Chuột Gaming Logitech', icon: Mouse, line: 'mouse', q: 'logitech mouse' },
-  { label: 'Bàn phím cơ Akko', icon: Keyboard, line: 'keyboard', q: 'akko keyboard' },
-  { label: 'Tai nghe chụp tai Razer', icon: Headphones, line: 'headphone', q: 'razer headphone' },
-  { label: 'Lót chuột cỡ lớn', icon: Monitor, line: 'pad', q: 'lot chuot pad' },
-  { label: 'Ugreen Hub & cáp sạc', icon: BadgeCheck, line: 'other', q: 'ugreen hub cap' },
+  { label: 'Chuột Gaming Logitech', icon: Mouse, line: 'mouse', q: 'chuot' },
+  { label: 'Bàn phím cơ Akko', icon: Keyboard, line: 'keyboard', q: 'ban phim' },
+  { label: 'Tai nghe chụp tai Razer', icon: Headphones, line: 'headphone', q: 'tai nghe' },
+  { label: 'Lót chuột cỡ lớn', icon: Monitor, line: 'pad', q: 'lot chuot' },
+  { label: 'Ugreen Hub & cáp sạc', icon: BadgeCheck, line: 'hub', q: 'hub' },
 ]
 
 const heroCategoriesToDisplay = computed(() => isAccessoryPage.value ? heroAccessoryCategories : heroCategories)
@@ -244,7 +254,7 @@ const normalizeVariant = (p, variant) => {
     } catch {}
   }
 
-  const price = Number(variant?.gia || p.gia || 0) || 19990000
+  const price = Number(variant?.gia || p.gia || 0)
 
   // Extract CPU and RAM for subtitle display
   const cpuSpec = specs.find(s => /i[3579][-\s]|ryzen|core ultra|xeon|m[1-4]|celeron|pentium/i.test(s)) || ''
@@ -255,17 +265,19 @@ const normalizeVariant = (p, variant) => {
   return {
     id_sanpham: p.id_sanpham,
     id_bienthe: variant?.id_bienthe,
+    id_danhmuc: p.id_danhmuc || p.danh_muc?.id_danhmuc || p.danhmuc?.id_danhmuc || null,
     tenSP: p.tenSP,
     brand: p.thuong_hieu?.ten_thuonghieu || p.thuonghieu?.tenTH || p.brand || 'NextGen',
     category: p.danh_muc?.ten_danhmuc || p.danhmuc?.tenDM || p.category || 'Laptop',
     gia: price,
     oldPrice: Math.floor(price * 1.13),
-    specs: specs.slice(0, 5).length ? specs.slice(0, 5) : ['16GB RAM', '512GB SSD', 'FHD IPS'],
+    specs: specs.slice(0, 5),
+    searchSpecs: specs,
     cpu: cpuSpec,
     ram: ramSpec,
     image: productImageUrl(p, variant, 'https://placehold.co/600x420?text=NextGen+Laptop'),
-    rating: p.rating_avg !== undefined && p.rating_avg !== null ? Number(p.rating_avg) : 4.8,
-    reviews: p.rating_count !== undefined && p.rating_count !== null ? Number(p.rating_count) : 12,
+    rating: p.rating_avg !== undefined && p.rating_avg !== null ? Number(p.rating_avg) : 0,
+    reviews: p.rating_count !== undefined && p.rating_count !== null ? Number(p.rating_count) : 0,
     _randomWeight: weight
   }
 }
@@ -344,7 +356,7 @@ const interleaveVariants = (groups) => {
 
 const loadProducts = async () => {
   const warmCache = getPrefetchedProductsData()
-  if (warmCache?.productsRaw?.length) {
+  if (warmCache?.productsRaw?.length >= 15) {
     rawProductsList.value = warmCache.productsRaw
     isLoading.value = false
   } else {
@@ -352,7 +364,7 @@ const loadProducts = async () => {
   }
 
   try {
-    const cache = await prefetchProductsPage()
+    const cache = await prefetchProductsPage({ forceRefresh: true })
     if (cache?.productsRaw?.length) {
       rawProductsList.value = cache.productsRaw
     } else {
@@ -383,23 +395,26 @@ const canonicalText = (value) => String(value || '')
   .replace(/đ/g, 'd')
 
 const lineMatcher = (product, line = activeLine.value) => {
-  const text = canonicalText(`${product.tenSP} ${product.brand} ${product.category} ${product.specs.join(' ')}`)
+  const text = canonicalText(`${product.tenSP} ${product.brand} ${product.category} ${(product.searchSpecs || product.specs).join(' ')}`)
+  const pCatId = Number(product.id_danhmuc || product.danh_muc?.id_danhmuc || 0)
   if (line === 'all') return true
   
   if (isAccessoryPage.value) {
-    if (line === 'mouse') return text.includes('chuot') || text.includes('mouse')
-    if (line === 'keyboard') return text.includes('ban phim') || text.includes('keyboard')
-    if (line === 'headphone') return text.includes('tai nghe') || text.includes('headphone') || text.includes('tai-nghe')
-    if (line === 'pad') return text.includes('lot chuot') || text.includes('mousepad') || text.includes('pad')
-    if (line === 'other') return !['chuot', 'mouse', 'ban phim', 'keyboard', 'tai nghe', 'headphone', 'lot chuot', 'mousepad'].some(k => text.includes(k))
+    if (line === 'mouse' || line === '10' || line === 'chuot') return pCatId === 10 || text.includes('chuot') || text.includes('mouse')
+    if (line === 'keyboard' || line === '11' || line === 'ban-phim' || line === 'banphim') return pCatId === 11 || text.includes('ban phim') || text.includes('keyboard')
+    if (line === 'headphone' || line === '12' || line === 'tai-nghe' || line === 'tainghe') return pCatId === 12 || text.includes('tai nghe') || text.includes('headphone') || text.includes('tai-nghe')
+    if (line === 'pad' || line === 'mousepad' || line === '13' || line === 'lot-chuot' || line === 'lotchuot') return pCatId === 13 || text.includes('lot chuot') || text.includes('mousepad') || text.includes('pad')
+    if (line === 'usb' || line === '15') return pCatId === 15 || text.includes('usb')
+    if (line === 'hub') return text.includes('hub') || text.includes('cap') || text.includes('sac') || text.includes('ugreen')
+    if (line === 'other') return !['chuot', 'mouse', 'ban phim', 'keyboard', 'tai nghe', 'headphone', 'lot chuot', 'mousepad', 'usb'].some(k => text.includes(k)) && ![10, 11, 12, 13, 15].includes(pCatId)
     return true
   }
 
-  if (line === 'gaming') return text.includes('gaming') || text.includes('rtx') || text.includes('rog') || text.includes('legion')
-  if (line === 'macbook') return text.includes('macbook') || text.includes('apple')
-  if (line === 'office') return text.includes('van phong') || text.includes('vivobook') || text.includes('inspiron') || text.includes('ideapad')
-  if (line === 'student') return text.includes('hoc') || text.includes('student') || text.includes('air') || text.includes('thin')
-  if (line === 'accessory') return text.includes('chuot') || text.includes('ban phim') || text.includes('tai nghe') || text.includes('phu kien')
+  if (line === 'gaming') return text.includes('gaming') || text.includes('rtx') || text.includes('rog') || text.includes('legion') || [2, 7].includes(pCatId)
+  if (line === 'macbook') return text.includes('macbook') || text.includes('apple') || pCatId === 4
+  if (line === 'office') return text.includes('van phong') || text.includes('vivobook') || text.includes('inspiron') || text.includes('ideapad') || pCatId === 3
+  if (line === 'student') return text.includes('hoc') || text.includes('student') || text.includes('air') || text.includes('thin') || pCatId === 7
+  if (line === 'accessory') return isProductAccessory(product)
   return true
 }
 
@@ -420,6 +435,20 @@ const lineCount = (lineKey) => {
   return list.filter(product => lineMatcher(product, lineKey)).length
 }
 
+const categoryCardImage = (line) => {
+  const categoryIds = { mouse: 10, keyboard: 11, headphone: 12, pad: 13, usb: 15, other: 16 }
+  const expectedCategoryId = categoryIds[line.key]
+  const exactCategoryProducts = products.value.filter(product =>
+    Number(product.id_danhmuc) === expectedCategoryId && product.image
+  )
+  const matchingProduct = (line.key === 'keyboard'
+    ? exactCategoryProducts.find(product => !canonicalText(product.tenSP).includes('combo'))
+    : exactCategoryProducts[0]) || products.value.find(product =>
+    isProductAccessory(product) && lineMatcher(product, line.key) && product.image
+  )
+  return matchingProduct?.image || line.image
+}
+
 const filteredProducts = computed(() => {
   const keyword = canonicalText(searchQuery.value)
   const sourceProducts = isAccessoryPage.value 
@@ -427,7 +456,7 @@ const filteredProducts = computed(() => {
     : products.value.filter(isProductLaptop)
     
   let list = sourceProducts.filter(product => {
-    const text = canonicalText(`${product.tenSP} ${product.brand} ${product.category} ${product.specs.join(' ')}`)
+    const text = canonicalText(`${product.tenSP} ${product.brand} ${product.category} ${(product.searchSpecs || product.specs).join(' ')}`)
     const matchLine = lineMatcher(product)
     const matchBrand = selectedBrands.value.length === 0 || selectedBrands.value.includes(product.brand)
     const matchPrice = Number(product.gia || 0) <= Number(maxPrice.value || 200000000)
@@ -508,10 +537,61 @@ const selectLine = (line) => {
   currentPage.value = 1
 }
 
+const selectAccessoryCategory = (line) => {
+  searchQuery.value = ''
+  selectedBrands.value = []
+  selectedCpus.value = []
+  selectLine(line.key)
+  scrollToCatalog()
+}
+
 const selectHeroCategory = (category) => {
+  if (!isAccessoryPage.value && category.line === 'accessory') {
+    router.push({
+      name: 'phu-kien',
+      query: { line: category.accessoryLine || 'all', scroll: 'catalog' }
+    })
+    return
+  }
+
+  selectedBrands.value = []
+  selectedCpus.value = []
+  maxPrice.value = isAccessoryPage.value ? 15000000 : 200000000
   activeLine.value = category.line || 'all'
   searchQuery.value = category.q || ''
   currentPage.value = 1
+  scrollToCatalog()
+}
+
+const isHeroCategoryActive = (category) => {
+  if (!isAccessoryPage.value && category.line === 'accessory') return false
+  if (category.q !== undefined && category.q !== '') {
+    return searchQuery.value === category.q
+  }
+  if (!category.q && !searchQuery.value) {
+    return activeLine.value === (category.line || 'all')
+  }
+  return searchQuery.value === (category.q || '')
+}
+
+const selectShowcaseBrand = (brand) => {
+  const matchedBrand = brandOptions.value.find(
+    option => canonicalText(option) === canonicalText(brand.name)
+  )
+
+  activeLine.value = 'all'
+  selectedCpus.value = []
+  maxPrice.value = isAccessoryPage.value ? 15000000 : 200000000
+  selectedBrands.value = matchedBrand ? [matchedBrand] : []
+  searchQuery.value = matchedBrand ? '' : brand.name
+  currentPage.value = 1
+  scrollToCatalog()
+}
+
+const isShowcaseBrandActive = (brand) => {
+  return selectedBrands.value.some(
+    selected => canonicalText(selected) === canonicalText(brand.name)
+  ) || canonicalText(searchQuery.value) === canonicalText(brand.name)
 }
 
 const toggleBrand = (brand) => {
@@ -555,7 +635,7 @@ const resolveVariantId = async (product) => {
   return variants[0]?.id_bienthe
 }
 
-const addToCart = async (product) => {
+const buyNow = async (product) => {
   const token = getToken()
   const swal = await getSwal()
   if (!token) {
@@ -582,6 +662,27 @@ const addToCart = async (product) => {
   }
 }
 
+const addToCart = async (product) => {
+  const token = getToken()
+  const swal = await getSwal()
+  if (!token) {
+    swal.info('Yêu cầu đăng nhập', 'Vui lòng đăng nhập trước khi thêm sản phẩm vào giỏ hàng!')
+    router.push({ path: '/dang-nhap', query: { redirect: route.fullPath } })
+    return
+  }
+
+  try {
+    const variantId = await resolveVariantId(product)
+    if (!variantId) throw new Error('Sản phẩm chưa có biến thể.')
+
+    await api.post('/gio-hang/them', { id_bienthe: variantId, soluong: 1 })
+    window.dispatchEvent(new Event('cart-updated'))
+    swal.toast('Đã thêm sản phẩm vào giỏ hàng', 'success')
+  } catch (error) {
+    swal.error('Lỗi giỏ hàng', error.response?.data?.message || error.message)
+  }
+}
+
 const addToWishlist = async (product) => {
   const token = getToken()
   const swal = await getSwal()
@@ -599,7 +700,7 @@ const addToWishlist = async (product) => {
       await api.delete(`/yeu-thich/xoa/${existing.id}`)
       await fetchWishlistState()
       window.dispatchEvent(new Event('wishlist-updated'))
-      swal.success('Đã xóa yêu thích', 'Sản phẩm đã được bỏ khỏi danh sách yêu thích.')
+      swal.toast('Đã bỏ sản phẩm khỏi danh sách yêu thích', 'success')
       return
     }
 
@@ -607,7 +708,7 @@ const addToWishlist = async (product) => {
     await api.post('/yeu-thich/them', { id_bienthe: variantId, soluong: 1 })
     await fetchWishlistState()
     window.dispatchEvent(new Event('wishlist-updated'))
-    swal.success('Đã thêm yêu thích', 'Sản phẩm đã được lưu vào danh sách yêu thích.')
+    swal.toast('Đã thêm vào sản phẩm yêu thích', 'success')
   } catch (error) {
     swal.error('Lỗi yêu thích', error.response?.data?.message || error.message)
   }
@@ -617,18 +718,33 @@ const scrollToCatalog = () => {
   setTimeout(() => {
     const el = document.getElementById('catalog')
     if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      const headerOffset = 100
+      const elementPosition = el.getBoundingClientRect().top + window.pageYOffset
+      const offsetPosition = Math.max(0, elementPosition - headerOffset)
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      })
     }
-  }, 250)
+  }, 200)
+}
+
+const resolveActiveLineFromQuery = () => {
+  let lineParam = String(route.query.line || route.query.cat || route.query.category || route.query.id_danhmuc || route.meta?.line || '').toLowerCase()
+  if (lineParam === '10' || lineParam === 'chuot') lineParam = 'mouse'
+  if (lineParam === '11' || lineParam === 'ban-phim' || lineParam === 'banphim') lineParam = 'keyboard'
+  if (lineParam === '12' || lineParam === 'tai-nghe' || lineParam === 'tainghe') lineParam = 'headphone'
+  if (lineParam === '13' || lineParam === 'lot-chuot' || lineParam === 'lotchuot' || lineParam === 'mousepad') lineParam = 'pad'
+  if (lineParam === '15') lineParam = 'usb'
+
+  if (lineParam && activeLinesList.value.some(item => item.key === lineParam)) {
+    return lineParam
+  }
+  return 'all'
 }
 
 watch(() => route.fullPath, () => {
-  const line = String(route.query.line || route.meta?.line || '').toLowerCase()
-  if (line && activeLinesList.value.some(item => item.key === line)) {
-    activeLine.value = line
-  } else {
-    activeLine.value = 'all'
-  }
+  activeLine.value = resolveActiveLineFromQuery()
   searchQuery.value = route.query.q ? String(route.query.q) : ''
   
   if (route.query.brand) {
@@ -667,7 +783,7 @@ watch(() => route.fullPath, () => {
 
 watch(isAccessoryPage, (newVal) => {
   maxPrice.value = newVal ? 15000000 : 200000000
-  activeLine.value = 'all'
+  activeLine.value = resolveActiveLineFromQuery()
   searchQuery.value = ''
   selectedBrands.value = []
   selectedCpus.value = []
@@ -679,12 +795,7 @@ watch(filteredProducts, () => {
 })
 
 onMounted(() => {
-  const line = String(route.query.line || route.meta?.line || '').toLowerCase()
-  if (line && activeLinesList.value.some(item => item.key === line)) {
-    activeLine.value = line
-  } else {
-    activeLine.value = 'all'
-  }
+  activeLine.value = resolveActiveLineFromQuery()
   searchQuery.value = route.query.q ? String(route.query.q) : ''
   
   if (route.query.brand) {
@@ -732,7 +843,7 @@ onMounted(() => {
           v-for="category in heroCategoriesToDisplay"
           :key="category.label"
           class="line-btn"
-          :class="{ active: searchQuery === category.q }"
+          :class="{ active: isHeroCategoryActive(category) }"
           @click="selectHeroCategory(category)"
         >
           <component :is="category.icon" />
@@ -748,11 +859,14 @@ onMounted(() => {
         <div class="lp-hero-panel">
           <div class="hero-copy">
             <span class="hero-kicker">{{ isAccessoryPage ? 'Phụ kiện cao cấp' : 'Công nghệ gaming' }}</span>
-            <h1>{{ isAccessoryPage ? 'Trải nghiệm đỉnh cao Phụ kiện cực chất' : 'Hiệu năng đỉnh cao Chơi game cực chất' }}</h1>
-            <p>{{ isAccessoryPage ? 'Khám phá chuột, bàn phím, tai nghe chính hãng với chất lượng vượt trội.' : 'Khám phá các mẫu laptop gaming chính hãng với hiệu năng mạnh mẽ, màn hình tốc độ cao và thiết kế đậm chất game thủ.' }}</p>
-            <div class="hero-actions">
-              <button @click="isAccessoryPage ? selectLine('all') : selectLine('gaming')">Mua ngay</button>
-              <button class="secondary" @click="router.push('/khuyen-mai')">Xem ưu đãi</button>
+            <h1>{{ isAccessoryPage ? 'Nâng cấp góc máy. Bật chất riêng.' : 'Hiệu năng đỉnh cao Chơi game cực chất' }}</h1>
+            <p>{{ isAccessoryPage ? 'Tuyển chọn gear chính hãng cho một góc máy đồng bộ, tinh gọn và đúng phong cách của bạn.' : 'Khám phá các mẫu laptop gaming chính hãng với hiệu năng mạnh mẽ, màn hình tốc độ cao và thiết kế đậm chất game thủ.' }}</p>
+            <div v-if="isAccessoryPage" class="hero-gear-notes" aria-label="Cam kết phụ kiện NextGen">
+              <span><strong>100%</strong> Chính hãng</span>
+              <i></i>
+              <span><strong>7 ngày</strong> Đổi trả</span>
+              <i></i>
+              <span><strong>1:1</strong> Tư vấn setup</span>
             </div>
           </div>
         </div>
@@ -769,6 +883,37 @@ onMounted(() => {
       </div>
     </section>
 
+    <section v-if="isAccessoryPage" class="accessory-studio" aria-labelledby="accessory-studio-title">
+      <div class="accessory-studio-copy">
+        <span class="studio-eyebrow">BUILD YOUR DESK</span>
+        <h2 id="accessory-studio-title">Hoàn thiện góc máy theo chất riêng</h2>
+        <p>Chọn nhanh nhóm gear bạn cần, phối trọn bộ dễ hơn và tối ưu ngân sách cho từng phong cách setup.</p>
+        <button type="button" @click="selectLine('all')">
+          Khám phá tất cả phụ kiện
+          <ChevronRight />
+        </button>
+      </div>
+
+      <div class="accessory-category-grid">
+        <button
+          v-for="(line, index) in accessoryLines.slice(1)"
+          :key="line.key"
+          type="button"
+          class="accessory-category-card"
+          :class="`category-tone-${index + 1}`"
+          :style="{ '--category-image': `url('${categoryCardImage(line)}')` }"
+          :aria-pressed="activeLine === line.key"
+          @click="selectAccessoryCategory(line)"
+        >
+          <span class="category-icon"><component :is="line.icon" /></span>
+          <span class="category-meta">0{{ index + 1 }} / GEAR</span>
+          <strong>{{ line.label }}</strong>
+          <small>{{ lineCount(line.key) }} sản phẩm</small>
+          <span class="category-arrow"><ChevronRight /></span>
+        </button>
+      </div>
+    </section>
+
     <section class="lp-brands">
       <p>Đối tác chiến lược</p>
       <h2>Thương Hiệu Nổi Bật</h2>
@@ -779,7 +924,9 @@ onMounted(() => {
               v-for="brand in brandShowcase"
               :key="`${brand.name}-${sequence}`"
               class="brand-logo-card"
-              @click="searchQuery = brand.query"
+              :class="{ active: isShowcaseBrandActive(brand) }"
+              :title="`Xem sản phẩm ${brand.name}`"
+              @click="selectShowcaseBrand(brand)"
             >
               <img :src="brand.logo" :alt="brand.name" loading="lazy" @error="$event.currentTarget.classList.add('is-broken')" />
               <span>{{ brand.name }}</span>
@@ -789,29 +936,7 @@ onMounted(() => {
       </div>
     </section>
 
-    <section class="lp-flagship">
-      <div class="section-copy">
-        <span></span>
-        <div>
-          <h2>{{ isAccessoryPage ? 'Phụ kiện cao cấp bán chạy' : 'Máy flagship đắt tiền nhất' }}</h2>
-          <p>{{ isAccessoryPage ? 'Những phụ kiện đỉnh cấp và chuyên nghiệp nhất dành cho góc máy của bạn.' : 'Những cấu hình cao cấp nhất trong kho, gồm cả laptop gaming và MacBook.' }}</p>
-        </div>
-      </div>
-      <div class="flagship-row">
-        <article v-for="product in flagshipProducts" :key="product.id_bienthe || product.id_sanpham" class="flag-card" @click="viewDetail(product)">
-          <img :src="product.image" :alt="product.tenSP" loading="lazy" decoding="async" @error="handleImageFallback($event, 'https://placehold.co/600x420?text=NextGen+Laptop')" />
-          <h3>{{ product.tenSP }}</h3>
-          <div class="specs">
-            <span v-for="spec in product.specs.slice(0, 3)" :key="spec">{{ spec }}</span>
-          </div>
-          <strong class="product-price">{{ formatPrice(product.gia) }}</strong>
-          <div class="flag-actions">
-            <button @click.stop="viewDetail(product)">Cấu hình</button>
-            <button class="buy" @click.stop="addToCart(product)">Mua ngay</button>
-          </div>
-        </article>
-      </div>
-    </section>
+
 
     <section class="lp-catalog" id="catalog">
       <div class="catalog-title">
@@ -891,6 +1016,22 @@ onMounted(() => {
               <span class="skeleton-line skeleton-price"></span>
             </article>
           </div>
+          <div v-else-if="filteredProducts.length === 0" class="catalog-empty-state">
+            <div class="empty-icon-wrapper">
+              <Search class="empty-icon-svg" />
+            </div>
+            <h3 class="empty-title">Không tìm thấy sản phẩm phù hợp</h3>
+            <p class="empty-desc" v-if="searchQuery">
+              Không có sản phẩm nào khớp với từ khóa <strong class="search-highlight">"{{ searchQuery }}"</strong>.
+            </p>
+            <p class="empty-desc" v-else>
+              Rất tiếc, không tìm thấy sản phẩm nào khớp với các bộ lọc bạn đã chọn.
+            </p>
+            <button type="button" class="btn-reset-filters" @click="clearFilters">
+              <SlidersHorizontal :size="16" />
+              Xóa bộ lọc &amp; Tìm lại
+            </button>
+          </div>
           <div v-else class="product-grid">
             <article
               v-for="product in paginatedProducts"
@@ -900,7 +1041,7 @@ onMounted(() => {
               @pointerenter="warmDetail(product)"
               @focusin="warmDetail(product)"
             >
-              <span class="discount">-13%</span>
+              <span v-if="product.gia > 0" class="discount">-13%</span>
               <img :src="product.image" :alt="product.tenSP" loading="lazy" decoding="async" @error="handleImageFallback($event, 'https://placehold.co/600x420?text=NextGen+Laptop')" />
               <h3>
                 {{ product.tenSP }}
@@ -912,11 +1053,12 @@ onMounted(() => {
               <div class="specs">
                 <span v-for="spec in product.specs.slice(0, 4)" :key="spec">{{ spec }}</span>
               </div>
-              <strong class="product-price">{{ formatPrice(product.gia) }}</strong>
-              <del>{{ formatPrice(product.oldPrice) }}</del>
+              <strong v-if="product.gia > 0" class="product-price">{{ formatPrice(product.gia) }}</strong>
+              <strong v-else class="product-price">Liên hệ</strong>
+              <del v-if="product.gia > 0">{{ formatPrice(product.oldPrice) }}</del>
               <div class="mini-badges">
                 <span>✓ Chính hãng</span>
-                <span>Freeship 2H</span>
+                <span>Ship 2H · 30K</span>
                 <span>BH 24T</span>
               </div>
               <button
@@ -961,6 +1103,94 @@ onMounted(() => {
       </div>
     </section>
 
+    <section v-if="isAccessoryPage" id="combos-section" class="lp-combos">
+      <div class="combos-header">
+        <div class="combo-heading-mark">
+          <span class="ambient-label">NEXTGEN EXCLUSIVE</span>
+          <span class="combo-drop">COMBO DROP / 2026</span>
+        </div>
+        <h2>Gear hợp gu.<br />Giá tốt hơn khi đi cùng nhau.</h2>
+        <p class="section-sub">Những bộ phụ kiện được tuyển chọn để đồng bộ trải nghiệm, tối ưu hiệu suất và tiết kiệm hơn so với mua lẻ.</p>
+      </div>
+
+      <div class="combos-bento-layout" v-if="combos && combos.length">
+        <div v-for="combo in combos" :key="combo.id_combo" class="combo-bento-card">
+          <div class="combo-main-content">
+            <div class="combo-details">
+              <span class="combo-card-label">CURATED SET · {{ combo.products?.length || 0 }} SẢN PHẨM</span>
+              <span class="combo-discount-badge" v-if="getOriginalPrice(combo) > (combo.giakhuyenmai || combo.gia_combo)">
+                Tiết kiệm {{ formatPrice(getOriginalPrice(combo) - (combo.giakhuyenmai || combo.gia_combo)) }}
+              </span>
+              <h3>{{ combo.ten_combo }}</h3>
+              <p>{{ combo.mota }}</p>
+              
+              <div class="combo-pricing-group">
+                <div class="price-block">
+                  <span class="price-label">Giá Combo:</span>
+                  <span class="price-val">{{ formatPrice(combo.giakhuyenmai || combo.gia_combo) }}</span>
+                </div>
+                <div class="price-block old-price-block" v-if="getOriginalPrice(combo) > (combo.giakhuyenmai || combo.gia_combo)">
+                  <span class="price-label">Tổng Giá gốc:</span>
+                  <span class="price-val-old">{{ formatPrice(getOriginalPrice(combo)) }}</span>
+                </div>
+              </div>
+
+              <div class="combo-perks">
+                <span><BadgeCheck /> Chính hãng</span>
+                <span><Truck /> Giao nhanh</span>
+                <span><ShieldCheck /> Đổi trả 7 ngày</span>
+              </div>
+
+              <button type="button" class="combo-action-btn" @click="openCombo(combo)">
+                Xem và chọn cấu hình
+                <ChevronRight class="btn-chevron" />
+              </button>
+            </div>
+
+            <div class="combo-visual-connector" v-if="combo.products && combo.products.length">
+              <div v-for="(item, itemIdx) in combo.products" :key="itemIdx" class="connector-node">
+                <div class="node-image-box">
+                  <img :src="item.hinhanh || productImageUrl(item) || 'https://placehold.co/600x420?text=Product'" :alt="item.tenSP" loading="lazy" decoding="async" />
+                </div>
+                <span class="node-title">{{ item.tenSP }}</span>
+                <div v-if="itemIdx < combo.products.length - 1" class="node-plus-sign">+</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div v-else class="combo-empty-state combo-concept-state">
+        <div class="combo-concept-intro">
+          <span class="combo-index">NEXTGEN CURATED / 03 SETUPS</span>
+          <h3>Chọn phong cách, chúng tôi giúp bạn phối gear</h3>
+          <p>Các combo chính thức đang được cập nhật. Trong lúc chờ, hãy bắt đầu từ phong cách setup phù hợp nhất với bạn.</p>
+        </div>
+        <div class="combo-concept-grid">
+          <button type="button" class="concept-card concept-gaming" @click="selectLine('mouse')">
+            <span class="concept-no">01</span>
+            <span class="concept-icon"><Mouse /></span>
+            <strong>Competitive</strong>
+            <small>Phản hồi nhanh · RGB · Hiệu suất</small>
+            <span class="concept-link">Khám phá gear <ChevronRight /></span>
+          </button>
+          <button type="button" class="concept-card concept-work" @click="selectLine('keyboard')">
+            <span class="concept-no">02</span>
+            <span class="concept-icon"><Keyboard /></span>
+            <strong>Creator Desk</strong>
+            <small>Tối giản · Êm ái · Tập trung</small>
+            <span class="concept-link">Khám phá gear <ChevronRight /></span>
+          </button>
+          <button type="button" class="concept-card concept-mobile" @click="selectLine('other')">
+            <span class="concept-no">03</span>
+            <span class="concept-icon"><Headphones /></span>
+            <strong>Everyday Carry</strong>
+            <small>Gọn nhẹ · Linh hoạt · Kết nối</small>
+            <span class="concept-link">Khám phá gear <ChevronRight /></span>
+          </button>
+        </div>
+      </div>
+    </section>
+
     <section v-if="accessoryProducts.length && !isAccessoryPage" class="lp-accessories">
       <div class="section-copy compact">
         <span></span>
@@ -981,65 +1211,13 @@ onMounted(() => {
           <img :src="product.image" :alt="product.tenSP" loading="lazy" decoding="async" @error="handleImageFallback($event, 'https://placehold.co/600x420?text=NextGen+Laptop')" />
           <h3>{{ product.tenSP }}</h3>
           <div class="stars">★ {{ product.rating.toFixed(1) }} <span>({{ product.reviews }})</span></div>
-          <strong class="product-price">{{ formatPrice(product.gia) }}</strong>
+          <strong v-if="product.gia > 0" class="product-price">{{ formatPrice(product.gia) }}</strong>
+          <strong v-else class="product-price">Liên hệ</strong>
         </article>
       </div>
     </section>
 
-    <section v-if="isAccessoryPage" id="combos-section" class="lp-combos">
-      <div class="combos-header">
-        <span class="ambient-label">🎁 Combo Độc Quyền</span>
-        <h2>MUA KÈM GIÁ SỐC - TIẾT KIỆM TỐI ĐA</h2>
-        <p class="section-sub">Sở hữu trọn bộ trang bị chuyên nghiệp cho lập trình viên và game thủ với mức chiết khấu cực sâu.</p>
-      </div>
-
-      <div class="combos-bento-layout" v-if="combos && combos.length">
-        <div v-for="combo in combos" :key="combo.id_combo" class="combo-bento-card">
-          <div class="combo-main-content">
-            <div class="combo-details">
-              <span class="combo-discount-badge" v-if="getOriginalPrice(combo) > combo.giakhuyenmai">
-                Tiết kiệm {{ formatPrice(getOriginalPrice(combo) - combo.giakhuyenmai) }}
-              </span>
-              <h3>{{ combo.ten_combo }}</h3>
-              <p>{{ combo.mota }}</p>
-              
-              <div class="combo-pricing-group">
-                <div class="price-block">
-                  <span class="price-label">Giá Combo:</span>
-                  <span class="price-val">{{ formatPrice(combo.giakhuyenmai) }}</span>
-                </div>
-                <div class="price-block old-price-block" v-if="getOriginalPrice(combo) > combo.giakhuyenmai">
-                  <span class="price-label">Tổng Giá gốc:</span>
-                  <span class="price-val-old">{{ formatPrice(getOriginalPrice(combo)) }}</span>
-                </div>
-              </div>
-
-              <button type="button" class="combo-action-btn" @click="openCombo(combo)">
-                Mua Trọn Bộ Combo
-                <ChevronRight class="btn-chevron" />
-              </button>
-            </div>
-
-            <div class="combo-visual-connector" v-if="combo.products && combo.products.length">
-              <div v-for="(item, itemIdx) in combo.products" :key="itemIdx" class="connector-node">
-                <div class="node-image-box">
-                  <img :src="item.hinhanh || productImageUrl(item) || 'https://placehold.co/600x420?text=Product'" :alt="item.tenSP" loading="lazy" decoding="async" />
-                </div>
-                <span class="node-title">{{ item.tenSP }}</span>
-                <div v-if="itemIdx < combo.products.length - 1" class="node-plus-sign">+</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div v-else class="combo-empty-state">
-        <div class="combo-empty-icon">🎁</div>
-        <h3>Combo phụ kiện giá sốc đang được cập nhật</h3>
-        <p>Hiện chưa có gói combo nào trong hệ thống. Vui lòng thêm combo trong trang quản trị.</p>
-      </div>
-    </section>
-
-    <section v-else id="showroom-section" class="lp-showroom">
+    <section v-if="!isAccessoryPage" id="showroom-section" class="lp-showroom">
       <div class="lp-showroom-copy">
         <small>NEXTGEN SHOWROOM</small>
         <h2>Trải nghiệm trực tiếp tại Showroom NextGen</h2>
@@ -1422,6 +1600,235 @@ onMounted(() => {
   color: #94a3b8;
   font-size: 18px;
   margin: 12px 0 0;
+}
+
+/* Combo Showcase Layout */
+.combo-showcase-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 24px;
+}
+
+.combo-showcase-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 20px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+  cursor: pointer;
+}
+
+.combo-showcase-card:hover {
+  transform: translateY(-4px);
+  border-color: #3b82f6;
+  box-shadow: 0 16px 36px rgba(37, 99, 235, 0.12);
+}
+
+.combo-card-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.combo-hot-tag {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.combo-save-tag {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.combo-image-box {
+  width: 100%;
+  height: 200px;
+  background: #f8fafc;
+  border-radius: 14px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin-bottom: 16px;
+  border: 1px solid #f1f5f9;
+}
+
+.combo-image-box img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  transition: transform 0.3s ease;
+}
+
+.combo-showcase-card:hover .combo-image-box img {
+  transform: scale(1.04);
+}
+
+.combo-card-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.4;
+  margin: 0 0 12px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.combo-items-row {
+  background: #f8fafc;
+  border: 1px solid #edf2f7;
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+}
+
+.combo-items-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.combo-items-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.combo-item-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 4px 8px;
+}
+
+.chip-thumb {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  border-radius: 4px;
+  background: #f1f5f9;
+}
+
+.chip-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chip-plus {
+  font-size: 13px;
+  font-weight: 700;
+  color: #3b82f6;
+  margin-left: 2px;
+}
+
+.combo-card-footer {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.combo-price-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.price-main {
+  font-size: 18px;
+  font-weight: 800;
+  color: #2563eb;
+}
+
+.price-strike {
+  font-size: 13px;
+  color: #94a3b8;
+  text-decoration: line-through;
+  font-weight: 500;
+}
+
+.combo-btn-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-combo-detail {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-combo-detail:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.btn-combo-buy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #ff6b00, #ff8800);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 4px 12px rgba(255, 107, 0, 0.25);
+}
+
+.btn-combo-buy:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(255, 107, 0, 0.35);
 }
 
 .flagship-row,
@@ -2275,6 +2682,8 @@ onMounted(() => {
 
 .lp-flagship .flag-actions {
   gap: 8px;
+  grid-template-columns: repeat(2, minmax(96px, 124px));
+  justify-content: end;
 }
 
 .lp-flagship .flag-actions button {
@@ -2335,7 +2744,7 @@ onMounted(() => {
   display: grid;
   grid-template-columns: minmax(0, 0.95fr) minmax(360px, 1fr);
   gap: clamp(28px, 4vw, 56px);
-  align-items: center;
+  align-items: flex-start;
   margin: clamp(28px, 4vw, 54px) auto 0;
   padding-left: clamp(28px, 5vw, 72px);
   padding-right: clamp(28px, 5vw, 72px);
@@ -2351,27 +2760,37 @@ onMounted(() => {
   overflow: hidden;
 }
 
+.lp-showroom-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
 .lp-showroom-copy small {
   display: block;
-  color: #38bdf8;
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  margin-bottom: 9px;
+  color: #2563eb;
+  font-size: 13.5px;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
 }
 
 .lp-showroom-copy h2 {
   max-width: 720px;
-  margin: 0 0 12px;
-  font-size: clamp(26px, 2.7vw, 38px);
-  line-height: 1.08;
-  color: #ffffff;
+  margin: 0 0 14px 0;
+  font-size: clamp(30px, 2.8vw, 42px) !important;
+  font-weight: 850;
+  line-height: 1.14;
+  color: #0f172a;
+  letter-spacing: -0.03em;
 }
 
 .lp-showroom-copy > p {
   max-width: 680px;
   margin: 0 0 20px;
-  color: #cbd5e1;
+  color: #475569;
   font-size: 15px;
   line-height: 1.58;
 }
@@ -2919,6 +3338,39 @@ onMounted(() => {
     --lp-catalog-sticky-top: 118px;
   }
 
+  /* Đồng bộ toàn bộ khối nội dung khi người dùng zoom-out trên màn hình lớn. */
+  .lp-hero,
+  .lp-services,
+  .lp-featured-head,
+  .lp-brands,
+  .lp-flagship,
+  .lp-accessories,
+  .lp-showroom,
+  .lp-catalog {
+    max-width: 1680px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .lp-flagship,
+  .lp-catalog {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  /* Giữ kích thước card ổn định, không kéo giãn theo viewport cực rộng. */
+  .lp-flagship .flagship-row,
+  .lp-catalog .catalog-layout {
+    width: 100%;
+    max-width: 1680px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
   .lp-catalog {
     padding-bottom: 42px;
   }
@@ -3035,6 +3487,24 @@ onMounted(() => {
   transform: translateY(0) scale(1);
 }
 
+/* Sản phẩm đã lưu phải luôn nhìn thấy, không phụ thuộc trạng thái hover. */
+.lp-catalog .wishlist-btn.is-wishlisted {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+  background: #ef4444 !important;
+  border-color: #ef4444 !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 24px rgba(239, 68, 68, 0.38) !important;
+}
+
+.lp-catalog .wishlist-btn.is-wishlisted svg,
+.lp-catalog .wishlist-btn.is-wishlisted .heart-svg-icon {
+  fill: #ffffff !important;
+  stroke: #ffffff !important;
+  color: #ffffff !important;
+}
+
 .hover-action-btn,
 .product-actions .cart-btn {
   position: static;
@@ -3089,7 +3559,7 @@ onMounted(() => {
 .lp-catalog .product-card {
   display: flex;
   flex-direction: column;
-  min-height: 348px;
+  min-height: 322px;
   padding: 14px;
   border-radius: 16px;
   background: linear-gradient(180deg, #ffffff, #f9fbff);
@@ -3149,13 +3619,16 @@ onMounted(() => {
 }
 
 .lp-catalog .mini-badges {
-  min-height: 46px;
-  margin-top: 10px;
+  min-height: 22px;
+  margin-top: 6px;
   padding-right: 42px;
+  align-items: flex-start;
 }
 
 .lp-catalog .mini-badges span {
-  background: #edf6ff;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
 }
 
 .lp-catalog .discount {
@@ -3294,67 +3767,122 @@ onMounted(() => {
 
 .lp-hero .lp-sidebar {
   min-height: 384px;
-  padding: 14px 16px;
-  border-radius: 14px;
-  gap: 2px;
-  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
+  padding: 16px;
+  border-radius: 16px;
+  gap: 5px;
+  border-color: #dbe4f0;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.07);
+}
+
+.lp-flagship .flag-actions .config {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  background: #0f2747;
+  color: #ffffff;
+  border: 1px solid #1e3a5f;
+  box-shadow: 0 7px 16px rgba(15, 39, 71, 0.2);
+}
+
+.lp-flagship .flag-actions .config svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 15px;
+  stroke-width: 2.2;
+}
+
+.lp-flagship .flag-actions .config:hover {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+  box-shadow: 0 9px 20px rgba(37, 99, 235, 0.28);
+}
+
+@media (max-width: 768px) {
+  .lp-flagship .flag-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-content: stretch;
+  }
 }
 
 .lp-hero .lp-sidebar h3 {
-  font-size: 12px;
-  margin-bottom: 10px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #edf2f7;
+  font-size: 14px;
+  margin-bottom: 7px;
+  padding: 0 2px 11px;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .lp-hero .line-btn {
-  min-height: 27px;
-  height: 27px;
-  border-radius: 8px;
-  padding: 0 4px;
-  gap: 8px;
-  font-size: 10.5px;
+  min-height: 32px;
+  height: 32px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 0 9px;
+  gap: 9px;
+  font-size: 11.5px;
   font-weight: 700;
-  background: transparent;
+  background: #f8fafc;
+  color: #475569;
+  box-shadow: none;
+}
+
+.lp-hero .lp-sidebar .line-btn {
+  font-size: 12px;
 }
 
 .lp-hero .line-btn svg {
-  width: 17px;
-  height: 17px;
-  min-width: 17px;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  padding: 4px;
+  box-sizing: border-box;
+  border-radius: 7px;
   stroke-width: 2.2;
-  color: #3b82f6;
-}
-
-.lp-hero .line-btn:nth-of-type(3n + 2) svg {
-  color: #8b5cf6;
-}
-
-.lp-hero .line-btn:nth-of-type(3n) svg {
-  color: #06b6d4;
-}
-
-.lp-hero .line-btn:nth-of-type(5n) svg {
-  color: #f59e0b;
+  color: #2563eb;
+  background: #eaf2ff;
 }
 
 .lp-hero .line-btn.promo svg {
-  width: 18px;
-  height: 18px;
-  color: #ef4444;
+  color: #ea580c;
+  background: #ffedd5;
 }
 
-.lp-hero .line-btn:hover,
-.lp-hero .line-btn.active {
-  background: #f1f6ff;
+.lp-hero .line-btn:hover {
+  background: #eff6ff;
+  border-color: #bfdbfe;
   color: #2563eb;
+  transform: translateX(2px);
+}
+
+.lp-hero .line-btn.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.2);
+  transform: none;
+}
+
+.lp-hero .line-btn.active svg {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .lp-hero .line-btn.promo {
-  min-height: 36px;
-  margin-top: 6px;
-  padding-top: 10px;
-  color: #ef4444;
+  min-height: 34px;
+  height: 34px;
+  margin-top: 7px;
+  padding: 0 9px;
+  border: 1px solid #fed7aa;
+  border-radius: 10px;
+  color: #ea580c;
+  background: #fff7ed;
+}
+
+.lp-hero .line-btn.promo:hover {
+  color: #c2410c;
+  border-color: #fdba74;
+  background: #ffedd5;
 }
 
 .lp-hero-panel {
@@ -3475,11 +4003,20 @@ onMounted(() => {
 }
 
 .lp-hero .lp-services article {
-  min-height: 58px;
+  min-height: 68px;
   border-radius: 10px;
   padding: 10px 12px;
   gap: 10px;
+  overflow: hidden;
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.07);
+}
+
+.lp-hero .lp-services article > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
 }
 
 .lp-hero .lp-services svg {
@@ -3510,10 +4047,14 @@ onMounted(() => {
 
 .lp-hero .lp-services strong {
   font-size: 11px;
+  line-height: 1.25;
+  margin: 0;
 }
 
 .lp-hero .lp-services span {
   font-size: 10px;
+  line-height: 1.35;
+  margin: 0;
 }
 
 .lp-catalog .product-card .product-price {
@@ -3575,7 +4116,7 @@ onMounted(() => {
 }
 
 .laptop-page .lp-catalog .product-card img {
-  height: 190px;
+  height: 176px;
   border-radius: 14px;
 }
 
@@ -3686,6 +4227,17 @@ onMounted(() => {
   border-radius: 0;
   box-shadow: none;
   overflow: visible;
+}
+
+@media (min-width: 1101px) {
+  .laptop-page .lp-catalog {
+    width: calc(100% - clamp(48px, 8vw, 160px));
+    max-width: 1680px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 0;
+    padding-right: 0;
+  }
 }
 
 .laptop-page .lp-catalog .catalog-layout {
@@ -3826,6 +4378,122 @@ onMounted(() => {
   .lp-showroom-visual,
   .lp-showroom-visual img {
     min-height: 190px;
+  }
+}
+
+/* Mobile: hiển thị nhóm card flagship theo lưới 2 cột gọn. */
+@media (max-width: 640px) {
+  .laptop-page .lp-flagship {
+    padding: 18px 12px;
+  }
+
+  .laptop-page .lp-flagship .section-copy {
+    margin-bottom: 18px;
+  }
+
+  .laptop-page .lp-flagship .flagship-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 10px;
+  }
+
+  .laptop-page .lp-flagship .flag-card {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 302px;
+    padding: 8px;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
+  }
+
+  .laptop-page .lp-flagship .flag-card img {
+    width: 100%;
+    height: 116px !important;
+    aspect-ratio: auto;
+    padding: 6px !important;
+    border: 1px solid #e5edf7 !important;
+    border-radius: 12px !important;
+    background: linear-gradient(145deg, #f8fbff, #edf3fa) !important;
+    object-fit: contain !important;
+  }
+
+  .laptop-page .lp-flagship .flag-card h3 {
+    display: -webkit-box;
+    height: 34px;
+    min-height: 34px;
+    margin: 8px 0 6px;
+    overflow: hidden;
+    font-size: 11px;
+    line-height: 1.35;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .laptop-page .lp-flagship .specs {
+    align-content: flex-start;
+    height: 46px;
+    min-height: 46px;
+    gap: 4px;
+    margin: 3px 0;
+    overflow: hidden;
+  }
+
+  .laptop-page .lp-flagship .specs span {
+    max-width: 100%;
+    padding: 3px 5px;
+    overflow: hidden;
+    font-size: 8px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .laptop-page .lp-flagship .flag-card strong {
+    margin: auto 0 8px;
+    overflow: hidden;
+    font-size: 13px;
+    letter-spacing: -0.04em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .laptop-page .lp-flagship .flag-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px;
+    width: 100%;
+  }
+
+  .laptop-page .lp-flagship .flag-actions button {
+    width: 100%;
+    min-width: 0;
+    min-height: 36px;
+    height: 36px;
+    padding: 0 4px;
+    border-radius: 11px;
+    font-size: 9px;
+    letter-spacing: -0.02em;
+  }
+
+  .laptop-page .lp-flagship .flag-actions .config svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .laptop-page .lp-flagship .flag-actions .config {
+    gap: 3px;
+    box-shadow: none;
+  }
+
+  .laptop-page .lp-flagship .flag-actions .buy {
+    box-shadow: 0 7px 14px rgba(249, 115, 22, 0.22);
+  }
+}
+
+@media (max-width: 280px) {
+  .laptop-page .lp-flagship .flagship-row {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -4066,6 +4734,366 @@ onMounted(() => {
   margin-bottom: 12px;
 }
 
+.brand-logo-card.active {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.14), 0 6px 16px rgba(37, 99, 235, 0.12);
+}
+
+/* Accessories experience: retain the page body color while giving the route
+   its own premium, setup-focused information hierarchy. */
+.laptop-page.is-accessory-page {
+  display: flex;
+  flex-direction: column;
+  background: #f4f7fb;
+}
+
+.is-accessory-page > .lp-hero { order: 1; }
+.is-accessory-page > .accessory-studio { order: 2; }
+.is-accessory-page > .lp-combos { order: 7; }
+.is-accessory-page > .lp-brands { order: 4; }
+.is-accessory-page > .lp-flagship { order: 5; }
+.is-accessory-page > .lp-catalog { order: 6; }
+
+.is-accessory-page .lp-hero {
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 16px;
+}
+
+.is-accessory-page .lp-sidebar {
+  border-color: #dbe5f2;
+  border-radius: 20px;
+  padding: 18px 16px;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(59, 130, 246, .09), transparent 34%),
+    #ffffff;
+}
+
+.is-accessory-page .lp-sidebar h3 {
+  color: #0f172a;
+  letter-spacing: .08em;
+  text-transform: uppercase !important;
+}
+
+.is-accessory-page .lp-hero .line-btn {
+  min-height: 48px;
+  height: 48px;
+  padding: 0 10px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.is-accessory-page .lp-hero .line-btn:hover,
+.is-accessory-page .lp-hero .line-btn.active {
+  background: #eaf2ff;
+  box-shadow: inset 3px 0 #2563eb;
+  transform: translateX(2px);
+}
+
+.is-accessory-page .lp-hero-panel {
+  border-radius: 22px;
+  background:
+    linear-gradient(90deg, rgba(2, 6, 23, .96) 0%, rgba(8, 15, 34, .82) 46%, rgba(15, 23, 42, .28) 76%),
+    url('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1600&q=85') center/cover;
+  box-shadow: 0 24px 54px rgba(15, 23, 42, .18);
+}
+
+.is-accessory-page .lp-hero-panel::before {
+  content: 'PERIPHERAL / 2026';
+  position: absolute;
+  top: 24px;
+  right: 26px;
+  z-index: 2;
+  color: rgba(255, 255, 255, .72);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .2em;
+}
+
+.is-accessory-page .lp-hero .hero-copy {
+  width: min(570px, 62%);
+  padding: 60px 48px 50px;
+}
+
+.is-accessory-page .lp-hero .hero-copy h1 {
+  max-width: 520px;
+  font-size: clamp(30px, 3.35vw, 48px);
+  line-height: 1.02;
+  letter-spacing: -.045em;
+}
+
+.is-accessory-page .lp-hero .hero-copy p {
+  max-width: 510px;
+  color: #dbeafe;
+  font-size: 13px;
+}
+
+.is-accessory-page .lp-hero .hero-actions button {
+  height: 44px;
+  padding-inline: 24px;
+  border-radius: 12px;
+}
+
+.is-accessory-page .lp-services article {
+  border-radius: 14px;
+  border-color: #dce6f3;
+}
+
+.accessory-studio {
+  width: 100%;
+  padding: clamp(38px, 5vw, 76px) clamp(28px, 5vw, 96px);
+  display: grid;
+  grid-template-columns: minmax(250px, .72fr) minmax(0, 1.8fr);
+  gap: clamp(28px, 4vw, 64px);
+  align-items: center;
+}
+
+.accessory-studio-copy .studio-eyebrow {
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .2em;
+}
+
+.accessory-studio-copy h2 {
+  margin: 12px 0 14px;
+  max-width: 390px;
+  color: #0f172a;
+  font-size: clamp(28px, 3.2vw, 46px) !important;
+  line-height: 1.05;
+  letter-spacing: -.04em;
+}
+
+.accessory-studio-copy p {
+  max-width: 400px;
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.accessory-studio-copy button {
+  margin-top: 24px;
+  border: 0;
+  background: transparent;
+  color: #0f172a;
+  padding: 0 0 6px;
+  border-bottom: 2px solid #2563eb;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.accessory-studio-copy button svg,
+.category-arrow svg {
+  width: 16px;
+  height: 16px;
+}
+
+.accessory-category-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.accessory-category-card {
+  min-height: 210px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #dbe5f2;
+  border-radius: 18px;
+  padding: 18px 16px;
+  background: #ffffff;
+  color: #0f172a;
+  text-align: left;
+  cursor: pointer;
+  transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+}
+
+.accessory-category-card::after {
+  content: '';
+  position: absolute;
+  width: 90px;
+  height: 90px;
+  right: -35px;
+  bottom: -38px;
+  border-radius: 50%;
+  background: var(--category-glow, #dbeafe);
+  opacity: .7;
+}
+
+.accessory-category-card:hover {
+  z-index: 2;
+  border-color: #93c5fd;
+  transform: translateY(-8px);
+  box-shadow: 0 22px 38px rgba(15, 23, 42, .12);
+}
+
+.category-tone-2 { --category-glow: #ede9fe; }
+.category-tone-3 { --category-glow: #cffafe; }
+.category-tone-4 { --category-glow: #ffedd5; }
+.category-tone-5 { --category-glow: #d1fae5; }
+
+.category-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: #edf4ff;
+  color: #2563eb;
+}
+
+.category-icon svg { width: 22px; height: 22px; }
+.category-meta {
+  display: block;
+  margin-top: 30px;
+  color: #94a3b8;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .14em;
+}
+.accessory-category-card strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 14px;
+}
+.accessory-category-card small { color: #64748b; font-size: 11px; }
+.category-arrow {
+  position: absolute;
+  right: 15px;
+  top: 18px;
+  color: #94a3b8;
+}
+
+.is-accessory-page .lp-combos {
+  width: calc(100% - clamp(56px, 10vw, 192px));
+  margin: 0 auto clamp(38px, 5vw, 72px);
+  padding: clamp(30px, 4vw, 58px);
+  border: 0;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 88% 0%, rgba(59, 130, 246, .28), transparent 28%),
+    linear-gradient(135deg, #07111f, #111f35 62%, #0c1728);
+  box-shadow: 0 28px 65px rgba(15, 23, 42, .2);
+}
+
+.is-accessory-page .combos-header {
+  max-width: 760px;
+  margin: 0 auto 34px;
+}
+
+.is-accessory-page .combos-header h2 {
+  color: #ffffff;
+  font-size: clamp(28px, 3.4vw, 44px) !important;
+  line-height: 1.05;
+  letter-spacing: -.035em;
+}
+
+.is-accessory-page .combos-header .section-sub { color: #aebed2; }
+.is-accessory-page .combos-header .ambient-label {
+  border: 1px solid rgba(147, 197, 253, .35);
+  background: rgba(37, 99, 235, .2);
+  color: #bfdbfe;
+  padding: 7px 14px;
+}
+
+.is-accessory-page .combos-bento-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.is-accessory-page .combo-bento-card {
+  padding: 22px;
+  border-color: rgba(148, 163, 184, .22);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, .96);
+}
+
+.is-accessory-page .combo-bento-card:hover {
+  border-color: #60a5fa;
+  transform: translateY(-5px);
+  box-shadow: 0 22px 44px rgba(0, 0, 0, .24);
+}
+
+.is-accessory-page .combo-main-content {
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+
+.is-accessory-page .combo-details h3 { font-size: 20px !important; }
+.is-accessory-page .combo-visual-connector {
+  order: -1;
+  min-height: 160px;
+  border: 0;
+  background: linear-gradient(145deg, #f7faff, #edf3fb);
+}
+.is-accessory-page .node-image-box {
+  width: 92px;
+  height: 92px;
+  border: 0;
+  background: #ffffff;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, .08);
+}
+.is-accessory-page .combo-action-btn {
+  min-height: 44px;
+  border-radius: 12px;
+  padding-inline: 18px;
+}
+
+.is-accessory-page .lp-brands {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.is-accessory-page .lp-flagship {
+  width: calc(100% - clamp(56px, 10vw, 192px));
+  padding: clamp(26px, 3.5vw, 46px);
+  border-radius: 26px;
+}
+
+.is-accessory-page .flag-card,
+.is-accessory-page .product-card {
+  border-radius: 18px;
+  border-color: #dce6f2;
+}
+
+.is-accessory-page .lp-catalog .catalog-title h2 {
+  font-size: clamp(26px, 3vw, 40px) !important;
+  letter-spacing: -.035em;
+}
+
+@media (max-width: 1180px) {
+  .accessory-category-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .accessory-category-card { min-height: 180px; }
+}
+
+@media (max-width: 900px) {
+  .is-accessory-page .lp-hero { grid-template-columns: 1fr; }
+  .is-accessory-page .lp-hero > .lp-sidebar { height: auto; min-height: 0; }
+  .is-accessory-page .lp-sidebar { display: grid; grid-template-columns: repeat(2, 1fr); }
+  .is-accessory-page .lp-sidebar h3 { grid-column: 1 / -1; }
+  .is-accessory-page .lp-hero-main { height: auto; }
+  .accessory-studio { grid-template-columns: 1fr; }
+  .is-accessory-page .combos-bento-layout { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+  .is-accessory-page .lp-hero .hero-copy { width: 100%; padding: 54px 24px; }
+  .is-accessory-page .lp-hero .hero-copy h1 { font-size: 30px; }
+  .is-accessory-page .lp-services { grid-template-columns: repeat(2, 1fr); }
+  .accessory-category-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .accessory-category-card { min-height: 170px; }
+  .is-accessory-page .lp-combos,
+  .is-accessory-page .lp-flagship { width: calc(100% - 28px); }
+  .is-accessory-page .lp-combos { padding: 24px 16px; border-radius: 22px; }
+  .is-accessory-page .combo-visual-connector { overflow-x: auto; justify-content: flex-start; }
+  .is-accessory-page .connector-node { min-width: 92px; }
+}
+
 /* Unified content typography: compact titles with readable descriptions. */
 .laptop-page h2,
 .laptop-page h3,
@@ -4129,5 +5157,1707 @@ onMounted(() => {
 
 .laptop-page {
   padding-bottom: 40px;
+}
+
+/* ============================================================
+   Catalog Empty State (When no search / filter results found)
+   ============================================================ */
+.catalog-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 24px;
+  margin: 16px 0 32px 0;
+  background: #ffffff;
+  border: 1px dashed #cbd5e1;
+  border-radius: 20px;
+  text-align: center;
+  box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.03);
+  animation: fadeIn 0.3s ease-out;
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+.empty-icon-wrapper {
+  width: 68px;
+  height: 68px;
+  background: #eff6ff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2563eb;
+  margin-bottom: 18px;
+  box-shadow: 0 0 0 8px rgba(239, 246, 255, 0.6);
+}
+
+.empty-icon-svg {
+  width: 30px;
+  height: 30px;
+}
+
+.catalog-empty-state .empty-title {
+  font-size: 18px !important;
+  font-weight: 750 !important;
+  color: #0f172a;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.01em;
+}
+
+.catalog-empty-state .empty-desc {
+  font-size: 14px !important;
+  color: #64748b;
+  margin: 0 0 22px 0;
+  max-width: 440px;
+  line-height: 1.6;
+}
+
+.search-highlight {
+  color: #2563eb;
+  font-weight: 700;
+}
+
+.btn-reset-filters {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 22px;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.22);
+}
+
+.btn-reset-filters:hover {
+  background: #1d4ed8;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.32);
+}
+
+.btn-reset-filters:active {
+  transform: translateY(0);
+}
+
+:global(.theme-dark) .catalog-empty-state,
+:global(.dark) .catalog-empty-state,
+:global(html[data-theme='dark']) .catalog-empty-state {
+  background: rgba(24, 24, 27, 0.8);
+  border-color: rgba(63, 63, 70, 0.6);
+}
+
+:global(.theme-dark) .empty-icon-wrapper,
+:global(.dark) .empty-icon-wrapper,
+:global(html[data-theme='dark']) .empty-icon-wrapper {
+  background: rgba(30, 58, 138, 0.3);
+  color: #60a5fa;
+  box-shadow: 0 0 0 8px rgba(30, 58, 138, 0.15);
+}
+
+:global(.theme-dark) .catalog-empty-state .empty-title,
+:global(.dark) .catalog-empty-state .empty-title,
+:global(html[data-theme='dark']) .catalog-empty-state .empty-title {
+  color: #f4f4f5;
+}
+
+:global(.theme-dark) .lp-showroom-copy h2,
+:global(.dark) .lp-showroom-copy h2,
+:global(html[data-theme='dark']) .lp-showroom-copy h2 {
+  color: #ffffff !important;
+}
+
+:global(.theme-dark) .lp-showroom-copy small,
+:global(.dark) .lp-showroom-copy small,
+:global(html[data-theme='dark']) .lp-showroom-copy small {
+  color: #38bdf8 !important;
+}
+
+:global(.theme-dark) .lp-showroom-copy > p,
+:global(.dark) .lp-showroom-copy > p,
+:global(html[data-theme='dark']) .lp-showroom-copy > p {
+  color: #cbd5e1 !important;
+}
+
+:global(.theme-dark) .catalog-empty-state .empty-desc,
+:global(.dark) .catalog-empty-state .empty-desc,
+:global(html[data-theme='dark']) .catalog-empty-state .empty-desc {
+  color: #a1a1aa;
+}
+
+:global(.theme-dark) .search-highlight,
+:global(.dark) .search-highlight,
+:global(html[data-theme='dark']) .search-highlight {
+  color: #60a5fa;
+}
+
+/* Final premium layer for the accessory route. Kept at the end so the shared
+   laptop styles cannot flatten the route-specific art direction. */
+.is-accessory-page .lp-hero-panel {
+  background-image:
+    linear-gradient(90deg, rgba(2, 6, 23, .96) 0%, rgba(6, 14, 32, .8) 45%, rgba(15, 23, 42, .18) 78%),
+    url('https://images.unsplash.com/photo-1547394765-185e1e68f34e?auto=format&fit=crop&w=1800&q=88');
+  background-position: center;
+  background-size: cover;
+}
+
+.hero-gear-notes {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 25px;
+  color: rgba(226, 232, 240, .8);
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.hero-gear-notes span { display: grid; gap: 1px; }
+.hero-gear-notes strong {
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 850;
+}
+.hero-gear-notes i {
+  width: 1px;
+  height: 25px;
+  background: rgba(255, 255, 255, .22);
+}
+
+.is-accessory-page .accessory-category-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-rows: repeat(2, 118px);
+}
+
+.is-accessory-page .accessory-category-card {
+  min-height: 0;
+  padding: 16px;
+}
+
+.is-accessory-page .accessory-category-card:nth-child(1) {
+  grid-column: span 2;
+  grid-row: span 2;
+  color: #ffffff;
+  border-color: #172554;
+  background: linear-gradient(145deg, #0f172a, #172554);
+}
+
+.is-accessory-page .accessory-category-card:nth-child(2) {
+  grid-column: span 2;
+  grid-row: span 2;
+  background: linear-gradient(145deg, #ffffff, #eef4ff);
+}
+
+.is-accessory-page .accessory-category-card:nth-child(n + 3) {
+  grid-column: span 2;
+}
+
+.is-accessory-page .accessory-category-card:nth-child(n + 3) .category-icon {
+  width: 36px;
+  height: 36px;
+  float: left;
+  margin-right: 12px;
+}
+
+.is-accessory-page .accessory-category-card:nth-child(n + 3) .category-meta {
+  margin-top: 1px;
+}
+
+.is-accessory-page .accessory-category-card:nth-child(n + 3) strong {
+  margin-top: 3px;
+}
+
+.is-accessory-page .accessory-category-card:nth-child(1) .category-icon {
+  color: #bfdbfe;
+  background: rgba(59, 130, 246, .22);
+}
+.is-accessory-page .accessory-category-card:nth-child(1) .category-meta,
+.is-accessory-page .accessory-category-card:nth-child(1) small,
+.is-accessory-page .accessory-category-card:nth-child(1) .category-arrow {
+  color: #a9b9d2;
+}
+.is-accessory-page .accessory-category-card:nth-child(1)::after {
+  width: 150px;
+  height: 150px;
+  right: -45px;
+  bottom: -60px;
+  background: #2563eb;
+  filter: blur(8px);
+  opacity: .32;
+}
+
+.is-accessory-page .lp-combos {
+  background-color: #091425 !important;
+  background-image:
+    radial-gradient(circle at 88% 0%, rgba(59, 130, 246, .3), transparent 28%),
+    linear-gradient(135deg, #07111f, #111f35 62%, #0c1728) !important;
+  border: 1px solid rgba(96, 165, 250, .16) !important;
+}
+
+.is-accessory-page .combo-empty-state.combo-concept-state {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.combo-concept-intro {
+  max-width: 620px;
+  margin: 0 auto 24px;
+  color: #ffffff;
+  text-align: center;
+}
+
+.combo-concept-intro .combo-index {
+  color: #7da9ff;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .19em;
+}
+
+.combo-concept-intro h3 {
+  margin: 9px 0 8px;
+  color: #ffffff;
+  font-size: clamp(20px, 2vw, 28px) !important;
+  letter-spacing: -.025em;
+}
+
+.combo-concept-intro p {
+  margin: 0;
+  color: #9eafc5;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.combo-concept-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.concept-card {
+  min-height: 210px;
+  position: relative;
+  overflow: hidden;
+  padding: 22px;
+  border: 1px solid rgba(148, 163, 184, .2);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, .07);
+  color: #ffffff;
+  text-align: left;
+  cursor: pointer;
+  transition: .25s ease;
+  backdrop-filter: blur(12px);
+}
+
+.concept-card:hover {
+  border-color: rgba(96, 165, 250, .7);
+  background: rgba(255, 255, 255, .11);
+  transform: translateY(-6px);
+}
+
+.concept-card::after {
+  content: '';
+  position: absolute;
+  right: -35px;
+  bottom: -45px;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: var(--concept-accent, #2563eb);
+  filter: blur(18px);
+  opacity: .24;
+}
+
+.concept-work { --concept-accent: #8b5cf6; }
+.concept-mobile { --concept-accent: #06b6d4; }
+.concept-no {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  color: #6f829d;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+.concept-icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: rgba(59, 130, 246, .18);
+  color: #93c5fd;
+}
+.concept-icon svg { width: 23px; height: 23px; }
+.concept-card strong {
+  display: block;
+  margin-top: 26px;
+  font-size: 18px;
+}
+.concept-card small {
+  display: block;
+  margin-top: 5px;
+  color: #9eafc5;
+  font-size: 11px;
+}
+.concept-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 21px;
+  color: #dbeafe;
+  font-size: 11px;
+  font-weight: 800;
+}
+.concept-link svg { width: 14px; height: 14px; }
+
+@media (max-width: 1180px) {
+  .is-accessory-page .accessory-category-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-rows: auto;
+  }
+  .is-accessory-page .accessory-category-card,
+  .is-accessory-page .accessory-category-card:nth-child(n) {
+    grid-column: span 2;
+    grid-row: auto;
+    min-height: 165px;
+  }
+}
+
+@media (max-width: 700px) {
+  .hero-gear-notes { flex-wrap: wrap; }
+  .is-accessory-page .accessory-category-grid { grid-template-columns: 1fr 1fr; }
+  .is-accessory-page .accessory-category-card,
+  .is-accessory-page .accessory-category-card:nth-child(n) { grid-column: span 1; }
+  .combo-concept-grid { grid-template-columns: 1fr; }
+  .concept-card { min-height: 190px; }
+}
+
+/* Desktop: six accessory groups form a balanced 3 x 2 grid. */
+@media (min-width: 1181px) {
+  .is-accessory-page .accessory-studio {
+    grid-template-columns: minmax(280px, .78fr) minmax(0, 2.2fr);
+    gap: clamp(30px, 3.5vw, 58px);
+  }
+
+  .is-accessory-page .accessory-category-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: repeat(2, 210px);
+    gap: 14px;
+  }
+
+  .is-accessory-page .accessory-category-card,
+  .is-accessory-page .accessory-category-card:nth-child(n) {
+    grid-column: auto;
+    grid-row: auto;
+    min-width: 0;
+    min-height: 210px;
+    padding: 18px 16px;
+  }
+
+  .is-accessory-page .accessory-category-card:nth-child(n + 3) .category-icon {
+    width: 46px;
+    height: 46px;
+    float: none;
+    margin: 0;
+  }
+
+  .is-accessory-page .accessory-category-card:nth-child(n + 3) .category-meta,
+  .is-accessory-page .accessory-category-card .category-meta {
+    margin-top: 34px;
+  }
+}
+
+/* Exclusive offers — editorial bundle builder inspired by premium gear stores. */
+.is-accessory-page .lp-combos {
+  padding: 24px 28px !important;
+  border: 1px solid #d9e4f2 !important;
+  border-radius: 20px;
+  background-color: #ffffff !important;
+  background-image:
+    radial-gradient(circle at 100% 0%, rgba(37, 99, 235, .09), transparent 28%),
+    linear-gradient(180deg, #ffffff, #f8fbff) !important;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, .06);
+}
+
+.is-accessory-page .combos-header {
+  max-width: none;
+  margin: 0 0 20px;
+  display: grid;
+  grid-template-columns: minmax(0, .9fr) minmax(320px, .7fr);
+  gap: 12px 40px;
+  align-items: end;
+  text-align: left;
+}
+
+.combo-heading-mark {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #dce6f2;
+}
+
+.is-accessory-page .combos-header .ambient-label {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #2563eb;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .2em;
+}
+
+.combo-drop {
+  color: #94a3b8;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .16em;
+}
+
+.is-accessory-page .combos-header h2,
+.laptop-page.is-accessory-page .combos-header h2 {
+  margin: 0;
+  color: #0f172a !important;
+  font-size: clamp(22px, 2.2vw, 32px) !important;
+  font-weight: 850;
+  line-height: 1.1;
+  letter-spacing: -.03em;
+  text-transform: none;
+}
+
+.is-accessory-page .combos-header .section-sub {
+  max-width: 520px;
+  margin: 0 0 2px;
+  color: #5f6f84;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.is-accessory-page .combos-bento-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.is-accessory-page .combo-bento-card {
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #dbe5f1;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, .05);
+}
+
+.is-accessory-page .combo-bento-card:hover {
+  border-color: #9fc2ff;
+  transform: translateY(-2px);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, .09);
+}
+
+.is-accessory-page .combo-main-content {
+  min-height: 220px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, .8fr);
+  gap: 0;
+  align-items: stretch;
+}
+
+.is-accessory-page .combo-visual-connector {
+  order: -1;
+  min-height: 220px;
+  padding: 20px 28px;
+  border: 0;
+  border-radius: 0;
+  background:
+    radial-gradient(circle at 50% 38%, rgba(255, 255, 255, .95), transparent 36%),
+    linear-gradient(145deg, #edf4ff, #e5edf8);
+}
+
+.is-accessory-page .connector-node {
+  min-width: 0;
+  align-self: center;
+}
+
+.is-accessory-page .node-image-box {
+  width: 140px;
+  height: 140px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, .9);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .88);
+  box-shadow: 0 14px 28px rgba(30, 64, 175, .09);
+}
+
+.is-accessory-page .node-image-box img {
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+
+.is-accessory-page .node-title {
+  width: 150px;
+  height: auto;
+  margin-top: 8px;
+  color: #334155;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.4;
+}
+
+.is-accessory-page .node-plus-sign {
+  top: 54px;
+  right: -16px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #d7e3f2;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #2563eb;
+  font-size: 16px;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, .08);
+}
+
+.is-accessory-page .combo-details {
+  min-width: 0;
+  padding: 20px 24px !important;
+  justify-content: center;
+  background: #ffffff;
+}
+
+.combo-card-label {
+  margin-bottom: 8px;
+  color: #7b8ca4;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .16em;
+}
+
+.is-accessory-page .combo-discount-badge {
+  margin: 0 0 10px;
+  padding: 5px 9px;
+  border-radius: 6px;
+  background: #e9f2ff;
+  color: #1d4ed8;
+  font-size: 11px;
+}
+
+.is-accessory-page .combo-details h3 {
+  margin: 0 0 8px;
+  color: #0f172a;
+  font-size: 18px !important;
+  line-height: 1.2;
+  letter-spacing: -.02em;
+}
+
+.is-accessory-page .combo-details > p {
+  display: -webkit-box;
+  margin: 0 0 14px;
+  overflow: hidden;
+  color: #64748b;
+  font-size: 12.5px;
+  line-height: 1.5;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.is-accessory-page .combo-pricing-group {
+  margin: 0 0 16px;
+  padding: 18px 0 0;
+  border-top: 1px solid #e2e8f0;
+  gap: 28px;
+}
+
+.is-accessory-page .price-label {
+  color: #8391a5;
+  font-size: 9px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.is-accessory-page .price-val {
+  color: #e11d48;
+  font-size: clamp(25px, 2.3vw, 34px);
+}
+
+.is-accessory-page .price-val-old {
+  font-size: 15px;
+}
+
+.combo-perks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-bottom: 22px;
+}
+
+.combo-perks span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #526176;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.combo-perks svg {
+  width: 14px;
+  height: 14px;
+  color: #2563eb;
+}
+
+.is-accessory-page .combo-action-btn {
+  width: 100%;
+  min-height: 50px;
+  justify-content: center;
+  border-radius: 13px;
+  background: #0f172a;
+  box-shadow: 0 14px 28px rgba(15, 23, 42, .18);
+}
+
+.is-accessory-page .combo-action-btn:hover {
+  opacity: 1;
+  background: #2563eb;
+  transform: translateY(-2px);
+}
+
+@media (max-width: 980px) {
+  .is-accessory-page .combos-header { grid-template-columns: 1fr; }
+  .is-accessory-page .combo-main-content { grid-template-columns: 1fr; }
+  .is-accessory-page .combo-visual-connector { min-height: 340px; }
+  .is-accessory-page .node-image-box { width: 150px; height: 150px; }
+  .is-accessory-page .node-title { width: 170px; }
+}
+
+@media (max-width: 640px) {
+  .is-accessory-page .lp-combos { padding: 28px 16px !important; }
+  .combo-heading-mark { align-items: flex-start; gap: 10px; }
+  .is-accessory-page .combos-header h2 { font-size: 35px !important; }
+  .is-accessory-page .combo-visual-connector {
+    min-height: 280px;
+    padding: 24px 16px;
+    overflow-x: auto;
+  }
+  .is-accessory-page .connector-node { min-width: 140px; }
+  .is-accessory-page .node-image-box { width: 120px; height: 120px; }
+  .is-accessory-page .node-title { width: 135px; }
+  .is-accessory-page .node-plus-sign { top: 48px; right: -19px; }
+  .is-accessory-page .combo-details { padding: 28px 22px; }
+}
+
+/* Functional photographic category cards, using assets bundled with NextGen. */
+.is-accessory-page .accessory-category-card,
+.is-accessory-page .accessory-category-card:nth-child(n) {
+  isolation: isolate;
+  border-color: rgba(148, 163, 184, .34);
+  background-color: #101b31;
+  background-image:
+    linear-gradient(180deg, rgba(5, 12, 28, .08) 0%, rgba(5, 12, 28, .3) 42%, rgba(5, 12, 28, .94) 100%),
+    var(--category-image);
+  background-position: center;
+  background-size: cover;
+  color: #ffffff;
+  transition:
+    transform .35s cubic-bezier(.22, 1, .36, 1),
+    box-shadow .35s ease,
+    border-color .35s ease;
+}
+
+.is-accessory-page .accessory-category-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .12), transparent 36%);
+  pointer-events: none;
+}
+
+.is-accessory-page .accessory-category-card::after {
+  z-index: -1;
+  width: 120px;
+  height: 120px;
+  right: -42px;
+  bottom: -54px;
+  background: #2563eb;
+  filter: blur(18px);
+  opacity: .3;
+}
+
+.is-accessory-page .accessory-category-card:hover {
+  border-color: #93c5fd;
+  background-size: cover;
+  transform: translateY(-3px);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, .14);
+}
+
+.is-accessory-page .accessory-category-card[aria-pressed='true'] {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, .22), 0 22px 42px rgba(15, 23, 42, .2);
+}
+
+.is-accessory-page .accessory-category-card .category-icon,
+.is-accessory-page .accessory-category-card:nth-child(n) .category-icon {
+  color: #dbeafe;
+  background: rgba(30, 64, 175, .52);
+  border: 1px solid rgba(147, 197, 253, .3);
+  backdrop-filter: blur(10px);
+}
+
+.is-accessory-page .accessory-category-card .category-meta,
+.is-accessory-page .accessory-category-card small,
+.is-accessory-page .accessory-category-card .category-arrow,
+.is-accessory-page .accessory-category-card:nth-child(1) .category-meta,
+.is-accessory-page .accessory-category-card:nth-child(1) small,
+.is-accessory-page .accessory-category-card:nth-child(1) .category-arrow {
+  color: #cbd5e1;
+}
+
+.is-accessory-page .accessory-category-card strong {
+  color: #ffffff;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, .45);
+}
+
+/* Desktop/zoom-out: một trục nội dung duy nhất, không dùng card bọc ngoài. */
+@media (min-width: 1101px) {
+  .laptop-page .lp-hero,
+  .laptop-page .lp-featured-head,
+  .laptop-page .lp-brands,
+  .laptop-page .lp-flagship,
+  .laptop-page .lp-accessories,
+  .laptop-page .lp-showroom,
+  .laptop-page .lp-catalog {
+    width: calc(100% - clamp(48px, 8vw, 160px));
+    max-width: 1680px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .laptop-page .lp-brands,
+  .laptop-page .lp-flagship,
+  .laptop-page .lp-accessories,
+  .laptop-page .lp-showroom,
+  .laptop-page .lp-catalog {
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .laptop-page .lp-flagship .flagship-row,
+  .laptop-page .lp-catalog .catalog-layout {
+    width: 100%;
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .laptop-page.is-accessory-page .accessory-studio,
+  .laptop-page.is-accessory-page .lp-combos {
+    width: calc(100% - clamp(48px, 8vw, 160px));
+    max-width: 1680px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .laptop-page.is-accessory-page .lp-combos {
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+}
+
+/* Sidebar phụ kiện trên desktop dùng cùng hệ giao diện với sidebar laptop. */
+@media (min-width: 901px) {
+  .laptop-page.is-accessory-page .lp-sidebar {
+    padding: 16px;
+    border-radius: 14px;
+    background: #ffffff;
+  }
+
+  .laptop-page.is-accessory-page .lp-sidebar h3 {
+    margin-bottom: 7px;
+    color: #0f172a;
+    letter-spacing: normal;
+    text-transform: capitalize !important;
+  }
+
+  .laptop-page.is-accessory-page .lp-hero .line-btn {
+    min-height: 32px;
+    height: 32px;
+    padding: 0 9px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: #f8fafc;
+    color: #475569;
+    font-size: 11.5px;
+    gap: 9px;
+    box-shadow: none;
+  }
+
+  .laptop-page.is-accessory-page .lp-hero .line-btn:hover {
+    border-color: #bfdbfe;
+    background: #eff6ff;
+    color: #2563eb;
+    box-shadow: none;
+    transform: translateX(2px);
+  }
+
+  .laptop-page.is-accessory-page .lp-hero .line-btn.active {
+    border-color: #2563eb;
+    background: #2563eb;
+    color: #ffffff;
+    box-shadow: 0 6px 14px rgba(37, 99, 235, 0.2);
+    transform: none;
+  }
+
+  .laptop-page.is-accessory-page .lp-hero .line-btn.active svg {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.18);
+  }
+
+  .laptop-page.is-accessory-page .lp-hero .line-btn.promo {
+    min-height: 34px;
+    height: 34px;
+    margin-top: 7px;
+    border-color: #fed7aa;
+    background: #fff7ed;
+    color: #ea580c;
+  }
+
+  .laptop-page.is-accessory-page .lp-hero .line-btn.promo:hover {
+    border-color: #fdba74;
+    background: #ffedd5;
+    color: #c2410c;
+    box-shadow: none;
+    transform: translateX(2px);
+  }
+}
+.lp-hero-main .lp-services,
+.is-accessory-page .lp-hero-main .lp-services {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+  box-sizing: border-box !important;
+}
+
+.lp-hero-main .lp-services article,
+.is-accessory-page .lp-hero-main .lp-services article {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* ============================================================
+   COMPLETE MOBILE LAYOUT - LAPTOP PAGE
+   ============================================================ */
+@media (max-width: 640px) {
+  html,
+  body,
+  .laptop-page:not(.is-accessory-page) {
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  .laptop-page:not(.is-accessory-page) {
+    width: 100%;
+    background: #f8fafc;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-hero {
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 14px;
+    padding: 16px 12px 0;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-sidebar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    width: 100%;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 12px;
+    overflow: hidden;
+    border-radius: 16px;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-sidebar h3,
+  .laptop-page:not(.is-accessory-page) .lp-sidebar .hot-link {
+    grid-column: 1 / -1;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-sidebar h3 {
+    margin: 0 0 3px;
+    font-size: 13px;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-sidebar button {
+    width: 100%;
+    min-width: 0;
+    min-height: 40px;
+    height: 40px;
+    padding: 0 8px;
+    overflow: hidden;
+    border-radius: 10px;
+    font-size: 9px;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-hero-main {
+    width: 100%;
+    height: 350px !important;
+    min-height: 350px !important;
+    overflow: hidden;
+    border-radius: 18px;
+  }
+
+  .laptop-page:not(.is-accessory-page) .hero-copy {
+    box-sizing: border-box;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    padding: 34px 22px !important;
+  }
+
+  .laptop-page:not(.is-accessory-page) .hero-copy h1 {
+    max-width: 280px;
+    margin-bottom: 12px;
+    font-size: clamp(27px, 8vw, 34px);
+    line-height: 1.03;
+  }
+
+  .laptop-page:not(.is-accessory-page) .hero-copy p {
+    display: -webkit-box;
+    max-width: 285px;
+    margin-bottom: 18px;
+    overflow: hidden;
+    font-size: 12px;
+    line-height: 1.55;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  .laptop-page:not(.is-accessory-page) .hero-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+    max-width: 290px;
+  }
+
+  .laptop-page:not(.is-accessory-page) .hero-actions button,
+  .laptop-page:not(.is-accessory-page) .hero-actions a {
+    min-width: 0;
+    min-height: 42px;
+    padding: 0 10px;
+    font-size: 11px;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-services {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    width: calc(100% - 24px);
+    margin: 12px auto 0;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-services article {
+    min-width: 0;
+    min-height: 72px;
+    padding: 10px;
+    border-radius: 12px;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-services strong {
+    font-size: 10px;
+    line-height: 1.3;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-services span {
+    font-size: 8px;
+    line-height: 1.35;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-brands {
+    left: auto;
+    width: calc(100% - 24px) !important;
+    margin: 22px auto 0;
+    padding: 22px 0 24px;
+    border-radius: 18px;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-brands > p,
+  .laptop-page:not(.is-accessory-page) .lp-brands > h2,
+  .laptop-page:not(.is-accessory-page) .brand-marquee {
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-brands h2 {
+    font-size: 21px;
+  }
+
+  .laptop-page:not(.is-accessory-page) .brand-logo-card {
+    width: 96px;
+    height: 50px;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-flagship {
+    width: calc(100% - 24px);
+    margin: 22px auto 0;
+    padding: 20px 0;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-flagship .section-copy h2,
+  .laptop-page:not(.is-accessory-page) .catalog-title h2,
+  .laptop-page:not(.is-accessory-page) .lp-showroom h2 {
+    font-size: 22px;
+    line-height: 1.18;
+  }
+
+  .laptop-page:not(.is-accessory-page) .section-copy p {
+    margin-top: 6px;
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-catalog {
+    width: 100%;
+    margin-top: 18px;
+    padding: 22px 12px 30px;
+    overflow: hidden;
+    border-radius: 0;
+  }
+
+  .laptop-page:not(.is-accessory-page) .catalog-title {
+    width: 100%;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+
+  .laptop-page:not(.is-accessory-page) .catalog-title > div,
+  .laptop-page:not(.is-accessory-page) .catalog-title .search-box {
+    width: 100%;
+    max-width: none;
+  }
+
+  .laptop-page:not(.is-accessory-page) .catalog-title .search-box {
+    min-height: 44px;
+  }
+
+  .laptop-page:not(.is-accessory-page) .catalog-layout {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 16px;
+    width: 100% !important;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .laptop-page:not(.is-accessory-page) .filter-card {
+    position: static !important;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    width: 100% !important;
+    max-width: 100%;
+    height: auto;
+    max-height: none !important;
+    padding: 13px;
+    overflow: hidden !important;
+    border-radius: 16px;
+  }
+
+  .laptop-page:not(.is-accessory-page) .filter-head,
+  .laptop-page:not(.is-accessory-page) .apply-filter {
+    grid-column: 1 / -1;
+  }
+
+  .laptop-page:not(.is-accessory-page) .filter-group {
+    min-width: 0;
+    margin: 0;
+    padding: 10px;
+    border: 1px solid #e5edf7;
+    border-radius: 12px;
+    background: #f8fafc;
+  }
+
+  .laptop-page:not(.is-accessory-page) .filter-group h4 {
+    margin-bottom: 8px;
+    font-size: 10px;
+  }
+
+  .laptop-page:not(.is-accessory-page) .filter-checks label {
+    gap: 5px;
+    padding: 5px 0;
+    font-size: 8px;
+  }
+
+  .laptop-page:not(.is-accessory-page) .filter-pills button,
+  .laptop-page:not(.is-accessory-page) .filter-tags button {
+    min-height: 28px;
+    padding: 4px 6px;
+    font-size: 8px;
+  }
+
+  .laptop-page:not(.is-accessory-page) .filter-price > div {
+    gap: 4px;
+    font-size: 7px;
+  }
+
+  .laptop-page:not(.is-accessory-page) .apply-filter {
+    min-height: 42px;
+    margin-top: 0;
+  }
+
+  .laptop-page:not(.is-accessory-page) .catalog-results {
+    width: 100% !important;
+    min-width: 0;
+    overflow: visible;
+  }
+
+  .laptop-page:not(.is-accessory-page) .sort-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 9px;
+    width: 100%;
+    margin-bottom: 12px;
+    padding: 12px;
+    border-radius: 13px;
+  }
+
+  .laptop-page:not(.is-accessory-page) .sort-row span {
+    font-size: 10px;
+  }
+
+  .laptop-page:not(.is-accessory-page) .sort-row select {
+    width: 100%;
+    max-width: 100%;
+    min-height: 40px;
+    font-size: 11px;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-catalog .product-grid,
+  .laptop-page:not(.is-accessory-page) .lp-catalog .skeleton-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 11px 9px;
+    width: 100%;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-catalog .product-card {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 326px;
+    padding: 8px;
+    overflow: hidden;
+    border-radius: 15px;
+    box-shadow: 0 7px 18px rgba(15, 23, 42, 0.07);
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-catalog .product-card > img {
+    width: 100%;
+    height: 108px !important;
+    padding: 5px !important;
+    border-radius: 11px !important;
+    background: linear-gradient(145deg, #f8fbff, #edf3fa) !important;
+    object-fit: contain !important;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-catalog .discount {
+    top: 7px;
+    left: 7px;
+    padding: 5px 7px;
+    border-radius: 8px;
+    font-size: 9px;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-catalog .product-card h3 {
+    display: -webkit-box;
+    height: 34px;
+    min-height: 34px;
+    margin: 8px 0 4px;
+    overflow: hidden;
+    font-size: 10px;
+    line-height: 1.35;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-catalog .stars {
+    font-size: 9px;
+    white-space: nowrap;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-catalog .specs {
+    align-content: flex-start;
+    height: 42px;
+    min-height: 42px;
+    gap: 3px;
+    margin: 5px 0;
+    overflow: hidden;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-catalog .specs span {
+    max-width: 100%;
+    padding: 3px 5px;
+    overflow: hidden;
+    font-size: 7px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-catalog .product-price {
+    margin-top: auto;
+    font-size: 13px !important;
+    letter-spacing: -0.04em;
+    white-space: nowrap;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-catalog del {
+    font-size: 8px;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-catalog .mini-badges {
+    gap: 3px;
+    min-height: 29px;
+    margin-top: 5px;
+    overflow: hidden;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-catalog .mini-badges span {
+    font-size: 6px;
+    white-space: nowrap;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-catalog .wishlist-btn,
+  .laptop-page:not(.is-accessory-page) .lp-catalog .product-actions {
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-catalog .wishlist-btn {
+    top: 7px;
+    right: 7px;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-catalog .product-actions {
+    right: 8px;
+    bottom: 8px;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-catalog .cart-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+  }
+
+  .laptop-page:not(.is-accessory-page) .pagination {
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 18px;
+  }
+
+  .laptop-page:not(.is-accessory-page) .pagination button {
+    min-width: 32px;
+    height: 32px;
+    padding: 0 8px;
+    font-size: 10px;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-showroom {
+    width: calc(100% - 24px);
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+    margin: 22px auto 0;
+    padding: 20px;
+    overflow: hidden;
+    border-radius: 18px;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-showroom-copy,
+  .laptop-page:not(.is-accessory-page) .lp-showroom-visual {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-showroom-copy p,
+  .laptop-page:not(.is-accessory-page) .lp-showroom-item {
+    font-size: 10px;
+    line-height: 1.5;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-showroom-visual,
+  .laptop-page:not(.is-accessory-page) .lp-showroom-visual img {
+    width: 100%;
+    min-height: 190px;
+    max-height: 220px;
+    border-radius: 14px;
+    object-fit: cover;
+  }
+}
+
+@media (max-width: 330px) {
+  .laptop-page:not(.is-accessory-page) .lp-catalog .product-grid,
+  .laptop-page:not(.is-accessory-page) .lp-catalog .skeleton-grid {
+    gap: 8px 6px;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-catalog .product-card {
+    padding: 6px;
+  }
+
+  .laptop-page:not(.is-accessory-page) .lp-catalog .product-card > img {
+    height: 98px !important;
+  }
+}
+
+/* ============================================================
+   COMPLETE MOBILE LAYOUT - ACCESSORY PAGE
+   ============================================================ */
+@media (max-width: 640px) {
+  .laptop-page.is-accessory-page {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+    background: #f8fafc;
+  }
+
+  .laptop-page.is-accessory-page .lp-hero,
+  .laptop-page.is-accessory-page .accessory-studio,
+  .laptop-page.is-accessory-page .lp-brands,
+  .laptop-page.is-accessory-page .lp-flagship,
+  .laptop-page.is-accessory-page .lp-catalog,
+  .laptop-page.is-accessory-page .lp-combos {
+    width: calc(100% - 24px) !important;
+    max-width: none !important;
+    margin-left: 12px !important;
+    margin-right: 12px !important;
+    box-sizing: border-box;
+  }
+
+  .laptop-page.is-accessory-page .lp-hero {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 14px;
+    padding: 16px 0 0;
+  }
+
+  .laptop-page.is-accessory-page .lp-sidebar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    padding: 14px;
+  }
+
+  .laptop-page.is-accessory-page .lp-sidebar h3 {
+    grid-column: 1 / -1;
+    margin: 0 0 6px;
+  }
+
+  .laptop-page.is-accessory-page .lp-sidebar .line-btn {
+    min-width: 0;
+    min-height: 48px;
+    padding: 8px;
+    font-size: 11px;
+    line-height: 1.2;
+  }
+
+  .laptop-page.is-accessory-page .lp-hero-main,
+  .laptop-page.is-accessory-page .lp-hero-panel {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .laptop-page.is-accessory-page .lp-hero-panel {
+    min-height: 390px;
+    border-radius: 20px;
+  }
+
+  .laptop-page.is-accessory-page .hero-copy {
+    width: 100%;
+    max-width: none;
+    padding: 28px 22px;
+  }
+
+  .laptop-page.is-accessory-page .hero-copy h1 {
+    max-width: 270px;
+    font-size: clamp(29px, 10vw, 38px);
+    line-height: 1.02;
+  }
+
+  .laptop-page.is-accessory-page .hero-gear-notes {
+    gap: 10px;
+  }
+
+  .laptop-page.is-accessory-page .lp-services {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .laptop-page.is-accessory-page .lp-services article {
+    min-width: 0;
+    padding: 12px 10px;
+  }
+
+  .laptop-page.is-accessory-page .accessory-studio {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    padding: 24px 0;
+  }
+
+  .laptop-page.is-accessory-page .accessory-studio-copy h2 {
+    font-size: 28px;
+  }
+
+  .laptop-page.is-accessory-page .accessory-category-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .laptop-page.is-accessory-page .accessory-category-card,
+  .laptop-page.is-accessory-page .accessory-category-card:nth-child(n) {
+    min-width: 0;
+    min-height: 165px;
+    padding: 14px;
+  }
+
+  .laptop-page.is-accessory-page .lp-brands {
+    overflow: hidden;
+  }
+
+  .laptop-page.is-accessory-page .flagship-row,
+  .laptop-page.is-accessory-page .product-grid,
+  .laptop-page.is-accessory-page .skeleton-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  .laptop-page.is-accessory-page .flag-card,
+  .laptop-page.is-accessory-page .product-card {
+    min-width: 0;
+    padding: 10px;
+    border-radius: 16px;
+    box-shadow: 0 5px 14px rgba(15, 23, 42, .06);
+  }
+
+  .laptop-page.is-accessory-page .flag-card > img,
+  .laptop-page.is-accessory-page .product-card > img {
+    width: 100%;
+    height: 112px;
+    object-fit: contain;
+  }
+
+  .laptop-page.is-accessory-page .flag-card h3,
+  .laptop-page.is-accessory-page .product-card h3 {
+    min-height: 35px;
+    font-size: 11px;
+    line-height: 1.25;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  .laptop-page.is-accessory-page .catalog-title,
+  .laptop-page.is-accessory-page .catalog-layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .laptop-page.is-accessory-page .search-box,
+  .laptop-page.is-accessory-page .filter-card,
+  .laptop-page.is-accessory-page .catalog-results,
+  .laptop-page.is-accessory-page .sort-row,
+  .laptop-page.is-accessory-page .sort-row select {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .laptop-page.is-accessory-page .filter-card {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .laptop-page.is-accessory-page .filter-head,
+  .laptop-page.is-accessory-page .apply-filter {
+    grid-column: 1 / -1;
+  }
+
+  .laptop-page.is-accessory-page .sort-row {
+    display: grid;
+    gap: 10px;
+  }
+
+  .laptop-page.is-accessory-page .lp-combos {
+    padding: 24px 12px !important;
+    border-radius: 20px;
+  }
+
+  .laptop-page.is-accessory-page .combos-header,
+  .laptop-page.is-accessory-page .combo-main-content {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .laptop-page.is-accessory-page .combos-header h2 {
+    font-size: 29px !important;
+  }
+
+  .laptop-page.is-accessory-page .combo-visual-connector {
+    width: 100%;
+    min-height: 250px;
+    overflow-x: auto;
+  }
+
+  .laptop-page.is-accessory-page .combo-details {
+    min-width: 0;
+    padding: 22px 16px;
+  }
+}
+
+@media (max-width: 330px) {
+  .laptop-page.is-accessory-page .flagship-row,
+  .laptop-page.is-accessory-page .product-grid {
+    gap: 7px !important;
+  }
+
+  .laptop-page.is-accessory-page .flag-card,
+  .laptop-page.is-accessory-page .product-card {
+    padding: 8px;
+  }
+}
+
+/* Use the exact same 12px content rail as the Laptop route. */
+@media (max-width: 640px) {
+  .laptop-page.is-accessory-page .lp-flagship,
+  .laptop-page.is-accessory-page .lp-catalog {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .laptop-page.is-accessory-page .flagship-row,
+  .laptop-page.is-accessory-page .catalog-layout,
+  .laptop-page.is-accessory-page .catalog-results,
+  .laptop-page.is-accessory-page .product-grid,
+  .laptop-page.is-accessory-page .skeleton-grid {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  .laptop-page.is-accessory-page .flagship-row,
+  .laptop-page.is-accessory-page .product-grid,
+  .laptop-page.is-accessory-page .skeleton-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .laptop-page.is-accessory-page .filter-card {
+    width: 100% !important;
+  }
+}
+
+/* Compact flagship cards: short card and two actions on one row. */
+@media (max-width: 640px) {
+  .laptop-page .flagship-row {
+    align-items: stretch;
+  }
+
+  .laptop-page .flag-card {
+    height: 258px !important;
+    min-height: 258px !important;
+    padding: 8px !important;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .laptop-page .flag-card > img {
+    width: 100% !important;
+    height: 92px !important;
+    min-height: 92px;
+    object-fit: contain;
+  }
+
+  .laptop-page .flag-card h3 {
+    height: 32px !important;
+    min-height: 32px !important;
+    margin: 6px 0 4px !important;
+    font-size: 10px !important;
+    line-height: 1.15 !important;
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .laptop-page .flag-card .specs {
+    height: 28px !important;
+    min-height: 28px !important;
+    margin: 0 0 4px !important;
+    flex-wrap: nowrap !important;
+    overflow: hidden;
+  }
+
+  .laptop-page .flag-card .specs span {
+    flex: 0 0 auto;
+    padding: 3px 5px !important;
+    font-size: 7px !important;
+    white-space: nowrap;
+  }
+
+  .laptop-page .flag-card .product-price {
+    margin-top: auto !important;
+    margin-bottom: 6px !important;
+    font-size: 15px !important;
+    white-space: nowrap;
+  }
+
+  .laptop-page .flag-card .flag-actions {
+    width: 100%;
+    height: 34px;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 5px !important;
+  }
+
+  .laptop-page .flag-card .flag-actions button {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    padding: 0 4px !important;
+    border-radius: 10px !important;
+    font-size: 8px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    gap: 3px !important;
+  }
+
+  .laptop-page .flag-card .flag-actions svg {
+    width: 11px !important;
+    height: 11px !important;
+    flex: 0 0 auto;
+  }
 }
 </style>

@@ -647,31 +647,39 @@ const autoOpenModal = (modalTitleText) => {
 
 // Bắt đầu khôi phục nháp
 const startGlobalRestore = (draftPayload) => {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('restore-offline-form', { detail: draftPayload }))
+  }
+  if (!draftPayload) return
+
   const isObject = draftPayload && !Array.isArray(draftPayload)
-  const inputs = isObject ? draftPayload.inputs : draftPayload
+  const rawInputs = isObject ? draftPayload.inputs : draftPayload
+  const inputs = Array.isArray(rawInputs) ? rawInputs : []
   const activeTabText = isObject ? draftPayload.activeTabText : null
   const modalTitleText = isObject ? draftPayload.modalTitleText : null
 
   currentDraftData = [...inputs]
-  isRestoringDraft = true
+  if (currentDraftData.length > 0) {
+    isRestoringDraft = true
 
-  // 1. Tự động click chuyển tab trước nếu có ngữ cảnh
-  if (activeTabText) {
-    autoClickTab(activeTabText)
-  }
+    // 1. Tự động click chuyển tab trước nếu có ngữ cảnh
+    if (activeTabText) {
+      autoClickTab(activeTabText)
+    }
 
-  // 2. Chờ 150ms để tab cập nhật DOM rồi mới click mở form tương ứng
-  setTimeout(() => {
-    autoOpenModal(modalTitleText)
-
-    // 3. Chờ tiếp 250ms để DOM cập nhật modal trước khi điền dữ liệu
+    // 2. Chờ 150ms để tab cập nhật DOM rồi mới click mở form tương ứng
     setTimeout(() => {
-      performRestoreStep()
-      isRestoringDraft = false
-      currentDraftData = []
-      swal.toast('Đã khôi phục bản nháp thành công!', 'success')
-    }, 250)
-  }, 150)
+      autoOpenModal(modalTitleText)
+
+      // 3. Chờ tiếp 250ms để DOM cập nhật modal trước khi điền dữ liệu
+      setTimeout(() => {
+        performRestoreStep()
+        isRestoringDraft = false
+        currentDraftData = []
+        swal.toast('Đã khôi phục bản nháp thành công!', 'success')
+      }, 250)
+    }, 150)
+  }
 }
 
 // Kiểm tra và hỏi khôi phục

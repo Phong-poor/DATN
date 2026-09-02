@@ -83,7 +83,7 @@ const articleBlocks = computed(() => {
 })
 
 const articleImages = computed(() => articleBlocks.value.filter((block) => block.type === 'image'))
-const heroAlt = computed(() => post.value?.mota_hinhanh || post.value?.tieude || 'Ảnh minh họa bài viết VinaTech')
+const heroAlt = computed(() => post.value?.mota_hinhanh || post.value?.tieude || 'Ảnh minh họa bài viết NextGen')
 
 const compactTitle = (title = '') => {
   const cleanTitle = title.trim()
@@ -97,7 +97,7 @@ const articleDescription = (article) => {
   if (base.length >= 160) return truncateText(base, 240)
 
   return truncateText(
-    `${base} Xem phân tích chi tiết, tiêu chí lựa chọn, kinh nghiệm sử dụng và lời khuyên mua laptop phù hợp tại VinaTech.`,
+    `${base} Xem phân tích chi tiết, tiêu chí lựa chọn, kinh nghiệm sử dụng và lời khuyên mua laptop phù hợp tại NextGen.`,
     240,
   )
 }
@@ -123,13 +123,13 @@ const applyArticleSeo = (article) => {
   setSeo({
     title: article.seo_title || compactTitle(article.tieude),
     description,
-    keywords: `${article.danhmuc}, tin tức công nghệ, tư vấn laptop, laptop VinaTech`,
+    keywords: `${article.danhmuc}, tin tức công nghệ, tư vấn laptop, laptop NextGen`,
     image: fullImageUrl,
     url: canonicalPath,
     type: 'article',
     publishedTime: article.dang_luc,
     modifiedTime: article.updated_at,
-    author: article.tacgia || 'VinaTech',
+    author: article.tacgia || 'NextGen',
     schema: {
       '@context': 'https://schema.org',
       '@type': 'Article',
@@ -140,11 +140,11 @@ const applyArticleSeo = (article) => {
       dateModified: article.updated_at || article.dang_luc || article.created_at,
       author: {
         '@type': 'Person',
-        name: article.tacgia || 'VinaTech',
+        name: article.tacgia || 'NextGen',
       },
       publisher: {
         '@type': 'Organization',
-        name: 'VinaTech',
+        name: 'NextGen',
         logo: {
           '@type': 'ImageObject',
           url: absoluteUrl('/favicon.svg'),

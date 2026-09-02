@@ -153,31 +153,16 @@ class VongQuayController extends Controller
                     ], 400);
                 }
 
-                $alreadySpunToday = LichSuQuay::where('id_khachhang', $currentUser->id)
-                    ->where('loai_qua', '!=', 'claim')
-                    ->whereDate('created_at', Carbon::today())
-                    ->exists();
-
-                if ($alreadySpunToday) {
-                    $currentUser->luot_quay = min(1, max(0, (int) $currentUser->luot_quay));
-                    $currentUser->save();
-                    DB::commit();
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Bạn đã quay vòng quay hôm nay rồi. Hãy quay lại vào ngày mai nhé!',
-                        'tickets' => $currentUser->luot_quay,
-                    ], 400);
-                }
-
-                // Daily tickets never accumulate: spending one always leaves zero.
-                $currentUser->luot_quay = 0;
+                // Trừ 1 lượt quay cho mỗi lần quay thành công
+                $currentUser->luot_quay = max(0, (int) $currentUser->luot_quay - 1);
                 $currentUser->save();
             }
 
             // Apply award based on prize type
             switch ($winningPrize->loai) {
                 case 'ticket':
-                    $currentUser->luot_quay = 1;
+                    $extraTickets = intval($winningPrize->giatri) ?: 1;
+                    $currentUser->luot_quay = (int) $currentUser->luot_quay + $extraTickets;
                     $currentUser->save();
                     break;
 
@@ -256,9 +241,9 @@ class VongQuayController extends Controller
     /**
      * Tự động nhận 1 lượt quay miễn phí cho user nếu hôm nay chưa nhận.
      */
-    public static function autoGrantDailyTicketIfNeeded(User $user)
+    public static function autoGrantDailyTicketIfNeeded($user)
     {
-        if (!$user || !$user->id) return;
+        if (!$user || !($user instanceof User) || !$user->id) return;
         try {
             $todayClaim = LichSuQuay::where('id_khachhang', $user->id)
                 ->where('loai_qua', 'claim')

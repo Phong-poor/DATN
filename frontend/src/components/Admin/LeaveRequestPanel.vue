@@ -196,7 +196,7 @@ onMounted(() => props.admin ? fetchAdmin() : fetchMine())
       <div class="form-actions wide"><button type="button" class="secondary-btn" :disabled="submitting" @click="closeForm">Hủy</button><button class="primary-btn" :disabled="submitting">{{ submitting ? 'Đang gửi...' : (editingRequestId ? 'Gửi lại để duyệt' : 'Gửi đơn xin nghỉ') }}</button></div>
     </form>
 
-    <div v-if="!admin" class="request-list mine-list">
+    <div v-if="!admin && !showForm" class="request-list mine-list">
       <div class="list-title"><strong>Đơn của tôi</strong><span>{{ requests.length }} đơn gần nhất</span></div>
       <div v-if="!requests.length" class="empty">Bạn chưa có đơn xin nghỉ.</div>
       <article v-for="item in requests" :key="item.id" class="request-card">
@@ -257,7 +257,7 @@ onMounted(() => props.admin ? fetchAdmin() : fetchMine())
 </template>
 
 <style scoped>
-.leave-panel{margin:18px 0;padding:22px;border:1px solid #dbe3ef;border-radius:20px;background:#fff;box-shadow:0 10px 30px rgba(15,23,42,.05);color:#172033}.leave-heading,.list-title{display:flex;justify-content:space-between;align-items:center;gap:16px}.leave-heading h3{margin:4px 0;font-size:21px}.leave-heading p{margin:0;color:#64748b}.eyebrow{font-size:11px;font-weight:800;color:#2563eb;letter-spacing:.08em}.primary-btn,.secondary-btn,.approve-btn,.danger-btn,.info-btn{border:0;border-radius:10px;padding:11px 16px;font-weight:750;cursor:pointer}.primary-btn{background:#2563eb;color:#fff}.secondary-btn{background:#e2e8f0;color:#334155}.approve-btn{background:#059669;color:#fff}.danger-btn{background:#dc2626;color:#fff}.info-btn{background:#d97706;color:#fff}button:disabled{opacity:.55;cursor:not-allowed}.leave-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:18px;padding:18px;border-radius:15px;background:#f8fafc}.leave-form label{display:flex;flex-direction:column;gap:7px;font-weight:700;font-size:13px}.leave-form input,.leave-form select,.leave-form textarea,.review-actions input,.list-title select{border:1px solid #cbd5e1;border-radius:10px;padding:11px;background:#fff;color:#172033}.leave-form small{color:#64748b;font-weight:500}.wide{grid-column:1/-1}.form-actions{display:flex;justify-content:flex-end;gap:10px}.request-list,.admin-review{margin-top:20px}.list-title{padding-bottom:10px;border-bottom:1px solid #e2e8f0}.list-title span{font-size:12px;color:#64748b}.request-card,.review-card{position:relative;display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:10px;padding:15px;border:1px solid #e2e8f0;border-radius:13px;background:#fff}.request-card p,.review-card p{margin:5px 0;color:#475569}.request-card small,.review-card small{color:#64748b}.request-side{display:flex;flex-direction:column;align-items:flex-end;gap:9px}.status{display:inline-flex;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:800;background:#fef3c7;color:#92400e}.status.approved{background:#d1fae5;color:#065f46}.status.rejected,.status.cancelled{background:#fee2e2;color:#991b1b}.status.needs_info{background:#ffedd5;color:#9a3412}.danger-link{border:0;background:none;color:#dc2626;font-weight:700;cursor:pointer}.manager-note{grid-column:1/-1;padding:9px 11px;border-radius:9px;background:#f1f5f9}.review-card{grid-template-columns:180px minmax(250px,1fr) auto}.employee{display:flex;flex-direction:column}.review-actions{grid-column:1/-1;display:flex;gap:8px}.review-actions input{flex:1}.empty{padding:24px;text-align:center;color:#64748b}.admin-review{padding-top:18px;border-top:2px solid #e2e8f0}
+.leave-panel{margin:18px 0;padding:22px;border:1px solid #dbe3ef;border-radius:20px;background:#fff;box-shadow:0 10px 30px rgba(15,23,42,.05);color:#172033}.leave-heading,.list-title{display:flex;justify-content:space-between;align-items:center;gap:16px}.leave-heading h3{margin:4px 0;font-size:21px}.leave-heading p{margin:0;color:#64748b}.eyebrow{font-size:11px;font-weight:800;color:#2563eb;letter-spacing:.08em}.primary-btn,.secondary-btn,.approve-btn,.danger-btn,.info-btn{border:0;border-radius:10px;padding:11px 16px;font-weight:750;cursor:pointer}.primary-btn{background:#2563eb;color:#fff}.secondary-btn{background:#e2e8f0;color:#334155}.approve-btn{background:#059669;color:#fff}.danger-btn{background:#dc2626;color:#fff}.info-btn{background:#d97706;color:#fff}button:disabled{opacity:.55;cursor:not-allowed}.leave-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:18px;padding:18px;border-radius:15px;background:#f8fafc}.leave-form label{display:flex;flex-direction:column;gap:7px;font-weight:700;font-size:13px}.leave-form input,.leave-form select,.leave-form textarea,.review-actions input,.list-title select{border:1px solid #cbd5e1;border-radius:10px;padding:11px;background:#fff;color:#172033}.leave-form small{color:#64748b;font-weight:500}.wide{grid-column:1/-1}.form-actions{display:flex;justify-content:flex-end;gap:10px;background:transparent !important;padding:0 !important;border:none !important;margin-top:12px}.request-list,.admin-review{margin-top:20px}.list-title{padding-bottom:10px;border-bottom:1px solid #e2e8f0}.list-title span{font-size:12px;color:#64748b}.request-card,.review-card{position:relative;display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:10px;padding:15px;border:1px solid #e2e8f0;border-radius:13px;background:#fff}.request-card p,.review-card p{margin:5px 0;color:#475569}.request-card small,.review-card small{color:#64748b}.request-side{display:flex;flex-direction:column;align-items:flex-end;gap:9px}.status{display:inline-flex;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:800;background:#fef3c7;color:#92400e}.status.approved{background:#d1fae5;color:#065f46}.status.rejected,.status.cancelled{background:#fee2e2;color:#991b1b}.status.needs_info{background:#ffedd5;color:#9a3412}.danger-link{border:0;background:none;color:#dc2626;font-weight:700;cursor:pointer}.manager-note{grid-column:1/-1;padding:9px 11px;border-radius:9px;background:#f1f5f9}.review-card{grid-template-columns:180px minmax(250px,1fr) auto}.employee{display:flex;flex-direction:column}.review-actions{grid-column:1/-1;display:flex;gap:8px}.review-actions input{flex:1}.empty{padding:24px;text-align:center;color:#64748b}.admin-review{padding-top:18px;border-top:2px solid #e2e8f0}
 :global(.admin-layout.theme-dark) .leave-panel,:global(html[data-admin-theme='dark']) .leave-panel,:global(.admin-layout.theme-dark) .request-card,:global(.admin-layout.theme-dark) .review-card{background:#111827;border-color:#374151;color:#f8fafc}:global(.admin-layout.theme-dark) .leave-form{background:#0b1220}:global(.admin-layout.theme-dark) .leave-form input,:global(.admin-layout.theme-dark) .leave-form select,:global(.admin-layout.theme-dark) .leave-form textarea,:global(.admin-layout.theme-dark) .review-actions input,:global(.admin-layout.theme-dark) .list-title select{background:#1f2937;border-color:#4b5563;color:#fff}
 @media(max-width:850px){.leave-form{grid-template-columns:1fr}.wide{grid-column:auto}.review-card{grid-template-columns:1fr}.review-actions{grid-column:auto;flex-wrap:wrap}.review-actions input{flex-basis:100%}.leave-heading{align-items:flex-start;flex-direction:column}.request-card{grid-template-columns:1fr}.request-side{align-items:flex-start}}
 </style>
@@ -311,7 +311,10 @@ onMounted(() => props.admin ? fetchAdmin() : fetchMine())
 .request-list { margin-top: 16px; }
 .list-title { padding-bottom: 8px; }
 .request-card,
-.review-card { margin-top: 8px; padding: 13px 15px; gap: 8px 16px; }
+.review-card,
+.empty { margin-top: 14px; }
+.request-card,
+.review-card { padding: 13px 15px; gap: 8px 16px; }
 .request-card p,
 .review-card p { margin: 3px 0; }
 .manager-note { padding: 8px 10px; }
@@ -386,42 +389,242 @@ onMounted(() => props.admin ? fetchAdmin() : fetchMine())
 </style>
 
 <style>
-.admin-layout.theme-dark .leave-panel,
-html[data-admin-theme='dark'] .leave-panel {
-  background: #111827;
-  border-color: #374151;
-  color: #f8fafc;
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
 }
-.admin-layout.theme-dark .leave-panel .request-card,
-.admin-layout.theme-dark .leave-panel .review-card,
-html[data-admin-theme='dark'] .leave-panel .request-card,
-html[data-admin-theme='dark'] .leave-panel .review-card {
-  background: #151e2d;
-  border-color: #374151;
-  color: #f8fafc;
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel .request-card,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel .review-card,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel .empty {
+  background: #181d24 !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
 }
-.admin-layout.theme-dark .leave-panel .leave-form,
-html[data-admin-theme='dark'] .leave-panel .leave-form {
-  background: #0b1220;
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel .leave-form {
+  background: #13171f !important;
+  border-color: #334155 !important;
 }
-.admin-layout.theme-dark .leave-panel p,
-.admin-layout.theme-dark .leave-panel small,
-html[data-admin-theme='dark'] .leave-panel p,
-html[data-admin-theme='dark'] .leave-panel small {
-  color: #b8c4d6;
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel .form-actions {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
 }
-.admin-layout.theme-dark .leave-panel input,
-.admin-layout.theme-dark .leave-panel select,
-.admin-layout.theme-dark .leave-panel textarea,
-html[data-admin-theme='dark'] .leave-panel input,
-html[data-admin-theme='dark'] .leave-panel select,
-html[data-admin-theme='dark'] .leave-panel textarea {
-  background: #1f2937;
-  border-color: #4b5563;
-  color: #f8fafc;
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel p,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel small {
+  color: #b8c4d6 !important;
 }
-.admin-layout.theme-dark .leave-panel .manager-note,
-html[data-admin-theme='dark'] .leave-panel .manager-note {
-  background: #202c3d;
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel input,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel select,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel textarea {
+  background: #13171f !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel .manager-note {
+  background: #253346 !important;
+  border: 1px solid #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel .leave-status {
+  background: rgba(245, 158, 11, 0.2) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.45) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel .leave-status.approved {
+  background: rgba(34, 197, 94, 0.2) !important;
+  color: #4ade80 !important;
+  border: 1px solid rgba(34, 197, 94, 0.45) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel .leave-status.rejected,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel .leave-status.cancelled {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #f87171 !important;
+  border: 1px solid rgba(239, 68, 68, 0.45) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel .history-pagination button {
+  background: #253346 !important;
+  border-color: #334155 !important;
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel .history-pagination button:disabled {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #64748b !important;
+  opacity: 0.5 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel .history-pagination span {
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel .view-btn {
+  background: #253346 !important;
+  border-color: #334155 !important;
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .leave-panel .view-btn:hover {
+  background: #1e293b !important;
+  color: #93c5fd !important;
 }
 </style>

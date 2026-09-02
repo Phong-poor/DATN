@@ -16,7 +16,7 @@ return new class extends Migration
             $table->date('ngay_ket_thuc')->nullable();
             $table->json('thu_lam_viec');
             $table->timestamps();
-            $table->foreign('id_nhanvien')->references('id')->on('khachhang')->cascadeOnDelete();
+            $table->foreign('id_nhanvien')->references('id')->on('admins')->cascadeOnDelete();
         });
     }
 

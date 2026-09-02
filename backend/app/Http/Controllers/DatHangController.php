@@ -13,9 +13,11 @@ use App\Models\DatHangChiTiet;
 use App\Models\DiaChi;
 use App\Models\GioHang;
 use App\Models\Promotion;
+use App\Models\User;
 use App\Models\UserVoucher;
 use App\Models\XuHistory;
 use App\Services\DemoShipmentService;
+use App\Services\AffiliateCommissionService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -30,6 +32,45 @@ use Illuminate\Support\Facades\Schema;
  */
 class DatHangController extends Controller
 {
+    public function __construct(private readonly AffiliateCommissionService $affiliateCommissionService)
+    {
+    }
+
+    /** Lock every customer account sharing the same phone after repeated confirmed order bombing. */
+    private function enforceBombRiskPolicy(?User $customer): bool
+    {
+        if (! $customer || $customer->vaitro !== 'user') return false;
+
+        $phone = preg_replace('/\D+/', '', (string) $customer->sodienthoai);
+        $accountIds = User::query()->where('vaitro', 'user')->get(['id', 'sodienthoai'])
+            ->filter(fn ($user) => $phone !== '' && preg_replace('/\D+/', '', (string) $user->sodienthoai) === $phone)
+            ->pluck('id');
+        if ($accountIds->isEmpty()) $accountIds = collect([$customer->id]);
+
+        $orders = DatHang::whereIn('id_khachhang', $accountIds)->get(['id_dathang', 'du_lieu_thanh_toan']);
+        $deliveryOrders = 0;
+        $confirmedBombs = 0;
+        foreach ($orders as $order) {
+            $shipment = ($order->du_lieu_thanh_toan ?? [])['shipping_demo'] ?? [];
+            if (empty($shipment['tracking_code'])) continue;
+            $deliveryOrders++;
+            $reason = mb_strtolower((string) ($shipment['return_reason'] ?? $shipment['last_failure_reason'] ?? ''), 'UTF-8');
+            $refused = str_contains($reason, 'từ chối');
+            $failedThreeTimes = (int) ($shipment['delivery_attempts'] ?? 0) >= 3 && ! empty($shipment['returned_at']);
+            if ($refused || $failedThreeTimes) $confirmedBombs++;
+        }
+
+        $rate = $deliveryOrders > 0 ? ($confirmedBombs / $deliveryOrders) * 100 : 0;
+        if ($confirmedBombs < 3 || $rate < 50) return false;
+
+        User::whereIn('id', $accountIds)->where('vaitro', 'user')->update(['trangthai' => 'locked']);
+        Log::warning('Automatically locked accounts for repeated confirmed order bombing.', [
+            'account_ids' => $accountIds->values()->all(), 'phone' => $phone,
+            'confirmed_bombs' => $confirmedBombs, 'delivery_orders' => $deliveryOrders,
+        ]);
+        return true;
+    }
+
     private function safeBroadcastOrderStatus(DatHang $order): void
     {
         try {
@@ -141,7 +182,7 @@ class DatHangController extends Controller
         $shipment = [
             'provider' => 'NextGen Express',
             'tracking_code' => $trackingCode,
-            'fee' => 30000,
+            'fee' => 0,
             'cod_amount' => $isCod ? (int) $order->tongtien : 0,
             'service_area' => $plan['service_area'],
             'service_level' => $plan['service_level'],
@@ -192,12 +233,17 @@ class DatHangController extends Controller
         $paymentData = $this->paymentDataWithStatusTime($order, $orderStatus);
         $paymentData['shipping_demo'] = $shipment;
 
+        if (! $order->id_nhanvien && Auth::id()) {
+            $extraUpdates['id_nhanvien'] = Auth::id();
+            $order->id_nhanvien = Auth::id();
+        }
+
         $order->update(array_merge([
             'trangthai' => $orderStatus,
             'du_lieu_thanh_toan' => $paymentData,
         ], $extraUpdates));
 
-        return $order->fresh(['user', 'chi_tiets.bienThe.sanPham']);
+        return $order->fresh(['user', 'nhanVien', 'chi_tiets.bienThe.sanPham']);
     }
 
     private function normalizedFailureReason(?string $reason): string
@@ -358,10 +404,10 @@ class DatHangController extends Controller
         ];
     }
 
-    private function syncDueDemoShipments(): void
+    private function syncDueDemoShipments(bool $broadcastUpdates = true): void
     {
         try {
-            app(DemoShipmentService::class)->syncDueShipments();
+            app(DemoShipmentService::class)->syncDueShipments($broadcastUpdates);
         } catch (\Throwable $error) {
             // Shipment simulation is auxiliary. It must never prevent customers
             // from viewing their existing orders when the sync temporarily fails.
@@ -389,10 +435,18 @@ class DatHangController extends Controller
         try {
             DB::beginTransaction();
 
+            $cancelPaymentData = $this->paymentDataWithStatusTime($order, 'cancelled');
+            $cancelPaymentData['cancellation'] = [
+                'source' => 'customer',
+                'stage' => $order->trangthai,
+                'reason' => $request->lydo ?? 'Người dùng hủy đơn',
+                'cancelled_at' => now()->toDateTimeString(),
+            ];
+
             $order->update([
                 'trangthai' => 'cancelled',
                 'lydo' => $request->lydo ?? 'Người dùng hủy đơn',
-                'du_lieu_thanh_toan' => $this->paymentDataWithStatusTime($order, 'cancelled'),
+                'du_lieu_thanh_toan' => $cancelPaymentData,
             ]);
 
             foreach ($order->chi_tiets as $chiTiet) {
@@ -514,16 +568,37 @@ class DatHangController extends Controller
             'id_diachi' => 'nullable|integer',
             'diachi' => 'required_without:id_diachi|string|min:8|max:500',
             'PTTT' => 'required|string|in:COD,VNPay,VNPAY,vnpay,MoMo,MOMO,momo,SePay,SEPAY,sepay,Chuyển khoản,Chuyen khoản,bank,Bank',
-            'name' => ['required', 'string', 'min:2', 'max:100', 'regex:/^[\pL\pM\s.\'-]+$/u'],
+            // Accept common school/company prefixes in a recipient name, e.g. "(FPOLY HCM) ...".
+            'name' => ['required', 'string', 'min:2', 'max:100', 'regex:/^[\pL\pM\s.\'()\-]+$/u'],
             'phone' => ['required', 'string', 'regex:/^0(3|5|7|8|9)[0-9]{8}$/'],
             'selected_cart_items' => 'nullable|array',
             'selected_cart_items.*' => 'integer|exists:giohang,id_giohang',
             'selected_variants' => 'nullable|array',
             'selected_variants.*' => 'integer|exists:bienthe,id_bienthe',
+            // Attribution is best-effort: an expired/deleted video must never block checkout.
+            'affiliate_video_id' => 'nullable|integer|min:1',
+            'chatbot_order' => 'nullable|boolean',
+            'deposit_percent' => 'nullable|integer|min:1|max:100',
+            'deposit_amount' => 'nullable|numeric|min:0',
+            'remaining_amount' => 'nullable|numeric|min:0',
         ]);
 
         $userId = Auth::id();
         $diaChiGiaoHang = $request->diachi;
+
+        if (strtoupper((string) $request->PTTT) === 'COD') {
+            $hasActiveCodOrder = DatHang::where('id_khachhang', $userId)
+                ->where('PTTT', 'COD')
+                ->whereIn('trangthai', ['pending', 'confirmed', 'shipping'])
+                ->exists();
+
+            if ($hasActiveCodOrder) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn đang có một đơn COD chưa hoàn tất. Vui lòng hoàn tất hoặc hủy đơn cũ trước khi đặt đơn mới.',
+                ], 409);
+            }
+        }
 
         $recentUnpaidOrders = DatHang::where('id_khachhang', $userId)
             ->where('created_at', '>=', now()->subMinutes(30))
@@ -537,15 +612,15 @@ class DatHangController extends Controller
             ], 429);
         }
 
-        if ($request->PTTT === 'COD') {
-            $hasActiveCodOrder = DatHang::where('id_khachhang', $userId)
+        if (strtoupper($request->PTTT) === 'COD') {
+            $hasActiveCod = DatHang::where('id_khachhang', $userId)
                 ->where('PTTT', 'COD')
-                ->where('trangthai', 'pending')
+                ->whereNotIn('trangthai', ['done', 'completed', 'cancelled', 'refunded', 'failed'])
                 ->exists();
-            if ($hasActiveCodOrder) {
+            if ($hasActiveCod) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Bạn đã có một đơn COD đang chờ xử lý. Vui lòng hoàn tất hoặc hủy đơn đó trước khi đặt thêm.',
+                    'message' => 'Bạn đang có đơn hàng COD đang xử lý. Vui lòng hoàn thành đơn hàng trước khi đặt đơn mới.',
                 ], 409);
             }
         }
@@ -903,11 +978,31 @@ class DatHangController extends Controller
                         'freeship_code' => $request->freeship_code,
                         'selected_cart_items' => $selectedCartItems->all(),
                         'selected_variants' => $selectedVariants->all(),
+                        'order_source' => $request->boolean('chatbot_order') ? 'chatbot' : 'web',
+                        'chatbot_order' => $request->boolean('chatbot_order'),
+                        'shipping_fee' => $shippingFee,
+                        'shipping_discount' => $giamGiaShip,
+                        'shipping_payable' => $shippingAfterPromo,
+                        'items_subtotal' => $subtotalAfterPromo,
                     ],
                     'status_history' => [
                         'pending' => now()->toDateTimeString(),
                     ],
                 ];
+                if ($request->boolean('chatbot_order')) {
+                    $depositAmount = min(
+                        (float) $tongTienSauGiam,
+                        max(0, (float) $request->input('deposit_amount', 0))
+                    );
+                    $orderData['du_lieu_thanh_toan']['deposit'] = [
+                        'required' => true,
+                        'percent' => (int) $request->input('deposit_percent', 50),
+                        'required_amount' => $depositAmount,
+                        'remaining_due' => max(0, (float) $tongTienSauGiam - $depositAmount),
+                        'shipping_due_on_delivery' => $shippingAfterPromo,
+                        'status' => 'awaiting_transfer',
+                    ];
+                }
             }
 
             $donHang = DatHang::create($orderData);
@@ -958,6 +1053,11 @@ class DatHangController extends Controller
 
                 DatHangChiTiet::create($orderDetailData);
             }
+
+            $this->affiliateCommissionService->createPendingFromVideo(
+                $donHang->fresh(),
+                $request->input('affiliate_video_id')
+            );
 
             // Xóa giỏ hàng sau khi đặt hàng thành công (tất cả payment methods)
             $deleteQuery = GioHang::where('id_khachhang', $userId);
@@ -1052,6 +1152,8 @@ class DatHangController extends Controller
             // ─────────────────────────────────────────────────────────────
 
             DB::commit();
+
+            $this->syncDueDemoShipments(false);
 
             // Invalidate dashboard cache
             Cache::forget('dashboard_data_all');
@@ -1162,12 +1264,34 @@ class DatHangController extends Controller
                 return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
             }
 
-            $paymentData = array_merge($order->du_lieu_thanh_toan ?? [], [
+            $existingPaymentData = $order->du_lieu_thanh_toan ?? [];
+            $reportedAmount = (float) ($validated['amount'] ?? 0);
+            $isChatbotDeposit = (bool) data_get($existingPaymentData, 'checkout.chatbot_order', false)
+                || data_get($existingPaymentData, 'checkout.order_source') === 'chatbot'
+                || (($validated['method'] ?? '') === 'momo_personal_qr' && $reportedAmount > 0 && $reportedAmount < (float) $order->tongtien);
+            $paymentData = array_merge($existingPaymentData, [
                 'manual_notice_at' => now()->toDateTimeString(),
                 'manual_notice_amount' => $validated['amount'] ?? null,
                 'manual_notice_memo' => $validated['memo'] ?? null,
                 'manual_notice_method' => $validated['method'] ?? 'momo_personal_qr',
             ]);
+            if ($isChatbotDeposit) {
+                $shippingFee = (float) data_get($existingPaymentData, 'checkout.shipping_payable', 30000);
+                data_set($paymentData, 'checkout.order_source', 'chatbot');
+                data_set($paymentData, 'checkout.chatbot_order', true);
+                data_set($paymentData, 'checkout.shipping_fee', (float) data_get($existingPaymentData, 'checkout.shipping_fee', 30000));
+                data_set($paymentData, 'checkout.shipping_payable', $shippingFee);
+                $paymentData['deposit'] = array_merge($existingPaymentData['deposit'] ?? [], [
+                    'required' => true,
+                    'percent' => 50,
+                    'required_amount' => $reportedAmount,
+                    'reported_paid_amount' => $reportedAmount,
+                    'remaining_due' => max(0, (float) $order->tongtien - $reportedAmount),
+                    'shipping_due_on_delivery' => $shippingFee,
+                    'status' => 'awaiting_verification',
+                    'reported_at' => now()->toDateTimeString(),
+                ]);
+            }
 
             $order->update([
                 'trang_thai_thanh_toan' => 'pending',
@@ -1229,7 +1353,9 @@ class DatHangController extends Controller
 
     public function orders()
     {
-        $this->syncDueDemoShipments();
+        // Keep demo shipment statuses current, but never make a read request wait
+        // for an unavailable realtime server.
+        $this->syncDueDemoShipments(false);
 
         $userId = Auth::id();
         $orders = DatHang::with(['chi_tiets.bienThe.sanPham'])
@@ -1295,17 +1421,19 @@ class DatHangController extends Controller
             ], 400);
         }
 
-        if ($order->updated_at && $order->updated_at->lt(now()->subDays(30))) {
+        $refundWindowDays = max(1, (int) config('orders.refund_window_days', 7));
+        if ($order->updated_at && $order->updated_at->lt(now()->subDays($refundWindowDays))) {
             return response()->json([
                 'success' => false,
-                'message' => 'Đơn hàng đã quá thời hạn yêu cầu hoàn trả 30 ngày.',
+                'message' => "Đơn hàng đã quá thời hạn yêu cầu hoàn trả {$refundWindowDays} ngày.",
             ], 422);
         }
 
         // 1. Kiểm tra trạng thái upload tệp từ PHP server (bắt lỗi UPLOAD_ERR_*)
-        if ($request->hasFile('proof')) {
-            $proofFile = $request->file('proof');
-            if (!$proofFile->isValid()) {
+        $checkFiles = $request->hasFile('proofs') ? $request->file('proofs') : ($request->hasFile('proof') ? [$request->file('proof')] : []);
+        if (!is_array($checkFiles)) $checkFiles = [$checkFiles];
+        foreach ($checkFiles as $proofFile) {
+            if ($proofFile && !$proofFile->isValid()) {
                 $errCode = $proofFile->getError();
                 $errMsg = $proofFile->getErrorMessage();
                 $maxUpload = ini_get('upload_max_filesize');
@@ -1313,42 +1441,48 @@ class DatHangController extends Controller
 
                 $detailMsg = "Lỗi tải tệp (Mã {$errCode}: {$errMsg}). Cấu hình PHP hiện tại: upload_max_filesize={$maxUpload}, post_max_size={$maxPost}.";
                 if ($errCode === UPLOAD_ERR_INI_SIZE || $errCode === UPLOAD_ERR_FORM_SIZE) {
-                    $detailMsg = "Tệp bị PHP chặn do vượt quá upload_max_filesize ({$maxUpload}) hoặc post_max_size ({$maxPost}) của Hosting. Vui lòng đặt cả 2 thông số này bằng 64M hoặc 2G trong cPanel.";
+                    $detailMsg = "Tệp bị chặn do vượt quá upload_max_filesize ({$maxUpload}) hoặc post_max_size ({$maxPost}).";
                 } elseif ($errCode === UPLOAD_ERR_CANT_WRITE || $errCode === UPLOAD_ERR_NO_TMP_DIR) {
-                    $detailMsg = "Lỗi phân quyền hoặc dung lượng thư mục tạm (upload_tmp_dir) trên Hosting. Mã lỗi: {$errCode}.";
+                    $detailMsg = "Lỗi phân quyền hoặc dung lượng thư mục tạm (upload_tmp_dir). Mã lỗi: {$errCode}.";
                 }
 
                 return response()->json([
                     'success' => false,
                     'message' => $detailMsg,
-                    'errors' => ['proof' => [$detailMsg]]
+                    'errors' => ['proofs' => [$detailMsg]]
                 ], 422);
             }
         }
 
         // 2. Kiểm tra dữ liệu hợp lệ
-        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
-            'lydo' => 'required|string',
-            'proof' => [
-                'required',
-                'file',
-                'max:51200',
-                function ($attribute, $value, $fail) {
-                    if ($value && $value->isValid()) {
-                        $ext = strtolower($value->getClientOriginalExtension());
-                        $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mov', 'avi', 'wmv', 'webm', 'mkv', 'flv', '3gp', 'quicktime'];
-                        if (!in_array($ext, $allowed)) {
-                            $fail('Định dạng tệp không được hỗ trợ. Vui lòng chọn tệp ảnh hoặc video (MP4, MOV, AVI, JPG, PNG).');
-                        }
+        $fileValidationRules = [
+            'file',
+            'max:51200',
+            function ($attribute, $value, $fail) {
+                if ($value && $value->isValid()) {
+                    $ext = strtolower($value->getClientOriginalExtension());
+                    $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mov', 'avi', 'wmv', 'webm', 'mkv', 'flv', '3gp', 'quicktime'];
+                    if (!in_array($ext, $allowed)) {
+                        $fail('Định dạng tệp không được hỗ trợ. Vui lòng chọn tệp ảnh hoặc video (MP4, MOV, AVI, JPG, PNG).');
                     }
                 }
-            ],
+            }
+        ];
+
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+            'lydo' => 'required|string',
+            'proof' => array_merge(['required_without:proofs'], $fileValidationRules),
+            'proofs' => 'required_without:proof|array|min:1',
+            'proofs.*' => $fileValidationRules,
             'item_ids' => 'required|array|min:1',
             'item_ids.*' => 'integer|distinct',
         ], [
+            'proof.required_without' => 'Vui lòng đính kèm tệp ảnh hoặc video bằng chứng.',
+            'proofs.required_without' => 'Vui lòng đính kèm tệp ảnh hoặc video bằng chứng.',
             'proof.uploaded' => 'Tệp bằng chứng tải lên thất bại do giới hạn upload_max_filesize của PHP Hosting.',
             'proof.max' => 'Tệp bằng chứng không được vượt quá 50MB.',
-            'proof.required' => 'Vui lòng đính kèm tệp ảnh hoặc video bằng chứng.',
+            'proofs.*.max' => 'Tệp bằng chứng không được vượt quá 50MB.',
+            'proofs.*.uploaded' => 'Tệp bằng chứng tải lên thất bại.',
             'lydo.required' => 'Vui lòng nhập lý do hoàn trả.',
             'item_ids.required' => 'Vui lòng chọn ít nhất 1 sản phẩm cần hoàn trả.',
         ]);
@@ -1380,7 +1514,7 @@ class DatHangController extends Controller
                 if (!is_array($files)) $files = [$files];
                 foreach ($files as $file) {
                     if ($file && $file->isValid()) {
-                        $filename = time().'_'.$file->getClientOriginalName();
+                        $filename = $file->hashName();
                         $proofPaths[] = $file->storeAs('refund_proofs', $filename, 'public');
                     }
                 }
@@ -1443,6 +1577,18 @@ class DatHangController extends Controller
     {
         $order = DatHang::findOrFail($id);
 
+        // API phía khách hàng chỉ được sửa đơn của chính họ. API admin đã được
+        // middleware admin kiểm tra quyền don_hang_sua trước khi tới đây.
+        if (! $request->is('api/admin/*') && (int) $order->id_khachhang !== (int) $request->user()->id) {
+            abort(403, 'Bạn không có quyền cập nhật đơn hàng này.');
+        }
+
+        $request->validate([
+            'proof' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,video/x-msvideo,video/webm', 'max:51200'],
+            'proofs' => ['nullable', 'array', 'max:8'],
+            'proofs.*' => ['file', 'mimetypes:image/jpeg,image/png,image/gif,image/webp,video/mp4,video/quicktime,video/x-msvideo,video/webm', 'max:51200'],
+        ]);
+
         $existing = [];
         $proofSource = $order->minh_chung_hoan_tien 
             ?? $order->minh_chung 
@@ -1465,7 +1611,7 @@ class DatHangController extends Controller
             if (!is_array($files)) $files = [$files];
             foreach ($files as $file) {
                 if ($file && $file->isValid()) {
-                    $filename = time().'_'.$file->getClientOriginalName();
+                    $filename = $file->hashName();
                     $proofPaths[] = $file->storeAs('refund_proofs', $filename, 'public');
                 }
             }
@@ -1526,24 +1672,34 @@ class DatHangController extends Controller
             abort(404, 'Thieu duong dan tep.');
         }
 
-        $normalized = ltrim(str_replace(['\\', '..'], ['/', ''], $path), '/');
+        $decoded = rawurldecode((string) $path);
+        if (str_contains($decoded, "\0") || str_contains($decoded, '..') || str_starts_with($decoded, '/') || preg_match('/^[A-Za-z]:/', $decoded)) {
+            abort(400, 'Duong dan tep khong hop le.');
+        }
+
+        $normalized = str_replace('\\', '/', $decoded);
+        if (! str_starts_with($normalized, 'refund_proofs/') || substr_count($normalized, '/') !== 1) {
+            abort(403, 'Khong duoc phep truy cap tep nay.');
+        }
+
+        $user = $request->user();
+        $query = DatHang::query();
+        if ($user->vaitro === 'user') {
+            $query->where('id_khachhang', $user->id);
+        }
+
+        $needle = addcslashes($normalized, '%_\\');
+        $isReferenced = $query->where(function ($query) use ($needle) {
+            $query->where('minh_chung_hoan_tien', 'like', "%{$needle}%")
+                ->orWhere('du_lieu_thanh_toan', 'like', "%{$needle}%");
+        })->exists();
+
+        if (! $isReferenced) {
+            abort(403, 'Ban khong co quyen truy cap tep nay.');
+        }
 
         if (\Illuminate\Support\Facades\Storage::disk('public')->exists($normalized)) {
             return response()->file(\Illuminate\Support\Facades\Storage::disk('public')->path($normalized));
-        }
-
-        if (\Illuminate\Support\Facades\Storage::disk('local')->exists($normalized)) {
-            return response()->file(\Illuminate\Support\Facades\Storage::disk('local')->path($normalized));
-        }
-
-        $directPath = storage_path('app/' . $normalized);
-        if (file_exists($directPath)) {
-            return response()->file($directPath);
-        }
-
-        $directPublicPath = storage_path('app/public/' . $normalized);
-        if (file_exists($directPublicPath)) {
-            return response()->file($directPublicPath);
         }
 
         abort(404, 'Khong tim thay tep bang chung.');
@@ -1553,9 +1709,9 @@ class DatHangController extends Controller
 
     public function allOrders()
     {
-        $this->syncDueDemoShipments();
+        $this->syncDueDemoShipments(false);
 
-        $orders = DatHang::with(['user', 'chi_tiets.bienThe.sanPham'])
+        $orders = DatHang::with(['user', 'nhanVien', 'chi_tiets.bienThe.sanPham'])
             ->where(function ($query) {
                 $query->whereNotIn('PTTT', ['vnpay', 'momo'])
                     ->orWhereIn('trang_thai_thanh_toan', ['paid', 'refunded']);
@@ -1591,7 +1747,15 @@ class DatHangController extends Controller
 
         $pttt = strtolower(trim((string)$order->PTTT));
         $isBankTransfer = in_array($pttt, ['chuyen_khoan', 'chuyenkhoan', 'sepay', 'vnpay', 'momo']);
-        if ($isBankTransfer && $order->trang_thai_thanh_toan !== 'paid' && in_array($newStatus, ['confirmed', 'shipping', 'done'])) {
+        $paymentData = $order->du_lieu_thanh_toan ?? [];
+        $isChatbotOrder = (bool) data_get($paymentData, 'checkout.chatbot_order', false)
+            || data_get($paymentData, 'checkout.order_source') === 'chatbot';
+        $isBankTransfer = $isBankTransfer || $isChatbotOrder;
+        $depositVerified = in_array(data_get($paymentData, 'deposit.status'), ['verified', 'balance_collected'], true);
+        $paymentAllowsProcessing = $order->trang_thai_thanh_toan === 'paid'
+            || ($isChatbotOrder && $order->trang_thai_thanh_toan === 'partially_paid' && $depositVerified);
+
+        if ($isBankTransfer && ! $paymentAllowsProcessing && in_array($newStatus, ['confirmed', 'shipping', 'done'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Đơn hàng chuyển khoản chưa được thanh toán. Vui lòng bấm "Xác nhận đã thanh toán" trước khi chuyển trạng thái đơn hàng.',
@@ -1648,6 +1812,19 @@ class DatHangController extends Controller
                 'trangthai' => $newStatus,
                 'du_lieu_thanh_toan' => $this->paymentDataWithStatusTime($order, $newStatus),
             ];
+            if (!$order->id_nhanvien && Auth::id()) {
+                $updateData['id_nhanvien'] = Auth::id();
+                $order->id_nhanvien = Auth::id();
+            }
+            if ($newStatus === 'cancelled') {
+                $updateData['du_lieu_thanh_toan']['cancellation'] = [
+                    'source' => 'admin',
+                    'stage' => $oldStatus,
+                    'reason' => $request->lydo ?? 'Quản trị viên hủy đơn',
+                    'cancelled_at' => now()->toDateTimeString(),
+                    'cancelled_by' => Auth::id(),
+                ];
+            }
             if ($newStatus === 'cancelled' && $request->has('lydo')) {
                 $updateData['lydo'] = $request->lydo;
             }
@@ -1676,6 +1853,8 @@ class DatHangController extends Controller
             // Broadcast the status update safely
             $this->safeBroadcastOrderStatus($order);
 
+            $order->load(['user', 'nhanVien', 'chi_tiets.bienThe.sanPham']);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Cập nhật trạng thái thành công!',
@@ -1700,11 +1879,51 @@ class DatHangController extends Controller
 
         $order = DatHang::with(['chi_tiets.bienThe', 'user'])->findOrFail($id);
 
-        $newStatus = in_array(strtolower($request->trang_thai_thanh_toan), ['paid', 'da_thanhtoan']) ? 'paid' : 'unpaid';
+        $requestedStatus = strtolower((string) $request->trang_thai_thanh_toan);
+        $newStatus = in_array($requestedStatus, ['paid', 'da_thanhtoan'], true) ? 'paid' : 'unpaid';
+        $paymentData = $order->du_lieu_thanh_toan ?? [];
+        $isChatbotOrder = (bool) data_get($paymentData, 'checkout.chatbot_order', false)
+            || data_get($paymentData, 'checkout.order_source') === 'chatbot';
+        $depositStatus = (string) data_get($paymentData, 'deposit.status', '');
+        $confirmingDeposit = $isChatbotOrder
+            && $newStatus === 'paid'
+            && ! in_array($depositStatus, ['verified', 'balance_collected'], true);
+
+        if ($confirmingDeposit) {
+            $depositAmount = (float) data_get(
+                $paymentData,
+                'deposit.reported_paid_amount',
+                data_get($paymentData, 'deposit.required_amount', 0)
+            );
+            $shippingFee = (float) data_get($paymentData, 'checkout.shipping_payable', 30000);
+            $paymentData['deposit'] = array_merge($paymentData['deposit'] ?? [], [
+                'required' => true,
+                'percent' => (int) data_get($paymentData, 'deposit.percent', 50),
+                'verified_paid_amount' => $depositAmount,
+                'remaining_due' => max(0, (float) $order->tongtien - $depositAmount),
+                'shipping_due_on_delivery' => $shippingFee,
+                'status' => 'verified',
+                'verified_at' => now()->toDateTimeString(),
+                'verified_by' => Auth::id(),
+            ]);
+            $newStatus = 'partially_paid';
+        } elseif ($isChatbotOrder && $newStatus === 'paid') {
+            $remainingDue = (float) data_get($paymentData, 'deposit.remaining_due', 0);
+            $paymentData['deposit'] = array_merge($paymentData['deposit'] ?? [], [
+                'status' => 'balance_collected',
+                'remaining_collected_amount' => $remainingDue,
+                'remaining_collected_at' => now()->toDateTimeString(),
+                'remaining_collected_by' => Auth::id(),
+            ]);
+        }
+
+        $history = $paymentData['status_history'] ?? [];
+        $history[$newStatus] = now()->toDateTimeString();
+        $paymentData['status_history'] = $history;
 
         $updateData = [
             'trang_thai_thanh_toan' => $newStatus,
-            'du_lieu_thanh_toan' => $this->paymentDataWithStatusTime($order, $newStatus),
+            'du_lieu_thanh_toan' => $paymentData,
         ];
 
         if ($newStatus === 'paid') {
@@ -1717,7 +1936,9 @@ class DatHangController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Cập nhật trạng thái thanh toán thành công!',
+            'message' => $confirmingDeposit
+                ? 'Đã xác minh khách hàng thanh toán cọc 50%. Đơn hàng còn phần tiền nhận khi giao.'
+                : 'Cập nhật trạng thái thanh toán thành công!',
             'order' => $order->fresh(),
         ]);
     }
@@ -1749,6 +1970,9 @@ class DatHangController extends Controller
             $order = $this->saveShipment($order, $shipment, 'confirmed');
 
             DB::commit();
+            foreach (['all', 'week', 'month', 'year'] as $dashboardPeriod) {
+                Cache::forget("dashboard_data_v9_{$dashboardPeriod}");
+            }
             $this->safeBroadcastOrderStatus($order);
 
             return response()->json([
@@ -1888,7 +2112,15 @@ class DatHangController extends Controller
 
             $order = $this->saveShipment($order, $shipment, 'shipping', $extraUpdates);
 
+            $accountLocked = $this->enforceBombRiskPolicy($order->user);
+            if ($accountLocked) {
+                $message .= ' Tài khoản đã bị khóa do vi phạm chính sách bom hàng nhiều lần.';
+            }
+
             DB::commit();
+            foreach (['all', 'week', 'month', 'year'] as $dashboardPeriod) {
+                Cache::forget("dashboard_data_v9_{$dashboardPeriod}");
+            }
             $this->safeBroadcastOrderStatus($order);
 
             return response()->json([
@@ -2063,5 +2295,215 @@ class DatHangController extends Controller
         } catch (\Exception $e) {
             Log::error('Lỗi dọn dẹp đơn hàng chưa thanh toán: '.$e->getMessage());
         }
+    }
+
+    public function assignEmployee(Request $request, $id)
+    {
+        $request->validate([
+            'id_nhanvien' => 'nullable|exists:admins,id',
+        ]);
+
+        $order = DatHang::findOrFail($id);
+        $order->id_nhanvien = $request->id_nhanvien;
+        $order->save();
+
+        $order->load(['user', 'nhanVien', 'chi_tiets.bienThe.sanPham']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Phân công nhân viên xử lý đơn hàng thành công!',
+            'order' => $order,
+        ]);
+    }
+
+    public function getEmployeesList()
+    {
+        $roleMap = [
+            'admin' => 'Quản trị viên',
+            'order_manager' => 'Xử lý đơn hàng',
+            'editor' => 'Biên tập viên',
+            'marketing' => 'Marketing',
+            'nhanvien' => 'Nhân viên',
+            'nhan_vien' => 'Nhân viên',
+            'accountant' => 'Kế toán',
+            'ke_toan' => 'Kế toán',
+            'thukho' => 'Thủ kho',
+            'thu_kho' => 'Thủ kho',
+            'inventory' => 'Thủ kho',
+            'affiliate_manager' => 'Quản lý Affiliate',
+            'support' => 'Tư vấn viên',
+            'user' => 'Khách hàng',
+        ];
+
+        try {
+            $customRoles = \App\Models\VaiTro::pluck('ten_vaitro', 'ma_vaitro')->toArray();
+            foreach ($customRoles as $code => $label) {
+                if (!empty($code) && !empty($label)) {
+                    $roleMap[strtolower(trim($code))] = $label;
+                }
+            }
+        } catch (\Throwable $th) {}
+
+        $employees = \App\Models\Admin::select('id', 'ten', 'email', 'vaitro')
+            ->where(function ($q) {
+                $q->whereNull('vaitro')
+                  ->orWhere('vaitro', '!=', 'user');
+            })
+            ->orderBy('ten', 'asc')
+            ->get()
+            ->map(function ($admin) use ($roleMap) {
+                $code = strtolower(trim((string)$admin->vaitro));
+                $label = $roleMap[$code] ?? ($admin->ten_vaitro_hienthi ?: ($admin->vaitro ?: 'Nhân viên'));
+
+                return [
+                    'id' => $admin->id,
+                    'name' => $admin->ten ?: ($admin->email ?: 'Nhân viên #'.$admin->id),
+                    'ten' => $admin->ten ?: ($admin->email ?: 'Nhân viên #'.$admin->id),
+                    'email' => $admin->email,
+                    'vaitro' => $admin->vaitro,
+                    'role_label' => $label,
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'data' => $employees,
+        ]);
+    }
+
+    public function getEmployeeStats(Request $request)
+    {
+        $employeeId = $request->query('id_nhanvien');
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+        $status = $request->query('trangthai', 'done');
+
+        $query = DatHang::query();
+
+        if ($employeeId && $employeeId !== 'all') {
+            $query->where('id_nhanvien', $employeeId);
+        }
+
+        if ($status && $status !== 'all') {
+            $query->where('trangthai', $status);
+        }
+
+        if ($startDate) {
+            $query->whereDate('created_at', '>=', $startDate);
+        }
+        if ($endDate) {
+            $query->whereDate('created_at', '<=', $endDate);
+        }
+
+        $orders = $query->with(['chi_tiets.bienThe.sanPham', 'nhanVien'])->get();
+
+        $totalOrders = $orders->count();
+        $totalRevenue = $orders->sum('tongtien');
+
+        $leaderboard = [];
+        $timeline = [];
+        $products = [];
+
+        foreach ($orders as $order) {
+            $empId = $order->id_nhanvien ?? 0;
+            $empName = $order->nhanVien?->name ?? 'Chưa phân công';
+
+            $dateKey = Carbon::parse($order->created_at)->format('Y-m-d');
+
+            if (!isset($timeline[$dateKey])) {
+                $timeline[$dateKey] = [
+                    'date' => $dateKey,
+                    'orders_count' => 0,
+                    'revenue' => 0,
+                    'items_count' => 0
+                ];
+            }
+            $timeline[$dateKey]['orders_count']++;
+            $timeline[$dateKey]['revenue'] += $order->tongtien;
+
+            if ($empId) {
+                if (!isset($leaderboard[$empId])) {
+                    $leaderboard[$empId] = [
+                        'id' => $empId,
+                        'name' => $empName,
+                        'email' => $order->nhanVien?->email,
+                        'orders_count' => 0,
+                        'revenue' => 0,
+                        'items_count' => 0
+                    ];
+                }
+                $leaderboard[$empId]['orders_count']++;
+                $leaderboard[$empId]['revenue'] += $order->tongtien;
+            }
+
+            foreach ($order->chi_tiets as $item) {
+                $sp = $item->bienThe?->sanPham;
+                $bt = $item->bienThe;
+                if (!$sp) continue;
+
+                $spId = $sp->id_sanpham ?? $sp->id;
+                $spName = $sp->tenSP;
+
+                $variantName = '';
+                if ($bt->thuoc_tinh_json) {
+                    $attrs = is_array($bt->thuoc_tinh_json) ? $bt->thuoc_tinh_json : (json_decode($bt->thuoc_tinh_json, true) ?: []);
+                    $parts = [];
+                    foreach ($attrs as $k => $v) {
+                        if (is_array($v)) {
+                            if (isset($v['ten_thuoctinh']) && isset($v['giatri'])) {
+                                $parts[] = $v['ten_thuoctinh'] . ': ' . $v['giatri'];
+                            } else {
+                                foreach ($v as $subK => $subV) {
+                                    if (is_scalar($subV)) {
+                                        $parts[] = "$subK: $subV";
+                                    }
+                                }
+                            }
+                        } elseif (is_scalar($v)) {
+                            $parts[] = "$k: $v";
+                        }
+                    }
+                    $variantName = implode(', ', $parts);
+                }
+
+                $prodKey = $spId . '_' . ($bt->id_bienthe ?? 0);
+
+                if (!isset($products[$prodKey])) {
+                    $products[$prodKey] = [
+                        'product_id' => $spId,
+                        'product_name' => $spName,
+                        'variant_name' => $variantName,
+                        'image' => $bt->hinhanh ?: $sp->hinhanh ?: '',
+                        'quantity' => 0,
+                        'revenue' => 0
+                    ];
+                }
+
+                $products[$prodKey]['quantity'] += $item->soluong;
+                $products[$prodKey]['revenue'] += $item->soluong * $item->gia;
+
+                $timeline[$dateKey]['items_count'] += $item->soluong;
+                if ($empId && isset($leaderboard[$empId])) {
+                    $leaderboard[$empId]['items_count'] += $item->soluong;
+                }
+            }
+        }
+
+        usort($products, fn($a, $b) => $b['quantity'] <=> $a['quantity']);
+        usort($leaderboard, fn($a, $b) => $b['revenue'] <=> $a['revenue']);
+        ksort($timeline);
+        $timeline = array_values($timeline);
+
+        return response()->json([
+            'success' => true,
+            'summary' => [
+                'total_orders' => $totalOrders,
+                'total_revenue' => $totalRevenue,
+                'total_items' => array_sum(array_column($products, 'quantity')),
+            ],
+            'products' => array_values($products),
+            'leaderboard' => $leaderboard,
+            'timeline' => $timeline,
+        ]);
     }
 }

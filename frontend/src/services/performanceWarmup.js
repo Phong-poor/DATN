@@ -83,6 +83,8 @@ const preloadOnce = (() => {
   }
 })()
 
+export const preloadRoute = (path) => preloadOnce(path)
+
 const normalizePath = (href) => {
   try {
     const url = new URL(href, window.location.origin)

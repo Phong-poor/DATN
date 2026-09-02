@@ -16,7 +16,7 @@ class DemoShipmentService
             \Illuminate\Support\Facades\Log::warning('Không thể gửi Pusher notification OrderStatusUpdated trong DemoShipmentService: '.$e->getMessage());
         }
     }
-    public function syncDueShipments(): array
+    public function syncDueShipments(bool $broadcastUpdates = true): array
     {
         $checked = 0;
         $updated = 0;
@@ -24,7 +24,7 @@ class DemoShipmentService
 
         DatHang::whereNotIn('trangthai', ['cancelled', 'refunded', 'refund_rejected'])
             ->get()
-            ->each(function (DatHang $order) use (&$checked, &$updated, &$created) {
+            ->each(function (DatHang $order) use (&$checked, &$updated, &$created, $broadcastUpdates) {
                 $checked++;
                 $currentOrderStatus = (string) $order->trangthai;
 
@@ -51,7 +51,9 @@ class DemoShipmentService
 
                         $created++;
                         $updated++;
-                        $this->safeBroadcastOrderStatus($order->fresh(['user', 'chi_tiets.bienThe.sanPham'])));
+                        if ($broadcastUpdates) {
+                            $this->safeBroadcastOrderStatus($order->fresh(['user', 'chi_tiets.bienThe.sanPham']));
+                        }
                     }
 
                     if (in_array($currentOrderStatus, ['confirmed', 'shipping', 'done', 'completed'], true)) {
@@ -66,7 +68,9 @@ class DemoShipmentService
                         ]);
 
                         $created++;
-                        $this->safeBroadcastOrderStatus($order->fresh(['user', 'chi_tiets.bienThe.sanPham'])));
+                        if ($broadcastUpdates) {
+                            $this->safeBroadcastOrderStatus($order->fresh(['user', 'chi_tiets.bienThe.sanPham']));
+                        }
                     }
 
                     return;
@@ -97,7 +101,9 @@ class DemoShipmentService
                         ]);
 
                         $updated++;
-                        $this->safeBroadcastOrderStatus($order->fresh(['user', 'chi_tiets.bienThe.sanPham'])));
+                        if ($broadcastUpdates) {
+                            $this->safeBroadcastOrderStatus($order->fresh(['user', 'chi_tiets.bienThe.sanPham']));
+                        }
                     }
 
                     return;
@@ -133,7 +139,9 @@ class DemoShipmentService
                 ]);
 
                 $updated++;
-                $this->safeBroadcastOrderStatus($order->fresh(['user', 'chi_tiets.bienThe.sanPham'])));
+                if ($broadcastUpdates) {
+                    $this->safeBroadcastOrderStatus($order->fresh(['user', 'chi_tiets.bienThe.sanPham']));
+                }
             });
 
         return compact('checked', 'updated', 'created');

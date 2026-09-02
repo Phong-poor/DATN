@@ -7,22 +7,63 @@ use Illuminate\Http\Request;
 
 use App\Models\DatHang;
 use App\Models\User;
+use App\Models\Admin;
 use App\Models\BienThe;
 use App\Models\DatHangChiTiet;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Tổng hợp số liệu doanh thu, đơn hàng, sản phẩm và người dùng cho dashboard.
  */
 class DashboardController extends Controller
 {
+    public function dailyRevenue(Request $request)
+    {
+        $validated = $request->validate(['month' => ['nullable', 'date_format:Y-m']]);
+        $month = isset($validated['month'])
+            ? \Carbon\Carbon::createFromFormat('Y-m', $validated['month'])->startOfMonth()
+            : now()->startOfMonth();
+        $end = $month->copy()->endOfMonth();
+
+        $rows = DatHang::query()
+            ->where('trangthai', 'done')
+            ->whereBetween('updated_at', [$month, $end])
+            ->selectRaw('DATE(updated_at) as revenue_date, COUNT(*) as orders, SUM(tongtien) as revenue')
+            ->groupByRaw('DATE(updated_at)')
+            ->get()
+            ->keyBy('revenue_date');
+
+        $days = collect(range(1, $month->daysInMonth))->map(function ($day) use ($month, $rows) {
+            $date = $month->copy()->day($day)->toDateString();
+            $row = $rows->get($date);
+            $revenue = (float) ($row->revenue ?? 0);
+            return [
+                'date' => $date,
+                'day' => $day,
+                'orders' => (int) ($row->orders ?? 0),
+                'revenue' => $revenue,
+                'revenue_formatted' => number_format($revenue, 0, ',', '.') . 'đ',
+            ];
+        });
+
+        return response()->json(['data' => [
+            'month' => $month->format('Y-m'),
+            'label' => 'Tháng '.$month->format('m/Y'),
+            'days' => $days,
+            'total_orders' => (int) $days->sum('orders'),
+            'total_revenue' => (float) $days->sum('revenue'),
+            'total_revenue_formatted' => number_format((float) $days->sum('revenue'), 0, ',', '.') . 'đ',
+        ]]);
+    }
+
     public function index(Request $request)
     {
         try {
             $period = $request->query('period', 'all');
 
-            $data = Cache::remember("dashboard_data_v5_{$period}", 120, function () use ($period) {
+            $data = Cache::remember("dashboard_data_v9_{$period}", 120, function () use ($period) {
                 // ================= TIME =================
                 $now = now();
                 $dateFrom = match ($period) {
@@ -69,6 +110,12 @@ class DashboardController extends Controller
                 ->whereBetween('created_at', [$dateFrom, $now])
                 ->sum('tongtien');
             $tongDoanhThu = number_format($tongDoanhThuRaw, 0, ',', '.') . 'đ';
+
+            // Doanh thu phát sinh trong ngày: tính theo thời điểm đơn được hoàn tất/cập nhật.
+            $doanhThuHomNayRaw = DatHang::where('trangthai', 'done')
+                ->whereDate('updated_at', $now->toDateString())
+                ->sum('tongtien');
+            $doanhThuHomNay = number_format($doanhThuHomNayRaw, 0, ',', '.') . 'đ';
 
             $donHoanThanh = DatHang::where('trangthai', 'done')
                 ->whereBetween('created_at', [$dateFrom, $now])
@@ -395,8 +442,7 @@ class DashboardController extends Controller
             // ================= TRẠNG THÁI NHÂN SỰ =================
             $onlineSince = $now->copy()->subMinutes(5);
             $idleSince = $now->copy()->subMinutes(15);
-            $staffRows = User::where('vaitro', '!=', 'user')
-                ->orderByDesc('hoat_dong_cuoi_luc')
+            $staffRows = Admin::orderByDesc('hoat_dong_cuoi_luc')
                 ->limit(8)
                 ->get()
                 ->map(function ($staff) use ($onlineSince, $idleSince) {
@@ -442,9 +488,148 @@ class DashboardController extends Controller
                     ->count(),
             ];
 
+            // ================= CHÂN DUNG ĐỘ TUỔI KHÁCH MUA =================
+            // Chỉ tính đơn hoàn tất; một khách có nhiều đơn vẫn được phản ánh đúng theo sức mua.
+            $ageRanges = [
+                ['key' => 'under_18', 'label' => 'Dưới 18', 'min' => 0, 'max' => 17],
+                ['key' => '18_24', 'label' => '18–24', 'min' => 18, 'max' => 24],
+                ['key' => '25_34', 'label' => '25–34', 'min' => 25, 'max' => 34],
+                ['key' => '35_44', 'label' => '35–44', 'min' => 35, 'max' => 44],
+                ['key' => '45_plus', 'label' => 'Từ 45', 'min' => 45, 'max' => 130],
+            ];
+
+            $agePurchaseRows = DatHang::query()
+                ->join('khachhang', 'khachhang.id', '=', 'dathang.id_khachhang')
+                ->where('dathang.trangthai', 'done')
+                ->whereBetween('dathang.created_at', [$dateFrom, $now])
+                ->whereNotNull('khachhang.ngaysinh')
+                ->selectRaw('dathang.id_khachhang, khachhang.ngaysinh, COUNT(*) as orders, SUM(dathang.tongtien) as revenue')
+                ->groupBy('dathang.id_khachhang', 'khachhang.ngaysinh')
+                ->get();
+
+            $ageGroups = collect($ageRanges)->map(function ($range) use ($agePurchaseRows, $now) {
+                $customers = $agePurchaseRows->filter(function ($row) use ($range, $now) {
+                    try {
+                        $age = \Carbon\Carbon::parse($row->ngaysinh)->age;
+                        return $age >= $range['min'] && $age <= $range['max'] && $age <= $now->age + 130;
+                    } catch (\Throwable) {
+                        return false;
+                    }
+                });
+
+                return [
+                    'key' => $range['key'],
+                    'label' => $range['label'],
+                    'customers' => $customers->count(),
+                    'orders' => (int) $customers->sum('orders'),
+                    'revenue' => (float) $customers->sum('revenue'),
+                ];
+            });
+
+            $ageTotalOrders = (int) $ageGroups->sum('orders');
+            $ageGroups = $ageGroups->map(function ($group) use ($ageTotalOrders) {
+                $group['pct'] = $ageTotalOrders > 0 ? round(($group['orders'] / $ageTotalOrders) * 100, 1) : 0;
+                $group['revenue_formatted'] = number_format($group['revenue'], 0, ',', '.') . 'đ';
+                return $group;
+            })->values();
+            $ageTotalRevenue = (float) $ageGroups->sum('revenue');
+            $ageGroups = $ageGroups->map(function ($group) use ($ageTotalRevenue) {
+                $group['revenue_pct'] = $ageTotalRevenue > 0 ? round(($group['revenue'] / $ageTotalRevenue) * 100, 1) : 0;
+                return $group;
+            });
+            $topAgeGroup = $ageGroups->sortByDesc('orders')->first();
+
+            $phanTichDoTuoi = [
+                'groups' => $ageGroups,
+                'top_group' => ($topAgeGroup && $topAgeGroup['orders'] > 0) ? $topAgeGroup : null,
+                'known_customers' => $agePurchaseRows->count(),
+                'total_orders' => $ageTotalOrders,
+                'total_revenue' => $ageTotalRevenue,
+            ];
+
+            // ================= TÀI KHOẢN CÓ NGUY CƠ BOM HÀNG =================
+            // Chỉ coi là "bom" khi đã có bằng chứng ở khâu giao nhận, không đồng nhất với hủy sớm.
+            $riskOrders = DatHang::with('user')->get();
+
+            $bomHangRows = $riskOrders->groupBy(function ($order) {
+                $phone = preg_replace('/\D+/', '', (string) $order->user?->sodienthoai);
+                return $phone !== '' ? 'phone:'.$phone : 'account:'.$order->id_khachhang;
+            })->map(function ($orders) {
+                $customer = $orders->first()?->user;
+                if (! $customer || $customer->vaitro !== 'user') return null;
+
+                $confirmedBombs = 0;
+                $contactFailures = 0;
+                $customerCancellations = 0;
+                $deliveryOrders = 0;
+                $evidence = [];
+
+                foreach ($orders as $order) {
+                    $paymentData = $order->du_lieu_thanh_toan ?? [];
+                    $shipment = $paymentData['shipping_demo'] ?? [];
+                    $returnReason = mb_strtolower((string) ($shipment['return_reason'] ?? ''), 'UTF-8');
+                    $failureReason = mb_strtolower((string) ($shipment['last_failure_reason'] ?? $shipment['failure_reason'] ?? ''), 'UTF-8');
+                    $attempts = (int) ($shipment['delivery_attempts'] ?? 0);
+                    $hasShipment = ! empty($shipment['tracking_code']);
+                    if ($hasShipment) $deliveryOrders++;
+
+                    $refused = str_contains($returnReason, 'từ chối') || str_contains($failureReason, 'từ chối');
+                    $failedThreeTimes = $attempts >= 3 && ! empty($shipment['returned_at']);
+                    if ($refused || $failedThreeTimes) {
+                        $confirmedBombs++;
+                        $evidence[] = [
+                            'order_id' => (int) $order->id_dathang,
+                            'reason' => $refused ? 'Khách từ chối nhận hàng' : 'Không giao được sau 3 lần',
+                        ];
+                    } elseif ($attempts > 0) {
+                        $contactFailures += $attempts;
+                    }
+
+                    $cancelSource = $paymentData['cancellation']['source'] ?? null;
+                    $reason = mb_strtolower((string) $order->lydo, 'UTF-8');
+                    $looksLikeSystemFailure = str_contains($reason, 'thanh toán') || str_contains($reason, 'hết hạn');
+                    if ($order->trangthai === 'cancelled' && ! $looksLikeSystemFailure && $cancelSource !== 'admin') {
+                        $customerCancellations++;
+                    }
+                }
+
+                if ($confirmedBombs === 0 && $contactFailures < 2) return null;
+
+                $bombRate = $deliveryOrders > 0 ? round(($confirmedBombs / $deliveryOrders) * 100, 1) : 0;
+                $score = min(100, ($confirmedBombs * 45) + (min($contactFailures, 4) * 10) + (min($customerCancellations, 3) * 3));
+                $risk = $confirmedBombs >= 2 || $score >= 70 ? 'high' : ($score >= 40 ? 'medium' : 'low');
+                $policyLocked = $confirmedBombs >= 3 && $bombRate >= 50;
+
+                return [
+                    'id' => (int) $customer->id,
+                    'name' => $customer->ten ?: 'Khách hàng #' . $customer->id,
+                    'email' => $customer->email,
+                    'phone' => $customer->sodienthoai,
+                    'account_status' => $customer->trangthai,
+                    'policy_locked' => $policyLocked || $customer->trangthai === 'locked',
+                    'total_orders' => $orders->count(),
+                    'delivery_orders' => $deliveryOrders,
+                    'confirmed_bombs' => $confirmedBombs,
+                    'contact_failures' => $contactFailures,
+                    'customer_cancellations' => $customerCancellations,
+                    'bomb_rate' => $bombRate,
+                    'risk_score' => $score,
+                    'risk' => $risk,
+                    'evidence' => $evidence,
+                ];
+            })->filter()->sortByDesc('risk_score')->values()->take(6);
+
+            $phanTichBomHang = [
+                'items' => $bomHangRows,
+                'flagged_accounts' => $bomHangRows->count(),
+                'confirmed_bombs' => (int) $bomHangRows->sum('confirmed_bombs'),
+                'definition' => 'Đối chiếu theo tài khoản và số điện thoại. Tự khóa khi có từ 3 vụ bom xác nhận và tỷ lệ bom từ 50%.',
+            ];
+
                 return [
                     'period'              => $period,
                     'doanh_thu'           => $tongDoanhThu,
+                    'doanh_thu_hom_nay'   => $doanhThuHomNay,
                     'khach_hang'          => $tongKhachHang,
                     'bien_the'            => $tongBienThe,
                     'trang_thai'          => $trangThai,
@@ -460,6 +645,8 @@ class DashboardController extends Controller
                     'phan_tich'             => $phanTich,
                     'nhan_su_hoat_dong'     => $nhanSuHoatDong,
                     'khach_hang_hoat_dong'  => $khachHangHoatDong,
+                    'phan_tich_do_tuoi'     => $phanTichDoTuoi,
+                    'phan_tich_bom_hang'    => $phanTichBomHang,
                 ];
             });
 

@@ -1,4 +1,4 @@
-<script setup>
+AI to lend up trophy to blood TK, let it bring charges.<script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import api from '@/services/api'
 import { getUser, updateUser } from '@/services/auth'

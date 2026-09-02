@@ -330,6 +330,44 @@
   box-shadow: none !important;
 }
 
+/* Fix browser autofill màu chữ trắng cho newsletter input */
+.newsletter-interactive-form input:-webkit-autofill,
+.newsletter-interactive-form input:-webkit-autofill:hover,
+.newsletter-interactive-form input:-webkit-autofill:focus,
+.newsletter-interactive-form input:-webkit-autofill:active,
+.input-glow-group input:-webkit-autofill,
+.input-glow-group input:-webkit-autofill:hover,
+.input-glow-group input:-webkit-autofill:focus,
+.input-glow-group input:-webkit-autofill:active,
+.newsletter-form-group input:-webkit-autofill,
+.newsletter-form-group input:-webkit-autofill:hover,
+.newsletter-form-group input:-webkit-autofill:focus,
+.newsletter-form-group input:-webkit-autofill:active {
+  -webkit-text-fill-color: #ffffff !important;
+  -webkit-box-shadow: 0 0 0px 1000px #0d1b35 inset !important;
+  box-shadow: 0 0 0px 1000px #0d1b35 inset !important;
+  caret-color: #3b82f6 !important;
+  color: #ffffff !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+}
+
+/* Fix autofill cho Footer subscribe input */
+.subscribe-input {
+  color: #f8fafc !important;
+  -webkit-text-fill-color: #f8fafc !important;
+}
+.subscribe-input:-webkit-autofill,
+.subscribe-input:-webkit-autofill:hover,
+.subscribe-input:-webkit-autofill:focus,
+.subscribe-input:-webkit-autofill:active {
+  -webkit-text-fill-color: #f8fafc !important;
+  -webkit-box-shadow: 0 0 0px 1000px #050d1d inset !important;
+  box-shadow: 0 0 0px 1000px #050d1d inset !important;
+  caret-color: #3b82f6 !important;
+  color: #f8fafc !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+}
+
 .input-wrapper input,
 .input-group input,
 .search-box input,
@@ -378,4 +416,75 @@ input:focus,
 select:focus,
 textarea:focus {
   outline: none !important;
+}
+
+/* High-emphasis commerce actions */
+.web-layout .btn-premium-glow,
+.web-layout .hero-checkout-btn,
+.web-layout .product-section .premium-products-grid .light-card .buy-button,
+.web-layout .laptop-page .hero-actions > button:first-child,
+.web-layout .laptop-page .flag-actions .buy,
+.web-layout .product-detail-wrapper .btn-buy-now,
+.web-layout .product-detail-wrapper .btn-buy-combo,
+.web-layout .promotions-shell .bento-buy-btn,
+.web-layout .cart-root .checkout-btn,
+.web-layout .checkout-page .summary .btn,
+.web-layout .chatbot-container .bot-product-buy-btn,
+.web-layout .chatbot-container .shipping-submit,
+.web-layout .chatbot-container .submit-btn.green-glow,
+.web-layout .chatbot-container .confirm-btn,
+.web-layout .chatbot-container .pay-now-btn {
+  background: #f97316 !important;
+  background-color: #f97316 !important;
+  background-image: none !important;
+  border-color: #f97316 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 8px 20px rgba(249, 115, 22, 0.35) !important;
+}
+
+.web-layout .btn-premium-glow:hover,
+.web-layout .hero-checkout-btn:hover,
+.web-layout .product-section .premium-products-grid .light-card .buy-button:hover,
+.web-layout .laptop-page .hero-actions > button:first-child:hover,
+.web-layout .laptop-page .flag-actions .buy:hover,
+.web-layout .product-detail-wrapper .btn-buy-now:hover:not(:disabled),
+.web-layout .product-detail-wrapper .btn-buy-combo:hover,
+.web-layout .promotions-shell .bento-buy-btn:hover,
+.web-layout .cart-root .checkout-btn:hover:not(:disabled),
+.web-layout .checkout-page .summary .btn:hover:not(:disabled),
+.web-layout .chatbot-container .bot-product-buy-btn:hover,
+.web-layout .chatbot-container .shipping-submit:hover,
+.web-layout .chatbot-container .submit-btn.green-glow:hover,
+.web-layout .chatbot-container .confirm-btn:hover:not(:disabled),
+.web-layout .chatbot-container .pay-now-btn:hover {
+  background: #ea580c !important;
+  background-color: #ea580c !important;
+  background-image: none !important;
+  border-color: #ea580c !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 10px 24px rgba(234, 88, 12, 0.4) !important;
+}
+
+.web-layout .btn-premium-glow:active,
+.web-layout .hero-checkout-btn:active,
+.web-layout .product-section .premium-products-grid .light-card .buy-button:active,
+.web-layout .laptop-page .hero-actions > button:first-child:active,
+.web-layout .laptop-page .flag-actions .buy:active,
+.web-layout .product-detail-wrapper .btn-buy-now:active:not(:disabled),
+.web-layout .product-detail-wrapper .btn-buy-combo:active,
+.web-layout .promotions-shell .bento-buy-btn:active,
+.web-layout .cart-root .checkout-btn:active:not(:disabled),
+.web-layout .checkout-page .summary .btn:active:not(:disabled),
+.web-layout .chatbot-container .bot-product-buy-btn:active,
+.web-layout .chatbot-container .shipping-submit:active,
+.web-layout .chatbot-container .submit-btn.green-glow:active,
+.web-layout .chatbot-container .confirm-btn:active:not(:disabled),
+.web-layout .chatbot-container .pay-now-btn:active {
+  background: #c2410c !important;
+  background-color: #c2410c !important;
+  background-image: none !important;
+  border-color: #c2410c !important;
+  box-shadow: 0 5px 14px rgba(194, 65, 12, 0.35) !important;
 }

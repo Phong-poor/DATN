@@ -18,8 +18,8 @@ class ReferralRewardService
             return null;
         }
 
-        $profile = AffiliateProfile::where('affiliate_code', $referralCode)
-            ->where('status', 'active')
+        $profile = AffiliateProfile::where('ma_affiliate', $referralCode)
+            ->where('trangthai', 'active')
             ->first();
 
         if (! $profile || (int) $profile->user_id === (int) $user->id) {
@@ -27,11 +27,11 @@ class ReferralRewardService
         }
 
         AffiliateReferral::firstOrCreate(
-            ['referred_user_id' => $user->id],
+            ['id_khachhang_duoc_gioithieu' => $user->id],
             [
-                'affiliate_user_id' => $profile->user_id,
-                'ref_code' => $referralCode,
-                'registered_at' => now(),
+                'id_affiliate_khachhang' => $profile->id_khachhang,
+                'ma_ref' => $referralCode,
+                'da_dang_ky_luc' => now(),
             ]
         );
 
@@ -57,8 +57,8 @@ class ReferralRewardService
             return null;
         }
 
-        return AffiliateProfile::where('affiliate_code', $referralCode)
-            ->where('status', 'active')
+        return AffiliateProfile::where('ma_affiliate', $referralCode)
+            ->where('trangthai', 'active')
             ->first();
     }
 

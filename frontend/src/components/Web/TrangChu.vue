@@ -8,8 +8,37 @@ import api from '../../services/api'
 import swal from '@/services/swal'
 import { handleImageFallback, imageFallbackUrl, normalizeImageUrl, productImageUrl, storageUrl } from '@/services/urls'
 import { prefetchProductsPage } from '@/services/productsPrefetch'
+import { rememberAffiliateVideo } from '@/services/affiliateAttribution'
 
 const router = useRouter()
+
+// ===== NEWSLETTER SUBSCRIBE (hero section) =====
+const heroEmail = ref('')
+const heroSubscribing = ref(false)
+const heroMessage = ref('')
+const heroError = ref(false)
+
+const heroSubscribe = async () => {
+    const email = heroEmail.value.trim()
+    heroMessage.value = ''
+    heroError.value = false
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+        heroError.value = true
+        heroMessage.value = 'Vui lòng nhập email hợp lệ.'
+        return
+    }
+    heroSubscribing.value = true
+    try {
+        const { data } = await api.post('/news-subscribe', { email })
+        heroMessage.value = data?.message || '🎉 Đăng ký thành công!'
+        heroEmail.value = ''
+    } catch (err) {
+        heroError.value = true
+        heroMessage.value = err.response?.data?.message || 'Chưa thể đăng ký. Vui lòng thử lại.'
+    } finally {
+        heroSubscribing.value = false
+    }
+}
 
 const tickerIcons = [
     '<svg class="ticker-code-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 7h11v9H3z"/><path d="M14 10h4l3 3v3h-7z"/><path d="M5 16a2 2 0 1 0 4 0"/><path d="M16 16a2 2 0 1 0 4 0"/></svg>',
@@ -19,7 +48,7 @@ const tickerIcons = [
 ]
 
 const tickerItems = [
-    '🚚 MIỄN PHÍ GIAO HÀNG HỎA TỐC CHO ĐƠN HÀNG TỪ 300K',
+    '🚚 PHÍ GIAO HÀNG TOÀN QUỐC 30.000Đ',
     '🛡️ BẢO HÀNH TOÀN DIỆN 24 THÁNG - 1 ĐỔI 1 TRONG 30 NGÀY',
     '🔄 THU CŨ ĐỔI MỚI - TRỢ GIÁ LÊN ĐẾN 2 TRIỆU ĐỒNG',
     '💳 TRẢ GÓP 0% LÃI SUẤT - DUYỆT HỒ SƠ CHỈ TRONG 5 PHÚT'
@@ -32,8 +61,8 @@ const handleImgError = (event, fallbackUrl) => handleImageFallback(event, fallba
 const defaultSlides = [
     {
         eyebrow: 'PREMIUM LAPTOP STORE 2026',
-        title: 'Sức Mạnh Hội Tụ',
-        highlight: 'Sự Tinh Tế Chuyên Sâu',
+        title: 'Sức mạnh hội tụ',
+        highlight: 'Sự tinh tế chuyên sâu',
         desc: 'Laptop cao cấp chế tác riêng cho nhà sáng tạo, game thủ chuyên nghiệp và kỹ sư công nghệ. Trải nghiệm hiệu năng vượt giới hạn vật lý với màn hình OLED đỉnh cao.',
         img: '/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png',
         deviceImg: '/hero_3d_laptop.png',
@@ -42,8 +71,8 @@ const defaultSlides = [
     },
     {
         eyebrow: 'NEW GENERATION CHIPS',
-        title: 'Hiệu Năng Vượt Trội',
-        highlight: 'Kiến Trúc AI Thế Hệ Mới',
+        title: 'Hiệu năng vượt trội',
+        highlight: 'Kiến trúc AI thế hệ mới',
         desc: 'Sở hữu ngay các cỗ máy tối tân trang bị NPU tăng tốc AI cục bộ đến 45 TOPs. Đáp ứng hoàn hảo mọi tác vụ deep learning và dựng hình 3D real-time.',
         img: '/Gemini_Generated_Image_7xfvdr7xfvdr7xfv.png',
         deviceImg: '/hero_macbook_setup.png',
@@ -52,7 +81,7 @@ const defaultSlides = [
     },
     {
         eyebrow: 'NEBULA DISPLAY TECHNOLOGY',
-        title: 'Trải Nghiệm Đắm Chìm',
+        title: 'Trải nghiệm đắm chìm',
         highlight: 'Nebula OLED 240Hz',
         desc: 'Độ sâu màu 10-bit đích thực, độ tương phản tuyệt đối 1.000.000:1 cùng tần số quét 240Hz siêu mượt. Sắc sảo trong từng chuyển động game AAA.',
         img: '/Gemini_Generated_Image_j1cibhj1cibhj1ci.png',
@@ -62,8 +91,8 @@ const defaultSlides = [
     },
     {
         eyebrow: 'NEXTGEN SHOWROOM',
-        title: 'Trải Nghiệm Đắm Chìm',
-        highlight: 'Không Gian Cao Cấp',
+        title: 'Trải nghiệm đắm chìm',
+        highlight: 'Không gian cao cấp',
         desc: 'Khám phá không gian laptop hiện đại với các dòng máy cao cấp được trưng bày thực tế cho game, sáng tạo và công việc chuyên nghiệp.',
         img: '/Gemini_Generated_Image_dp15ytdp15ytdp15.png',
         deviceImg: '/showroom_experience.png',
@@ -249,6 +278,15 @@ const newsImageUrl = (path) => {
     return normalizeImageUrl(path, newsPlaceholderImage)
 }
 
+const formatNewsDateTime = (value) => {
+    if (!value) return ''
+    const date = new Date(value)
+    if (isNaN(date.getTime())) return ''
+    const timeStr = date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false })
+    const dateStr = date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    return `${timeStr} - ${dateStr}`
+}
+
 const normalizeMediaType = (value, url = '') => {
     const type = String(value || '').toLowerCase()
     if (type.includes('video')) return 'video'
@@ -392,6 +430,7 @@ const stopAffiliateVideoDrag = (event) => {
 
 const openAffiliateVideoProduct = async (video = {}) => {
     if (video.id) {
+        rememberAffiliateVideo(video.id)
         api.post(`/affiliate-videos/${video.id}/track`, { type: 'click' }).catch(() => {})
     }
 
@@ -430,11 +469,25 @@ const mapNewsPost = (post = {}) => ({
     publishedAt: post.publishedAt || post.dang_luc || post.created_at || '',
 })
 
+const formatTitleCaseToSentence = (str) => {
+    if (!str) return ''
+    const s = String(str).trim()
+    const map = {
+        'Sức Mạnh Hội Tụ': 'Sức mạnh hội tụ',
+        'Sự Tinh Tế Chuyên Sâu': 'Sự tinh tế chuyên sâu',
+        'Hiệu Năng Vượt Trội': 'Hiệu năng vượt trội',
+        'Kiến Trúc AI Thế Hệ Mới': 'Kiến trúc AI thế hệ mới',
+        'Trải Nghiệm Đắm Chìm': 'Trải nghiệm đắm chìm',
+        'Không Gian Cao Cấp': 'Không gian cao cấp',
+    }
+    return map[s] || s
+}
+
 const mapBannerToSlide = (banner = {}) => ({
     id: banner.id,
     eyebrow: banner.chudenho || 'PREMIUM LAPTOP STORE 2026',
-    title: banner.tieude || 'Sức Mạnh Hội Tụ',
-    highlight: banner.noibat || banner.phude || 'Sự Tinh Tế Chuyên Sâu',
+    title: formatTitleCaseToSentence(banner.tieude || 'Sức mạnh hội tụ'),
+    highlight: formatTitleCaseToSentence(banner.noibat || banner.phude || 'Sự tinh tế chuyên sâu'),
     desc: banner.mota || banner.phude || '',
     img: normalizeImageUrl(banner.hinhanh, '/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png'),
     mobileImg: normalizeImageUrl(banner.hinhanh_mobile || banner.hinhanh, '/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png'),
@@ -451,8 +504,8 @@ const mapBannerToSlide = (banner = {}) => ({
 const mapApiBannerToSlide = (banner = {}) => ({
     id: banner.id,
     eyebrow: banner.eyebrow || banner.chudenho || 'PREMIUM LAPTOP STORE 2026',
-    title: banner.title || banner.tieude || 'Sức Mạnh Hội Tụ',
-    highlight: banner.highlight || banner.phude || banner.noibat || 'Sự Tinh Tế Chuyên Sâu',
+    title: formatTitleCaseToSentence(banner.title || banner.tieude || 'Sức mạnh hội tụ'),
+    highlight: formatTitleCaseToSentence(banner.highlight || banner.phude || banner.noibat || 'Sự tinh tế chuyên sâu'),
     desc: banner.description || banner.mota || banner.phude || '',
     img: normalizeImageUrl(banner.image || banner.hinhanh, '/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png'),
     mobileImg: normalizeImageUrl(banner.mobile_image || banner.hinhanh_mobile || banner.image || banner.hinhanh, '/Gemini_Generated_Image_v5vppjv5vppjv5vp (1).png'),
@@ -468,6 +521,19 @@ const mapApiBannerToSlide = (banner = {}) => ({
 
 const cachedArray = (value) => Array.isArray(value) ? value : null
 
+const HOME_LAPTOP_CATEGORY_IDS = new Set(['2', '3', '4', '7'])
+const isLaptopProduct = (product = {}) => {
+    const categoryId = String(product.id_danhmuc || '')
+    if (HOME_LAPTOP_CATEGORY_IDS.has(categoryId)) return true
+
+    const categoryName = String(product.category || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+
+    return categoryName.includes('laptop') || categoryName.includes('macbook')
+}
+
 const loadCache = () => {
     try {
         const cached = localStorage.getItem('premium_home_cache')
@@ -480,7 +546,7 @@ const loadCache = () => {
             const cachedBanners = cachedArray(parsed.bannerSlides)
             const cachedVideos = cachedArray(parsed.affiliateVideos)
 
-            if (cachedProducts) featuredProducts.value = cachedProducts
+            if (cachedProducts) featuredProducts.value = cachedProducts.filter(isLaptopProduct)
             if (cachedAccessories) featuredAccessories.value = cachedAccessories
             if (cachedCategories?.length) categories.value = cachedCategories
             if (cachedNews) latestNews.value = cachedNews
@@ -534,11 +600,14 @@ onMounted(async () => {
 
     try {
         // Gọi song song toàn bộ API lấy dữ liệu ngầm
-        const [newsRes, productsBundle, bannersRes, affiliateVideoRes] = await Promise.all([
+        const [newsRes, productsBundle, bannersRes, affiliateVideoRes, reviewsRes] = await Promise.all([
             api.get('/news', { params: { scope: 'public', per_page: 6 } }).catch(e => { console.error('News API failed', e); return { data: { data: [] } }; }),
-            prefetchProductsPage().catch(e => { console.error('Products bundle API failed', e); return { productsRaw: [], categories: [] }; }),
+            // Trang chủ phải lấy lại giá/biến thể mới nhất sau khi quản trị viên
+            // cập nhật sản phẩm; không dùng bundle cũ còn lưu giá 0 trong localStorage.
+            prefetchProductsPage({ forceRefresh: true }).catch(e => { console.error('Products bundle API failed', e); return { productsRaw: [], categories: [] }; }),
             api.get('/banners').catch(e => { console.error('Banners API failed', e); return { data: [] }; }),
-            api.get('/affiliate-videos/public', { params: { limit: 12 } }).catch(e => { console.error('Affiliate videos API failed', e); return { data: [] }; })
+            api.get('/affiliate-videos/public', { params: { limit: 12 } }).catch(e => { console.error('Affiliate videos API failed', e); return { data: [] }; }),
+            api.get('/reviews/featured', { params: { limit: 3 } }).catch(e => { console.error('Featured reviews API failed', e); return { data: { reviews: [] } }; })
         ])
 
         const fetchedNews = (newsRes.data?.data || newsRes.data?.items || []).map(mapNewsPost)
@@ -550,13 +619,13 @@ onMounted(async () => {
         
         const rawProducts = productsBundle?.productsRaw || []
         const allProducts = mapProducts(rawProducts)
-        allHomeProducts.value = allProducts
+        allHomeProducts.value = allProducts.filter(isLaptopProduct)
         
         const laptopsList = allProducts.filter(p => {
             const cat = (p.category || '').toLowerCase();
             return !cat.includes('phụ kiện') && !cat.includes('phu kien');
         })
-        featuredProducts.value = laptopsList.slice(0, 16)
+        featuredProducts.value = laptopsList.filter(isLaptopProduct).slice(0, 16)
         
         const accessoriesList = allProducts.filter(p => {
             const cat = (p.category || '').toLowerCase();
@@ -564,12 +633,15 @@ onMounted(async () => {
         })
         featuredAccessories.value = accessoriesList.slice(0, 10)
         
-        const apiCategories = (productsBundle?.categories || []).slice(0, 4)
+        const apiCategories = (productsBundle?.categories || [])
+            .filter(category => HOME_LAPTOP_CATEGORY_IDS.has(String(category.id_danhmuc || '')))
+            .slice(0, 4)
         categories.value = apiCategories.length ? apiCategories : [...defaultCategories]
 
         const apiBanners = Array.isArray(bannersRes.data) ? bannersRes.data : (bannersRes.data?.data || [])
         bannerSlides.value = apiBanners.map(mapApiBannerToSlide)
         affiliateVideos.value = Array.isArray(affiliateVideoRes.data) ? affiliateVideoRes.data : (affiliateVideoRes.data?.data || [])
+        reviews.value = (reviewsRes.data?.reviews || []).map(mapFeaturedReview).filter(review => review.content)
         primeAffiliateVideoSlider()
         saveCache()
         setTimeout(initScrollReveal, 200)
@@ -623,7 +695,7 @@ const themVaoYeuThich = async (product) => {
             await api.delete(`/yeu-thich/xoa/${existing.id}`)
             await fetchWishlistState()
             window.dispatchEvent(new Event('wishlist-updated'))
-            swal.success('Đã xóa yêu thích', 'Sản phẩm đã được bỏ khỏi danh sách yêu thích.')
+            swal.toast('Đã bỏ sản phẩm khỏi danh sách yêu thích', 'success')
             return
         }
 
@@ -636,7 +708,7 @@ const themVaoYeuThich = async (product) => {
         await api.post('/yeu-thich/them', { id_bienthe: variantId, soluong: 1 })
         await fetchWishlistState()
         window.dispatchEvent(new Event('wishlist-updated'))
-        swal.success('Thành công', `Đã thêm ${product.name} vào danh sách yêu thích! ❤️`)
+        swal.toast('Đã thêm vào sản phẩm yêu thích', 'success')
     } catch (err) {
         swal.error('Lỗi', err.response?.data?.message || 'Không thể thực hiện tác vụ.')
     }
@@ -644,11 +716,13 @@ const themVaoYeuThich = async (product) => {
 
 const formatPrice = (p) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(p)
 
-const themVaoGioHang = async (product) => {
+const themVaoGioHang = async (product, { buyNow = false } = {}) => {
     const token = getToken()
     if (!token) {
         swal.info('Yêu cầu đăng nhập', 'Vui lòng đăng nhập để tiến hành mua hàng!')
         localStorage.setItem('pendingCartItem', JSON.stringify({ id_bienthe: product.key_id, soluong: 1 }))
+        if (buyNow) localStorage.setItem('pendingBuyNow', '1')
+        else localStorage.removeItem('pendingBuyNow')
         router.push('/dang-nhap')
         return
     }
@@ -658,6 +732,10 @@ const themVaoGioHang = async (product) => {
             headers: { Authorization: `Bearer ${token}` }
         })
         window.dispatchEvent(new Event('cart-updated'))
+        if (!buyNow) {
+            swal.toast(`${product.name || 'Sản phẩm'} đã được thêm vào giỏ hàng`, 'success')
+            return
+        }
         // Lấy id_giohang từ response để chỉ checkout 1 sản phẩm
         const cartItemId = res?.data?.id_giohang || res?.data?.item?.id_giohang || res?.data?.data?.id_giohang || ''
         if (cartItemId) {
@@ -717,11 +795,17 @@ const initStatsObserver = () => {
     observer.observe(section)
 }
 
-const reviews = [
-    { name: 'Trần Minh Quân', role: 'Creative Director', content: 'Thiết kế đẹp, mua hàng dễ, tư vấn đúng nhu cầu. Máy nhận được đúng như mong đợi và hiệu suất render vượt trội.', avatar: 'https://randomuser.me/api/portraits/men/32.jpg' },
-    { name: 'Nguyễn Phương Anh', role: 'Marketing Manager', content: 'Mình rất thích cách trình bày sản phẩm và trải nghiệm đặt hàng. Không gian hiển thị tối giản nhưng cực sang trọng.', avatar: 'https://randomuser.me/api/portraits/women/44.jpg' },
-    { name: 'Lê Hoàng Nam', role: 'Pro Gamer', content: 'Cấu hình cực mạnh, tản nhiệt tốt, giao hàng siêu nhanh. Phần gaming bento nhìn cực kỳ kích thích và chuyên nghiệp.', avatar: 'https://randomuser.me/api/portraits/men/52.jpg' }
-]
+const reviews = ref([])
+
+const mapFeaturedReview = (review) => ({
+    id: review.id,
+    name: review.customer_name || 'Khách hàng',
+    role: review.product_name ? `Đã mua ${review.product_name}` : 'Khách hàng đã mua hàng',
+    content: review.content || '',
+    rating: Math.max(1, Math.min(Number(review.rating) || 5, 5)),
+    avatar: review.avatar ? storageUrl(review.avatar) : '',
+    verifiedPurchase: Boolean(review.verified_purchase),
+})
 
 // Flash Sale Countdown Logic
 const days = ref('00')
@@ -847,20 +931,105 @@ const getHeroFullTitle = (product) => {
     return baseName
 }
 
-const handlePrimaryClick = (slide) => {
-    if (slide?.link) {
-        router.push(slide.link)
+const normalizeHeroActionLabel = (label = '') => String(label)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase()
+
+const navigateHeroTarget = (target) => {
+    if (!target) return
+    if (/^https?:\/\//i.test(target)) {
+        window.location.assign(target)
         return
     }
-    if (slide.primary === 'Khám phá ngay') {
-        router.push('/san-pham')
-    } else {
-        router.push('/san-pham')
+    router.push(target)
+}
+
+const activeProductRoute = (extraQuery = {}) => {
+    const product = activeHeroProduct.value
+    if (!product?.id) return null
+    return {
+        path: `/san-pham/${product.id}`,
+        query: {
+            ...(product.key_id ? { variant: product.key_id } : {}),
+            ...extraQuery,
+        },
     }
 }
 
+const discoveryRouteForSlide = (slide = {}) => {
+    const context = normalizeHeroActionLabel([
+        slide.eyebrow,
+        slide.title,
+        slide.highlight,
+        slide.desc,
+        slide.primary,
+        slide.secondary,
+    ].filter(Boolean).join(' '))
+
+    return /phu kien|accessor|gear|ban phim|chuot|tai nghe/.test(context)
+        ? '/phu-kien'
+        : '/laptop'
+}
+
+const handlePrimaryClick = (slide) => {
+    const label = normalizeHeroActionLabel(slide?.primary)
+    if (label.includes('mua ngay')) {
+        if (activeHeroProduct.value?.key_id) {
+            checkoutHeroProduct(activeHeroProduct.value)
+        } else {
+            navigateHeroTarget('/laptop')
+        }
+        return
+    }
+    if (label.includes('uu dai') || label.includes('khuyen mai')) {
+        navigateHeroTarget('/khuyen-mai')
+        return
+    }
+    if (label.includes('showroom')) {
+        navigateHeroTarget({ path: '/laptop', hash: '#showroom-section' })
+        return
+    }
+    if (label.includes('kham pha') || label.includes('bo suu tap') || label.includes('xem san pham')) {
+        navigateHeroTarget(discoveryRouteForSlide(slide))
+        return
+    }
+    if (slide?.link) {
+        navigateHeroTarget(slide.link)
+        return
+    }
+    navigateHeroTarget(discoveryRouteForSlide(slide))
+}
+
 const handleSecondaryClick = (slide) => {
-    router.push(slide?.link || '/san-pham')
+    const label = normalizeHeroActionLabel(slide?.secondary)
+    if (label.includes('tu van') || label.includes('lien he')) {
+        navigateHeroTarget({ path: '/lien-he', query: { topic: 'tu-van-cau-hinh' } })
+        return
+    }
+    if (label.includes('so sanh')) {
+        const compareRoute = activeProductRoute({ compare: '1' })
+        navigateHeroTarget(compareRoute || '/laptop')
+        return
+    }
+    if (label.includes('uu dai') || label.includes('khuyen mai')) {
+        navigateHeroTarget('/khuyen-mai')
+        return
+    }
+    if (label.includes('showroom')) {
+        navigateHeroTarget({ path: '/laptop', hash: '#showroom-section' })
+        return
+    }
+    if (label.includes('kham pha') || label.includes('bo suu tap') || label.includes('xem san pham')) {
+        navigateHeroTarget(discoveryRouteForSlide(slide))
+        return
+    }
+    if (slide?.link) {
+        navigateHeroTarget(slide.link)
+        return
+    }
+    navigateHeroTarget(discoveryRouteForSlide(slide))
 }
 
 const checkoutHeroProduct = (product) => {
@@ -868,7 +1037,7 @@ const checkoutHeroProduct = (product) => {
         router.push(product?.id ? `/san-pham/${product.id}` : '/san-pham')
         return
     }
-    themVaoGioHang(product)
+    themVaoGioHang(product, { buyNow: true })
 }
 
 let interval = null
@@ -957,7 +1126,7 @@ onUnmounted(() => {
                             <div class="hero-trust-indicators">
                                 <div class="trust-pill">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                                    <span>Giao Hàng Miễn Phí</span>
+                                    <span>Phí Ship 30.000đ</span>
                                 </div>
                                 <div class="trust-pill">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
@@ -1060,7 +1229,7 @@ onUnmounted(() => {
                     <div class="label-wrapper flex-row-align">
                         <div>
                             <span class="ambient-label flash-badge">⚡ GIỚI HẠN THỜI GIAN</span>
-                            <h2>Flash Sale Đang Diễn Ra</h2>
+                            <h2>Flash Sale đang diễn ra</h2>
                             <p>Sở hữu ngay các siêu phẩm công nghệ với mức giá tốt nhất trong ngày.</p>
                         </div>
                         <div class="countdown-clock">
@@ -1130,7 +1299,7 @@ onUnmounted(() => {
                 <div class="section-header scroll-reveal reveal-fade-up">
                     <div class="label-wrapper">
                         <span class="ambient-label">AFFILIATE VIDEO</span>
-                        <h2>Video Review Từ Cộng Tác Viên</h2>
+                        <h2>Video review từ cộng tác viên</h2>
                         <p>Khám phá trải nghiệm thực tế, mẹo chọn máy và góc nhìn sử dụng từ cộng đồng NextGen.</p>
                     </div>
                 </div>
@@ -1210,7 +1379,7 @@ onUnmounted(() => {
                             <h3>{{ c.ten_danhmuc }}</h3>
                             <p>{{ c.mota || 'Khám phá ngay cỗ máy lý tưởng phù hợp với phong cách của bạn.' }}</p>
                             <span class="interactive-anchor">
-                                Xem Bộ Sưu Tập
+                                Xem bộ sưu tập
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
                             </span>
                         </div>
@@ -1224,7 +1393,7 @@ onUnmounted(() => {
                 <div class="section-header center scroll-reveal reveal-fade-up">
                     <div class="label-wrapper center">
                         <span class="ambient-label">SẢN PHẨM NỔI BẬT</span>
-                        <h2>Siêu Phẩm Bán Chạy Nhất</h2>
+                        <h2>Siêu phẩm bán chạy nhất</h2>
                         <p>Tuyển chọn những cỗ máy dẫn đầu phân khúc với chất liệu bền bỉ và hiệu suất tối tân.</p>
                     </div>
                 </div>
@@ -1232,13 +1401,13 @@ onUnmounted(() => {
                 <!-- Product Filters Tabs -->
                 <div class="premium-tabs-strip scroll-reveal reveal-fade-up">
                     <button class="tab-pill" :class="{ active: activeCategoryTab === 'all' }" @click="changeProductTab('all')">
-                        Tất Cả
+                        Tất cả
                     </button>
                     <button class="tab-pill" :class="{ active: activeCategoryTab === 'gaming' }" @click="changeProductTab('gaming')">
                         Gaming Series
                     </button>
                     <button class="tab-pill" :class="{ active: activeCategoryTab === 'office' }" @click="changeProductTab('office')">
-                        Văn Phòng & UltraBook
+                        Văn phòng & UltraBook
                     </button>
                     <button class="tab-pill" :class="{ active: activeCategoryTab === 'macbook' }" @click="changeProductTab('macbook')">
                         MacBook & Apple
@@ -1322,61 +1491,61 @@ onUnmounted(() => {
 
                 <div class="global-action-row">
                     <router-link to="/san-pham" class="btn btn-premium-glass">
-                        Xem Tất Cả Sản Phẩm →
+                        Xem tất cả sản phẩm →
                     </router-link>
                 </div>
             </div>
         </section>
 
         <!-- 5. FEATURED ECOSYSTEM (Rich dark technology setup) -->
-        <section class="section ecosystem-section">
+        <section v-if="false" class="section ecosystem-section">
             <div class="grid-container">
                 <div class="section-header center scroll-reveal reveal-fade-up">
                     <div class="label-wrapper center">
-                        <span class="ambient-label">HỆ SINH THÁI CAO CẤP</span>
-                        <h2>Kiến Tạo Góc Setup Trong Mơ</h2>
-                        <p>Hoàn thiện không gian chiến game và làm việc chuyên sâu với các thiết bị ngoại vi đồng bộ cao cấp.</p>
+                        <span class="ambient-label">HỆ SINH THÁI PHỤ KIỆN HIGH-END</span>
+                        <h2>Nâng tầm góc làm việc & Chơi game</h2>
+                        <p>Bộ sưu tập bàn phím, chuột, tai nghe và lót chuột cao cấp giúp hoàn thiện góc setup và tối ưu mọi trải nghiệm.</p>
                     </div>
                 </div>
 
                 <div class="bento-asymmetrical-grid scroll-reveal reveal-stagger">
-                    <div class="bento-block block-xl" style="background-image: url('https://images.unsplash.com/photo-1593640408182-31c70c8268f5?w=1000')">
+                    <div class="bento-block block-xl" style="background-image: url('https://hoanglongcomputer.vn/media/lib/11-05-2026/2174d7ca7af586a1c458e21jpg1920x1080_q100_crop-scal.jpg')">
                         <div class="block-tint"></div>
                         <div class="bento-text">
-                            <span class="bento-category-tag">TRUNG TÂM SETUP</span>
-                            <h3>Không Gian Tối Giản</h3>
-                            <p>Tối đa diện tích, đồng bộ cổng kết nối và tối ưu không gian đa nhiệm đỉnh cao.</p>
-                            <router-link to="/san-pham?cat=phu-kien" class="bento-cta-link">Khám phá ngay ➔</router-link>
+                            <span class="bento-category-tag">CHUỘT GAMING</span>
+                            <h3>Chuột Ergonomic & Gaming</h3>
+                            <p>Độ nhạy DPI cực cao, mắt đọc quang học chính xác và thiết kế cầm nắm chuẩn giải phẫu.</p>
+                            <router-link to="/phu-kien?line=mouse&scroll=catalog" class="bento-cta-link">Khám phá ngay ➔</router-link>
                         </div>
                     </div>
 
-                    <div class="bento-block block-medium" style="background-image: url('https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=600')">
+                    <div class="bento-block block-medium" style="background-image: url('https://cdn2.fptshop.com.vn/unsafe/1920x0/filters:format(webp):quality(75)/tai_nghe_gaming_chong_on_thumb_4cbcd1959c.jpg')">
                         <div class="block-tint"></div>
                         <div class="bento-text">
-                            <span class="bento-category-tag">ÂM THANH</span>
-                            <h3>Tai Nghe Chuẩn Studio</h3>
+                            <span class="bento-category-tag">TAI NGHE & ÂM THANH</span>
+                            <h3>Tai nghe chuẩn studio</h3>
                             <p>Âm thanh vòm cinematic 7.1 tích hợp mic khử ồn AI thông minh.</p>
-                            <router-link to="/san-pham?cat=phu-kien" class="bento-cta-link">Xem mẫu ➔</router-link>
+                            <router-link to="/phu-kien?line=headphone&scroll=catalog" class="bento-cta-link">Khám phá ngay ➔</router-link>
                         </div>
                     </div>
 
-                    <div class="bento-block block-medium" style="background-image: url('https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=600')">
+                    <div class="bento-block block-medium" style="background-image: url('https://phongvu.vn/cong-nghe/wp-content/uploads/2020/08/Gearvn_b%C3%A0n-ph%C3%ADm-c%C6%A1_-32.jpg')">
                         <div class="block-tint"></div>
                         <div class="bento-text">
                             <span class="bento-category-tag">BÀN PHÍM CƠ</span>
-                            <h3>Bàn Phím Custom NX</h3>
+                            <h3>Bàn phím custom NX</h3>
                             <p>Xúc giác cực nhạy, phản hồi tức thì với LED RGB tùy biến 16.8 triệu màu.</p>
-                            <router-link to="/san-pham?cat=phu-kien" class="bento-cta-link">Sở hữu ngay ➔</router-link>
+                            <router-link to="/phu-kien?line=keyboard&scroll=catalog" class="bento-cta-link">Khám phá ngay ➔</router-link>
                         </div>
                     </div>
 
-                    <div class="bento-block block-wide" style="background-image: url('https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800')">
+                    <div class="bento-block block-wide" style="background-image: url('https://linhkienstore.vn/plugins/responsive_filemanager/source/MY/BCD%20LIGHTNING/LC%20RGB%20250-350/lot-chuot-gaming-rgb-250-350%20(1).jpg')">
                         <div class="block-tint"></div>
                         <div class="bento-text">
-                            <span class="bento-category-tag">MÀN HÌNH</span>
-                            <h3>Màn Hình Cực Đỉnh OLED</h3>
-                            <p>Tần số quét 240Hz phản hồi siêu tốc, màu sắc chuẩn điện ảnh HDR chuyên nghiệp.</p>
-                            <router-link to="/san-pham?cat=phu-kien" class="bento-cta-link">Xem màn hình ➔</router-link>
+                            <span class="bento-category-tag">LÓT CHUỘT</span>
+                            <h3>Pad chuột Speed & Control</h3>
+                            <p>Bề mặt sợi dệt siêu mịn, viền khâu chống bong tróc và đế cao su chống trượt tuyệt đối.</p>
+                            <router-link to="/phu-kien?line=pad&scroll=catalog" class="bento-cta-link">Khám phá ngay ➔</router-link>
                         </div>
                     </div>
                 </div>
@@ -1389,7 +1558,7 @@ onUnmounted(() => {
                 <div class="section-header center scroll-reveal reveal-fade-up">
                     <div class="label-wrapper center">
                         <span class="ambient-label">TIÊU CHUẨN DỊCH VỤ</span>
-                        <h2>Giá Trị Xứng Tầm Thương Hiệu</h2>
+                        <h2>Giá trị xứng tầm thương hiệu</h2>
                     </div>
                 </div>
 
@@ -1398,7 +1567,7 @@ onUnmounted(() => {
                         <div class="value-icon-shield">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
                         </div>
-                        <h3>100% Chính Hãng</h3>
+                        <h3>100% chính hãng</h3>
                         <p>Cam kết toàn bộ máy mới nguyên seal, đầy đủ chứng từ xuất xứ, hóa đơn VAT rõ ràng.</p>
                     </div>
 
@@ -1406,7 +1575,7 @@ onUnmounted(() => {
                         <div class="value-icon-shield">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12H4s1 0-1-1a9 9 0 018-8v8H5zm6 0h5s-1 0 1-1a9 9 0 00-8-8v8h7z"/></svg>
                         </div>
-                        <h3>Bảo Hành 24 Tháng</h3>
+                        <h3>Bảo hành 24 tháng</h3>
                         <p>An tâm tuyệt đối với chính sách bảo hành chính hãng lâu dài và quy trình sửa chữa siêu tốc.</p>
                     </div>
 
@@ -1414,7 +1583,7 @@ onUnmounted(() => {
                         <div class="value-icon-shield">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                         </div>
-                        <h3>Giao Hàng Siêu Tốc 2H</h3>
+                        <h3>Giao hàng siêu tốc 2H</h3>
                         <p>Hỗ trợ giao hỏa tốc an toàn trong khu vực nội thành, được quyền kiểm tra máy tại chỗ trước khi nhận.</p>
                     </div>
 
@@ -1422,7 +1591,7 @@ onUnmounted(() => {
                         <div class="value-icon-shield">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
                         </div>
-                        <h3>Tư Vấn Kỹ Thuật Chuyên Sâu</h3>
+                        <h3>Tư vấn kỹ thuật chuyên sâu</h3>
                         <p>Đội ngũ kỹ sư am hiểu phần cứng luôn sẵn sàng tối ưu hóa cỗ máy phù hợp với compile stack của bạn.</p>
                     </div>
                 </div>
@@ -1435,7 +1604,7 @@ onUnmounted(() => {
                 <div class="section-header scroll-reveal reveal-fade-up">
                     <div class="label-wrapper">
                         <span class="ambient-label">KIẾN THỨC CÔNG NGHỆ</span>
-                        <h2>Tin Tức & Góc Công Nghệ</h2>
+                        <h2>Tin tức & góc công nghệ</h2>
                         <p>Phân tích chuyên sâu về kiến trúc phần cứng, đánh giá hiệu năng đồ họa và định cấu hình máy trạm tối ưu.</p>
                     </div>
                     <RouterLink to="/tin-tuc" class="magazine-explore-btn">Xem tất cả bài viết ➔</RouterLink>
@@ -1449,6 +1618,22 @@ onUnmounted(() => {
                             <span class="art-badge-tag">{{ latestNews[0].category || 'Nổi bật' }}</span>
                         </div>
                         <div class="main-art-info">
+                            <div class="art-meta-bar">
+                                <span class="art-author-pill">
+                                    <svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                    {{ latestNews[0].author || latestNews[0].author_name || 'Ban biên tập NextGen' }}
+                                </span>
+                                <span class="art-meta-divider" v-if="latestNews[0].published_at || latestNews[0].created_at">•</span>
+                                <span class="art-date-pill" v-if="latestNews[0].published_at || latestNews[0].created_at">
+                                    <svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                    {{ formatNewsDateTime(latestNews[0].published_at || latestNews[0].created_at) }}
+                                </span>
+                                <span class="art-meta-divider">•</span>
+                                <span class="art-views-pill" style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #64748b;">
+                                    <svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    {{ Number(latestNews[0].views || latestNews[0].luotxem || 0).toLocaleString() }} lượt xem
+                                </span>
+                            </div>
                             <h3>{{ latestNews[0].title }}</h3>
                             <p>{{ latestNews[0].excerpt || 'Khám phá các bài phân tích sâu về hiệu năng và các công nghệ cốt lõi mới nhất.' }}</p>
                             <RouterLink :to="`/tin-tuc/${latestNews[0].id}`" class="art-deep-link" @click.stop>Xem chi tiết bài viết ➔</RouterLink>
@@ -1462,9 +1647,27 @@ onUnmounted(() => {
                                 <img :src="newsImageUrl(n.image)" :alt="n.title" @error="handleImgError($event, newsPlaceholderImage)" />
                             </div>
                             <div class="mini-art-info">
-                                <span class="mini-tag">{{ n.category || 'Công nghệ' }}</span>
+                                <div class="mini-art-header">
+                                    <span class="mini-tag">{{ n.category || 'Công nghệ' }}</span>
+                                    <div class="mini-meta-right" style="display: flex; align-items: center; gap: 8px;">
+                                        <span class="mini-date-pill" v-if="n.published_at || n.created_at">
+                                            <svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                            {{ formatNewsDateTime(n.published_at || n.created_at) }}
+                                        </span>
+                                        <span class="mini-views-pill" style="font-size: 11px; color: #64748b; display: inline-flex; align-items: center; gap: 3px;">
+                                            <svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                                            {{ Number(n.views || n.luotxem || 0).toLocaleString() }}
+                                        </span>
+                                    </div>
+                                </div>
                                 <h3>{{ n.title }}</h3>
-                                <RouterLink :to="`/tin-tuc/${n.id}`" @click.stop>Đọc bài viết ➔</RouterLink>
+                                <div class="mini-art-footer">
+                                    <span class="mini-author">
+                                        <svg class="meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                        {{ n.author || n.author_name || 'NextGen' }}
+                                    </span>
+                                    <RouterLink :to="`/tin-tuc/${n.id}`" @click.stop class="mini-read-more">Đọc bài viết ➔</RouterLink>
+                                </div>
                             </div>
                         </article>
                     </div>
@@ -1481,27 +1684,31 @@ onUnmounted(() => {
                 <div class="section-header center scroll-reveal reveal-fade-up">
                     <div class="label-wrapper center">
                         <span class="ambient-label">Ý KIẾN KHÁCH HÀNG</span>
-                        <h2>Đồng Hành Cùng Mọi Luồng Công Việc</h2>
+                        <h2>Đồng hành cùng mọi luồng công việc</h2>
                     </div>
                 </div>
 
-                <div class="reviews-editorial-grid scroll-reveal reveal-stagger">
-                    <article class="editorial-review-card" v-for="(r, i) in reviews" :key="i">
-                        <div class="stars-row">★★★★★</div>
+                <div v-if="reviews.length" class="reviews-editorial-grid scroll-reveal reveal-stagger">
+                    <article class="editorial-review-card" v-for="r in reviews" :key="r.id">
+                        <div class="stars-row" :aria-label="`${r.rating} trên 5 sao`">
+                            <span v-for="star in 5" :key="star" :class="{ 'star-muted': star > r.rating }">★</span>
+                        </div>
                         <p class="review-quote">"{{ r.content }}"</p>
                         <div class="review-author-pill">
-                            <img :src="r.avatar" :alt="r.name" class="reviewer-avatar" />
+                            <img v-if="r.avatar" :src="r.avatar" :alt="r.name" class="reviewer-avatar" @error="handleImgError($event)" />
+                            <span v-else class="reviewer-avatar reviewer-avatar-fallback">{{ r.name.charAt(0).toUpperCase() }}</span>
                             <div class="reviewer-meta">
                                 <strong>{{ r.name }}</strong>
                                 <span>{{ r.role }}</span>
                             </div>
-                            <span class="verified-token">
+                            <span v-if="r.verifiedPurchase" class="verified-token">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"/></svg>
-                                Đã Mua
+                                Đã mua
                             </span>
                         </div>
                     </article>
                 </div>
+                <div v-else class="reviews-empty-state">Chưa có đánh giá khách hàng đã duyệt để hiển thị.</div>
             </div>
         </section>
 
@@ -1513,14 +1720,29 @@ onUnmounted(() => {
                     <div class="newsletter-layout">
                         <div class="newsletter-headline">
                             <span class="ambient-label light">KẾT NỐI HỆ THỐNG</span>
-                            <h2>Dẫn Đầu Xu Hướng Công Nghệ</h2>
+                            <h2>Dẫn đầu xu hướng công nghệ</h2>
                             <p>Nhận ngay bản tin phân tích phần cứng mới nhất, thông tin ưu đãi private độc quyền và mã giảm giá VIP sớm nhất.</p>
                         </div>
                         <div class="newsletter-interactive-form">
                             <div class="input-glow-group">
-                                <input type="email" placeholder="Nhập địa chỉ email của bạn" aria-label="Địa chỉ email đăng ký" />
-                                <button class="btn btn-premium-glow">Đăng Ký</button>
+                                <input
+                                    v-model="heroEmail"
+                                    type="email"
+                                    placeholder="Nhập địa chỉ email của bạn"
+                                    aria-label="Địa chỉ email đăng ký"
+                                    @keyup.enter="heroSubscribe"
+                                />
+                                <button
+                                    class="btn btn-premium-glow newsletter-register-btn"
+                                    :disabled="heroSubscribing"
+                                    @click="heroSubscribe"
+                                >
+                                    {{ heroSubscribing ? 'Đang gửi...' : 'Đăng ký' }}
+                                </button>
                             </div>
+                            <p v-if="heroMessage" :style="{ color: heroError ? '#fca5a5' : '#86efac', marginTop: '10px', fontSize: '13px', fontWeight: '600' }">
+                                {{ heroMessage }}
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -3293,57 +3515,77 @@ onUnmounted(() => {
 .block-tint {
     position: absolute;
     inset: 0;
-    background: linear-gradient(to top, rgba(7,12,22,0.92) 0%, rgba(7,12,22,0.4) 60%, transparent 100%);
+    background: linear-gradient(to top, rgba(7, 12, 22, 0.96) 0%, rgba(7, 12, 22, 0.65) 50%, rgba(7, 12, 22, 0.25) 100%);
     transition: all 0.4s ease;
 }
 .bento-block:hover {
     transform: translateY(-5px);
     border-color: #3b82f6;
-    box-shadow: 0 18px 42px rgba(59, 130, 246, 0.22);
+    box-shadow: 0 18px 42px rgba(59, 130, 246, 0.28);
 }
 .bento-block:hover .block-tint {
-    background: linear-gradient(to top, rgba(7,12,22,0.95) 0%, rgba(59, 130, 246, 0.14) 100%);
+    background: linear-gradient(to top, rgba(7, 12, 22, 0.98) 0%, rgba(59, 130, 246, 0.2) 100%);
 }
 .bento-text {
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
-    padding: 32px;
+    padding: 28px;
     z-index: 2;
 }
 .bento-category-tag {
-    display: block;
-    font-size: 9.5px;
+    display: inline-block;
+    font-size: 10.5px;
     font-weight: 800;
-    color: #60a5fa;
-    letter-spacing: 0.15em;
-    margin-bottom: 6px;
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.16);
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    padding: 4px 12px;
+    border-radius: 20px;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 2px 10px rgba(56, 189, 248, 0.2);
 }
 .bento-text h3 {
     font-size: 22px;
     font-weight: 800;
-    color: white;
-    margin: 0 0 6px;
+    color: #ffffff;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+    margin: 0 0 8px;
+    line-height: 1.25;
 }
 .bento-text p {
     font-size: 13.5px;
     line-height: 1.6;
-    color: #cbd5e1;
-    margin: 0 0 14px;
+    color: #f8fafc;
+    font-weight: 500;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.95);
+    margin: 0 0 16px;
+    opacity: 0.95;
 }
 .bento-cta-link {
-    display: inline-block;
-    color: #60a5fa;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #ffffff;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    padding: 9px 18px;
+    border-radius: 12px;
     font-weight: 700;
     font-size: 13px;
-    text-transform: capitalize;
-    letter-spacing: 0.05em;
-    transition: all 0.3s;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .bento-block:hover .bento-cta-link {
-    color: #bfdbfe;
-    transform: translateX(4px);
+    color: #ffffff;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
 }
 
 .block-xl {
@@ -3642,6 +3884,64 @@ onUnmounted(() => {
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
+.art-meta-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-size: 12.5px;
+    color: #64748b;
+    font-weight: 500;
+}
+.art-author-pill,
+.art-date-pill,
+.mini-date-pill,
+.mini-author {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+.art-author-pill {
+    color: #2563eb;
+    font-weight: 600;
+}
+.art-meta-divider {
+    color: #cbd5e1;
+}
+.meta-icon {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+}
+.mini-art-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+.mini-date-pill {
+    font-size: 11px;
+    color: #94a3b8;
+    font-weight: 500;
+}
+.mini-art-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: 12px;
+}
+.mini-author {
+    color: #64748b;
+    font-weight: 500;
+    font-size: 11.5px;
+}
+.mini-read-more {
+    color: var(--accent-blue);
+    font-weight: 700;
+    text-decoration: none;
+}
 .mini-art-info a {
     color: var(--col-muted);
     font-weight: 700;
@@ -3688,6 +3988,9 @@ onUnmounted(() => {
     margin-bottom: 16px;
     letter-spacing: 2px;
 }
+.stars-row .star-muted {
+    color: #cbd5e1;
+}
 .review-quote {
     font-size: 14.5px;
     line-height: 1.75;
@@ -3709,9 +4012,28 @@ onUnmounted(() => {
     object-fit: cover;
     border: 2px solid rgba(0, 0, 0, 0.05);
 }
+.reviewer-avatar-fallback {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 44px;
+    background: linear-gradient(135deg, #2563eb, #60a5fa);
+    color: #fff;
+    font-weight: 800;
+}
+.reviews-empty-state {
+    padding: 38px 24px;
+    border: 1px dashed var(--tn-border);
+    border-radius: 20px;
+    color: var(--tn-text-muted);
+    text-align: center;
+    background: var(--tn-surface);
+}
 .reviewer-meta {
     display: flex;
     flex-direction: column;
+    min-width: 0;
+    flex: 1;
 }
 .reviewer-meta strong {
     font-size: 13.5px;
@@ -3722,23 +4044,30 @@ onUnmounted(() => {
     font-size: 11px;
     color: var(--tn-text-muted);
     font-weight: 600;
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
 }
 .verified-token {
     margin-left: auto;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    font-size: 10px;
+    justify-content: center;
+    flex: 0 0 auto;
+    gap: 5px;
+    white-space: nowrap;
+    font-size: 11px;
     font-weight: 800;
-    color: var(--col-success);
-    background: rgba(37, 99, 235, 0.05);
-    border: 1px solid rgba(37, 99, 235, 0.12);
-    padding: 3px 8px;
-    border-radius: 4px;
+    color: #047857;
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    padding: 6px 10px;
+    border-radius: 999px;
 }
 .verified-token svg {
-    width: 12px;
-    height: 12px;
+    width: 14px;
+    height: 14px;
 }
 
 /* ─── 9. CYBER ECOSYSTEM NEWSLETTER CTA (Always Premium Dark Luxury themed) ─── */
@@ -3849,6 +4178,14 @@ onUnmounted(() => {
 }
 .btn-premium-glow:hover svg {
     transform: translateX(4px);
+}
+.newsletter-interactive-form .newsletter-register-btn {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+    box-shadow: 0 6px 22px rgba(37, 99, 235, 0.38);
+}
+.newsletter-interactive-form .newsletter-register-btn:hover {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+    box-shadow: 0 9px 28px rgba(37, 99, 235, 0.5);
 }
 .btn-premium-glass {
     background: rgba(255, 255, 255, 0.08);
@@ -4052,28 +4389,72 @@ onUnmounted(() => {
     .section-header h2 { font-size: 28px; }
     .category-cards-grid,
     .premium-products-grid,
-    .reviews-editorial-grid,
-    .trust-bar-section .grid-container {
+    .reviews-editorial-grid {
         grid-template-columns: 1fr;
     }
+    .trust-bar-section .grid-container {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
     .affiliate-video-card {
-        flex-basis: min(78vw, 330px);
-        height: 400px;
+        flex-basis: min(100%, 280px);
+        height: 350px;
+        border-radius: 18px;
     }
     .affiliate-slider-nav {
-        width: 42px;
-        height: 42px;
+        display: none;
+    }
+    .affiliate-video-content {
+        left: 15px;
+        right: 15px;
+        bottom: 15px;
+    }
+    .affiliate-video-badge {
+        height: 21px;
+        padding: 0 8px;
+        margin-bottom: 8px;
+        font-size: 9px;
+    }
+    .affiliate-video-content h3 {
+        font-size: 18px;
+        line-height: 1.2;
+        margin-bottom: 6px;
+    }
+    .affiliate-video-content p {
+        min-height: 34px;
+        margin-bottom: 10px;
+        font-size: 12px;
+    }
+    .affiliate-creator-row {
+        gap: 8px;
+    }
+    .affiliate-creator-row span {
+        font-size: 10.5px;
+    }
+    .affiliate-creator-row button {
+        padding: 7px 9px;
+        font-size: 10.5px;
     }
     .values-section .values-cards-grid {
         grid-template-columns: 1fr !important;
     }
     .trust-card {
+        padding: 18px 8px;
         border-right: none !important;
-        border-bottom: 1px solid rgba(255,255,255,0.05) !important;
-        padding: 24px 16px;
-    }
-    .trust-card:last-child {
         border-bottom: none !important;
+    }
+    .trust-card:nth-child(odd) {
+        border-right: 1px solid rgba(255,255,255,0.08) !important;
+    }
+    .trust-card:nth-child(-n + 2) {
+        border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+    }
+    .trust-card h3 {
+        font-size: 27px;
+        margin-bottom: 3px;
+    }
+    .trust-card p {
+        font-size: 11px;
+        line-height: 1.35;
     }
     .bento-asymmetrical-grid {
         grid-template-columns: 1fr;
@@ -4543,5 +4924,281 @@ onUnmounted(() => {
     .premium-theme .premium-tabs-strip {
         margin-bottom: 24px;
     }
+}
+
+/* Zoom-out / viewport cực rộng: toàn bộ trang chủ dùng chung một trục nội dung. */
+@media (min-width: 2400px) {
+    .premium-theme > .hero-viewport,
+    .premium-theme > .trust-bar-section,
+    .premium-theme > .section,
+    .premium-theme > .cyber-newsletter-section {
+        width: 100%;
+        max-width: 1680px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .premium-theme > .hero-viewport {
+        height: 760px;
+        min-height: 0;
+        border-radius: 0;
+    }
+
+    .premium-theme > .trust-bar-section,
+    .premium-theme > .section,
+    .premium-theme > .cyber-newsletter-section {
+        border-left: 0 !important;
+        border-right: 0 !important;
+        box-shadow: none !important;
+    }
+
+    .premium-theme > .trust-bar-section > .grid-container,
+    .premium-theme > .section > .grid-container,
+    .premium-theme > .cyber-newsletter-section > .grid-container,
+    .premium-theme .hero-container {
+        width: 100%;
+        max-width: none;
+        margin-left: 0;
+        margin-right: 0;
+    }
+}
+/* Complete mobile layout for the storefront home page. */
+@media (max-width: 640px) {
+    .home-wrapper,
+    .premium-theme {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: clip;
+    }
+
+    .premium-theme .grid-container,
+    .premium-theme .hero-container {
+        width: 100%;
+        max-width: none;
+        padding-left: 12px;
+        padding-right: 12px;
+        box-sizing: border-box;
+    }
+
+    .premium-theme .hero-viewport {
+        min-height: 720px;
+        height: auto;
+    }
+
+    .premium-theme .hero-content {
+        width: 100%;
+        min-width: 0;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 22px;
+        padding-top: 34px;
+        padding-bottom: 28px;
+    }
+
+    .premium-theme .hero-text-block,
+    .premium-theme .hero-device-wrapper,
+    .premium-theme .device-showcase-card {
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+    }
+
+    .premium-theme .hero-title {
+        font-size: clamp(36px, 11vw, 48px);
+        line-height: 1.02;
+    }
+
+    .premium-theme .hero-buttons {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .premium-theme .hero-buttons .btn {
+        min-width: 0;
+        padding: 13px 10px;
+        font-size: 12px;
+    }
+
+    .premium-theme .hero-trust-indicators {
+        flex-wrap: wrap;
+        gap: 8px 12px;
+    }
+
+    .premium-theme .hero-product-card {
+        transform: none;
+    }
+
+    .premium-theme .trust-bar-section .grid-container {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1px;
+    }
+
+    .premium-theme .trust-card {
+        min-width: 0;
+        padding: 18px 8px;
+    }
+
+    .premium-theme .section-header {
+        align-items: flex-start;
+        gap: 14px;
+    }
+
+    .premium-theme .section-header h2 {
+        font-size: clamp(27px, 9vw, 36px);
+    }
+
+    .premium-theme .affiliate-video-showcase-grid,
+    .premium-theme .flash-cyber-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .premium-theme .affiliate-video-card,
+    .premium-theme .flash-cyber-card {
+        min-width: 0;
+    }
+
+    .premium-theme .flash-card-body {
+        padding: 12px;
+    }
+
+    .premium-theme .flash-product-name {
+        min-height: 34px;
+        font-size: 12px;
+        line-height: 1.35;
+        overflow: hidden;
+    }
+
+    .premium-theme .flash-bottom-row {
+        align-items: end;
+        gap: 6px;
+    }
+
+    .premium-theme .countdown-clock {
+        flex-wrap: wrap;
+    }
+
+    .premium-theme .cyber-newsletter-section,
+    .premium-theme .combos-section {
+        width: 100%;
+        overflow: hidden;
+    }
+}
+
+@media (max-width: 330px) {
+    .premium-theme .hero-buttons {
+        grid-template-columns: 1fr;
+    }
+
+    .premium-theme .affiliate-video-showcase-grid,
+    .premium-theme .flash-cyber-grid {
+        gap: 7px;
+    }
+}
+
+/* Match the two-column product language used by the Laptop page. */
+@media (max-width: 640px) {
+    .premium-theme .premium-products-grid {
+        width: calc(100vw - 40px);
+        margin-left: calc(50% - 50vw + 20px);
+        margin-right: 0;
+        padding: 0;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 10px !important;
+    }
+
+    .premium-theme .premium-product-card {
+        min-width: 0;
+        min-height: 360px;
+        height: 360px;
+        border: 1px solid #dbe4ef;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 5px 14px rgba(15, 23, 42, .06);
+    }
+
+    .premium-theme .premium-product-card .product-visuals {
+        height: 128px;
+        min-height: 128px;
+        padding: 8px;
+        border-radius: 14px 14px 0 0;
+        background: #f5f8fc;
+    }
+
+    .premium-theme .premium-product-card .product-main-img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+
+    .premium-theme .premium-product-card .product-metadata {
+        min-height: 230px;
+        height: 230px;
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .premium-theme .premium-product-card .brand-sub {
+        font-size: 8px;
+    }
+
+    .premium-theme .premium-product-card .product-item-title {
+        min-height: 38px;
+        margin: 4px 0;
+        font-size: 11px;
+        line-height: 1.2;
+        display: -webkit-box;
+        overflow: hidden;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 3;
+    }
+
+    .premium-theme .premium-product-card .rating-strip {
+        width: 100%;
+        gap: 3px;
+        font-size: 9px;
+    }
+
+    .premium-theme .premium-product-card .card-indicators-row,
+    .premium-theme .premium-product-card .specs-pill-box {
+        width: 100%;
+        max-height: 31px;
+        overflow: hidden;
+        font-size: 8px;
+    }
+
+    .premium-theme .premium-product-card .product-pricing-strip {
+        width: 100%;
+        margin-top: auto;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .premium-theme .premium-product-card .current-price {
+        font-size: 14px;
+        letter-spacing: -.02em;
+        white-space: nowrap;
+    }
+
+    .premium-theme .premium-product-card .buy-button {
+        width: auto;
+        min-width: 0;
+        min-height: 36px;
+        padding: 8px 9px;
+        font-size: 9px;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 330px) {
+    .premium-theme .premium-products-grid { gap: 7px !important; }
+    .premium-theme .premium-product-card { height: 344px; min-height: 344px; }
+    .premium-theme .premium-product-card .product-visuals { height: 116px; min-height: 116px; }
+    .premium-theme .premium-product-card .product-metadata { height: 226px; min-height: 226px; padding: 8px; }
+    .premium-theme .premium-product-card .current-price { font-size: 12px; }
+    .premium-theme .premium-product-card .buy-button { padding: 7px; font-size: 8px; }
 }
 </style>

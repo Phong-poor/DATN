@@ -25,7 +25,7 @@ return new class extends Migration
             $table->text('ghi_chu')->nullable();
             $table->timestamps();
 
-            $table->foreign('id_nhanvien')->references('id')->on('khachhang')->onDelete('cascade');
+            $table->foreign('id_nhanvien')->references('id')->on('admins')->onDelete('cascade');
             $table->unique(['id_nhanvien', 'ngay_cham_cong']);
         });
     }

@@ -2,11 +2,15 @@
 
 namespace Tests\Feature;
 
+use App\Models\Admin;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class AdminApiSecurityTest extends TestCase
 {
+    use RefreshDatabase;
+
     #[DataProvider('removedPublicAdminRoutes')]
     public function test_dangerous_public_admin_routes_do_not_exist(
         string $method,
@@ -55,5 +59,33 @@ class AdminApiSecurityTest extends TestCase
             'variant create' => ['POST', '/api/admin/bienthe'],
             'variant image delete' => ['DELETE', '/api/admin/bienthe-hinhanh/1'],
         ];
+    }
+
+    public function test_admin_delete_accepts_numeric_admin_id_for_staff_accounts(): void
+    {
+        $actor = Admin::create([
+            'ten' => 'Quản trị viên test',
+            'email' => 'admin.delete.' . uniqid() . '@example.com',
+            'matkhau' => 'password123',
+            'sodienthoai' => '0910000000',
+            'vaitro' => 'admin',
+            'trangthai' => 'active',
+        ]);
+
+        $staff = Admin::create([
+            'ten' => 'Nhân viên test',
+            'email' => 'staff.delete.' . uniqid() . '@example.com',
+            'matkhau' => 'password123',
+            'sodienthoai' => '0900000000',
+            'vaitro' => 'marketing',
+            'trangthai' => 'active',
+        ]);
+
+        $this->actingAs($actor, 'sanctum')
+            ->deleteJson('/api/admin/users/' . $staff->id)
+            ->assertOk()
+            ->assertJsonPath('message', 'Xóa người dùng thành công');
+
+        $this->assertDatabaseMissing('admins', ['id' => $staff->id]);
     }
 }

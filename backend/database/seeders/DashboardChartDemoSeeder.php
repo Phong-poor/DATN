@@ -44,9 +44,10 @@ class DashboardChartDemoSeeder extends Seeder
             &$created,
             &$updated
         ) {
-            for ($daysAgo = 60; $daysAgo >= 0; $daysAgo--) {
+            // 12 tháng gần nhất để dashboard luôn có lịch sử ngày/tháng/năm khi demo.
+            for ($daysAgo = 364; $daysAgo >= 0; $daysAgo--) {
                 $date = $today->copy()->subDays($daysAgo);
-                $dayIndex = 60 - $daysAgo;
+                $dayIndex = 364 - $daysAgo;
                 $weekendBoost = $date->isWeekend() ? 1 : 0;
                 $campaignBoost = in_array($dayIndex, [12, 13, 29, 30, 45, 46, 58], true) ? 2 : 0;
                 $orderCount = 2 + (($dayIndex * 7 + 3) % 4) + $weekendBoost + $campaignBoost;
@@ -61,7 +62,8 @@ class DashboardChartDemoSeeder extends Seeder
                     $naturalFactor = 0.82 + ((($dayIndex * 11 + $slot * 17) % 36) / 100);
                     $unitPrice = max(3500000, round(($basePrice * $naturalFactor) / 10000) * 10000);
                     $total = $unitPrice * $quantity;
-                    $status = $statuses[($dayIndex + $slot * 2) % count($statuses)];
+                    // Luôn có ít nhất một đơn hoàn tất mỗi ngày; các đơn sau phản ánh trạng thái vận hành đa dạng.
+                    $status = $slot === 1 ? 'done' : $statuses[($dayIndex + $slot * 2) % count($statuses)];
                     $createdAt = $date->copy()->setTime(
                         8 + (($slot * 2) % 12),
                         ($dayIndex * 13 + $slot * 7) % 60
@@ -85,6 +87,11 @@ class DashboardChartDemoSeeder extends Seeder
                     $order->PTTT = $paymentMethods[($dayIndex + $slot) % count($paymentMethods)];
                     $order->trang_thai_thanh_toan = $status === 'done' ? 'paid' : 'unpaid';
                     $order->ma_don_hang_thanh_toan = $code;
+                    $order->du_lieu_thanh_toan = [
+                        'demo_seed' => 'DashboardRevenueHistorySeeder',
+                        'is_demo' => true,
+                        'note' => 'Dữ liệu mô phỏng phục vụ trình bày dashboard, không phải giao dịch thật.',
+                    ];
                     $order->created_at = $createdAt;
                     $order->updated_at = $createdAt;
                     $order->saveQuietly();

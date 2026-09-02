@@ -27,11 +27,13 @@ use App\Http\Controllers\DiaChiController;
 use App\Http\Controllers\DiemDanhController;
 use App\Http\Controllers\FlashSaleController;
 use App\Http\Controllers\FlashSaleWebController;
+use App\Http\Controllers\FooterController;
 use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\GeocodeController;
 use App\Http\Controllers\GioHangController;
 use App\Http\Controllers\LienHeController;
 use App\Http\Controllers\MomoController;
+use App\Http\Controllers\MomoPayoutController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\PromotionController;
 use App\Http\Controllers\SanPhamController;
@@ -42,9 +44,11 @@ use App\Http\Controllers\ThuongHieuController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VaiTroController;
 use App\Http\Controllers\VnpayController;
+use App\Http\Controllers\VnpayPayoutController;
 use App\Http\Controllers\VongQuayController;
 use App\Http\Controllers\XuController;
 use App\Http\Controllers\YeuThichController;
+use App\Http\Controllers\NewsletterController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -52,16 +56,18 @@ use Illuminate\Support\Facades\Route;
 Route::get('/auth/google', [AuthController::class, 'redirectGoogle']);
 Route::get('/auth/google/callback', [AuthController::class, 'handleGoogle']);
 
-Route::get('/refund-file', [DatHangController::class, 'getRefundFile']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/auth/two-factor/challenge', [AuthController::class, 'verifyTwoFactorChallenge'])->middleware('throttle:5,1');
 Route::post('/register', [AuthController::class, 'register']);
+Route::get('/footer', [FooterController::class, 'index']);
 
 // ================= QUÊN MẬT KHẨU =================
 Route::get('/vnpay/return', [VnpayController::class, 'vnpayReturn']);
 Route::get('/vnpay/ipn', [VnpayController::class, 'handleIPN']);
 Route::get('/momo/return', [MomoController::class, 'momoReturn']);
 Route::post('/momo/ipn', [MomoController::class, 'momoIpn']);
+Route::post('/payout/momo/ipn', [MomoPayoutController::class, 'ipn']);
+Route::post('/payout/vnpay/ipn', [VnpayPayoutController::class, 'ipn']);
 Route::post('/sepay/webhook', [SepayController::class, 'webhook']);
 
 Route::post('/forgot-password/send-otp', [ForgotPasswordController::class, 'sendOtp']);
@@ -87,7 +93,8 @@ Route::get('/news-tags', [NewsController::class, 'tags']);
 Route::get('/news-feed.xml', [NewsController::class, 'feed']);
 Route::get('/news-sitemap.xml', [NewsController::class, 'sitemap']);
 Route::post('/news/{id}/track', [NewsController::class, 'track'])->whereNumber('id');
-Route::post('/news-subscribe', [NewsController::class, 'subscribe']);
+Route::post('/news-subscribe', [NewsletterController::class, 'subscribe']);
+Route::post('/news-unsubscribe', [NewsletterController::class, 'unsubscribe']);
 Route::get('/banners', [BannerController::class, 'index']);
 Route::get('/flash-sale/current', [FlashSaleWebController::class, 'getCurrentSession']);
 Route::get('/vong-quay/prizes', [VongQuayController::class, 'prizes']);
@@ -132,6 +139,18 @@ Route::middleware('auth:sanctum')->group(function () {
         return response()->json([
             'success' => true,
             'online_window_seconds' => 300,
+        ]);
+    });
+    Route::match(['get', 'post'], '/user/offline', function (Request $request) {
+        $user = $request->user();
+        if ($user) {
+            $user->forceFill([
+                'hoat_dong_cuoi_luc' => now()->subMinutes(10),
+            ])->saveQuietly();
+        }
+        return response()->json([
+            'success' => true,
+            'message' => 'Marked offline',
         ]);
     });
     Route::put('/user/profile', [UserController::class, 'updateProfile']);
@@ -221,6 +240,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/affiliate/commissions', [AffiliateController::class, 'commissions']);
     Route::get('/affiliate/withdraws', [AffiliateController::class, 'withdraws']);
     Route::post('/affiliate/withdraws', [AffiliateController::class, 'requestWithdraw']);
+    Route::patch('/affiliate/withdraws/{id}/cancel', [AffiliateController::class, 'cancelWithdraw']);
     Route::get('/affiliate/wallet', [AffiliateWalletController::class, 'show']);
     Route::get('/affiliate/withdrawals', [AffiliateWithdrawalController::class, 'index']);
     Route::post('/affiliate/withdrawals', [AffiliateWithdrawalController::class, 'store']);
@@ -233,6 +253,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ===== CHAT (USER) =====
     Route::get('/chat/me', [ChatController::class, 'getUserConversation']);
     Route::post('/chat/send', [ChatController::class, 'sendMessage']);
+    Route::post('/chat/read', [ChatController::class, 'markUserRead']);
     Route::put('/chat/messages/{id}', [ChatController::class, 'updateMessage']);
     Route::delete('/chat/messages/{id}', [ChatController::class, 'destroyMessage']);
 
@@ -280,6 +301,7 @@ Route::get('/sanpham/attribute-options', [SanPhamController::class, 'attributeOp
 Route::get('/sanpham', [SanPhamController::class, 'index']);
 Route::get('/sanpham/{id}', [SanPhamController::class, 'show']);
 Route::get('/sanpham/{id}/reviews', [DanhGiaController::class, 'index']);
+Route::get('/reviews/featured', [DanhGiaController::class, 'featured']);
 
 // ================= COMBOS =================
 Route::get('/combos', [ComboController::class, 'index']);
@@ -304,6 +326,7 @@ Route::middleware(['auth:sanctum', 'admin'])
     ->group(function () {
         // ===== DASHBOARD =====
         Route::get('/dashboard', [DashboardController::class, 'index']);
+        Route::get('/dashboard/daily-revenue', [DashboardController::class, 'dailyRevenue']);
 
         Route::get('/users', [UserController::class, 'index']);
         Route::get('/users/{id}', [UserController::class, 'show']);
@@ -345,8 +368,13 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::delete('/bienthe-hinhanh/{id}', [BienTheHinhAnhController::class, 'destroy']);
         Route::get('/sanpham/export-inventory', [SanPhamController::class, 'exportInventory']);
         Route::post('/sanpham/import-stock', [SanPhamController::class, 'importStock']);
+        Route::get('/sanpham/suggest-images', [SanPhamController::class, 'suggestImages']);
+        Route::post('/sanpham/upload-excel-images', [SanPhamController::class, 'uploadExcelImages']);
+        Route::post('/sanpham/import-bulk', [SanPhamController::class, 'importBulk']);
         // ===== ADMIN ORDERS =====
         Route::get('/orders', [DatHangController::class, 'allOrders']);
+        Route::get('/orders/employee-stats', [DatHangController::class, 'getEmployeeStats']);
+        Route::put('/orders/{id}/assign-employee', [DatHangController::class, 'assignEmployee']);
         Route::post('/orders/shipment/sync-demo', [DatHangController::class, 'syncDemoShipments']);
         Route::post('/orders/{id}/shipment', [DatHangController::class, 'createDemoShipment']);
         Route::post('/orders/{id}/shipment/advance', [DatHangController::class, 'advanceDemoShipment']);
@@ -355,6 +383,7 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::put('/orders/{id}/status', [DatHangController::class, 'updateStatus']);
         Route::put('/orders/{id}/payment-status', [DatHangController::class, 'updatePaymentStatus']);
         Route::post('/orders/{id}/refund-proof', [DatHangController::class, 'uploadRefundProof']);
+        Route::get('/orders/employees-list', [DatHangController::class, 'getEmployeesList']);
         Route::delete('/orders/{id}', [DatHangController::class, 'destroyAdmin']);
 
         // ===== LIÊN HỆ ADMIN =====
@@ -435,12 +464,15 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::get('/account/two-factor', [AdminTwoFactorController::class, 'status']);
         Route::post('/account/two-factor/enable', [AdminTwoFactorController::class, 'enable'])->middleware('throttle:5,1');
         Route::post('/account/two-factor/confirm', [AdminTwoFactorController::class, 'confirm'])->middleware('throttle:5,1');
+        Route::delete('/account/two-factor/pending', [AdminTwoFactorController::class, 'cancelPending'])->middleware('throttle:5,1');
         Route::post('/account/two-factor/recovery-codes', [AdminTwoFactorController::class, 'recoveryCodes'])->middleware('throttle:3,1');
+        Route::post('/account/two-factor/recovery-codes/show', [AdminTwoFactorController::class, 'showRecoveryCodes'])->middleware('throttle:5,1');
         Route::delete('/account/two-factor', [AdminTwoFactorController::class, 'disable'])->middleware('throttle:5,1');
 
         // ===== ADMIN CHAT =====
         Route::get('/chat/conversations', [ChatController::class, 'getConversations']);
         Route::get('/chat/conversations/{id}/messages', [ChatController::class, 'getMessages']);
+        Route::post('/chat/conversations/{id}/read', [ChatController::class, 'markRead']);
         Route::delete('/chat/conversations', [ChatController::class, 'destroyConversations']);
         Route::post('/chat/send', [ChatController::class, 'sendMessage']);
         Route::put('/chat/messages/{id}', [ChatController::class, 'updateMessage']);
@@ -484,5 +516,8 @@ Route::middleware(['auth:sanctum', 'admin'])
         Route::put('/vong-quay/{id}', [VongQuayController::class, 'adminUpdate']);
         Route::delete('/vong-quay/{id}', [VongQuayController::class, 'adminDestroy']);
         Route::get('/vong-quay/lich-su', [VongQuayController::class, 'adminHistory']);
+
+        // ===== ADMIN NEWSLETTER =====
+        Route::get('/newsletter/subscribers', [NewsletterController::class, 'list']);
 
     });

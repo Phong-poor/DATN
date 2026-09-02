@@ -93,6 +93,39 @@ class ChatController extends Controller
     }
 
     /**
+     * Đánh dấu cuộc trò chuyện đã đọc (cho Admin hoặc chỉ định cuộc trò chuyện)
+     */
+    public function markRead($conversationId)
+    {
+        $conversation = Conversation::findOrFail($conversationId);
+
+        if (Auth::user()->vaitro === 'user' && $conversation->id_khachhang !== Auth::id()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $this->markConversationRead($conversationId);
+
+        return response()->json([
+            'status' => 'success',
+            'conversation_id' => $conversationId,
+        ]);
+    }
+
+    /**
+     * Đánh dấu cuộc trò chuyện của User hiện tại đã đọc
+     */
+    public function markUserRead()
+    {
+        $user = Auth::user();
+        $conversation = Conversation::where('id_khachhang', $user->id)->first();
+        if ($conversation) {
+            $this->markConversationRead($conversation->id);
+        }
+
+        return response()->json(['status' => 'success']);
+    }
+
+    /**
      * Gửi tin nhắn (hỗ trợ text và hình ảnh base64)
      */
     public function sendMessage(Request $request)
@@ -136,6 +169,7 @@ class ChatController extends Controller
             $message = ChatMessage::create([
                 'id_cuoc_tro_chuyen' => $conversationId,
                 'id_nguoigui' => $user->id,
+                'nguoigui_type' => $user::class,
                 'noidung' => $text,
                 'daxem' => false,
                 'duongdan_dinhkem' => null,
@@ -172,6 +206,7 @@ class ChatController extends Controller
             $message = ChatMessage::create([
                 'id_cuoc_tro_chuyen' => $conversationId,
                 'id_nguoigui' => $user->id,
+                'nguoigui_type' => $user::class,
                 'noidung' => $index === 0 ? $text : '',
                 'daxem' => false,
                 'duongdan_dinhkem' => $attachmentPath,
@@ -324,10 +359,18 @@ class ChatController extends Controller
 
     private function markConversationRead(int $conversationId): void
     {
-        ChatMessage::where('id_cuoc_tro_chuyen', $conversationId)
+        $count = ChatMessage::where('id_cuoc_tro_chuyen', $conversationId)
             ->where('id_nguoigui', '!=', Auth::id())
             ->where('daxem', false)
             ->update(['daxem' => true]);
+
+        if ($count > 0) {
+            try {
+                broadcast(new \App\Events\MessageRead($conversationId, Auth::id()));
+            } catch (\Exception $e) {
+                \Log::error('Lỗi broadcast tin nhắn đã đọc: ' . $e->getMessage());
+            }
+        }
     }
 
     private function saveChatAttachment(?string $base64, ?string $originalName = null): ?array

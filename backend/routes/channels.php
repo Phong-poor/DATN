@@ -19,3 +19,15 @@ Broadcast::channel('chat.{conversationId}', function ($user, $conversationId) {
     $conversation = \App\Models\Conversation::find($conversationId);
     return $user->vaitro !== 'user' || ($conversation && (int) $user->id === (int) $conversation->id_khachhang);
 });
+
+Broadcast::channel('admin-presence', function ($user) {
+    if ($user && $user->vaitro !== 'user') {
+        return [
+            'id' => (int) $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'avatar' => $user->avatar,
+        ];
+    }
+    return false;
+});

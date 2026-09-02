@@ -56,6 +56,21 @@
   gap: clamp(18px, 1.5vw, 30px) !important;
 }
 
+/* The desktop grid above must collapse before it can overflow a phone/tablet. */
+@media (max-width: 1120px) {
+  .header .header-inner {
+    grid-template-columns: 200px minmax(0, 1fr) auto !important;
+    gap: 16px !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .header .header-inner {
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr) !important;
+    gap: 10px !important;
+  }
+}
+
 .ann-bar .ann-container,
 .header .ann-container {
   width: min(var(--site-frame-max), calc(100% - var(--site-frame-outer))) !important;
@@ -344,6 +359,8 @@
   .header .header-inner {
     width: calc(100vw - 24px) !important;
     max-width: calc(100vw - 24px);
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr) !important;
+    gap: 8px !important;
   }
 
   .combo-modal {

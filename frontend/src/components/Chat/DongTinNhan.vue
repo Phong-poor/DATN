@@ -7,29 +7,46 @@
     <slot name="avatar" />
 
     <div class="bubble-col">
-      <div
-        class="msg-bubble"
-        :class="bubbleClass"
-      >
-        <div v-if="isEditing" class="edit-panel" @click.stop>
-          <textarea
-            ref="editInput"
-            v-model="editText"
-            rows="2"
-            class="edit-textarea"
-            @keydown.enter.exact.prevent="saveEdit"
-            @keydown.esc="cancelEdit"
-          />
-          <div class="edit-actions">
-            <button type="button" class="edit-btn save" @click="saveEdit">Lưu</button>
-            <button type="button" class="edit-btn cancel" @click="cancelEdit">Hủy</button>
+      <div class="bubble-content-wrap">
+        <div
+          class="msg-bubble"
+          :class="bubbleClass"
+        >
+          <div v-if="isEditing" class="edit-panel" @click.stop>
+            <textarea
+              ref="editInput"
+              v-model="editText"
+              rows="2"
+              class="edit-textarea"
+              @keydown.enter.exact.prevent="saveEdit"
+              @keydown.esc="cancelEdit"
+            />
+            <div class="edit-actions">
+              <button type="button" class="edit-btn save" @click="saveEdit">Lưu</button>
+              <button type="button" class="edit-btn cancel" @click="cancelEdit">Hủy</button>
+            </div>
           </div>
+          <template v-else>
+            <slot name="body" :msg="msg">
+              <ChatMessageBody :msg="msg" :is-own="isOwn" @open-image="$emit('open-image', $event)" />
+            </slot>
+          </template>
         </div>
-        <template v-else>
-          <slot name="body" :msg="msg">
-            <ChatMessageBody :msg="msg" :is-own="isOwn" @open-image="$emit('open-image', $event)" />
-          </slot>
-        </template>
+
+        <!-- Time sent and Read status -->
+        <div class="msg-meta-info" :class="{ 'is-own': isOwn }">
+          <span v-if="formattedTime" class="msg-time">{{ formattedTime }}</span>
+          <span v-if="isOwn" class="msg-status" :class="{ 'is-seen': isSeen }">
+            <span v-if="formattedTime" class="msg-dot">•</span>
+            <svg v-if="isSeen" class="status-icon seen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M18 6L7 17l-5-5"/><path d="M22 6l-7 7"/>
+            </svg>
+            <svg v-else class="status-icon sent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M20 6L9 17l-5-5"/>
+            </svg>
+            <span>{{ isSeen ? 'Đã xem' : 'Đã gửi' }}</span>
+          </span>
+        </div>
       </div>
 
       <div v-if="isOwn && messageId && !isEditing" class="msg-menu-container">
@@ -79,6 +96,25 @@ const saving = ref(false)
 const senderId = computed(() => props.msg.id_nguoigui ?? props.msg.sender_id)
 const isOwn = computed(() => Number(senderId.value) === Number(props.authUserId))
 const messageId = computed(() => props.msg.id)
+
+const formattedTime = computed(() => {
+  const raw = props.msg.created_at || props.msg.timestamp || props.msg.created_time || props.msg.tin_nhan_cuoi_luc
+  if (!raw) return ''
+  try {
+    const d = new Date(raw)
+    if (isNaN(d.getTime())) return ''
+    const hours = String(d.getHours()).padStart(2, '0')
+    const minutes = String(d.getMinutes()).padStart(2, '0')
+    return `${hours}:${minutes}`
+  } catch (e) {
+    return ''
+  }
+})
+
+const isSeen = computed(() => {
+  const v = props.msg.daxem ?? props.msg.da_xem ?? props.msg.is_read
+  return v === true || v === 1 || v === '1' || v === 'true'
+})
 
 const toggleMenu = () => {
   if (!isOwn.value || !messageId.value || isEditing.value) return
@@ -164,13 +200,30 @@ onUnmounted(() => {
 .bubble-col {
   position: relative;
   min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
 }
 
 .chat-message-row.is-own .bubble-col {
   display: flex;
   flex-direction: row-reverse;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
+}
+
+.bubble-content-wrap {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.chat-message-row.is-own .bubble-content-wrap {
+  align-items: flex-end;
+}
+
+.chat-message-row:not(.is-own) .bubble-content-wrap {
+  align-items: flex-start;
 }
 
 .msg-bubble {
@@ -179,6 +232,21 @@ onUnmounted(() => {
   font-size: 14px;
   line-height: 1.4;
   overflow: hidden;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+.chat-message-row.is-own .msg-bubble {
+  background: #2563eb;
+  color: #ffffff;
+  border-bottom-right-radius: 4px;
+}
+
+.chat-message-row:not(.is-own) .msg-bubble {
+  background: #ffffff;
+  color: #0f172a;
+  border-bottom-left-radius: 4px;
+  border: 1px solid #e2e8f0;
 }
 
 .msg-menu-container {
@@ -303,5 +371,132 @@ onUnmounted(() => {
 .edit-btn.cancel {
   background: #e4e6eb;
   color: #050505;
+}
+
+.msg-meta-info {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 3px;
+  padding: 0 4px;
+  font-size: 11px;
+  color: #94a3b8;
+  user-select: none;
+}
+
+.msg-meta-info.is-own {
+  justify-content: flex-end;
+}
+
+.msg-time {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.msg-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.msg-status.is-seen {
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.status-icon {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 12px;
+  stroke-width: 2.5;
+}
+
+.msg-dot {
+  font-size: 9px;
+  color: #cbd5e1;
+}
+
+/* DARK MODE OVERRIDES FOR MESSAGE ACTION MENU */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .msg-menu-trigger {
+  background: #1e293b !important;
+  color: #f8fafc !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .msg-menu-trigger:hover,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .msg-menu-trigger[aria-expanded="true"] {
+  background: #334155 !important;
+  color: #ffffff !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .msg-action-menu {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .msg-action-menu button {
+  background: transparent !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .msg-action-menu button:hover {
+  background: #222a36 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .msg-action-menu button.danger {
+  color: #f87171 !important;
 }
 </style>

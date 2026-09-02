@@ -254,8 +254,8 @@ const submit = () => {
   min-width: 0;
   display: flex;
   align-items: center;
-  background: #f8fafc;
-  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: transparent !important;
+  border: 1px solid #e2e8f0;
   border-radius: 20px;
   padding: 6px 12px;
   gap: 8px;
@@ -271,7 +271,7 @@ const submit = () => {
   background: transparent !important;
   border-radius: 0 !important;
   font-size: 14px;
-  color: #0f172a;
+  color: inherit;
   font-weight: 600;
   padding: 4px 0 !important;
 }
@@ -486,5 +486,68 @@ const submit = () => {
 
 .chat-composer.user-widget .composer-send-btn {
   background: #2563eb;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .composer-input-wrap {
+  background: transparent !important;
+  border: 1px solid #475569 !important;
+  border-radius: 20px !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .composer-input-wrap input {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .composer-input-wrap input::placeholder {
+  color: #64748b !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .emoji-picker-popover {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .emoji-item:hover {
+  background: #222a36 !important;
 }
 </style>

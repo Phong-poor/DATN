@@ -32,18 +32,15 @@ const activeTab = ref('Tất cả')
 const searchQuery = ref('')
 const showViewModal = ref(false)
 const viewOrder = ref(null)
-const selectedMonthYear = ref('Tất cả')
-const isOpenDateDropdown = ref(false)
+const filterDate = ref('') // 'YYYY-MM-DD' or ''
 
-const closeDateDropdown = (e) => {
-    if (!e.target.closest('.date-filter-dropdown')) {
-        isOpenDateDropdown.value = false
-    }
-}
+watch(filterDate, () => {
+    currentPage.value = 1
+})
 
 // Pagination
 const currentPage = ref(1)
-const itemsPerPage = 5
+const itemsPerPage = 10
 
 const pageMode = ref('orders')
 
@@ -95,7 +92,7 @@ const statusMap = {
     pending: { label: 'Chờ xác nhận', bg: '#fef9c3', color: '#ca8a04' },
     confirmed: { label: 'Đã xác nhận', bg: '#e0f2fe', color: '#0369a1' },
     shipping: { label: 'Đang giao', bg: '#dbeafe', color: '#2563eb' },
-    done: { label: 'Hoàn thành', bg: '#dcfce7', color: '#15803d' },
+    done: { label: 'Giao thành công', bg: '#dcfce7', color: '#15803d' },
     refund_pending: { label: 'Yêu cầu hoàn trả', bg: '#ffedd5', color: '#f97316' },
     refund_pickup: { label: 'Chờ lấy hàng hoàn', bg: '#fef3c7', color: '#d97706' },
     refund_delivering: { label: 'Đang giao hoàn', bg: '#dbeafe', color: '#2563eb' },
@@ -174,6 +171,15 @@ const getDisplayStatusLabel = (order) => {
     return getStatusLabel(order.status)
 }
 
+const getStatusPillClass = (status) => {
+    const s = String(status || '').toLowerCase().trim()
+    if (['delivered', 'done', 'paid'].includes(s)) return 'pill-green'
+    if (['delivery_failed', 'cancelled', 'refund_rejected', 'unpaid'].includes(s)) return 'pill-red'
+    if (['waiting_pickup', 'refund_pending', 'refund_pickup', 'pending', 'returning'].includes(s)) return 'pill-amber'
+    if (['refunded', 'returned'].includes(s)) return 'pill-purple'
+    return 'pill-blue'
+}
+
 const mapOrder = (o) => ({
     id_backend: o.id_dathang,
     id: `#VT-2026-${String(o.id_dathang).padStart(3, '0')}`,
@@ -186,6 +192,8 @@ const mapOrder = (o) => ({
     phone: o.user?.phone || '',
     address: o.diachi || '',
     shipping: o.du_lieu_thanh_toan?.shipping_demo || null,
+    id_nhanvien: o.id_nhanvien || null,
+    nhan_vien: o.nhan_vien || o.nhanVien || null,
     raw: o,
     note: '',
 })
@@ -452,16 +460,41 @@ const deleteOrder = async (id) => {
     }
 }
 
+const employees = ref([])
+const fetchEmployees = async () => {
+    try {
+        const res = await api.get('/admin/orders/employees-list')
+        if (res.data && res.data.success) {
+            employees.value = res.data.data || res.data.admins || []
+        }
+    } catch (err) {
+        console.error('Lỗi tải danh sách nhân viên:', err)
+    }
+}
+
+
+const assignEmployee = async (orderId, empId) => {
+    try {
+        const res = await api.put(`/admin/orders/${orderId}/assign-employee`, { id_nhanvien: empId })
+        if (res.data.success) {
+            swal.toast('Phân công nhân viên xử lý thành công!', 'success')
+            syncOrderFromApi(res.data.order)
+        }
+    } catch (err) {
+        swal.error('Lỗi', err.response?.data?.message || 'Không thể phân công nhân viên')
+    }
+}
+
 const syncSuccessHandler = () => {
     fetchOrders()
 }
 
 onMounted(() => {
     fetchOrders()
+    fetchEmployees()
     autoRefreshTimer = window.setInterval(() => {
         fetchOrders()
     }, 4000)
-    document.addEventListener('click', closeDateDropdown)
     window.addEventListener('offline-sync-success', syncSuccessHandler)
 
     try {
@@ -487,7 +520,6 @@ onUnmounted(() => {
         autoRefreshTimer = null
     }
     echo.leaveChannel('admin-orders')
-    document.removeEventListener('click', closeDateDropdown)
     window.removeEventListener('offline-sync-success', syncSuccessHandler)
 })
 
@@ -535,9 +567,18 @@ const filteredOrders = computed(() => {
         const matchSearch = o.id.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
             o.name.toLowerCase().includes(searchQuery.value.toLowerCase())
 
-        const d = new Date(o.raw.created_at)
-        const my = `Tháng ${d.getMonth() + 1}, ${d.getFullYear()}`
-        const matchDate = selectedMonthYear.value === 'Tất cả' || my === selectedMonthYear.value
+        let matchDate = true
+        if (filterDate.value) {
+            const d = new Date(o.raw.created_at)
+            if (!isNaN(d.getTime())) {
+                const y = d.getFullYear()
+                const m = String(d.getMonth() + 1).padStart(2, '0')
+                const day = String(d.getDate()).padStart(2, '0')
+                matchDate = `${y}-${m}-${day}` === filterDate.value
+            } else {
+                matchDate = false
+            }
+        }
 
         return matchTab && matchSearch && matchDate
     })
@@ -610,10 +651,37 @@ const getAvatarStyle = (name) => {
 
 const paymentStatusMap = {
     paid: { label: 'Đã thanh toán', bg: '#dcfce7', color: '#15803d' },
+    partially_paid: { label: 'Đã xác nhận cọc 50%', bg: '#dbeafe', color: '#1d4ed8' },
+    deposit_pending: { label: 'Chờ xác minh cọc 50%', bg: '#fef3c7', color: '#b45309' },
     unpaid: { label: 'Chưa thanh toán', bg: '#fee2e2', color: '#dc2626' },
 }
 
+const getPaymentData = (order) => order?.raw?.du_lieu_thanh_toan || {}
+const isChatbotOrder = (order) => {
+    const payment = getPaymentData(order)
+    return payment?.checkout?.chatbot_order === true || payment?.checkout?.order_source === 'chatbot'
+}
+const getDeposit = (order) => getPaymentData(order)?.deposit || {}
+const getDepositPaid = (order) => Number(
+    getDeposit(order)?.verified_paid_amount
+    || getDeposit(order)?.reported_paid_amount
+    || getDeposit(order)?.required_amount
+    || 0
+)
+const getRemainingDue = (order) => Number(
+    getDeposit(order)?.remaining_due
+    ?? Math.max(0, Number(order?.raw?.tongtien || 0) - getDepositPaid(order))
+)
+
 const getPaymentStatus = (order) => {
+    if (isChatbotOrder(order)) {
+        const depositStatus = String(getDeposit(order)?.status || '')
+        if (depositStatus === 'balance_collected') return 'paid'
+        if (depositStatus === 'verified' || order.raw?.trang_thai_thanh_toan === 'partially_paid') {
+            return 'partially_paid'
+        }
+        return 'deposit_pending'
+    }
     const method = String(order.raw?.PTTT || '').toLowerCase().trim()
     if (method === 'vnpay' || method === 'momo') {
         if (order.status === 'cancelled' && order.raw?.trang_thai_thanh_toan !== 'paid') {
@@ -645,7 +713,13 @@ const isBankTransferUnpaid = (order) => {
     const pttt = String(order.raw?.PTTT || '').toLowerCase().trim()
     const isBankTransfer = ['chuyen_khoan', 'chuyenkhoan', 'bank_transfer', 'sepay', 'vnpay', 'momo', 'chuyển khoản', 'chuyen khoản', 'bank'].some(m => pttt.includes(m))
     const paymentStatus = getPaymentStatus(order)
-    return isBankTransfer && paymentStatus === 'unpaid'
+    return isBankTransfer && ['unpaid', 'deposit_pending'].includes(paymentStatus)
+}
+
+const canConfirmChatbotBalance = (order) => {
+    if (!isChatbotOrder(order) || getPaymentStatus(order) !== 'partially_paid') return false
+    const shipmentDelivered = getShipment(order)?.status === 'delivered'
+    return shipmentDelivered || order.status === 'done'
 }
 
 const getRefundProofFiles = (proofOrRaw) => {
@@ -705,13 +779,21 @@ const isVideoFile = (file) => {
 
 const markPaymentAsPaid = async (order) => {
     if (!order) return
-    const ok = await swal.confirm('Xác nhận thanh toán', `Xác nhận đơn hàng #${order.id} đã nhận tiền chuyển khoản thành công?`)
+    const chatbot = isChatbotOrder(order)
+    const confirmingBalance = canConfirmChatbotBalance(order)
+    const title = confirmingBalance ? 'Xác nhận đã thu phần còn lại' : (chatbot ? 'Xác nhận tiền cọc 50%' : 'Xác nhận thanh toán')
+    const message = confirmingBalance
+        ? `Xác nhận đơn ${order.id} đã thu thêm ${formatMoney(getRemainingDue(order))} khi giao hàng và đã thanh toán đủ?`
+        : chatbot
+            ? `Xác nhận đã nhận khoản cọc ${formatMoney(getDepositPaid(order))} của đơn chatbot ${order.id}? Sau bước này đơn vẫn còn ${formatMoney(getRemainingDue(order))} phải thu.`
+            : `Xác nhận đơn hàng ${order.id} đã nhận đủ tiền chuyển khoản thành công?`
+    const ok = await swal.confirm(title, message)
     if (!ok) return
 
     try {
         const res = await api.put(`/admin/orders/${order.id_backend}/payment-status`, { trang_thai_thanh_toan: 'paid' })
         if (res.data.success) {
-            swal.success('Thành công', 'Đã xác nhận thanh toán đơn hàng!')
+            swal.success('Thành công', res.data.message || 'Đã xác nhận thanh toán đơn hàng!')
             if (res.data.order) {
                 syncOrderFromApi(res.data.order)
             } else {
@@ -780,8 +862,8 @@ async function exportExcel() {
             <span class="active-crumb">Quản lý đơn hàng</span>
         </div>
 
-        <!-- CATEGORY TABS -->
-        <div class="category-tabs" style="margin-bottom: 20px;">
+        <!-- CATEGORY TABS (STICKY BAR STYLED EXACTLY LIKE KỲ THỐNG KÊ BAR) -->
+        <div class="category-tabs">
             <div class="category-tab-list">
                 <button :class="['cat-tab', { active: pageMode === 'orders' }]"
                     @click="pageMode = 'orders'; activeTab = 'Tất cả'">
@@ -802,8 +884,6 @@ async function exportExcel() {
             </button>
         </div>
 
-
-
         <!-- FILTER -->
         <div class="filter-wrap">
             <div class="search-row">
@@ -823,31 +903,10 @@ async function exportExcel() {
                             getTabCount(tab) }}</span></button>
                 </div>
 
-                <div class="date-filter-wrap">
-                    <div class="custom-dropdown date-filter-dropdown">
-                        <div class="dropdown-trigger" @click.stop="isOpenDateDropdown = !isOpenDateDropdown">
-                            <svg class="calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round">
-                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                                <line x1="16" y1="2" x2="16" y2="6" />
-                                <line x1="8" y1="2" x2="8" y2="6" />
-                                <line x1="3" y1="10" x2="21" y2="10" />
-                            </svg>
-                            <span>{{ selectedMonthYear || 'Tất cả' }}</span>
-                            <svg class="chevron" :class="{ open: isOpenDateDropdown }" viewBox="0 0 24 24" fill="none"
-                                stroke="currentColor" stroke-width="2">
-                                <polyline points="6 9 12 15 18 9"></polyline>
-                            </svg>
-                        </div>
-                        <transition name="fade-slide">
-                            <ul v-if="isOpenDateDropdown" class="dropdown-menu">
-                                <li v-for="m in availableMonths" :key="m" :class="{ active: selectedMonthYear === m }"
-                                    @click="selectedMonthYear = m; currentPage = 1; isOpenDateDropdown = false">
-                                    {{ m }}
-                                </li>
-                            </ul>
-                        </transition>
-                    </div>
+                <div class="date-filter">
+                    <input type="date" v-model="filterDate" class="date-input" title="Lọc đơn hàng theo ngày" />
+                    <button v-if="filterDate" type="button" class="btn-clear-date" title="Xóa lọc ngày"
+                        @click="filterDate = ''">✕</button>
                 </div>
             </div>
         </div>
@@ -869,6 +928,7 @@ async function exportExcel() {
                         <th>Khách hàng</th>
                         <th>Ngày đặt hàng</th>
                         <th>Tổng tiền</th>
+                        <th>Nhân viên</th>
                         <th>Trạng thái</th>
                         <th>Thanh toán</th>
                         <th>Thao tác</th>
@@ -876,7 +936,7 @@ async function exportExcel() {
                 </thead>
                 <tbody>
                     <tr v-if="paginatedOrders.length === 0">
-                        <td colspan="8" class="empty">Không tìm thấy đơn hàng nào.</td>
+                        <td colspan="9" class="empty">Không tìm thấy đơn hàng nào.</td>
                     </tr>
                     <tr v-for="(o, i) in paginatedOrders" :key="o.id"
                         :class="{ 'row-selected': selectedIds.includes(o.id_backend) }">
@@ -888,6 +948,8 @@ async function exportExcel() {
 
                         <td>
                             <span class="order-id">{{ o.id }}</span>
+                            <span v-if="isChatbotOrder(o)" class="order-source-badge chatbot">Chatbot · cọc 50%</span>
+                            <span v-else class="order-source-badge web">Mua thường</span>
                         </td>
 
                         <td>
@@ -905,8 +967,19 @@ async function exportExcel() {
                         <td><b class="total">{{ o.total }}</b></td>
 
                         <td>
+                            <select class="emp-table-select" :value="o.id_nhanvien || ''"
+                                @change="assignEmployee(o.id_backend, $event.target.value ? Number($event.target.value) : null)">
+                                <option value="">Chưa phân công</option>
+                                <option v-for="emp in employees" :key="emp.id" :value="emp.id">
+                                    {{ emp.name || emp.ten }} ({{ emp.role_label || emp.vaitro || 'Nhân viên' }})
+                                </option>
+                            </select>
+                        </td>
+
+                        <td>
                             <div class="status-stack">
                                 <span class="status-pill"
+                                    :class="getStatusPillClass(hasShipment(o) ? getShipment(o)?.status : o.status)"
                                     :style="hasShipment(o) ? getShipmentStatusStyle(o) : getStatusStyle(o.status)">
                                     {{ getDisplayStatusLabel(o) }}
                                 </span>
@@ -926,9 +999,17 @@ async function exportExcel() {
                         </td>
 
                         <td>
-                            <span class="status-pill" :style="getPaymentStatusStyle(o)">
-                                {{ getPaymentStatusLabel(o) }}
-                            </span>
+                            <div class="payment-status-cell">
+                                <span class="status-pill"
+                                    :class="getStatusPillClass(getPaymentStatus(o))"
+                                    :style="getPaymentStatusStyle(o)">
+                                    {{ getPaymentStatusLabel(o) }}
+                                </span>
+                                <small v-if="isChatbotOrder(o)">
+                                    Đã cọc: <b>{{ formatMoney(getDepositPaid(o)) }}</b>
+                                    <br>Còn thu: <b>{{ formatMoney(getRemainingDue(o)) }}</b>
+                                </small>
+                            </div>
                         </td>
 
                         <td>
@@ -941,16 +1022,6 @@ async function exportExcel() {
                                     </svg>
                                 </button>
 
-                                <button v-if="canCreateShipment(o)" class="act-btn logistics" @click="createShipment(o)"
-                                    title="Tạo vận đơn demo">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                        stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M3 7h11v9H3z" />
-                                        <path d="M14 10h4l3 3v3h-7z" />
-                                        <circle cx="7" cy="18" r="2" />
-                                        <circle cx="18" cy="18" r="2" />
-                                    </svg>
-                                </button>
 
                                 <button v-if="canAdvanceShipment(o)" class="act-btn logistics"
                                     @click="advanceShipment(o)" title="Cập nhật bước vận chuyển tiếp theo">
@@ -990,11 +1061,16 @@ async function exportExcel() {
                                         <path d="M5 12h14M12 5l7 7-7 7" />
                                     </svg>
                                 </button>
-                                <span v-else-if="isBankTransferUnpaid(o)" class="unpaid-notice-pill"
-                                    style="font-size: 11px; color: #dc2626; background: #fee2e2; padding: 3px 8px; border-radius: 6px; font-weight: 600; white-space: nowrap;"
-                                    title="Cần xác nhận đã thanh toán trong chi tiết đơn hàng trước khi chuyển trạng thái">
-                                    Chờ xác nhận TT
-                                </span>
+                                <button v-else-if="isBankTransferUnpaid(o)" class="btn-confirm-payment-table"
+                                    @click="markPaymentAsPaid(o)"
+                                    :title="isChatbotOrder(o) ? 'Xác minh khoản cọc 50% khách đã báo chuyển' : 'Xác nhận đã nhận đủ tiền thanh toán'">
+                                    {{ isChatbotOrder(o) ? 'Xác nhận cọc' : 'Xác nhận TT' }}
+                                </button>
+                                <button v-if="canConfirmChatbotBalance(o)" class="btn-confirm-payment-table balance"
+                                    @click="markPaymentAsPaid(o)"
+                                    title="Xác nhận đã thu phần tiền còn lại khi giao hàng">
+                                    Thu đủ còn lại
+                                </button>
 
                                 <!-- Nút xử lý hoàn trả -->
                                 <button v-if="o.status === 'refund_pending'" class="act-btn" style="color: #2563eb;"
@@ -1055,10 +1131,32 @@ async function exportExcel() {
                             <p class="modal-sub">Mã đơn: <b>{{ viewOrder.id }}</b></p>
                             <h3>Chi tiết đơn hàng</h3>
                         </div>
-                        <button class="modal-close" @click="closeViewModal">×</button>
+                        <button class="modal-close" @click="closeViewModal" title="Đóng" aria-label="Đóng">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
                     </div>
 
                     <div class="modal-body scrollable">
+                        <div v-if="isChatbotOrder(viewOrder)" class="chatbot-payment-summary">
+                            <div>
+                                <span>Nguồn đơn hàng</span>
+                                <strong>🤖 Mua qua chatbot · đặt cọc 50%</strong>
+                            </div>
+                            <div>
+                                <span>Đã chuyển cọc</span>
+                                <strong>{{ formatMoney(getDepositPaid(viewOrder)) }}</strong>
+                            </div>
+                            <div>
+                                <span>Còn phải thu khi giao</span>
+                                <strong>{{ formatMoney(getRemainingDue(viewOrder)) }}</strong>
+                            </div>
+                            <p>Không đánh dấu “đã thanh toán đủ” cho đến khi admin xác nhận đã thu phần tiền còn lại.</p>
+                        </div>
                         <div class="detail-section">
                             <div class="section-title">Thông tin giao hàng</div>
                             <div class="info-grid">
@@ -1091,16 +1189,17 @@ async function exportExcel() {
                                             style="padding: 4px 12px; font-size: 0.85em; border-radius: 6px; font-weight: 600;">
                                             {{ getPaymentStatusLabel(viewOrder) }}
                                         </span>
-                                        <button v-if="isBankTransferUnpaid(viewOrder)" class="btn-confirm-payment"
-                                            @click="markPaymentAsPaid(viewOrder)"
-                                            style="padding: 6px 16px; background: #16a34a; color: #ffffff; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(22,163,74,0.2); transition: background 0.2s;">
-                                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none"
-                                                stroke="currentColor" stroke-width="2.5">
-                                                <polyline points="20 6 9 17 4 12"></polyline>
-                                            </svg>
-                                            Xác nhận đã thanh toán
-                                        </button>
                                     </div>
+                                </div>
+                                <div class="info-item" style="grid-column: span 2;">
+                                    <span class="info-label">Nhân viên phụ trách</span>
+                                    <select class="employee-select" :value="viewOrder.id_nhanvien || ''"
+                                        @change="assignEmployee(viewOrder.id_backend, $event.target.value ? Number($event.target.value) : null)">
+                                        <option value="">Chưa phân công</option>
+                                        <option v-for="emp in employees" :key="emp.id" :value="emp.id">
+                                            {{ emp.name || emp.ten }} ({{ emp.role_label || emp.vaitro || 'Nhân viên' }} - {{ emp.email }})
+                                        </option>
+                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -1115,7 +1214,7 @@ async function exportExcel() {
                                     </div>
                                     <span class="status-pill" :style="getShipmentStatusStyle(viewOrder)">
                                         {{ getShipmentStatusLabel(getShipment(viewOrder).status,
-                                        getShipment(viewOrder).status_label) }}
+                                            getShipment(viewOrder).status_label) }}
                                     </span>
                                 </div>
                                 <div v-if="getShipment(viewOrder).status === 'delivery_failed'"
@@ -1173,12 +1272,7 @@ async function exportExcel() {
                             </div>
                             <div v-else class="shipment-empty">
                                 <b>Chưa tạo vận đơn</b>
-                                <p>Hệ thống sẽ tạo mã tracking demo và mô phỏng các bước lấy hàng, giao hàng, hoàn tất.
-                                </p>
-                                <button v-if="canCreateShipment(viewOrder)" class="btn-export"
-                                    @click="createShipment(viewOrder)">
-                                    Tạo vận đơn ngay
-                                </button>
+                                <p>Hệ thống tự động tạo mã tracking demo và mô phỏng các bước vận chuyển khi đơn được xác nhận.</p>
                             </div>
                         </div>
 
@@ -1186,51 +1280,42 @@ async function exportExcel() {
                         <div v-if="viewOrder.status === 'cancelled' || viewOrder.status.startsWith('refund')"
                             class="detail-section">
                             <div class="section-title"
-                                :style="viewOrder.status === 'cancelled' ? 'color: #dc2626;' : 'color: #f97316;'">
+                                :class="viewOrder.status === 'cancelled' ? 'title-cancelled' : 'title-refund'">
                                 Lý do {{ viewOrder.status === 'cancelled' ? 'hủy đơn' : 'hoàn trả' }}
                             </div>
-                            <div class="cancel-reason-box"
-                                style="margin-bottom: 12px; background: #fff7ed; border: 1px dashed #f97316; padding: 12px 16px; border-radius: 8px; font-size: 14px; color: #c2410c; line-height: 1.5;">
+                            <div class="reason-text-box">
                                 {{ viewOrder.raw.lydo || 'Không có lý do cụ thể' }}
                             </div>
-                            <div class="cancel-reason-box"
-                                style="margin-top: 12px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 14px 16px; border-radius: 8px;">
-                                <div
-                                    style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
-                                    <strong style="color: #334155; font-size: 14px;">
+                            <div class="proof-container-box">
+                                <div class="proof-header">
+                                    <strong class="proof-title">
                                         📷 Bằng chứng ảnh / video hoàn trả
-                                        <span v-if="getRefundProofFiles(viewOrder.raw).length > 0"
-                                            style="color: #2563eb;">
+                                        <span v-if="getRefundProofFiles(viewOrder.raw).length > 0" class="proof-count">
                                             ({{ getRefundProofFiles(viewOrder.raw).length }} tệp)
                                         </span>
                                     </strong>
                                 </div>
 
-                                <div v-if="getRefundProofFiles(viewOrder).length > 0" class="proof-media-grid"
-                                    style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-top: 8px;">
+                                <div v-if="getRefundProofFiles(viewOrder).length > 0" class="proof-media-grid">
                                     <div v-for="(file, pIdx) in getRefundProofFiles(viewOrder)" :key="pIdx"
-                                        class="proof-media-item"
-                                        style="border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); position: relative;">
+                                        class="proof-media-item">
                                         <template v-if="isImageFile(file)">
                                             <a :href="getProofMediaUrl(file)" target="_blank"
-                                                title="Bấm để xem ảnh phóng to"
-                                                style="display: block; text-align: center; background: #f1f5f9;">
+                                                title="Bấm để xem ảnh phóng to" class="proof-img-link">
                                                 <img :src="getProofMediaUrl(file)"
-                                                    @error="$event.target.src = getProofProxyUrl(file)" alt="Bằng chứng"
-                                                    style="width: 100%; height: 140px; object-fit: cover; transition: transform 0.2s;" />
+                                                    @error="$event.target.src = getProofProxyUrl(file)"
+                                                    alt="Bằng chứng" />
                                             </a>
                                         </template>
                                         <template v-else-if="isVideoFile(file)">
-                                            <video controls
-                                                style="width: 100%; height: 140px; object-fit: cover; background: #000; display: block;"
-                                                preload="metadata">
+                                            <video controls class="proof-video" preload="metadata">
                                                 <source :src="getProofMediaUrl(file)" />
                                                 <source :src="getProofProxyUrl(file)" />
                                                 Trình duyệt không hỗ trợ xem video.
                                             </video>
                                         </template>
                                         <template v-else>
-                                            <div style="padding: 20px 10px; text-align: center;">
+                                            <div class="proof-file-placeholder">
                                                 <svg viewBox="0 0 24 24" width="32" height="32" fill="none"
                                                     stroke="#2563eb" stroke-width="2" style="margin: 0 auto 8px;">
                                                     <path
@@ -1238,49 +1323,50 @@ async function exportExcel() {
                                                     </path>
                                                     <polyline points="13 2 13 9 20 9"></polyline>
                                                 </svg>
-                                                <a :href="getProofProxyUrl(file)" target="_blank"
-                                                    style="color: #2563eb; font-size: 12px; font-weight: 600; text-decoration: underline; word-break: break-all;">Tải
-                                                    file bằng chứng #{{ pIdx + 1 }}</a>
+                                                <a :href="getProofProxyUrl(file)" target="_blank" class="download-link">
+                                                    Tải file bằng chứng #{{ pIdx + 1 }}
+                                                </a>
                                             </div>
                                         </template>
-                                        <a :href="getProofProxyUrl(file)" target="_blank"
-                                            style="display: block; padding: 4px 6px; font-size: 11px; text-align: center; background: #f8fafc; color: #2563eb; font-weight: 600; text-decoration: underline; border-top: 1px solid #e2e8f0;">
+                                        <a :href="getProofProxyUrl(file)" target="_blank" class="proof-action-link">
                                             🔍 Mở tệp gốc / Tải về
                                         </a>
                                     </div>
                                 </div>
 
-                                <div v-else
-                                    style="padding: 14px; background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 6px; text-align: center; color: #64748b; font-size: 13px;">
+                                <div v-else class="proof-empty-box">
                                     ⚠️ Đơn hàng này chưa có tệp ảnh/video bằng chứng từ khách hàng.
                                 </div>
                             </div>
                         </div>
 
                         <!-- Quá trình hoàn trả (Chiều dọc - Vertical Timeline) -->
-                        <div class="refund-timeline-vertical" v-if="refundSteps" style="margin-top: 18px; margin-bottom: 22px;">
-                            <h3 class="section-title" style="color: #ea580c; font-size: 14px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 6px;">
+                        <div class="refund-timeline-vertical" v-if="refundSteps">
+                            <h3 class="section-title title-refund-head">
                                 <span>🔄</span> Quá trình hoàn trả
                             </h3>
-                            <div style="display: flex; flex-direction: column; gap: 0; padding-left: 8px;">
-                                <div v-for="(step, i) in refundSteps" :key="'rv'+i" style="display: flex; align-items: flex-start; gap: 14px; position: relative; padding-bottom: 18px;">
+                            <div class="rtv-list">
+                                <div v-for="(step, i) in refundSteps" :key="'rv' + i" class="rtv-item">
                                     <!-- Vertical line -->
-                                    <div v-if="i < refundSteps.length - 1" style="position: absolute; left: 13px; top: 26px; bottom: 0; width: 2px;" :style="step.done ? 'background: #f97316;' : 'background: #e2e8f0;'"></div>
-                                    
+                                    <div v-if="i < refundSteps.length - 1" class="rtv-line"
+                                        :class="{ done: step.done }"></div>
+
                                     <!-- Dot icon -->
-                                    <div style="width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; z-index: 2; transition: all 0.2s;" :style="step.done ? 'background: #f97316; color: #fff; box-shadow: 0 2px 6px rgba(249,115,22,0.35);' : 'background: #ffffff; border: 2px solid #cbd5e1; color: #94a3b8;'">
-                                        <svg v-if="step.done" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                    <div class="rtv-dot" :class="{ done: step.done }">
+                                        <svg v-if="step.done" viewBox="0 0 24 24" width="14" height="14" fill="none"
+                                            stroke="currentColor" stroke-width="3" stroke-linecap="round"
+                                            stroke-linejoin="round">
                                             <polyline points="20 6 9 17 4 12"></polyline>
                                         </svg>
-                                        <span v-else style="font-size: 11px; font-weight: 700;">{{ i + 1 }}</span>
+                                        <span v-else>{{ i + 1 }}</span>
                                     </div>
 
                                     <!-- Label and Date -->
-                                    <div style="flex: 1; min-width: 0; padding-top: 3px;">
-                                        <div style="font-size: 13.5px; font-weight: 600; line-height: 1.3;" :style="step.done ? 'color: #c2410c;' : 'color: #64748b;'">
+                                    <div class="rtv-content">
+                                        <div class="rtv-label" :class="{ done: step.done }">
                                             {{ step.label }}
                                         </div>
-                                        <div style="font-size: 11.5px; margin-top: 2px;" :style="step.done ? 'color: #ea580c;' : 'color: #94a3b8;'">
+                                        <div class="rtv-date" :class="{ done: step.done }">
                                             {{ step.date || '—' }}
                                         </div>
                                     </div>
@@ -1425,8 +1511,11 @@ async function exportExcel() {
     transform: translateY(-1px);
 }
 
-/* FILTER */
+/* FILTER - STICKY ATTACHED DIRECTLY BELOW CATEGORY TABS */
 .filter-wrap {
+    position: sticky;
+    top: 70px;
+    z-index: 45;
     background: white;
     border-radius: 14px;
     border: 1px solid #e2e8f0;
@@ -1435,7 +1524,25 @@ async function exportExcel() {
     display: flex;
     flex-direction: column;
     gap: 14px;
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.05);
+    transition: top 0.28s cubic-bezier(.4, 0, .2, 1), background-color 0.28s ease;
+}
+
+:global(.admin-layout:not(.admin-header-hidden)) .filter-wrap {
+    top: 114px;
+}
+
+:global(.admin-layout.admin-header-hidden) .filter-wrap {
+    top: 55px;
+}
+
+:global(html[data-admin-theme='dark']) .filter-wrap,
+:global(.admin-layout.theme-dark) .filter-wrap,
+:global(.admin-layout.dark) .filter-wrap,
+:global(.dark) .filter-wrap {
+    background: #11161f !important;
+    border-color: #28303d !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35) !important;
 }
 
 .search-row {
@@ -1607,6 +1714,68 @@ async function exportExcel() {
     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
     max-height: 240px;
     overflow-y: auto;
+}
+
+/* Date filter matching Admin Điểm Danh (QuanLyDiemDanh.vue) */
+.date-filter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.date-input {
+    padding: 8px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    font-size: 13.5px;
+    outline: none;
+    background: #ffffff;
+    color: #0f172a;
+    transition: all 0.2s ease;
+}
+
+.date-input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.btn-clear-date {
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    color: #64748b;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.btn-clear-date:hover {
+    background: #fee2e2;
+    border-color: #fca5a5;
+    color: #ef4444;
+}
+
+/* Dark theme overrides */
+:global(html[data-admin-theme='dark']) .date-input,
+:global(.admin-layout.dark) .date-input,
+:global(.dark) .date-input {
+    background: #0f172a !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+}
+
+:global(html[data-admin-theme='dark']) .btn-clear-date,
+:global(.admin-layout.dark) .btn-clear-date,
+:global(.dark) .btn-clear-date {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+    color: #cbd5e1 !important;
 }
 
 /* Custom Scrollbar for Dropdown Menu */
@@ -1802,6 +1971,32 @@ tbody td {
     white-space: nowrap;
 }
 
+.status-pill.pill-green {
+    background: #dcfce7 !important;
+    color: #15803d !important;
+    border: 1px solid #bbf7d0 !important;
+}
+.status-pill.pill-red {
+    background: #fee2e2 !important;
+    color: #dc2626 !important;
+    border: 1px solid #fecaca !important;
+}
+.status-pill.pill-amber {
+    background: #fef3c7 !important;
+    color: #b45309 !important;
+    border: 1px solid #fde68a !important;
+}
+.status-pill.pill-blue {
+    background: #dbeafe !important;
+    color: #1d4ed8 !important;
+    border: 1px solid #bfdbfe !important;
+}
+.status-pill.pill-purple {
+    background: #ede9fe !important;
+    color: #6b21a8 !important;
+    border: 1px solid #ddd6fe !important;
+}
+
 .status-stack {
     display: flex;
     flex-direction: column;
@@ -1913,6 +2108,32 @@ tbody td {
     color: #ef4444;
 }
 
+.btn-confirm-payment-table {
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+    border: 1px solid #16a34a;
+    background: #16a34a;
+    color: #ffffff;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    box-shadow: 0 2px 4px rgba(22, 163, 74, 0.25);
+    transition: all 0.2s ease;
+}
+
+.btn-confirm-payment-table:hover {
+    background: #15803d;
+    border-color: #15803d;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 6px rgba(22, 163, 74, 0.35);
+}
+
 /* FOOTER */
 .don-hang-footer-row {
     display: flex;
@@ -2020,18 +2241,42 @@ tbody td {
 }
 
 .modal-close {
-    background: none;
-    border: none;
-    font-size: 22px;
-    color: #94a3b8;
-    cursor: pointer;
-    padding: 0;
-    transition: color 0.2s;
-    line-height: 1;
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 8px !important;
+    border: 1px solid #e2e8f0 !important;
+    background: #f1f5f9 !important;
+    color: #64748b !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    padding: 0 !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: none !important;
+    transform: none !important;
+    flex-shrink: 0 !important;
 }
 
 .modal-close:hover {
-    color: #0f172a;
+    background: #ef4444 !important;
+    border-color: #dc2626 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3) !important;
+    transform: translateY(-1px) !important;
+}
+
+.modal-close svg {
+    width: 15px !important;
+    height: 15px !important;
+    stroke: #64748b !important;
+    transition: stroke 0.2s ease !important;
+}
+
+.modal-close:hover svg,
+.modal-close:hover svg line {
+    stroke: #ffffff !important;
+    color: #ffffff !important;
 }
 
 .modal-body {
@@ -2042,13 +2287,14 @@ tbody td {
 }
 
 .section-title {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
-    color: #94a3b8;
-    letter-spacing: 0.1em;
+    color: #64748b;
+    letter-spacing: 0.05em;
     text-transform: capitalize;
-    padding-bottom: 4px;
-    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 8px;
+    margin-bottom: 14px;
+    border-bottom: 1px solid #e2e8f0;
 }
 
 .form-row {
@@ -2269,6 +2515,44 @@ tbody td {
     min-height: 35px;
     display: flex;
     align-items: center;
+}
+
+.emp-table-select {
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    background-color: #f8fafc;
+    color: #334155;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    max-width: 160px;
+    outline: none;
+    transition: all 0.2s;
+}
+.emp-table-select:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+.employee-select {
+    width: 100%;
+    padding: 9px 12px;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    background-color: #f8fafc;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-height: 38px;
+}
+.employee-select:disabled {
+    background-color: #f1f5f9;
+    cursor: not-allowed;
+    opacity: 0.85;
 }
 
 .shipment-card,
@@ -2546,51 +2830,275 @@ tbody td {
     align-items: center;
     gap: 8px;
 }
+
+/* Reason & Proof Box Styles */
+.title-cancelled {
+    color: #dc2626 !important;
+}
+
+.title-refund {
+    color: #f97316 !important;
+}
+
+.title-refund-head {
+    color: #ea580c;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.reason-text-box {
+    margin-bottom: 12px;
+    background: #fff7ed;
+    border: 1px dashed #f97316;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #c2410c;
+    line-height: 1.5;
+}
+
+.proof-container-box {
+    margin-top: 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    padding: 14px 16px;
+    border-radius: 8px;
+}
+
+.proof-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.proof-title {
+    color: #334155;
+    font-size: 14px;
+}
+
+.proof-count {
+    color: #2563eb;
+}
+
+.proof-media-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.proof-media-item {
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    position: relative;
+}
+
+.proof-img-link {
+    display: block;
+    text-align: center;
+    background: #f1f5f9;
+}
+
+.proof-img-link img {
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
+    transition: transform 0.2s;
+}
+
+.proof-video {
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
+    background: #000;
+    display: block;
+}
+
+.proof-file-placeholder {
+    padding: 20px 10px;
+    text-align: center;
+}
+
+.download-link {
+    color: #2563eb;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: underline;
+    word-break: break-all;
+}
+
+.proof-action-link {
+    display: block;
+    padding: 4px 6px;
+    font-size: 11px;
+    text-align: center;
+    background: #f8fafc;
+    color: #2563eb;
+    font-weight: 600;
+    text-decoration: underline;
+    border-top: 1px solid #e2e8f0;
+}
+
+.proof-empty-box {
+    padding: 14px;
+    background: #ffffff;
+    border: 1px dashed #cbd5e1;
+    border-radius: 6px;
+    text-align: center;
+    color: #64748b;
+    font-size: 13px;
+}
+
+/* Vertical Refund Timeline */
+.refund-timeline-vertical {
+    margin-top: 20px;
+    margin-bottom: 24px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 20px 24px;
+}
+
+.rtv-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding-left: 8px;
+}
+
+.rtv-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    position: relative;
+    padding-bottom: 18px;
+}
+
+.rtv-line {
+    position: absolute;
+    left: 13px;
+    top: 26px;
+    bottom: 0;
+    width: 2px;
+    background: #e2e8f0;
+}
+
+.rtv-line.done {
+    background: #f97316;
+}
+
+.rtv-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    z-index: 2;
+    transition: all 0.2s;
+    background: #ffffff;
+    border: 2px solid #cbd5e1;
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.rtv-dot.done {
+    background: #f97316;
+    border-color: #f97316;
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(249, 115, 22, 0.35);
+}
+
+.rtv-content {
+    flex: 1;
+    min-width: 0;
+    padding-top: 3px;
+}
+
+.rtv-label {
+    font-size: 13.5px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: #64748b;
+}
+
+.rtv-label.done {
+    color: #c2410c;
+}
+
+.rtv-date {
+    font-size: 11.5px;
+    margin-top: 2px;
+    color: #94a3b8;
+}
+
+.rtv-date.done {
+    color: #ea580c;
+}
 </style>
 
 
 <style scoped>
 .category-tabs {
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     justify-content: space-between;
     gap: 20px;
-    margin-bottom: -4px;
-    border-bottom: 2px solid #e2e8f0;
-    padding-bottom: 0;
+    margin-bottom: 14px;
+    padding: 12px 20px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
 }
+
 
 .category-tab-list {
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     gap: 12px;
-}
-
-.category-tabs>.btn-export {
-    flex-shrink: 0;
-    margin-bottom: 8px;
+    background: transparent !important;
+    padding: 0 !important;
 }
 
 .cat-tab {
-    background: transparent;
-    border: none;
-    padding: 12px 20px;
-    font-size: 14px;
-    font-weight: 600;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px !important;
+    padding: 9px 20px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
     color: #64748b;
     cursor: pointer;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -2px;
-    transition: all 0.2s;
+    height: 40px !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
 }
 
 .cat-tab:hover {
     color: #2563eb;
+    border-color: #2563eb;
+    background: rgba(37, 99, 235, 0.06);
 }
 
 .cat-tab.active {
-    color: #2563eb;
-    border-bottom-color: #2563eb;
+    color: #ffffff;
+    background: #2563eb;
+    border-color: #2563eb;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
 }
 </style>
 
@@ -2689,5 +3197,354 @@ tbody td {
 
 .refund-label {
     color: #c2410c;
+}
+
+/* ==========================================================================
+   DARK MODE OVERRIDES FOR QUAN LY DON HANG PAGE
+   ========================================================================== */
+
+/* 1. FILTER TABS & DATE INPUT */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) input[type="date"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .date-filter-box input {
+    background: #181d24 !important;
+    border-color: #28303d !important;
+    color: #f8fafc !important;
+    color-scheme: dark;
+}
+
+/* 2. CUSTOMER AVATARS IN TABLE */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .customer-cell .avatar {
+    background: rgba(59, 130, 246, 0.2) !important;
+    color: #60a5fa !important;
+    border: 1px solid rgba(59, 130, 246, 0.4) !important;
+}
+
+/* 3. STATUS & PAYMENT BADGES IN DARK MODE */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill {
+    box-shadow: none !important;
+    font-weight: 600 !important;
+}
+
+/* Green Badges (Đã thanh toán, Hoàn thành, Giao thành công) */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill.pill-green,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill[style*="background: rgb(220, 252, 231)"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill[style*="background: #dcfce7"] {
+    background: rgba(34, 197, 94, 0.2) !important;
+    color: #4ade80 !important;
+    border: 1px solid rgba(34, 197, 94, 0.4) !important;
+}
+
+/* Red Badges (Chưa thanh toán, Đã hủy, Từ chối) */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill.pill-red,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill[style*="background: rgb(254, 226, 226)"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill[style*="background: #fee2e2"] {
+    background: rgba(239, 68, 68, 0.2) !important;
+    color: #f87171 !important;
+    border: 1px solid rgba(239, 68, 68, 0.4) !important;
+}
+
+/* Orange/Amber Badges (Yêu cầu hoàn trả, Chờ lấy hàng) */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill.pill-amber,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill[style*="background: rgb(255, 237, 213)"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill[style*="background: #ffedd5"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill[style*="background: rgb(254, 243, 199)"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill[style*="background: #fef3c7"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill[style*="background: rgb(254, 249, 195)"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill[style*="background: #fef9c3"] {
+    background: rgba(245, 158, 11, 0.2) !important;
+    color: #fbbf24 !important;
+    border: 1px solid rgba(245, 158, 11, 0.4) !important;
+}
+
+/* Purple/Blue Badges (Đã hoàn tiền, Đang giao, Đã xác nhận) */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill.pill-purple,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill[style*="background: rgb(237, 233, 254)"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill[style*="background: #ede9fe"] {
+    background: rgba(168, 85, 247, 0.2) !important;
+    color: #c084fc !important;
+    border: 1px solid rgba(168, 85, 247, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill.pill-blue,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill[style*="background: rgb(219, 234, 254)"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill[style*="background: #dbeafe"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill[style*="background: rgb(224, 242, 254)"],
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .status-pill[style*="background: #e0f2fe"] {
+    background: rgba(59, 130, 246, 0.2) !important;
+    color: #60a5fa !important;
+    border: 1px solid rgba(59, 130, 246, 0.4) !important;
+}
+
+/* 4. UNPAID NOTICE PILL ("Chờ xác nhận TT") */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .unpaid-notice-pill {
+    background: rgba(239, 68, 68, 0.2) !important;
+    color: #f87171 !important;
+    border: 1px solid rgba(239, 68, 68, 0.4) !important;
+}
+
+/* 5. EMPLOYEE ASSIGNED BADGE */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .emp-name-badge {
+    background: #181d24 !important;
+    color: #cbd5e1 !important;
+    border-color: #28303d !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .emp-name-badge svg {
+    color: #60a5fa !important;
+}
+
+/* 6. ACTION BUTTONS IN TABLE (.act-btn) */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .act-btn {
+    background: #181d24 !important;
+    border-color: #28303d !important;
+    color: #cbd5e1 !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .act-btn:hover {
+    background: #1e293b !important;
+    border-color: #3b82f6 !important;
+    color: #60a5fa !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .act-btn.danger {
+    color: #f87171 !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .act-btn.danger:hover {
+    background: rgba(239, 68, 68, 0.2) !important;
+    border-color: rgba(239, 68, 68, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .btn-confirm-payment-table {
+    background: rgba(34, 197, 94, 0.18) !important;
+    color: #4ade80 !important;
+    border: 1px solid rgba(74, 222, 128, 0.4) !important;
+    box-shadow: none !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .btn-confirm-payment-table:hover {
+    background: rgba(34, 197, 94, 0.32) !important;
+    border-color: rgba(74, 222, 128, 0.7) !important;
+    color: #86efac !important;
+}
+
+/* 7. REVENUE CHIP */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .revenue-chip {
+    background: #181d24 !important;
+    border-color: #28303d !important;
+    color: #f8fafc !important;
+}
+
+/* 8. ORDER DETAIL MODAL IN DARK MODE (.detail-modal) */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal {
+    background: #11151c !important;
+    border: 1px solid #28303d !important;
+    color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal .modal-header {
+    border-bottom-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal .modal-header h3 {
+    color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal .modal-sub {
+    color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal .detail-section {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin-bottom: 20px !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal .section-title {
+    color: #f8fafc !important;
+    border: none !important;
+    padding-bottom: 0 !important;
+    margin-bottom: 12px !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal .info-grid {
+    background: #181d24 !important;
+    border: 1px solid #28303d !important;
+    border-radius: 14px !important;
+    padding: 18px !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal .info-item {
+    background: transparent !important;
+    border: none !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal .info-label {
+    color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal .info-value {
+    color: #f8fafc !important;
+    background: rgba(17, 21, 28, 0.6) !important;
+    border: none !important;
+    border-radius: 8px !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .emp-table-select {
+    background: #1e293b !important;
+    border: 1px solid #334155 !important;
+    color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .emp-table-select option {
+    background: #0f172a !important;
+    color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal .employee-select,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal select {
+    background: rgba(17, 21, 28, 0.6) !important;
+    border: 1px solid #28303d !important;
+    color: #f8fafc !important;
+    border-radius: 8px !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal .employee-select:disabled,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal select:disabled {
+    background: rgba(17, 21, 28, 0.8) !important;
+    color: #94a3b8 !important;
+    border-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal select option {
+    background: #181d24 !important;
+    color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .shipment-card {
+    background: #181d24 !important;
+    border: 1px solid #28303d !important;
+    border-radius: 14px !important;
+    padding: 18px !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .shipment-head strong {
+    color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .shipment-grid > div {
+    background: rgba(17, 21, 28, 0.6) !important;
+    border: none !important;
+    border-radius: 8px !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .shipment-grid span {
+    color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .shipment-grid b {
+    color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .shipment-event b {
+    color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .shipment-event p {
+    color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .shipment-event small {
+    color: #64748b !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .shipment-event .event-dot {
+    background: #3b82f6 !important;
+    border-color: #11151c !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .order-item {
+    background: #181d24 !important;
+    border-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .order-item .item-img {
+    background: #11151c !important;
+    border-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .order-item .item-name {
+    color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .order-item .item-variant {
+    color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .order-item .iq-price {
+    color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .order-summary-box {
+    background: rgba(59, 130, 246, 0.15) !important;
+    border: 1px solid rgba(59, 130, 246, 0.3) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .order-summary-box span {
+    color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .order-summary-box .final-total {
+    color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal .modal-footer {
+    background: #11151c !important;
+    border-top-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal .btn-cancel {
+    background: #181d24 !important;
+    border-color: #28303d !important;
+    color: #cbd5e1 !important;
+}
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .detail-modal .btn-cancel:hover {
+    background: #1e293b !important;
+    border-color: #3b82f6 !important;
+    color: #60a5fa !important;
+}
+
+.order-source-badge {
+    display: block;
+    width: max-content;
+    margin-top: 6px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+.order-source-badge.chatbot { background: #ede9fe; color: #6d28d9; }
+.order-source-badge.web { background: #f1f5f9; color: #64748b; }
+.payment-status-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.payment-status-cell small { color: #64748b; font-size: 11px; line-height: 1.45; white-space: nowrap; }
+.payment-status-cell small b { color: #0f172a; }
+.btn-confirm-payment-table.balance { background: #7c3aed; }
+.chatbot-payment-summary {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 18px;
+    padding: 16px;
+    border: 1px solid #c4b5fd;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #f5f3ff, #eff6ff);
+}
+.chatbot-payment-summary div { display: flex; flex-direction: column; gap: 5px; }
+.chatbot-payment-summary span { color: #64748b; font-size: 12px; font-weight: 700; }
+.chatbot-payment-summary strong { color: #4c1d95; font-size: 14px; }
+.chatbot-payment-summary p { grid-column: 1 / -1; margin: 4px 0 0; color: #475569; font-size: 12px; }
+@media (max-width: 760px) {
+    .chatbot-payment-summary { grid-template-columns: 1fr; }
+    .chatbot-payment-summary p { grid-column: auto; }
 }
 </style>

@@ -1,5 +1,5 @@
 import { fileURLToPath, URL } from 'node:url'
-import { readFileSync, writeFileSync, existsSync } from 'node:fs'
+import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, createReadStream } from 'node:fs'
 import { resolve } from 'node:path'
 import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
@@ -25,12 +25,37 @@ export default defineConfig(({ mode, command }) => {
       }
     },
   }
+  const ocrLanguageSources = ['eng', 'vie'].map(language => ({
+    language,
+    source: resolve(root, 'node_modules', '@tesseract.js-data', language, '4.0.0', `${language}.traineddata.gz`),
+  }))
+  const localOcrLanguagePlugin = {
+    name: 'local-ocr-language-data',
+    configureServer(server) {
+      ocrLanguageSources.forEach(({ language, source }) => {
+        server.middlewares.use(`/tessdata/${language}.traineddata.gz`, (_request, response) => {
+          response.setHeader('Content-Type', 'application/gzip')
+          createReadStream(source).pipe(response)
+        })
+      })
+    },
+    closeBundle() {
+      const targetDirectory = resolve(root, 'dist', 'tessdata')
+      mkdirSync(targetDirectory, { recursive: true })
+      ocrLanguageSources.forEach(({ language, source }) => {
+        if (existsSync(source)) {
+          copyFileSync(source, resolve(targetDirectory, `${language}.traineddata.gz`))
+        }
+      })
+    },
+  }
 
   return {
     root,
     plugins: [
       vue(),
       hostingMetadataPlugin,
+      localOcrLanguagePlugin,
       command === 'serve'
         ? Inspector({
             launchEditor: 'code',
@@ -79,6 +104,11 @@ export default defineConfig(({ mode, command }) => {
                 secure: false,
             },
             '/storage': {
+                target: backendUrl,
+                changeOrigin: true,
+                secure: false,
+            },
+            '/uploads': {
                 target: backendUrl,
                 changeOrigin: true,
                 secure: false,

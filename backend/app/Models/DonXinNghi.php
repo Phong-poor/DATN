@@ -22,11 +22,11 @@ class DonXinNghi extends Model
 
     public function nhanVien()
     {
-        return $this->belongsTo(User::class, 'id_nhanvien');
+        return $this->belongsTo(Admin::class, 'id_nhanvien');
     }
 
     public function nguoiXuLy()
     {
-        return $this->belongsTo(User::class, 'xu_ly_boi');
+        return $this->belongsTo(Admin::class, 'xu_ly_boi');
     }
 }

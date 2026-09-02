@@ -514,6 +514,13 @@ const getSelectedOfferProductName = (id) => {
   return p ? p.tenSP : 'Sản phẩm #' + id
 }
 
+const getSelectedOfferProductImage = (id) => {
+  const p = allProductsPool.value.find(prod => prod.id_sanpham === id)
+  if (!p) return ''
+  const img = p.hinhanh || p.hinh_anh || p.image
+  return img ? storageUrl(img) : ''
+}
+
 const getSelectedVariantName = (id) => {
   const v = availableOfferVariants.value.find(varItem => varItem.id_bienthe === Number(id))
   return v ? getConfigName(v.ten_bienthe) : 'Cấu hình #' + id
@@ -832,62 +839,17 @@ onBeforeUnmount(() => {
             </tr>
           </tbody>
         </table>
-        <PhanTrangAdmin
-          v-if="filteredCombos.length"
-          v-model:currentPage="comboCurrentPage"
-          :total-pages="comboTotalPages"
-          :total-items="filteredCombos.length"
-          :page-size="comboItemsPerPage"
-          item-label="combo"
-          @change-page="changeComboPage"
-        />
-        <div v-if="false" v-for="combo in filteredCombos" :key="combo.id_combo" class="combo-card" :class="{ inactive: combo.trangthai === 0 || combo.is_in_stock === false }">
-          <div class="combo-badge" :class="combo.trangthai === 1 ? 'active' : 'draft'">
-            {{ combo.trangthai === 1 ? 'Hoạt động' : 'Ngừng chạy' }}
-          </div>
-          <div v-if="combo.is_in_stock === false" class="combo-badge" style="right: auto; left: 12px; background: #fff1f2; color: #e11d48; border: 1px solid #fecdd3;">
-            ⚠️ Hết hàng phụ kiện
-          </div>
-          <div class="combo-img">
-            <img :src="storageUrl(combo.hinhanh) || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400'" :alt="combo.ten_combo" />
-          </div>
-          <div class="combo-details">
-            <h3>{{ combo.ten_combo }}</h3>
-            <p class="desc">{{ combo.mota || 'Không có mô tả cho combo này.' }}</p>
-            
-            <div class="products-list">
-              <h4>Mặt hàng trong combo:</h4>
-              <ul>
-                <li v-for="p in combo.products" :key="p.id_sanpham">
-                  🔹 {{ p.tenSP }}
-                </li>
-              </ul>
-            </div>
-            
-            <div class="combo-footer">
-              <div class="price-box">
-                <span class="lbl">Giá Combo:</span>
-                <span class="price">{{ Number(combo.giakhuyenmai).toLocaleString('vi-VN') }}đ</span>
-              </div>
-              <div class="actions">
-                <button class="act-btn" title="Sửa" @click="openEditModal(combo)">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="16" height="16">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                  </svg>
-                </button>
-                <button class="act-btn danger" title="Xóa" @click="deleteCombo(combo.id_combo)">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="16" height="16">
-                    <polyline points="3 6 5 6 21 6" />
-                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                    <path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
+      <PhanTrangAdmin
+        v-if="filteredCombos.length"
+        v-model:currentPage="comboCurrentPage"
+        :total-pages="comboTotalPages"
+        :total-items="filteredCombos.length"
+        :page-size="comboItemsPerPage"
+        item-label="combo"
+        @change-page="changeComboPage"
+        style="margin-top: 16px;"
+      />
     </div>
 
     <!-- TAB 2: PROMOTIONAL VARIANT OFFERS -->
@@ -1027,7 +989,7 @@ onBeforeUnmount(() => {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><path d="M15 18l-6-6 6-6"/></svg>
           Quay lại danh sách
         </button>
-        <h1>{{ isEditMode ? '✏️ Chỉnh sửa Combo' : '➕ Tạo Combo mới' }}</h1>
+        <h1>{{ isEditMode ? 'Chỉnh sửa Combo' : 'Tạo Combo mới' }}</h1>
         <p>{{ isEditMode ? 'Cập nhật thông tin và sản phẩm trong combo' : 'Ghép sản phẩm phụ kiện thành combo khuyến mãi' }}</p>
       </div>
 
@@ -1058,40 +1020,18 @@ onBeforeUnmount(() => {
                 <button 
                   type="button" 
                   class="tab-btn" 
-                  :class="{ active: selectedPoolCategory === 10 }" 
-                  @click="selectedPoolCategory = 10"
+                  :class="{ active: selectedPoolCategory === cat.id_danhmuc }" 
+                  @click="selectedPoolCategory = cat.id_danhmuc"
+                  v-for="cat in poolCategories" 
+                  :key="cat.id_danhmuc"
                 >
-                  🖱️ Chuột
-                </button>
-                <button 
-                  type="button" 
-                  class="tab-btn" 
-                  :class="{ active: selectedPoolCategory === 11 }" 
-                  @click="selectedPoolCategory = 11"
-                >
-                  ⌨️ Bàn phím
-                </button>
-                <button 
-                  type="button" 
-                  class="tab-btn" 
-                  :class="{ active: selectedPoolCategory === 12 }" 
-                  @click="selectedPoolCategory = 12"
-                >
-                  🎧 Tai nghe
-                </button>
-                <button 
-                  type="button" 
-                  class="tab-btn" 
-                  :class="{ active: selectedPoolCategory === 13 }" 
-                  @click="selectedPoolCategory = 13"
-                >
-                  🔲 Lót chuột
+                  {{ cat.ten_danhmuc }}
                 </button>
               </div>
 
               <!-- Product Search & List -->
               <div class="pool-search-box" style="margin-top: 8px;">
-                <input v-model="productSearchQuery" placeholder="🔍 Nhập tên sản phẩm để tìm nhanh..." />
+                <input v-model="productSearchQuery" placeholder="Nhập tên sản phẩm để tìm nhanh..." />
               </div>
 
               <div class="products-pool">
@@ -1108,7 +1048,7 @@ onBeforeUnmount(() => {
                   <div class="p-info">
                     <b>{{ p.tenSP }}</b>
                     <span>SKU: {{ p.SKU || 'N/A' }} | {{ p.danh_muc?.ten_danhmuc || 'Không có danh mục con' }}</span>
-                    <span class="p-pool-price" style="font-size: 11.5px; font-weight: 800; color: #2563eb; margin-top: 4px; display: block;">
+                    <span class="p-pool-price">
                       Giá bán lẻ: {{ getProductDisplayPrice(p) }}
                     </span>
                   </div>
@@ -1117,63 +1057,65 @@ onBeforeUnmount(() => {
           </div>
 
           <!-- 2. Tải lên hình ảnh đại diện -->
-            <div class="form-group" style="border-top: 1px solid #e2e8f0; padding-top: 16px; margin-top: 8px;">
-              <label>Bước 2: Ảnh đại diện Combo</label>
-              <input ref="fileInputRef" type="file" accept="image/*" style="display:none" @change="onFileChange" />
-              <div v-if="!imgPreview" class="upload-zone" @click="triggerFileInput">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="17 8 12 3 7 8" />
-                  <line x1="12" y1="3" x2="12" y2="15" />
-                </svg>
-                <p>Kéo thả hoặc <span>bấm để chọn ảnh</span></p>
-                <small>PNG, JPG, WEBP — tối đa 5MB</small>
-              </div>
-              <div v-else class="img-preview-wrap">
-                <img :src="imgPreview" class="img-preview" alt="preview" />
-                <div class="img-actions">
-                  <button class="img-change" @click="triggerFileInput">Đổi ảnh</button>
-                  <button class="img-remove-btn" @click="removeImg">Xóa</button>
-                </div>
+          <div class="form-group form-step-section">
+            <label>Bước 2: Ảnh Đại Diện Combo</label>
+            <input ref="fileInputRef" type="file" accept="image/*" style="display:none" @change="onFileChange" />
+            <div v-if="!imgPreview" class="upload-zone" @click="triggerFileInput">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              <p>Kéo thả hoặc <span>bấm để chọn ảnh</span></p>
+              <small>PNG, JPG, WEBP — tối đa 5MB</small>
+            </div>
+            <div v-else class="img-preview-wrap">
+              <img :src="imgPreview" class="img-preview" alt="preview" />
+              <div class="img-actions">
+                <button type="button" class="img-change" @click="triggerFileInput">Đổi ảnh</button>
+                <button type="button" class="img-remove-btn" @click="removeImg">Xóa</button>
               </div>
             </div>
+          </div>
 
-            <!-- 3. Tên và Giá Combo -->
-            <div class="form-cols-2" style="border-top: 1px solid #e2e8f0; padding-top: 16px; margin-top: 8px;">
-              <div class="form-group">
+          <!-- 3. Tên và Giá Combo (Gộp làm 1 div duy nhất) -->
+          <div class="form-group form-step-section">
+            <div class="form-cols-2">
+              <div class="form-group-inner">
                 <label>Bước 3: Tên Combo <span class="required">*</span></label>
                 <input v-model="form.ten_combo" @input="isNameManuallyEdited = true" placeholder="VD: Combo Bàn phím + Chuột gaming" :class="{ 'input-error': fieldErrors.ten_combo }" />
                 <p v-if="fieldErrors.ten_combo" class="field-error">{{ fieldErrors.ten_combo }}</p>
-                <small style="color: #64748b; font-size:11px; margin-top:4px; display:block; line-height:1.4">Tên combo sẽ tự động ghép từ các sản phẩm phụ kiện đã chọn trừ khi bạn chỉnh sửa thủ công.</small>
+                <small class="step-help-text">Tên combo sẽ tự động ghép từ các sản phẩm phụ kiện đã chọn trừ khi bạn chỉnh sửa thủ công.</small>
               </div>
 
-              <div class="form-group">
-                <label>Bước 3.2: Giá khuyến mãi Combo (đ) <span class="required">*</span></label>
+              <div class="form-group-inner">
+                <label>Bước 3.2: Giá Khuyến Mãi Combo (Đ) <span class="required">*</span></label>
                 <input v-model="form.giakhuyenmai" type="number" @input="isPriceManuallyEdited = true" placeholder="VD: 550000" :class="{ 'input-error': fieldErrors.giakhuyenmai }" />
                 <p v-if="fieldErrors.giakhuyenmai" class="field-error">{{ fieldErrors.giakhuyenmai }}</p>
-                <div v-if="selectedOriginalPriceTotal > 0" style="color: #166534; font-size:11px; margin-top:4px; display:flex; flex-direction:column; gap:2px; text-align:left; background:#f0fdf4; padding:6px 10px; border-radius:8px; border:1px solid #bbf7d0; line-height:1.4">
-                  <span>💡 Tổng giá gốc mua lẻ: <b>{{ selectedOriginalPriceTotal.toLocaleString('vi-VN') }}đ</b></span>
-                  <span>🚀 Đã tự động đề xuất giảm <b>15%</b></span>
+                <div v-if="selectedOriginalPriceTotal > 0" class="combo-price-suggest-box">
+                  <span>Tổng giá gốc mua lẻ: <b>{{ selectedOriginalPriceTotal.toLocaleString('vi-VN') }}đ</b></span>
+                  <span>Đã tự động đề xuất giảm <b>15%</b></span>
                 </div>
               </div>
             </div>
+          </div>
 
-            <!-- 4. Mô tả Combo -->
-            <div class="form-group" style="border-top: 1px solid #e2e8f0; padding-top: 16px; margin-top: 8px;">
-              <label>Bước 4: Mô tả combo</label>
-              <textarea v-model="form.mota" placeholder="Mô tả các sản phẩm & ưu đãi của combo..." rows="3"></textarea>
-            </div>
+          <!-- 4. Mô tả Combo -->
+          <div class="form-group form-step-section">
+            <label>Bước 4: Mô Tả Combo</label>
+            <textarea v-model="form.mota" placeholder="Mô tả các sản phẩm & ưu đãi của combo..." rows="3"></textarea>
+          </div>
 
-            <!-- 5. Trạng thái -->
-            <div class="form-group" style="border-top: 1px solid #e2e8f0; padding-top: 16px; margin-top: 8px;">
-              <label>Bước 5: Trạng thái hoạt động</label>
-              <select v-model="form.trangthai">
-                <option :value="1">Hoạt động (Được mở bán)</option>
-                <option :value="0">Tạm ẩn (Ngừng bán)</option>
-              </select>
-            </div>
+          <!-- 5. Trạng thái -->
+          <div class="form-group form-step-section">
+            <label>Bước 5: Trạng Thái Hoạt Động</label>
+            <select v-model="form.trangthai">
+              <option :value="1">Hoạt động (Được mở bán)</option>
+              <option :value="0">Tạm ẩn (Ngừng bán)</option>
+            </select>
+          </div>
 
-          <p v-if="formError" class="form-error">⚠ {{ formError }}</p>
+          <p v-if="formError" class="form-error">{{ formError }}</p>
 
           <!-- Footer actions -->
           <div class="inline-form-footer">
@@ -1195,7 +1137,7 @@ onBeforeUnmount(() => {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><path d="M15 18l-6-6 6-6"/></svg>
           Quay lại danh sách
         </button>
-        <h1>{{ isOfferEditMode ? '✏️ Chỉnh sửa Ưu đãi' : '🎁 Tạo Ưu đãi mới' }}</h1>
+        <h1>{{ isOfferEditMode ? 'Chỉnh sửa Ưu đãi' : 'Tạo Ưu đãi mới' }}</h1>
         <p>{{ isOfferEditMode ? 'Cập nhật cấu hình ưu đãi biến thể' : 'Gắn combo phụ kiện làm quà tặng cho biến thể sản phẩm chính' }}</p>
       </div>
 
@@ -1203,39 +1145,67 @@ onBeforeUnmount(() => {
             <!-- Product selection -->
             <div class="form-group">
               <label>Bước 1: Chọn Laptop chính kích hoạt ưu đãi <span class="required">*</span></label>
-              <p v-if="offerFieldErrors.id_sanpham" class="field-error">{{ offerFieldErrors.id_sanpham }}</p>
+              <p v-if="offerFieldErrors.id_sanpham" class="field-error" style="margin-bottom: 4px;">{{ offerFieldErrors.id_sanpham }}</p>
               
               <!-- Search box if no product chosen -->
               <div v-if="!selectedOfferProduct">
-                <div class="pool-search-box" style="margin-bottom: 4px;">
-                  <input v-model="offerProductSearchQuery" placeholder="🔍 Nhập tên Laptop để tìm kiếm..." />
+                <div class="pool-search-input-wrap">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="m21 21-4.35-4.35" />
+                  </svg>
+                  <input v-model="offerProductSearchQuery" placeholder="Nhập tên Laptop để tìm kiếm..." />
                 </div>
-                <div class="products-pool" style="max-height: 160px; margin-top: 4px;">
+                <div class="laptop-pool-grid">
                   <div 
                     v-for="p in filteredLaptopProducts" 
                     :key="p.id_sanpham" 
-                    class="pool-item" 
+                    class="laptop-select-card" 
                     @click="selectOfferProductAction(p)"
                   >
-                    <div class="p-info" style="text-align: left;">
-                      <b style="font-size: 12px; color: #1e293b; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ p.tenSP }}</b>
-                      <span style="font-size: 10px; color: #64748b;">SKU: {{ p.SKU || 'N/A' }} | {{ p.danh_muc?.ten_danhmuc || 'Laptop' }}</span>
+                    <div class="laptop-card-icon">
+                      <img 
+                        v-if="p.hinhanh || p.hinh_anh || p.image" 
+                        :src="storageUrl(p.hinhanh || p.hinh_anh || p.image)" 
+                        :alt="p.tenSP" 
+                        style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;"
+                      />
+                      <span v-else>💻</span>
                     </div>
+                    <div class="laptop-card-info">
+                      <b class="laptop-item-name">{{ p.tenSP }}</b>
+                      <div class="laptop-item-meta">
+                        <span class="meta-tag sku">SKU: {{ p.SKU || 'N/A' }}</span>
+                        <span class="meta-tag category">{{ p.danh_muc?.ten_danhmuc || 'Laptop' }}</span>
+                      </div>
+                    </div>
+                    <button type="button" class="laptop-pick-btn">+ Chọn</button>
                   </div>
-                  <div v-if="!filteredLaptopProducts.length" style="padding: 14px; text-align: center; color: #64748b; font-size: 12.5px;">
+                  <div v-if="!filteredLaptopProducts.length" class="pool-empty-notice">
                     Không tìm thấy sản phẩm laptop nào phù hợp.
                   </div>
                 </div>
               </div>
 
-              <!-- Selected product badge/info -->
-              <div v-else class="selected-product-info" style="display: flex; justify-content: space-between; align-items: center; background: #eff6ff; border: 1px solid #bfdbfe; padding: 12px 16px; border-radius: 10px;">
-                <div style="text-align: left;">
-                  <span style="font-size: 10px; color: #2563eb; font-weight: 700; display: block; text-transform: capitalize; letter-spacing: 0.05em; margin-bottom: 2px;">Laptop Đang Chọn:</span>
-                  <b style="font-size: 13px; color: #1e293b; display: block; line-height: 1.4;">{{ getSelectedOfferProductName(selectedOfferProduct) }}</b>
+              <!-- Selected product Showcase Banner -->
+              <div v-else class="selected-laptop-showcase">
+                <div class="showcase-left">
+                  <div class="showcase-icon">
+                    <img 
+                      v-if="getSelectedOfferProductImage(selectedOfferProduct)" 
+                      :src="getSelectedOfferProductImage(selectedOfferProduct)" 
+                      alt="Laptop" 
+                      style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;"
+                    />
+                    <span v-else>💻</span>
+                  </div>
+                  <div class="showcase-details">
+                    <span class="showcase-badge">Laptop Đang Chọn Kích Hoạt</span>
+                    <b class="showcase-title">{{ getSelectedOfferProductName(selectedOfferProduct) }}</b>
+                  </div>
                 </div>
-                <button v-if="!isOfferEditMode" type="button" @click="selectedOfferProduct = null" class="img-remove-btn" style="padding: 6px 12px; font-size: 11px; margin: 0;">
-                  Thay đổi
+                <button v-if="!isOfferEditMode" type="button" @click="selectedOfferProduct = null" class="showcase-change-btn">
+                  🔄 Thay đổi
                 </button>
               </div>
             </div>
@@ -1245,23 +1215,27 @@ onBeforeUnmount(() => {
               <label>Bước 2: Chọn Biến thể / Cấu hình áp dụng ưu đãi <span class="required">*</span></label>
               <p v-if="offerFieldErrors.id_bienthe" class="field-error" style="margin-bottom: 4px;">{{ offerFieldErrors.id_bienthe }}</p>
               
-              <!-- Selected variant badge/info (similar to Selected Laptop box) -->
-              <div v-if="offerForm.id_bienthe && isVariantCollapsed" class="selected-product-info" style="display: flex; justify-content: space-between; align-items: center; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 12px 16px; border-radius: 10px;">
-                <div style="text-align: left;">
-                  <span style="font-size: 10px; color: #166534; font-weight: 700; display: block; text-transform: capitalize; letter-spacing: 0.05em; margin-bottom: 2px;">Cấu Hình Đang Chọn:</span>
-                  <b style="font-size: 13px; color: #1e293b; display: block; line-height: 1.4;">{{ getSelectedVariantName(offerForm.id_bienthe) }}</b>
-                  <span style="font-size: 11px; color: #166534; font-weight: 700; margin-top: 4px; display: block;">
-                    Giá bán lẻ lẻ: {{ getSelectedVariantPrice(offerForm.id_bienthe) }}
-                  </span>
+              <!-- Selected variant showcase banner (Redesigned Step 2 - No Icon) -->
+              <div v-if="offerForm.id_bienthe && isVariantCollapsed" class="selected-variant-showcase">
+                <div class="showcase-left">
+                  <div class="showcase-details">
+                    <div class="showcase-header-row">
+                      <span class="variant-showcase-badge">Cấu Hình Kích Hoạt</span>
+                      <span v-if="getSelectedVariantPrice(offerForm.id_bienthe)" class="variant-price-tag">
+                        Giá bán lẻ: <b>{{ getSelectedVariantPrice(offerForm.id_bienthe) }}</b>
+                      </span>
+                    </div>
+                    <b class="variant-showcase-title">{{ getSelectedVariantName(offerForm.id_bienthe) }}</b>
+                  </div>
                 </div>
-                <button v-if="!isOfferEditMode" type="button" @click="isVariantCollapsed = false" class="img-change" style="padding: 6px 12px; font-size: 11px; margin: 0; background: white; border: 1px solid #cbd5e1; border-radius: 6px;">
-                  Thay đổi
+                <button v-if="!isOfferEditMode" type="button" @click="isVariantCollapsed = false" class="showcase-change-btn">
+                  🔄 Thay đổi
                 </button>
               </div>
 
               <!-- Available variant grid to select from -->
               <div v-else>
-                <div v-if="groupedOfferVariants.length" class="variant-offer-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 4px;">
+                <div v-if="groupedOfferVariants.length" class="variant-offer-cards-grid">
                   <div 
                     v-for="v in groupedOfferVariants" 
                     :key="v.configName"
@@ -1271,27 +1245,26 @@ onBeforeUnmount(() => {
                       disabled: isOfferEditMode && !isVariantSelected(v)
                     }"
                     @click="selectVariantAction(v)"
-                    style="border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 12px; cursor: pointer; transition: all 0.2s; position: relative; text-align: left; background: white;"
                   >
                     <!-- Checkbox circle badge -->
                     <div 
                       class="variant-select-chk" 
-                      style="position: absolute; top: 10px; right: 10px; width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 10px; color: white; background: white; font-weight: bold; transition: all 0.2s;"
-                      :style="isVariantSelected(v) ? { borderColor: '#3b82f6', backgroundColor: '#3b82f6' } : {}"
+                      :class="{ selected: isVariantSelected(v) }"
                     >
                       <span v-if="isVariantSelected(v)">✓</span>
                     </div>
                     
-                    <div style="font-weight: 700; font-size: 12px; color: #1e293b; padding-right: 20px; line-height: 1.4; transition: color 0.2s;">
-                      {{ v.configName }}
-                    </div>
-                    
-                    <div style="font-size: 11px; font-weight: 800; color: #2563eb; margin-top: 8px;">
-                      Lẻ: {{ Number(v.gia).toLocaleString('vi-VN') }}đ
+                    <div class="variant-card-body">
+                      <div class="variant-config-title">
+                        {{ v.configName }}
+                      </div>
+                      <div class="variant-config-price">
+                        Giá lẻ: {{ Number(v.gia).toLocaleString('vi-VN') }}đ
+                      </div>
                     </div>
                   </div>
                 </div>
-                <div v-else style="padding: 14px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 10px; text-align: center; color: #64748b; font-size: 12.5px;">
+                <div v-else class="pool-empty-notice">
                   Sản phẩm laptop này chưa có cấu hình biến thể nào.
                 </div>
               </div>
@@ -1307,24 +1280,35 @@ onBeforeUnmount(() => {
                 </option>
               </select>
               <p v-if="offerFieldErrors.id_combo" class="field-error">{{ offerFieldErrors.id_combo }}</p>
-              <small style="color: #64748b; font-size:11px; margin-top:2px;">⚠️ Phải tạo Combo phụ kiện tại Tab 1 trước khi gắn ưu đãi tại đây.</small>
+              <small class="step-help-text">Phải tạo Combo phụ kiện tại Tab 1 trước khi gắn ưu đãi tại đây.</small>
             </div>
 
-            <!-- Offer Type radio list -->
-            <div class="form-group" style="border-top: 1px solid #e2e8f0; padding-top: 14px; margin-top: 4px;">
-              <label>Bước 4: Loại ưu đãi</label>
-              <div class="offer-type-cards" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 10px; width: 100%;">
-                <label class="offer-type-card" :class="{ active: offerForm.loai_uudai === 'free' }" style="display: flex; flex-direction: column; align-items: flex-start; padding: 16px 20px; border-radius: 12px; border: 2px solid #e2e8f0; background: white; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.02); position: relative; text-align: left; font-weight: normal;">
-                  <input type="radio" value="free" v-model="offerForm.loai_uudai" style="position: absolute; top: 16px; right: 16px; width: 18px; height: 18px; accent-color: #2563eb; margin: 0; cursor: pointer;" />
-                  <span style="font-size: 20px; margin-bottom: 8px;">🎁</span>
-                  <b style="font-size: 14px; color: #1e293b; font-weight: 700; margin-bottom: 4px; text-transform: none; letter-spacing: normal;">Tặng miễn phí (0đ)</b>
-                  <span style="font-size: 11.5px; color: #64748b; line-height: 1.4;">Combo phụ kiện con được tặng 100% miễn phí khi khách mua sản phẩm này.</span>
+            <!-- Offer Type 2-column card grid -->
+            <div class="form-group form-step-section">
+              <label>Bước 4: Loại ưu đãi <span class="required">*</span></label>
+              <div class="offer-type-cards-grid">
+                <label class="offer-type-card-item" :class="{ active: offerForm.loai_uudai === 'free' }">
+                  <input type="radio" value="free" v-model="offerForm.loai_uudai" class="offer-type-radio-hidden" />
+                  <div class="offer-type-icon-badge free">🎁</div>
+                  <div class="offer-type-content">
+                    <b class="offer-type-heading">Tặng Miễn Phí (0đ)</b>
+                    <p class="offer-type-subtext">Combo Phụ Kiện con được tặng 100% miễn phí khi khách mua sản phẩm này.</p>
+                  </div>
+                  <div class="offer-type-radio-circle" :class="{ active: offerForm.loai_uudai === 'free' }">
+                    <div class="radio-inner-dot" v-if="offerForm.loai_uudai === 'free'"></div>
+                  </div>
                 </label>
-                <label class="offer-type-card" :class="{ active: offerForm.loai_uudai === 'discount' }" style="display: flex; flex-direction: column; align-items: flex-start; padding: 16px 20px; border-radius: 12px; border: 2px solid #e2e8f0; background: white; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.02); position: relative; text-align: left; font-weight: normal;">
-                  <input type="radio" value="discount" v-model="offerForm.loai_uudai" style="position: absolute; top: 16px; right: 16px; width: 18px; height: 18px; accent-color: #2563eb; margin: 0; cursor: pointer;" />
-                  <span style="font-size: 20px; margin-bottom: 8px;">🏷️</span>
-                  <b style="font-size: 14px; color: #1e293b; font-weight: 700; margin-bottom: 4px; text-transform: none; letter-spacing: normal;">Mua kèm giá đặc biệt</b>
-                  <span style="font-size: 11.5px; color: #64748b; line-height: 1.4;">Khách hàng được mua kèm combo phụ kiện này với một mức giá ưu đãi tự chọn.</span>
+
+                <label class="offer-type-card-item" :class="{ active: offerForm.loai_uudai === 'discount' }">
+                  <input type="radio" value="discount" v-model="offerForm.loai_uudai" class="offer-type-radio-hidden" />
+                  <div class="offer-type-icon-badge discount">🏷️</div>
+                  <div class="offer-type-content">
+                    <b class="offer-type-heading">Mua Kèm Giá Đặc Biệt</b>
+                    <p class="offer-type-subtext">Khách hàng được mua kèm Combo phụ kiện này với một mức giá ưu đãi tự chọn.</p>
+                  </div>
+                  <div class="offer-type-radio-circle" :class="{ active: offerForm.loai_uudai === 'discount' }">
+                    <div class="radio-inner-dot" v-if="offerForm.loai_uudai === 'discount'"></div>
+                  </div>
                 </label>
               </div>
             </div>
@@ -1337,26 +1321,28 @@ onBeforeUnmount(() => {
             </div>
 
             <!-- Description tag (VIP Banner display text) -->
-            <div class="form-group" style="border-top: 1px solid #e2e8f0; padding-top: 14px; margin-top: 4px;">
+            <div class="form-group form-step-section">
               <label>Bước 5: Tiêu đề / Nội dung hiển thị VIP Banner (Khách hàng xem) <span class="required">*</span></label>
               <input v-model="offerForm.mota_uudai" placeholder="VD: Tặng combo Phím Chuột Gaming trị giá 650k khi chọn phiên bản RAM 16GB" />
-              <small style="color: #64748b; font-size:11px; margin-top:2px;">Dòng này sẽ được hiển thị nổi bật tại trang chi tiết sản phẩm chính để thu hút khách nâng cấp cấu hình.</small>
+              <small class="step-help-text">Dòng này sẽ được hiển thị nổi bật tại trang chi tiết sản phẩm chính để thu hút khách nâng cấp cấu hình.</small>
             </div>
 
-            <!-- Limit & Expiry Date (2 columns) -->
-            <div class="form-cols-2" style="border-top: 1px solid #e2e8f0; padding-top: 14px; margin-top: 4px;">
-              <div class="form-group">
-                <label>Giới hạn số lượng (suất)</label>
-                <input v-model="offerForm.gioi_han_soluong" type="number" placeholder="Không giới hạn" :class="{ 'input-error': offerFieldErrors.gioi_han_soluong }" />
-                <p v-if="offerFieldErrors.gioi_han_soluong" class="field-error">{{ offerFieldErrors.gioi_han_soluong }}</p>
-                <small style="color: #64748b; font-size:11px; margin-top:2px; display:block;">Ưu đãi tự động đóng khi đạt giới hạn.</small>
-              </div>
+            <!-- Limit & Expiry Date (Combined into 1 single div) -->
+            <div class="form-group form-step-section">
+              <div class="form-cols-2">
+                <div class="form-group-inner">
+                  <label>Giới hạn số lượng (suất)</label>
+                  <input v-model="offerForm.gioi_han_soluong" type="number" placeholder="Không giới hạn" :class="{ 'input-error': offerFieldErrors.gioi_han_soluong }" />
+                  <p v-if="offerFieldErrors.gioi_han_soluong" class="field-error">{{ offerFieldErrors.gioi_han_soluong }}</p>
+                  <small class="step-help-text">Ưu đãi tự động đóng khi đạt giới hạn.</small>
+                </div>
 
-              <div class="form-group">
-                <label>Thời hạn ưu đãi</label>
-                <input v-model="offerForm.ngay_het_han" type="datetime-local" :class="{ 'input-error': offerFieldErrors.ngay_het_han }" />
-                <p v-if="offerFieldErrors.ngay_het_han" class="field-error">{{ offerFieldErrors.ngay_het_han }}</p>
-                <small style="color: #64748b; font-size:11px; margin-top:2px; display:block;">Ưu đãi tự động hết hạn sau thời điểm này.</small>
+                <div class="form-group-inner">
+                  <label>Thời hạn ưu đãi</label>
+                  <input v-model="offerForm.ngay_het_han" type="datetime-local" :class="{ 'input-error': offerFieldErrors.ngay_het_han }" />
+                  <p v-if="offerFieldErrors.ngay_het_han" class="field-error">{{ offerFieldErrors.ngay_het_han }}</p>
+                  <small class="step-help-text">Ưu đãi tự động hết hạn sau thời điểm này.</small>
+                </div>
               </div>
             </div>
 
@@ -1386,33 +1372,33 @@ onBeforeUnmount(() => {
     ══════════════════════════════════════════════════════ -->
     <teleport to="body">
       <div v-if="showDetailModal && selectedOfferDetail" class="modal-overlay" @click.self="closeDetailModal">
-        <div class="modal">
+        <div class="modal detail-modal">
           <div class="modal-header">
-            <h3>🔍 Chi tiết Chiến dịch Ưu đãi</h3>
+            <h3>Chi tiết Chiến dịch Ưu đãi</h3>
             <button class="modal-close" @click="closeDetailModal">&times;</button>
           </div>
           <div class="modal-body" style="gap: 14px;">
             <div class="detail-modal-card">
               <!-- Banner Title Section -->
-              <div class="vip-banner-box" style="max-width: 100%; width: 100%; box-sizing: border-box; margin-bottom: 8px;">
-                📢 <b>Nội dung hiển thị VIP Banner (Khách xem):</b><br/>
-                <span style="font-size: 13px; display: inline-block; margin-top: 6px; font-weight: normal; color: #475569;">
+              <div class="vip-banner-box">
+                <b class="vip-banner-title">Nội dung hiển thị VIP Banner (Khách xem):</b>
+                <div class="vip-banner-sub">
                   {{ selectedOfferDetail.mota_uudai || 'Chưa thiết lập banner' }}
-                </span>
+                </div>
               </div>
 
               <!-- Section 1: Activation Condition -->
               <div class="detail-section">
-                <div class="detail-section-title">💻 Điều kiện kích hoạt (Sản phẩm chính)</div>
+                <div class="detail-section-title">Điều kiện kích hoạt (Sản phẩm chính)</div>
                 <div class="detail-info-row">
                   <span class="detail-info-label">Laptop áp dụng</span>
-                  <span class="detail-info-value" style="color: #2563eb; font-weight: bold;">{{ selectedOfferDetail.sanpham_ten }}</span>
+                  <span class="detail-info-value offer-laptop-name">{{ selectedOfferDetail.sanpham_ten }}</span>
                 </div>
                 <div class="detail-info-row">
                   <span class="detail-info-label">Phiên bản / Cấu hình</span>
                   <span class="detail-info-value">
-                    <span class="variant-spec-badge" style="margin: 0; font-size: 11px; padding: 4px 8px;">
-                      💻 {{ getConfigName(selectedOfferDetail.ten_bienthe) }}
+                    <span class="variant-spec-badge">
+                      {{ getConfigName(selectedOfferDetail.ten_bienthe) }}
                     </span>
                   </span>
                 </div>
@@ -1420,28 +1406,28 @@ onBeforeUnmount(() => {
 
               <!-- Section 2: Applied Combo details -->
               <div class="detail-section">
-                <div class="detail-section-title">🎁 Combo quà tặng / mua kèm</div>
+                <div class="detail-section-title">Combo quà tặng / mua kèm</div>
                 <div class="detail-info-row">
                   <span class="detail-info-label">Combo áp dụng</span>
-                  <span class="detail-info-value" style="color: #2563eb; font-weight: bold;">{{ selectedOfferDetail.combo_ten }}</span>
+                  <span class="detail-info-value offer-combo-name">{{ selectedOfferDetail.combo_ten }}</span>
                 </div>
                 <div class="detail-info-row">
                   <span class="detail-info-label">Giá trị Combo gốc</span>
-                  <span class="detail-info-value" style="text-decoration: line-through; color: #94a3b8;">
+                  <span class="detail-info-value combo-original-price">
                     {{ Number(selectedOfferDetail.combo_gia).toLocaleString('vi-VN') }}đ
                   </span>
                 </div>
                 <div class="detail-info-row">
                   <span class="detail-info-label">Loại ưu đãi</span>
                   <span class="detail-info-value">
-                    <span class="badge" :class="selectedOfferDetail.loai_uudai === 'free' ? 'badge-green' : 'badge-orange'" style="padding: 4px 8px; font-size: 10px;">
-                      {{ selectedOfferDetail.loai_uudai === 'free' ? '🎁 Tặng 0đ' : '🏷️ Mua kèm' }}
+                    <span class="badge" :class="selectedOfferDetail.loai_uudai === 'free' ? 'badge-green' : 'badge-orange'">
+                      {{ selectedOfferDetail.loai_uudai === 'free' ? 'Tặng 0đ' : 'Mua kèm' }}
                     </span>
                   </span>
                 </div>
                 <div class="detail-info-row">
                   <span class="detail-info-label">Giá ưu đãi thực tế</span>
-                  <span class="detail-info-value" :class="{ 'free-text': selectedOfferDetail.loai_uudai === 'free' }" style="font-size: 14.5px; font-weight: 800; color: #ef4444;">
+                  <span class="detail-info-value offer-real-price" :class="{ 'free-text': selectedOfferDetail.loai_uudai === 'free' }">
                     {{ selectedOfferDetail.loai_uudai === 'free' ? 'Miễn phí (0đ)' : Number(selectedOfferDetail.giakhuyenmai_override).toLocaleString('vi-VN') + 'đ' }}
                   </span>
                 </div>
@@ -1449,7 +1435,7 @@ onBeforeUnmount(() => {
 
               <!-- Section 3: Limits & Duration -->
               <div class="detail-section">
-                <div class="detail-section-title">📊 Giới hạn & Thời gian chiến dịch</div>
+                <div class="detail-section-title">Giới hạn & Thời gian chiến dịch</div>
                 <div class="detail-info-row">
                   <span class="detail-info-label">Đã sử dụng</span>
                   <span class="detail-info-value">
@@ -1460,10 +1446,10 @@ onBeforeUnmount(() => {
                   <span class="detail-info-label">Tiến độ sử dụng</span>
                   <span class="detail-info-value">
                     <div style="display: flex; align-items: center; gap: 8px;">
-                      <div class="usage-bar-bg" style="width: 100px; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; display: inline-block;">
-                        <div class="usage-bar-fill" :style="{ width: Math.min((selectedOfferDetail.da_su_dung / selectedOfferDetail.gioi_han_soluong) * 100, 100) + '%' }" style="height: 100%; background: linear-gradient(90deg, #2563eb, #3b82f6); border-radius: 3px;"></div>
+                      <div class="usage-bar-bg">
+                        <div class="usage-bar-fill" :style="{ width: Math.min((selectedOfferDetail.da_su_dung / selectedOfferDetail.gioi_han_soluong) * 100, 100) + '%' }"></div>
                       </div>
-                      <span style="font-size: 11px; color: #475569; font-weight: bold;">
+                      <span class="usage-percent-text">
                         {{ Math.round((selectedOfferDetail.da_su_dung / selectedOfferDetail.gioi_han_soluong) * 100) }}%
                       </span>
                     </div>
@@ -1471,19 +1457,19 @@ onBeforeUnmount(() => {
                 </div>
                 <div class="detail-info-row">
                   <span class="detail-info-label">Thời hạn hết hạn</span>
-                  <span class="detail-info-value" style="font-weight: 600;">
-                    {{ selectedOfferDetail.ngay_het_han ? formatOfferDate(selectedOfferDetail.ngay_het_han) : 'Vô thời hạn ♾️' }}
+                  <span class="detail-info-value">
+                    {{ selectedOfferDetail.ngay_het_han ? formatOfferDate(selectedOfferDetail.ngay_het_han) : 'Vô thời hạn' }}
                   </span>
                 </div>
               </div>
 
               <!-- Section 4: Status and Validity -->
               <div class="detail-section">
-                <div class="detail-section-title">⚙️ Trạng thái & Tính hợp lệ</div>
+                <div class="detail-section-title">Trạng thái & Tính hợp lệ</div>
                 <div class="detail-info-row">
                   <span class="detail-info-label">Trạng thái cấu hình</span>
                   <span class="detail-info-value">
-                    <span class="badge" :class="selectedOfferDetail.trangthai === 1 ? 'badge-success' : 'badge-draft'" style="padding: 4px 8px; font-size: 10px;">
+                    <span class="badge" :class="selectedOfferDetail.trangthai === 1 ? 'badge-success' : 'badge-draft'">
                       {{ selectedOfferDetail.trangthai === 1 ? 'Đang kích hoạt' : 'Tạm ẩn' }}
                     </span>
                   </span>
@@ -1491,22 +1477,22 @@ onBeforeUnmount(() => {
                 <div class="detail-info-row">
                   <span class="detail-info-label">Hiệu lực hệ thống</span>
                   <span class="detail-info-value">
-                    <span class="badge" :class="selectedOfferDetail.is_valid ? 'badge-active-green' : 'badge-expired-red'" style="padding: 4px 8px; font-size: 10px;">
-                      {{ selectedOfferDetail.is_valid ? '🟢 Khả dụng' : '🔴 Vô hiệu' }}
+                    <span class="badge" :class="selectedOfferDetail.is_valid ? 'badge-active-green' : 'badge-expired-red'">
+                      {{ selectedOfferDetail.is_valid ? 'Khả dụng' : 'Vô hiệu' }}
                     </span>
                   </span>
                 </div>
-                <div v-if="selectedOfferDetail.is_combo_in_stock === false" class="detail-info-row" style="background: #fff1f2; border-radius: 8px; padding: 10px 12px; margin-top: 8px; border: 1px solid #fecdd3;">
-                  <span class="detail-info-label" style="color: #e11d48; font-weight: bold;">Cảnh báo kho hàng</span>
-                  <span class="detail-info-value" style="color: #e11d48; font-weight: bold;">
-                    ⚠️ Thiếu hàng phụ kiện trong combo!
+                <div v-if="selectedOfferDetail.is_combo_in_stock === false" class="detail-info-row stock-warning-row">
+                  <span class="detail-info-label warning-label">Cảnh báo kho hàng</span>
+                  <span class="detail-info-value warning-value">
+                    Thiếu hàng phụ kiện trong combo!
                   </span>
                 </div>
               </div>
             </div>
           </div>
           <div class="modal-footer">
-            <button class="btn-cancel" @click="closeDetailModal" style="padding: 10px 20px; font-size: 13px;">Đóng</button>
+            <button class="btn-cancel" @click="closeDetailModal">Đóng</button>
           </div>
         </div>
       </div>
@@ -2250,6 +2236,14 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
+  width: 100%;
+}
+
+.form-group-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
 }
 
 /* Card-like wrappers for each form-group in inline-form-body */
@@ -2438,7 +2432,7 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 12px;
-  max-height: 240px;
+  max-height: 320px;
   overflow-y: auto;
   padding: 8px;
   background: #f8fafc;
@@ -2684,10 +2678,10 @@ onBeforeUnmount(() => {
 .tab-nav-list {
   display: flex;
   gap: 8px;
-  padding: 4px;
-  border: 1px solid #e2e8f0;
+  padding: 0;
+  border: none;
   border-radius: 12px;
-  background: #f1f5f9;
+  background: transparent;
 }
 
 @media (max-width: 768px) {
@@ -2709,9 +2703,9 @@ onBeforeUnmount(() => {
   padding: 10px 24px;
   font-size: 13.5px;
   font-weight: 600;
-  background: transparent;
-  border: none;
-  color: #64748b;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #475569;
   border-radius: 9px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -2719,13 +2713,16 @@ onBeforeUnmount(() => {
 }
 
 .tab-nav-btn:hover {
-  color: #0f172a;
+  color: #2563eb;
+  border-color: #cbd5e1;
+  background: #f8fafc;
 }
 
 .tab-nav-btn.active {
-  background: white;
+  background: #ffffff;
+  border: 1px solid #2563eb;
   color: #2563eb;
-  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.05);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.12);
 }
 
 /* ── Promotional Offers Table Styles ── */
@@ -2736,6 +2733,28 @@ onBeforeUnmount(() => {
   box-shadow: 0 4px 20px rgba(15, 23, 42, 0.03);
   overflow-x: auto;
   margin-top: 16px;
+}
+
+:global(html[data-admin-theme='dark']) .offers-table-wrap,
+:global(.admin-layout.theme-dark) .offers-table-wrap,
+:global(.admin-layout.dark) .offers-table-wrap,
+:global(.dark) .offers-table-wrap,
+:global(html[data-admin-theme='dark']) .combo-list-panel,
+:global(.admin-layout.theme-dark) .combo-list-panel,
+:global(.admin-layout.dark) .combo-list-panel,
+:global(.dark) .combo-list-panel {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
+}
+
+:global(html[data-admin-theme='dark']) .offers-table th,
+:global(.admin-layout.theme-dark) .offers-table th,
+:global(.admin-layout.dark) .offers-table th,
+:global(.dark) .offers-table th {
+  background: #11161f !important;
+  border-bottom: 1px solid #28303d !important;
+  color: #94a3b8 !important;
 }
 
 .offers-table {
@@ -2810,6 +2829,32 @@ onBeforeUnmount(() => {
   max-width: 220px;
   word-break: break-word;
   box-shadow: 0 2px 6px rgba(244, 63, 94, 0.04);
+}
+
+.detail-modal-card .vip-banner-box {
+  width: 100% !important;
+  max-width: 100% !important;
+  border-radius: 10px !important;
+  padding: 12px 16px !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+}
+
+.detail-modal-card .vip-banner-title {
+  display: block !important;
+  font-size: 12.5px !important;
+  font-weight: 700 !important;
+  color: inherit !important;
+}
+
+.detail-modal-card .vip-banner-sub {
+  display: block !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  word-break: break-word !important;
+  color: inherit !important;
 }
 
 /* Specific truncation for VIP Banner column inside table */
@@ -2934,53 +2979,453 @@ onBeforeUnmount(() => {
   color: #64748b;
 }
 
-.block {
-  display: block;
+/* ── Step 1: Laptop Pool Selection Styles ── */
+.pool-search-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
 }
 
-.text-gray {
-  color: #64748b;
+.pool-search-input-wrap svg {
+  position: absolute;
+  left: 14px;
+  width: 18px;
+  height: 18px;
+  color: #94a3b8;
+  pointer-events: none;
 }
 
-/* ── Variant Offer Cards Styles ── */
-.variant-offer-card {
+.pool-search-input-wrap input {
+  padding-left: 42px !important;
+  height: 44px;
+  border-radius: 12px !important;
+  font-size: 13.5px !important;
+}
+
+.laptop-pool-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.laptop-select-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: left;
+}
+
+.laptop-select-card:hover {
+  border-color: #2563eb;
+  background: #f8fafc;
+  transform: translateX(3px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.06);
+}
+
+.laptop-card-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: #eff6ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.laptop-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.laptop-item-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.laptop-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.meta-tag {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.meta-tag.sku {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.meta-tag.category {
+  background: #f5f3ff;
+  color: #6d28d9;
+}
+
+.laptop-pick-btn {
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.laptop-select-card:hover .laptop-pick-btn {
+  background: #2563eb;
+  color: white;
+  border-color: #2563eb;
+}
+
+/* ── Selected Laptop Showcase Card ── */
+.selected-laptop-showcase {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%);
+  border: 1.5px solid #bfdbfe;
+  border-radius: 14px;
+  gap: 16px;
+}
+
+.showcase-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-align: left;
+  min-width: 0;
+}
+
+.showcase-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #2563eb;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
+}
+
+.showcase-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.showcase-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #2563eb;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.showcase-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.showcase-change-btn {
+  padding: 8px 16px;
+  border-radius: 10px;
+  background: white;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.showcase-change-btn:hover {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: white;
+}
+
+/* ── Selected Variant Showcase Card (Step 2 Redesign) ── */
+.selected-variant-showcase {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 1.5px solid #bae6fd;
+  border-radius: 14px;
+  gap: 16px;
+}
+
+.variant-showcase-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #0284c7;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(2, 132, 199, 0.25);
+}
+
+.showcase-header-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.variant-showcase-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #0284c7;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.variant-price-tag {
+  font-size: 11.5px;
+  color: #475569;
+}
+
+.variant-price-tag b {
+  color: #0284c7;
+  font-weight: 700;
+}
+
+.variant-showcase-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Variant Offer Cards Styles (Step 2) ── */
+.variant-offer-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.variant-offer-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  text-align: left;
 }
 
 .variant-offer-card:hover:not(.disabled) {
-  border-color: #cbd5e1 !important;
+  border-color: #2563eb !important;
   background: #f8fafc !important;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
 }
 
 .variant-offer-card.selected {
-  border-color: #3b82f6 !important;
+  border-color: #2563eb !important;
   background: #eff6ff !important;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.08);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.12) !important;
 }
 
-.variant-offer-card.selected .variant-select-chk {
-  border-color: #3b82f6 !important;
-  background: #3b82f6 !important;
+.variant-select-chk {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: white;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.variant-select-chk.selected {
+  border-color: #2563eb !important;
+  background: #2563eb !important;
+}
+
+.variant-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.variant-config-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.35;
+}
+
+.variant-config-price {
+  font-size: 12px;
+  font-weight: 600;
+  color: #2563eb;
 }
 
 .variant-offer-card.disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background: #f1f5f9 !important;
+  background: #f1f5f9;
 }
 
-/* ── Offer Type Cards Styles ── */
-.offer-type-card:hover {
-  border-color: #cbd5e1 !important;
-  background: #f8fafc !important;
-  transform: translateY(-1px);
+/* ── Offer Type Cards Grid (Step 4) ── */
+.offer-type-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+  margin-top: 8px;
 }
 
-.offer-type-card.active {
+.offer-type-card-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  text-align: left;
+  user-select: none;
+}
+
+.offer-type-card-item:hover {
+  border-color: #3b82f6;
+  background: #f8fafc;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.06);
+}
+
+.offer-type-card-item.active {
   border-color: #2563eb !important;
-  background: #f5f3ff !important;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08) !important;
+  background: #eff6ff !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.12) !important;
+}
+
+.offer-type-radio-hidden {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.offer-type-icon-badge {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.offer-type-icon-badge.free {
+  background: #dcfce7;
+}
+
+.offer-type-icon-badge.discount {
+  background: #ffedd5;
+}
+
+.offer-type-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.offer-type-heading {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.offer-type-subtext {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.offer-type-radio-circle {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  margin-top: 2px;
+}
+
+.offer-type-radio-circle.active {
+  border-color: #2563eb !important;
+  background: #2563eb !important;
+}
+
+.radio-inner-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: white;
 }
 
 /* ── Detail Modal styling ── */
@@ -3031,5 +3476,453 @@ onBeforeUnmount(() => {
 .detail-info-value {
   font-weight: 600;
   color: #0f172a;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DARK MODE OVERRIDES FOR QUAN LY COMBO
+   ══════════════════════════════════════════════════════════════════════════ */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .combo-list-panel,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .offers-table-wrap {
+  background: #11151c !important;
+  border-color: #28303d !important;
+  box-shadow: none !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .combo-admin-table thead tr,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .offers-table thead tr {
+  background: #181d24 !important;
+  border-bottom-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .combo-admin-table th,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .offers-table th {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .combo-admin-table tbody tr,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .offers-table tbody tr {
+  border-bottom-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .combo-admin-table tbody tr:hover,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .offers-table tbody tr:hover {
+  background: #181d24 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .combo-list-info b {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .combo-list-info span,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .block.text-gray {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .combo-product-stack span {
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .combo-list-price {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .combo-tag {
+  background: rgba(124, 58, 237, 0.2) !important;
+  color: #c4b5fd !important;
+  border: 1px solid rgba(124, 58, 237, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .product-name {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .variant-spec-badge {
+  background: #1e2634 !important;
+  color: #60a5fa !important;
+  border: 1px solid #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .usage-info,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .expiry-box {
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .usage-info b,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .expiry-box b {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .usage-bar-bg {
+  background: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .badge-success,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .badge-green {
+  background: rgba(34, 197, 94, 0.2) !important;
+  color: #4ade80 !important;
+  border-color: rgba(34, 197, 94, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .badge-draft,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .badge-expired-red {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #f87171 !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .badge-orange {
+  background: rgba(245, 158, 11, 0.2) !important;
+  color: #fbbf24 !important;
+  border-color: rgba(245, 158, 11, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .price-text {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .price-text.free-text {
+  color: #4ade80 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .act-btn {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .act-btn:hover {
+  background: #1e2634 !important;
+  border-color: #3b82f6 !important;
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .act-btn.danger {
+  background: rgba(239, 68, 68, 0.15) !important;
+  border-color: rgba(239, 68, 68, 0.35) !important;
+  color: #f87171 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .act-btn.danger:hover {
+  background: rgba(239, 68, 68, 0.3) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DARK MODE OVERRIDES FOR COMBO & OFFER FORMS
+   ══════════════════════════════════════════════════════════════════════════ */
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body > .form-group,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body > .products-selection-section,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body > .form-cols-2 > .form-group,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body > .form-row > .form-group {
+  background: #11151c !important;
+  border-color: #28303d !important;
+  color: #f8fafc !important;
+  box-shadow: none !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body .form-group label {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .step-help-text,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .form-group small,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-header p {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-header h1 {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .back-btn {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body .form-group input:not([type='file']),
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body .form-group select,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body .form-group textarea {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-body .form-group select option {
+  background: #181d24 !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .pool-search-input-wrap,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .laptop-select-card {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .pool-search-input-wrap input {
+  background: transparent !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .laptop-item-name {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .laptop-pick-btn {
+  background: rgba(59, 130, 246, 0.2) !important;
+  color: #60a5fa !important;
+  border-color: rgba(59, 130, 246, 0.4) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .selected-laptop-showcase,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .selected-variant-info {
+  background: rgba(59, 130, 246, 0.15) !important;
+  border-color: rgba(59, 130, 246, 0.35) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .showcase-badge,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .selected-variant-label {
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .showcase-title,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .selected-variant-name {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .showcase-change-btn,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .action-change-btn {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .variant-offer-card {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .variant-offer-card.selected {
+  background: rgba(59, 130, 246, 0.15) !important;
+  border-color: #3b82f6 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .variant-config-title {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .variant-config-price {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .offer-type-card-item {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .offer-type-card-item.active {
+  background: rgba(59, 130, 246, 0.15) !important;
+  border-color: #3b82f6 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .offer-type-heading {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .offer-type-subtext {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .inline-form-footer {
+  border-top-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .btn-cancel {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .pool-empty-notice {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .laptop-card-icon,
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .showcase-icon {
+  background: #1e2634 !important;
+  border: 1px solid #28303d !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .meta-tag.sku {
+  background: #1e2634 !important;
+  color: #cbd5e1 !important;
+  border: 1px solid #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .meta-tag.category {
+  background: rgba(124, 58, 237, 0.2) !important;
+  color: #c4b5fd !important;
+  border: 1px solid rgba(124, 58, 237, 0.35) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .laptop-select-card:hover {
+  background: #182232 !important;
+  border-color: #3b82f6 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .selected-variant-showcase {
+  background: rgba(2, 132, 199, 0.15) !important;
+  border: 1px solid rgba(2, 132, 199, 0.35) !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .variant-showcase-icon {
+  background: #1e2634 !important;
+  border: 1px solid #28303d !important;
+  color: #38bdf8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .variant-showcase-badge {
+  color: #38bdf8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .variant-price-tag {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .variant-price-tag b {
+  color: #38bdf8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .variant-showcase-title {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .p-tag {
+  background: rgba(99, 102, 241, 0.18) !important;
+  border: 1px solid rgba(99, 102, 241, 0.35) !important;
+  color: #a5b4fc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .p-tag button {
+  background: rgba(99, 102, 241, 0.35) !important;
+  color: #ffffff !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .p-tag button:hover {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .tab-btn {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .tab-btn:hover {
+  background: #1e2634 !important;
+  color: #60a5fa !important;
+  border-color: #3b82f6 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .tab-btn.active {
+  background: linear-gradient(135deg, #2563eb, #3b82f6) !important;
+  color: #ffffff !important;
+  border-color: #3b82f6 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .pool-search-box input {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .products-pool {
+  background: #11151c !important;
+  border: 1px solid #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .pool-item {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .pool-item:hover {
+  background: #1e2634 !important;
+  border-color: #3b82f6 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .pool-item.selected {
+  background: rgba(59, 130, 246, 0.18) !important;
+  border-color: #3b82f6 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .pool-item .p-info b {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .pool-item .p-info span {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .pool-item .p-info .p-pool-price {
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .pool-item .chk {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .pool-item.selected .chk {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  color: #ffffff !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .upload-zone {
+  background: #181d24 !important;
+  border: 2px dashed #28303d !important;
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .upload-zone p {
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .upload-zone p span {
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .upload-zone small {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .img-preview-wrap {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .img-change {
+  background: #11151c !important;
+  border-color: #28303d !important;
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .combo-price-suggest-box {
+  background: rgba(59, 130, 246, 0.15) !important;
+  border: 1px solid rgba(59, 130, 246, 0.35) !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .combo-price-suggest-box span {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'], html[data-theme='dark'], .admin-layout.theme-dark, .admin-layout.dark, .admin-layout.is-dark, body.theme-dark, body.dark, .dark) .combo-price-suggest-box b {
+  color: #60a5fa !important;
 }
 </style>

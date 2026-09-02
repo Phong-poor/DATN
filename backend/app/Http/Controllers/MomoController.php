@@ -54,8 +54,8 @@ class MomoController extends Controller
 
         $payload = [
             'partnerCode' => $partnerCode,
-            'partnerName' => env('APP_NAME', 'VinaTech'),
-            'storeId' => 'VinaTech',
+            'partnerName' => env('APP_NAME', 'NextGen'),
+            'storeId' => 'NextGen',
             'requestId' => $requestId,
             'amount' => $amount,
             'orderId' => $orderId,
@@ -70,7 +70,7 @@ class MomoController extends Controller
 
         if ($requestType === 'payWithCC') {
             $payload['userInfo'] = [
-                'name' => $order->user?->ten ?: 'Khach hang VinaTech',
+                'name' => $order->user?->ten ?: 'Khach hang NextGen',
                 'phoneNumber' => $order->user?->sodienthoai ?: '',
                 'email' => $order->user?->email ?: 'sandbox@example.com',
             ];
@@ -294,6 +294,10 @@ class MomoController extends Controller
         });
 
         $this->clearDashboardCache();
+
+        try {
+            app(\App\Services\DemoShipmentService::class)->syncDueShipments();
+        } catch (\Throwable $t) {}
 
         if ($shouldBroadcast) {
             event(new NewOrderPlaced($order->fresh()));

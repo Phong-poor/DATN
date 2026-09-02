@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import api from '../../services/api'
 import swal from '@/services/swal'
-import { normalizeImageUrl } from '@/services/urls'
+import { handleImageFallback, normalizeImageUrl } from '@/services/urls'
 import { getToken, getUser } from '@/services/auth'
 
 
@@ -70,7 +70,8 @@ const getFreeshipMinOrder = (promo) => {
     return promo.dieu_kien > 0 ? promo.dieu_kien : 0
 }
 
-const shippingFee = computed(() => cart.value.length > 0 ? 30000 : 0)
+const selectedCartItems = computed(() => cart.value.filter(item => selectedIds.value.has(item.id_giohang)))
+const shippingFee = computed(() => selectedCartItems.value.length > 0 ? 30000 : 0)
 
 const thongBao = ref({ show: false, type: '', message: '' })
 
@@ -100,8 +101,22 @@ const fetchGioHang = async () => {
     }
 }
 
-const subtotal = computed(() => cart.value.reduce((sum, item) => sum + item.thanh_tien, 0))
+const subtotal = computed(() => selectedCartItems.value.reduce((sum, item) => sum + item.thanh_tien, 0))
 const total = computed(() => Math.max(0, subtotal.value - discount.value) + Math.max(0, shippingFee.value - freeshipDiscount.value))
+
+const checkoutQuery = computed(() => ({
+    selected: [...selectedIds.value].join(','),
+    promo_code: appliedPromo.value?.code || '',
+    discount: discount.value,
+    freeship_code: appliedFreeshipPromo.value?.code || '',
+    freeship_discount: freeshipDiscount.value
+}))
+
+const requireSelectedProduct = (event) => {
+    if (selectedCount.value > 0) return
+    event.preventDefault()
+    hienThiThongBao('error', 'Vui lòng chọn ít nhất một sản phẩm trước khi thanh toán!')
+}
 
 const groupedCart = computed(() => {
     const list = []
@@ -219,10 +234,58 @@ const capNhatSoLuong = async (item, delta) => {
     }
 }
 
-const xoaSanPham = async (idGioHang) => {
+const onInputSoLuong = async (item, event) => {
+    let val = parseInt(event.target.value, 10)
+    if (isNaN(val) || val < 1) {
+        val = 1
+        event.target.value = 1
+    }
+    const maxStock = Number(item.ton_kho || 99)
+    if (val > maxStock) {
+        val = maxStock
+        event.target.value = maxStock
+        hienThiThongBao('error', `Kho chỉ còn ${maxStock} sản phẩm.`)
+    }
+    
+    if (val === item.soluong) return
+
+    const delta = val - item.soluong
+    await capNhatSoLuong(item, delta)
+}
+
+const onInputSoLuongCombo = async (group, event) => {
+    let val = parseInt(event.target.value, 10)
+    if (isNaN(val) || val < 1) {
+        val = 1
+        event.target.value = 1
+    }
+    const maxStock = Number(group.ton_kho || 99)
+    if (val > maxStock) {
+        val = maxStock
+        event.target.value = maxStock
+        hienThiThongBao('error', `Kho chỉ còn ${maxStock} combo.`)
+    }
+
+    if (val === group.soluong) return
+
+    const delta = val - group.soluong
+    await capNhatSoLuongCombo(group, delta)
+}
+
+const xoaSanPham = async (idGioHang, skipConfirm = false) => {
     const index = cart.value.findIndex(item => item.id_giohang === idGioHang)
     if (index === -1) return
     const item = cart.value[index]
+
+    if (!skipConfirm) {
+        const productName = item.ten_sp || item.ten_bienthe || 'sản phẩm này'
+        const isConfirmed = await swal.confirm(
+            'Xóa sản phẩm',
+            `Bạn có chắc chắn muốn xóa "${productName}" khỏi giỏ hàng không?`
+        )
+        if (!isConfirmed) return
+    }
+
     cart.value.splice(index, 1)
     selectedIds.value.delete(idGioHang)
 
@@ -232,7 +295,9 @@ const xoaSanPham = async (idGioHang) => {
 
     try {
         await api.delete(`/gio-hang/xoa/${item.id_giohang}`)
-        hienThiThongBao('success', 'Đã xóa sản phẩm khỏi giỏ hàng.')
+        if (!skipConfirm) {
+            hienThiThongBao('success', 'Đã xóa sản phẩm khỏi giỏ hàng.')
+        }
         window.dispatchEvent(new Event('cart-updated'))
     } catch (err) {
         hienThiThongBao('error', 'Lỗi xóa sản phẩm!')
@@ -262,14 +327,15 @@ const xoaTatCa = async () => {
 
 const xoaDaChon = async () => {
     if (selectedIds.value.size === 0) return
-    const isConfirmed = await swal.confirm('Xóa sản phẩm đã chọn', `Bạn có chắc chắn muốn xóa ${selectedIds.value.size} sản phẩm đã chọn?`)
+    const isConfirmed = await swal.confirm('Xóa sản phẩm đã chọn', `Bạn có chắc chắn muốn xóa ${selectedIds.value.size} sản phẩm đã chọn khỏi giỏ hàng?`)
     if (!isConfirmed) return
 
     const ids = [...selectedIds.value]
     for (const id of ids) {
-        await xoaSanPham(id)
+        await xoaSanPham(id, true)
     }
     selectedIds.value = new Set()
+    hienThiThongBao('success', 'Đã xóa các sản phẩm đã chọn khỏi giỏ hàng.')
 }
 
 // ===================== M GI?M GI =====================
@@ -503,12 +569,14 @@ onMounted(() => {
 <template>
   <div class="cart-root">
     <!-- ===== TOAST NOTIFICATION ===== -->
-    <transition name="toast-slide">
-      <div v-if="thongBao.show" :class="['premium-toast', thongBao.type]">
-        <span class="toast-icon">{{ thongBao.type === 'success' ? '✓' : '⚠' }}</span>
-        {{ thongBao.message }}
-      </div>
-    </transition>
+    <Teleport to="body">
+      <transition name="toast-slide">
+        <div v-if="thongBao.show" :class="['premium-toast', thongBao.type]">
+          <span class="toast-icon">{{ thongBao.type === 'success' ? '✓' : '⚠' }}</span>
+          {{ thongBao.message }}
+        </div>
+      </transition>
+    </Teleport>
 
     <div class="cart-page">
     <div class="cart-wrap">
@@ -633,7 +701,7 @@ onMounted(() => {
                   :src="normalizeImageUrl(entry.hinh_anh, 'https://placehold.co/90')"
                   :alt="entry.ten_san_pham"
                   class="item-img"
-                  @error="e => e.target.src = 'https://placehold.co/90'"
+                  @error="event => handleImageFallback(event, 'https://placehold.co/90')"
                 />
               </div>
 
@@ -657,7 +725,7 @@ onMounted(() => {
                     <button class="qty-btn" @click="capNhatSoLuong(entry, -1)" :disabled="entry.soluong <= 1">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     </button>
-                    <span class="qty-num">{{ entry.soluong }}</span>
+                    <input type="number" min="1" :max="entry.ton_kho" class="qty-input" :value="entry.soluong" @focus="$event.target.select()" @change="onInputSoLuong(entry, $event)" @blur="onInputSoLuong(entry, $event)" @keyup.enter="$event.target.blur()" />
                     <button class="qty-btn" @click="capNhatSoLuong(entry, +1)" :disabled="entry.soluong >= entry.ton_kho">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     </button>
@@ -726,7 +794,7 @@ onMounted(() => {
                     <button class="qty-btn" @click="capNhatSoLuongCombo(entry, -1)" :disabled="entry.soluong <= 1">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     </button>
-                    <span class="qty-num">{{ entry.soluong }}</span>
+                    <input type="number" min="1" :max="entry.ton_kho" class="qty-input" :value="entry.soluong" @focus="$event.target.select()" @change="onInputSoLuongCombo(entry, $event)" @blur="onInputSoLuongCombo(entry, $event)" @keyup.enter="$event.target.blur()" />
                     <button class="qty-btn" @click="capNhatSoLuongCombo(entry, +1)" :disabled="entry.soluong >= entry.ton_kho">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     </button>
@@ -750,7 +818,7 @@ onMounted(() => {
         <div class="summary-card">
           <div class="summary-header">
             <h2 class="summary-title">Tóm tắt đơn hàng</h2>
-            <span class="summary-count">{{ cart.length }} sản phẩm</span>
+            <span class="summary-count">{{ selectedCount }} sản phẩm đã chọn</span>
           </div>
 
           <!-- PRICE ROWS -->
@@ -829,14 +897,11 @@ onMounted(() => {
 
           <router-link
             v-else
-            :to="{ path: '/thanh-toan', query: { 
-              promo_code: appliedPromo ? appliedPromo.code : '', 
-              discount: discount,
-              freeship_code: appliedFreeshipPromo ? appliedFreeshipPromo.code : '',
-              freeship_discount: freeshipDiscount
-            }}"
+            :to="{ path: '/thanh-toan', query: checkoutQuery }"
             class="checkout-btn"
-            :class="{ 'checkout-disabled': cart.length === 0 }"
+            :class="{ 'checkout-disabled': selectedCount === 0 }"
+            :aria-disabled="selectedCount === 0"
+            @click="requireSelectedProduct"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
             Thanh toán ngay
@@ -1317,6 +1382,34 @@ onMounted(() => {
   padding: 0 4px;
   line-height: 28px;
 }
+.qty-input {
+  width: 48px;
+  height: 28px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  border: none;
+  border-left: 1px solid #c7d2fe;
+  border-right: 1px solid #c7d2fe;
+  background: #ffffff;
+  outline: none;
+  padding: 0 2px;
+  transition: all 0.2s ease;
+  -moz-appearance: textfield;
+}
+.qty-input:focus {
+  background: #eff6ff;
+  color: #2563eb;
+  border-left-color: #2563eb;
+  border-right-color: #2563eb;
+  box-shadow: inset 0 0 0 1.5px #2563eb;
+}
+.qty-input::-webkit-outer-spin-button,
+.qty-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
 
 
 .item-right {
@@ -1540,8 +1633,8 @@ onMounted(() => {
 }
 .checkout-btn svg { width: 18px; height: 18px; }
 .arrow-right { margin-left: auto; }
-.checkout-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(37, 99, 235, 0.4); }
-.checkout-disabled { pointer-events: none; opacity: 0.45; }
+.checkout-btn:not(.checkout-disabled):hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(37, 99, 235, 0.4); }
+.checkout-disabled { cursor: not-allowed; opacity: 0.45; }
 
 .admin-shopping-lock {
   border: 1px solid #fecaca;

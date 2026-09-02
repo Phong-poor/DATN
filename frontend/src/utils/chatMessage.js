@@ -196,6 +196,22 @@ export const bindChatChannel = (echo, channelName, messagesRef, authUserId, onIn
       }
       onIncoming?.(e.message)
     })
+    .listen('.message.read', (e) => {
+      const list = messagesRef.value
+      let changed = false
+      const readerId = e.readByUserId
+      list.forEach((m) => {
+        if (!readerId || Number(m.id_nguoigui) !== Number(readerId)) {
+          if (!m.daxem) {
+            m.daxem = true
+            changed = true
+          }
+        }
+      })
+      if (changed) {
+        messagesRef.value = [...list]
+      }
+    })
     .listen('.message.updated', (e) => {
       patchMessage(messagesRef.value, e.message)
     })

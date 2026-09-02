@@ -1,5 +1,5 @@
 <template>
-    <div class="page">
+    <div class="page reviews-page">
         <div class="container">
 
             <!-- -- Top Header -- -->
@@ -25,17 +25,18 @@
                     </div>
             </div>
 
-            <!-- -- Table Card -- -->
-            <div class="table-card">
-                <div class="table-header">
-                    <h3 class="table-title">Danh sách đánh giá gần đây</h3>
-                    <div class="filter-tabs">
-                        <button v-for="tab in tabs" :key="tab.key" class="tab-btn"
-                            :class="{ active: activeTab === tab.key }" @click="activeTab = tab.key">{{ tab.label
-                            }}</button>
-                    </div>
+            <!-- -- Header Card -- -->
+            <div class="table-header-card">
+                <h3 class="table-title">Danh sách đánh giá gần đây</h3>
+                <div class="filter-tabs">
+                    <button v-for="tab in tabs" :key="tab.key" class="tab-btn"
+                        :class="{ active: activeTab === tab.key }" @click="activeTab = tab.key">{{ tab.label
+                        }}</button>
                 </div>
+            </div>
 
+            <!-- -- Table Card -- -->
+            <div class="table-wrap-card">
                 <div class="table-wrap">
                     <table>
                         <thead>
@@ -66,13 +67,14 @@
                                 </td>
 
                                 <!-- Product -->
-                                                                <td><span class="product-link">{{ review.bien_the?.san_pham?.tenSP || 'Sản phẩm' }}</span></td>
+                                <td><span class="product-link" style="color: #2563eb !important; font-weight: 600;">{{ review.bien_the?.san_pham?.tenSP || 'Sản phẩm' }}</span></td>
 
                                 <!-- Stars -->
                                 <td>
                                     <div class="stars">
                                         <span v-for="s in 5" :key="s" class="star-icon"
-                                            :class="s <= review.danhgia ? 'filled' : 'empty'">★</span>
+                                            :class="s <= Number(review.danhgia || review.so_sao || 5) ? 'filled' : 'empty'"
+                                            :style="{ color: s <= Number(review.danhgia || review.so_sao || 5) ? '#f59e0b' : '#cbd5e1' }">★</span>
                                     </div>
                                 </td>
 
@@ -99,19 +101,19 @@
                                         <button v-if="isPendingLike(review)" class="action-btn approve"
                                             @click="approveReview(review)">DUYỆT<br />NGAY</button>
                                         
-                                        <button v-if="review.trangthai !== 'spam'" class="action-btn icon-btn" style="background:#fff7ed; color:#f97316" title="Đánh dấu Spam" @click="markAsSpam(review)">
+                                        <button v-if="review.trangthai !== 'spam'" class="action-btn icon-btn warn" title="Đánh dấu Spam" @click="markAsSpam(review)">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
                                             </svg>
                                         </button>
 
-                                        <button v-if="review.trangthai === 'spam'" class="action-btn icon-btn" style="background:#ecfdf5; color:#2563eb" title="Đưa về chờ duyệt thủ công" @click="undoReview(review)">
+                                        <button v-if="review.trangthai === 'spam'" class="action-btn icon-btn undo" title="Đưa về chờ duyệt thủ công" @click="undoReview(review)">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                 <path d="M3 10h10a5 5 0 0 1 5 5v2"/><polyline points="7 6 3 10 7 14"/>
                                             </svg>
                                         </button>
 
-                                        <button class="action-btn icon-btn delete" title="Xoá"
+                                        <button class="action-btn icon-btn danger delete" title="Xoá"
                                             @click="deleteReview(review.id_danhgia)">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                 <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4h6v2" />
@@ -124,16 +126,16 @@
                         </tbody>
                     </table>
                 </div>
-
-                <!-- Pagination -->
-                <PhanTrangAdmin
-                    v-model:currentPage="currentPage"
-                    :total-pages="pagination.last_page"
-                    :total-items="pagination.total"
-                    :page-size="pagination.per_page || 10"
-                    item-label="đánh giá"
-                />
             </div>
+
+            <!-- Pagination (Sitting directly on transparent page background) -->
+            <PhanTrangAdmin
+                v-model:currentPage="currentPage"
+                :total-pages="pagination.last_page"
+                :total-items="pagination.total"
+                :page-size="pagination.per_page || 10"
+                item-label="đánh giá"
+            />
 
             <!-- -- Bottom Banners -- -->
             <div class="bottom-row">
@@ -234,6 +236,8 @@ const tabs = [
     { key: 'pending', label: 'Chờ duyệt' },
     { key: 'approved', label: 'Đã duyệt' },
 ]
+
+const statusStyle = () => ({})
 
 const reviews = ref([])
 const pagination = ref({
@@ -706,29 +710,35 @@ onUnmounted(() => {
     font-size: 18px;
 }
 
-/* -- Table Card -- */
-.table-card {
-    background: #fff;
-    border-radius: 16px;
-    box-shadow: 0 2px 16px rgba(0, 0, 0, .06);
-    overflow: hidden;
-    min-width: 0;
-}
-
-.table-header {
+/* -- Header & Table Separate Cards -- */
+.table-header-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 14px 20px;
+    margin-bottom: 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 18px 24px 14px;
-    border-bottom: 1px solid #f1f5f9;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .03);
+}
+
+.table-wrap-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    box-shadow: 0 2px 14px rgba(0, 0, 0, .04);
+    overflow: hidden;
+    min-width: 0;
 }
 
 .table-title {
     font-size: 15px;
     font-weight: 700;
     color: #0f172a;
+    margin: 0;
 }
 
 /* Filter tabs */
@@ -886,12 +896,16 @@ td {
     font-size: 14px;
 }
 
-.star-icon.filled {
-    color: #f59e0b;
+.star-icon.filled,
+.stars .star-icon.filled,
+.stars span.filled {
+    color: #f59e0b !important;
 }
 
-.star-icon.empty {
-    color: #e2e8f0;
+.star-icon.empty,
+.stars .star-icon.empty,
+.stars span.empty {
+    color: #cbd5e1 !important;
 }
 
 /* Review text */
@@ -922,28 +936,42 @@ td {
 
 /* Status badge */
 .status-badge {
-    display: inline-block;
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 10.5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 11px;
     font-weight: 700;
     letter-spacing: .4px;
     white-space: nowrap;
 }
 
+.status-badge::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
 .status-badge.approved {
     background: #dcfce7;
-    color: #2563eb;
+    color: #15803d;
+    border: 1px solid #86efac;
 }
 
 .status-badge.pending {
     background: #fef9c3;
-    color: #ca8a04;
+    color: #a16207;
+    border: 1px solid #fde047;
 }
 
 .status-badge.spam {
     background: #fee2e2;
-    color: #dc2626;
+    color: #b91c1c;
+    border: 1px solid #fca5a5;
 }
 
 /* Action buttons */
@@ -988,6 +1016,7 @@ td {
     flex: 0 0 32px;
     padding: 0;
     line-height: 0;
+    border-radius: 8px;
 }
 
 .action-btn.icon-btn svg {
@@ -997,21 +1026,36 @@ td {
     margin: 0;
 }
 
-.action-btn.reply {
+.action-btn.icon-btn.warn {
+    background: #fff7ed;
+    color: #f97316;
+    border: 1px solid #fed7aa;
+}
+
+.action-btn.icon-btn.warn:hover {
+    background: #f97316;
+    color: #fff;
+}
+
+.action-btn.icon-btn.undo {
     background: #eff6ff;
-    color: #3b82f6;
+    color: #2563eb;
+    border: 1px solid #bfdbfe;
 }
 
-.action-btn.reply:hover {
-    background: #dbeafe;
+.action-btn.icon-btn.undo:hover {
+    background: #2563eb;
+    color: #fff;
 }
 
+.action-btn.icon-btn.danger,
 .action-btn.delete {
-    background: #fff1f2;
+    background: #fef2f2;
     color: #ef4444;
-    border: 1px solid #fecdd3;
+    border: 1px solid #fecaca;
 }
 
+.action-btn.icon-btn.danger:hover,
 .action-btn.delete:hover {
     background: #ef4444;
     border-color: #ef4444;
@@ -1387,6 +1431,351 @@ td {
 .slide-down-leave-to {
     opacity: 0;
     transform: translateY(30px);
+}
+/* Dark mode: keep review data readable against the admin table background. */
+:global(.admin-layout.theme-dark .reviews-page .table-title) {
+    color: #f8fafc;
+}
+
+:global(.admin-layout.theme-dark .reviews-page .table-header) {
+    border-bottom-color: #3b4656;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .reviews-page .tab-btn {
+  border-color: #3b4758 !important;
+  background: #181d24 !important;
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .reviews-page .tab-btn:hover {
+  border-color: #3b82f6 !important;
+  background: #1e293b !important;
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .reviews-page .tab-btn.active {
+  border-color: #2563eb !important;
+  background: #2563eb !important;
+  color: #ffffff !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .reviews-page th {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .reviews-page .customer-name {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .reviews-page .customer-name.anonymous,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .reviews-page .customer-email {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .reviews-page .product-link {
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .reviews-page .star-icon.filled,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .star-icon.filled {
+  color: #f59e0b !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .reviews-page .star-icon.empty,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .star-icon.empty {
+  color: #475569 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .reviews-page .review-text,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .reviews-page .date-text {
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .reviews-page .status-badge.approved {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: #34d399 !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .reviews-page .status-badge.pending {
+  background: rgba(234, 179, 8, 0.15) !important;
+  color: #facc15 !important;
+  border: 1px solid rgba(234, 179, 8, 0.3) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .reviews-page .status-badge.spam {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #f87171 !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .reviews-page .action-btn.icon-btn[title="Đánh dấu Spam"] {
+  background: rgba(249, 115, 22, 0.15) !important;
+  color: #fb923c !important;
+  border: 1px solid rgba(249, 115, 22, 0.3) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .reviews-page .action-btn.icon-btn.delete {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #f87171 !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .reviews-page .action-btn.icon-btn svg {
+  stroke: currentColor !important;
+}
+
+</style>
+
+<style>
+/* UNSCOPED COLOR PRESERVATION FOR REVIEWS PAGE & STARS */
+html[data-admin-theme='dark'] .table-header-card,
+html[data-theme='dark'] .table-header-card,
+.admin-layout.theme-dark .table-header-card,
+.admin-layout.dark .table-header-card,
+.dark .table-header-card {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25) !important;
+}
+
+html[data-admin-theme='dark'] .table-header-card .table-title,
+html[data-theme='dark'] .table-header-card .table-title,
+.admin-layout.theme-dark .table-header-card .table-title,
+.admin-layout.dark .table-header-card .table-title,
+.dark .table-header-card .table-title {
+  color: #f8fafc !important;
+}
+
+html[data-admin-theme='dark'] .table-wrap-card,
+html[data-theme='dark'] .table-wrap-card,
+.admin-layout.theme-dark .table-wrap-card,
+.admin-layout.dark .table-wrap-card,
+.dark .table-wrap-card {
+  background: #181d24 !important;
+  border-color: #28303d !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25) !important;
+}
+
+.star-icon.filled,
+.stars .star-icon.filled,
+.stars span.filled,
+html[data-admin-theme='dark'] .star-icon.filled,
+html[data-theme='dark'] .star-icon.filled,
+.admin-layout.theme-dark .star-icon.filled,
+.admin-layout.dark .star-icon.filled,
+.dark .star-icon.filled,
+html[data-admin-theme='dark'] .stars .star-icon.filled,
+html[data-theme='dark'] .stars .star-icon.filled,
+.admin-layout.theme-dark .stars .star-icon.filled,
+.admin-layout.dark .stars .star-icon.filled,
+.dark .stars .star-icon.filled {
+  color: #f59e0b !important;
+}
+
+.star-icon.empty,
+.stars .star-icon.empty,
+.stars span.empty,
+html[data-admin-theme='dark'] .star-icon.empty,
+html[data-theme='dark'] .star-icon.empty,
+.admin-layout.theme-dark .star-icon.empty,
+.admin-layout.dark .star-icon.empty,
+.dark .star-icon.empty {
+  color: #64748b !important;
+}
+
+html[data-admin-theme='dark'] .reviews-page .product-link,
+html[data-theme='dark'] .reviews-page .product-link,
+.admin-layout.theme-dark .reviews-page .product-link,
+.admin-layout.dark .reviews-page .product-link,
+.dark .reviews-page .product-link,
+.product-link {
+  color: #3b82f6 !important;
+}
+
+html[data-admin-theme='dark'] .reviews-page .status-badge.approved,
+html[data-theme='dark'] .reviews-page .status-badge.approved,
+.admin-layout.theme-dark .reviews-page .status-badge.approved,
+.admin-layout.dark .reviews-page .status-badge.approved,
+.dark .reviews-page .status-badge.approved {
+  background: #dcfce7 !important;
+  color: #2563eb !important;
+}
+
+html[data-admin-theme='dark'] .reviews-page .status-badge.pending,
+html[data-theme='dark'] .reviews-page .status-badge.pending,
+.admin-layout.theme-dark .reviews-page .status-badge.pending,
+.admin-layout.dark .reviews-page .status-badge.pending,
+.dark .reviews-page .status-badge.pending {
+  background: #fef9c3 !important;
+  color: #ca8a04 !important;
+}
+
+html[data-admin-theme='dark'] .reviews-page .status-badge.spam,
+html[data-theme='dark'] .reviews-page .status-badge.spam,
+.admin-layout.theme-dark .reviews-page .status-badge.spam,
+.admin-layout.dark .reviews-page .status-badge.spam,
+.dark .reviews-page .status-badge.spam {
+  background: #fee2e2 !important;
+  color: #dc2626 !important;
+}
+
+html[data-admin-theme='dark'] .reviews-page .action-btn.icon-btn[title="Đánh dấu Spam"],
+html[data-theme='dark'] .reviews-page .action-btn.icon-btn[title="Đánh dấu Spam"],
+.admin-layout.theme-dark .reviews-page .action-btn.icon-btn[title="Đánh dấu Spam"],
+.admin-layout.dark .reviews-page .action-btn.icon-btn[title="Đánh dấu Spam"],
+.dark .reviews-page .action-btn.icon-btn[title="Đánh dấu Spam"] {
+  background: #fff7ed !important;
+  color: #f97316 !important;
+}
+
+html[data-admin-theme='dark'] .reviews-page .action-btn.icon-btn.delete,
+html[data-theme='dark'] .reviews-page .action-btn.icon-btn.delete,
+.admin-layout.theme-dark .reviews-page .action-btn.icon-btn.delete,
+.admin-layout.dark .reviews-page .action-btn.icon-btn.delete,
+.dark .reviews-page .action-btn.icon-btn.delete {
+  background: #fef2f2 !important;
+  color: #ef4444 !important;
 }
 </style>
 

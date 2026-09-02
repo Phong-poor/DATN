@@ -158,9 +158,20 @@ const swal = {
       ...iconConfig(icon),
       title,
       ...commonConfig,
-      timer: 3000,
-      showConfirmButton: true,
-      confirmButtonText: 'OK',
+      toast: true,
+      position: 'top-end',
+      width: 'min(360px, calc(100vw - 24px))',
+      padding: '12px 14px',
+      timer: 2600,
+      timerProgressBar: true,
+      showConfirmButton: false,
+      showCloseButton: false,
+      backdrop: false,
+      customClass: {
+        popup: 'swal2-toast-popup',
+        icon: 'swal2-toast-icon',
+        title: 'swal2-toast-title',
+      },
     })
   },
 

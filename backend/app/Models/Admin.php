@@ -1,0 +1,259 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Laravel\Fortify\TwoFactorAuthenticatable;
+use Laravel\Sanctum\HasApiTokens;
+
+class Admin extends Authenticatable
+{
+    use HasFactory, Notifiable, TwoFactorAuthenticatable, HasApiTokens;
+
+    protected $table = 'admins';
+
+    protected $appends = ['online', 'name', 'role', 'avatar', 'last_active_at', 'cac_quyen', 'ten_vaitro_hienthi', 'phone', 'gender', 'date_of_birth'];
+
+    protected $fillable = [
+        'ten',
+        'name',
+        'email',
+        'sodienthoai',
+        'ngaysinh',
+        'gioitinh',
+        'quoc_tich',
+        'dia_chi_thuong_tru',
+        'anhdaidien',
+        'matkhau',
+        'vaitro',
+        'trangthai',
+        'hoat_dong_cuoi_luc',
+        'last_active_at',
+        'face_descriptor',
+        'face_registered',
+        'id_google',
+        'id_facebook',
+        'so_cccd',
+        'ngay_cap_cccd',
+        'noi_cap_cccd',
+        'anh_cccd_mat_truoc',
+        'anh_cccd_mat_sau',
+    ];
+
+    protected $hidden = [
+        'matkhau',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
+        'remember_token',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'matkhau' => 'hashed',
+            'two_factor_confirmed_at' => 'datetime',
+            'hoat_dong_cuoi_luc' => 'datetime',
+        ];
+    }
+
+    public function chamCongs()
+    {
+        return $this->hasMany(ChamCong::class, 'id_nhanvien');
+    }
+
+    public function lichLamNhanVien()
+    {
+        return $this->hasOne(LichLamNhanVien::class, 'id_nhanvien');
+    }
+
+    public function donXinNghis()
+    {
+        return $this->hasMany(DonXinNghi::class, 'id_nhanvien');
+    }
+
+    public function donHangs()
+    {
+        return $this->hasMany(DatHang::class, 'id_nhanvien', 'id');
+    }
+
+    public function getOnlineAttribute(): bool
+    {
+        if (!$this->hoat_dong_cuoi_luc) {
+            return false;
+        }
+        return $this->hoat_dong_cuoi_luc->diffInMinutes(now()) < 5;
+    }
+
+    public function getCacQuyenAttribute()
+    {
+        $roleCode = strtolower($this->vaitro ?? '');
+
+        if ($roleCode === 'user' || empty($roleCode)) {
+            return [];
+        }
+
+        if ($roleCode === 'admin') {
+            return [
+                'san_pham_xem', 'san_pham_sua', 'nhap_xuat_kho', 
+                'danh_muc_xem', 'danh_muc_sua', 
+                'thuong_hieu_xem', 'thuong_hieu_sua', 
+                'bien_the_xem', 'bien_the_sua', 
+                'don_hang_xem', 'don_hang_sua', 'hoa_don_xem', 
+                'marketing_quan_ly', 'affiliate_quan_ly', 
+                'tin_tuc_quan_ly', 'binh_luan_quan_ly', 'banner_quan_ly', 
+                'lien_he_quan_ly', 'chat_quan_ly', 'tai_khoan_quan_ly', 'vai_tro_quan_ly', 'nhat_ky_quan_ly',
+                'xu_quan_ly', 'vong_quay_quan_ly', 'diem_danh_quan_ly', 'quan_ly_cham_cong'
+            ];
+        }
+
+        $role = VaiTro::where('ma_vaitro', $this->vaitro)->first();
+        if ($role) {
+            $perms = is_array($role->quyen) ? $role->quyen : (json_decode($role->quyen, true) ?: []);
+            return $perms;
+        }
+
+        $defaults = [
+            'inventory' => ['san_pham_xem', 'san_pham_sua', 'nhap_xuat_kho', 'danh_muc_xem', 'thuong_hieu_xem', 'bien_the_xem'],
+            'thu_kho' => ['san_pham_xem', 'san_pham_sua', 'nhap_xuat_kho', 'danh_muc_xem', 'thuong_hieu_xem', 'bien_the_xem'],
+            'order_manager' => ['don_hang_xem', 'don_hang_sua'],
+            'marketing' => ['marketing_quan_ly'],
+            'affiliate_manager' => ['affiliate_quan_ly'],
+            'editor' => ['tin_tuc_quan_ly', 'binh_luan_quan_ly', 'banner_quan_ly'],
+            'support' => ['lien_he_quan_ly', 'chat_quan_ly'],
+            'accountant' => ['don_hang_xem', 'hoa_don_xem'],
+            'ke_toan' => ['don_hang_xem', 'hoa_don_xem'],
+        ];
+
+        return $defaults[$roleCode] ?? [];
+    }
+
+    public function getTenVaitroHienthiAttribute()
+    {
+        if ($this->vaitro === 'user') {
+            return 'Khách hàng';
+        }
+        if ($this->vaitro === 'admin') {
+            return 'Quản trị viên';
+        }
+
+        $role = VaiTro::where('ma_vaitro', $this->vaitro)->first();
+        if ($role) {
+            return $role->ten_vaitro;
+        }
+
+        $defaults = [
+            'inventory' => 'Thủ kho',
+            'thukho' => 'Thủ kho',
+            'thu_kho' => 'Thủ kho',
+            'order_manager' => 'Xử lý đơn hàng',
+            'marketing' => 'Marketing',
+            'affiliate_manager' => 'Quản lý Affiliate',
+            'editor' => 'Biên tập viên',
+            'support' => 'Tư vấn viên',
+            'accountant' => 'Kế toán',
+            'ke_toan' => 'Kế toán',
+            'nhanvien' => 'Nhân viên',
+            'nhan_vien' => 'Nhân viên',
+        ];
+
+        return $defaults[strtolower(trim((string)$this->vaitro))] ?? 'Nhân viên';
+    }
+
+    public function getAuthPassword()
+    {
+        return $this->matkhau;
+    }
+
+    public function getNameAttribute(): ?string
+    {
+        return $this->ten;
+    }
+
+    public function setNameAttribute($value): void
+    {
+        $this->attributes['ten'] = $value;
+    }
+
+    public function getPasswordAttribute(): ?string
+    {
+        return $this->matkhau;
+    }
+
+    public function setPasswordAttribute($value): void
+    {
+        $this->attributes['matkhau'] = $value;
+    }
+
+    public function getRoleAttribute(): ?string
+    {
+        return $this->vaitro;
+    }
+
+    public function setRoleAttribute($value): void
+    {
+        $this->attributes['vaitro'] = $value;
+    }
+
+    public function getStatusAttribute(): ?string
+    {
+        return $this->trangthai;
+    }
+
+    public function setStatusAttribute($value): void
+    {
+        $this->attributes['trangthai'] = $value;
+    }
+
+    public function getPhoneAttribute(): ?string
+    {
+        return $this->sodienthoai;
+    }
+
+    public function setPhoneAttribute($value): void
+    {
+        $this->attributes['sodienthoai'] = $value;
+    }
+
+    public function getDateOfBirthAttribute()
+    {
+        return $this->ngaysinh;
+    }
+
+    public function setDateOfBirthAttribute($value): void
+    {
+        $this->attributes['ngaysinh'] = $value;
+    }
+
+    public function getGenderAttribute(): ?string
+    {
+        return $this->gioitinh;
+    }
+
+    public function setGenderAttribute($value): void
+    {
+        $this->attributes['gioitinh'] = $value;
+    }
+
+    public function getAvatarAttribute(): ?string
+    {
+        return $this->anhdaidien;
+    }
+
+    public function setAvatarAttribute($value): void
+    {
+        $this->attributes['anhdaidien'] = $value;
+    }
+
+    public function getLastActiveAtAttribute()
+    {
+        return $this->hoat_dong_cuoi_luc;
+    }
+
+    public function setLastActiveAtAttribute($value): void
+    {
+        $this->attributes['hoat_dong_cuoi_luc'] = $value;
+    }
+}

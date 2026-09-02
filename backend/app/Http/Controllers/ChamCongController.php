@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Admin;
 use App\Models\CauHinhCaLam;
 use App\Models\ChamCong;
-use App\Models\LichLamNhanVien;
 use App\Models\DonXinNghi;
+use App\Models\LichLamNhanVien;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -18,7 +19,9 @@ use Illuminate\Support\Facades\Storage;
 class ChamCongController extends Controller
 {
     private const FACE_MATCH_THRESHOLD = 0.48;
+
     private const FACE_DUPLICATE_THRESHOLD = 0.42;
+
     private const FACE_AMBIGUITY_MARGIN = 0.06;
 
     /**
@@ -331,8 +334,7 @@ class ChamCongController extends Controller
         $bestDistance = PHP_FLOAT_MAX;
         $secondBestDistance = PHP_FLOAT_MAX;
 
-        $employees = User::where('vaitro', '!=', 'user')
-            ->where('face_registered', true)
+        $employees = Admin::where('face_registered', true)
             ->whereNotNull('face_descriptor')
             ->where('trangthai', '!=', 'locked')
             ->get();
@@ -421,7 +423,7 @@ class ChamCongController extends Controller
         $nam = $now->year;
 
         // Truy vấn danh sách tất cả nhân viên và tính tổng công/giờ trong tháng
-        $leaderboard = User::where('vaitro', '!=', 'user')
+        $leaderboard = Admin::query()
             ->select('id', 'ten', 'anhdaidien', 'vaitro')
             ->withSum(['chamCongs as total_cong' => function ($query) use ($thang, $nam) {
                 $query->whereYear('ngay_cham_cong', $nam)
@@ -538,7 +540,7 @@ class ChamCongController extends Controller
             $lateMinutes = max(0, (int) $record->di_tre_phut);
             $penaltyBlocks = $lateMinutes > 0 ? (int) ceil($lateMinutes / 10) : 0;
             $grossSalary = (int) round($baseSalaryPerDay * $workUnits);
-            $penalty = min($grossSalary, $penaltyBlocks * $penaltyPerTenMinutes);
+            $penalty = $lateMinutes > 0 ? ($penaltyBlocks * $penaltyPerTenMinutes) : 0;
 
             $summary['work_days'] += $workUnits;
             $summary['on_time_days'] += $workUnits > 0 && $lateMinutes === 0 ? 1 : 0;
@@ -569,8 +571,8 @@ class ChamCongController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate((int) $request->query('per_page', 15));
 
-        $records->setCollection($records->getCollection()->map(function (ChamCong $record) use ($baseSalaryPerDay, $penaltyPerTenMinutes, $currentUser, $isSuperAdmin) {
-            if (! $isSuperAdmin && (int) $record->id_nhanvien !== (int) $currentUser->id) {
+        $records->setCollection($records->getCollection()->map(function (ChamCong $record) use ($baseSalaryPerDay, $penaltyPerTenMinutes, $currentUser, $isAdmin, $isSuperAdmin) {
+            if (! $isAdmin && ! $isSuperAdmin && (int) $record->id_nhanvien !== (int) $currentUser->id) {
                 return $record;
             }
 
@@ -579,7 +581,7 @@ class ChamCongController extends Controller
             $lateMinutes = max(0, (int) $record->di_tre_phut);
             $penaltyBlocks = $lateMinutes > 0 ? (int) ceil($lateMinutes / 10) : 0;
             $grossSalary = (int) round($baseSalaryPerDay * $workUnits);
-            $penalty = min($grossSalary, $penaltyBlocks * $penaltyPerTenMinutes);
+            $penalty = $lateMinutes > 0 ? ($penaltyBlocks * $penaltyPerTenMinutes) : 0;
 
             $record->setAttribute('luong_ngay', $grossSalary);
             $record->setAttribute('tien_phat', $penalty);
@@ -615,14 +617,13 @@ class ChamCongController extends Controller
     {
         abort_unless($request->user()?->vaitro !== 'user', 403, 'Chỉ nhân viên quản trị được xem danh sách nhân viên.');
 
-        $employees = User::where('vaitro', '!=', 'user')
-            ->with('lichLamNhanVien')
+        $employees = Admin::with('lichLamNhanVien')
             ->with(['chamCongs' => function ($query) {
                 $query->latest('ngay_cham_cong')->latest('created_at')->limit(1);
             }])
             ->orderBy('ten')
             ->get()
-            ->map(function (User $employee) {
+            ->map(function (Admin $employee) {
                 $latest = $employee->chamCongs->first();
 
                 return [
@@ -630,6 +631,13 @@ class ChamCongController extends Controller
                     'ten' => $employee->ten,
                     'email' => $employee->email,
                     'sodienthoai' => $employee->sodienthoai,
+                    'so_cccd' => $employee->so_cccd,
+                    'ngaysinh' => $employee->ngaysinh,
+                    'gioitinh' => $employee->gioitinh,
+                    'ngay_cap_cccd' => $employee->ngay_cap_cccd,
+                    'noi_cap_cccd' => $employee->noi_cap_cccd,
+                    'co_anh_cccd_mat_truoc' => (bool) $employee->anh_cccd_mat_truoc,
+                    'co_anh_cccd_mat_sau' => (bool) $employee->anh_cccd_mat_sau,
                     'anhdaidien' => $employee->anhdaidien,
                     'ma_vaitro' => $employee->vaitro,
                     'ten_vaitro' => $employee->ten_vaitro_hienthi,
@@ -665,7 +673,7 @@ class ChamCongController extends Controller
             'face_descriptor.*' => 'numeric',
         ]);
 
-        $employee = User::where('vaitro', '!=', 'user')->findOrFail($id);
+        $employee = Admin::findOrFail($id);
         if ($employee->trangthai === 'locked') {
             return response()->json([
                 'success' => false,
@@ -699,7 +707,7 @@ class ChamCongController extends Controller
 
     public function adminXoaKhuonMat(Request $request, $id)
     {
-        $employee = User::where('vaitro', '!=', 'user')->findOrFail($id);
+        $employee = Admin::findOrFail($id);
         $employee->face_descriptor = null;
         $employee->face_registered = false;
         $employee->save();
@@ -754,7 +762,7 @@ class ChamCongController extends Controller
 
     public function adminGetLichLam(Request $request, $id)
     {
-        User::where('vaitro', '!=', 'user')->findOrFail($id);
+        Admin::findOrFail($id);
         $schedule = LichLamNhanVien::where('id_nhanvien', $id)->first();
 
         return response()->json(['success' => true, 'data' => $schedule]);
@@ -762,7 +770,7 @@ class ChamCongController extends Controller
 
     public function adminUpdateLichLam(Request $request, $id)
     {
-        User::where('vaitro', '!=', 'user')->findOrFail($id);
+        Admin::findOrFail($id);
         $validated = $request->validate([
             'loai_ca' => ['required', 'in:full_day,morning,afternoon'],
             'ngay_bat_dau' => ['required', 'date'],
@@ -856,7 +864,7 @@ class ChamCongController extends Controller
             ]);
     }
 
-    private function calculateAttendanceTotals(User $user, string $gioVao, string $gioRa): array
+    private function calculateAttendanceTotals(Admin $user, string $gioVao, string $gioRa): array
     {
         $gioVaoPhut = $this->timeToMinutes($gioVao);
         $gioRaPhut = $this->timeToMinutes($gioRa);
@@ -880,7 +888,7 @@ class ChamCongController extends Controller
         ];
     }
 
-    private function attendanceScheduleError(User $user, Carbon $date): ?string
+    private function attendanceScheduleError(Admin $user, Carbon $date): ?string
     {
         $approvedLeave = DonXinNghi::where('id_nhanvien', $user->id)
             ->where('trang_thai', 'approved')
@@ -911,7 +919,7 @@ class ChamCongController extends Controller
         return null;
     }
 
-    private function checkInTimeError(User $user, Carbon $now): ?string
+    private function checkInTimeError(Admin $user, Carbon $now): ?string
     {
         $schedule = $this->scheduleMinutes($user);
         [$start, $end] = match ($schedule['shift']) {
@@ -932,7 +940,7 @@ class ChamCongController extends Controller
         return null;
     }
 
-    private function scheduleMinutes(?User $user = null): array
+    private function scheduleMinutes(?Admin $user = null): array
     {
         $schedule = CauHinhCaLam::current()->toScheduleArray();
         $shift = $user
@@ -978,7 +986,9 @@ class ChamCongController extends Controller
     {
         foreach ($this->registeredFaceOwners($exceptUserId) as $employee) {
             $stored = json_decode($employee->face_descriptor, true);
-            if (! is_array($stored) || count($stored) !== 128) continue;
+            if (! is_array($stored) || count($stored) !== 128) {
+                continue;
+            }
 
             if ($this->calculateEuclideanDistance(array_map('floatval', $stored), $descriptor) <= self::FACE_DUPLICATE_THRESHOLD) {
                 return $employee;
@@ -992,7 +1002,9 @@ class ChamCongController extends Controller
     {
         foreach ($this->registeredFaceOwners($currentUserId) as $employee) {
             $stored = json_decode($employee->face_descriptor, true);
-            if (! is_array($stored) || count($stored) !== 128) continue;
+            if (! is_array($stored) || count($stored) !== 128) {
+                continue;
+            }
 
             $otherDistance = $this->calculateEuclideanDistance(array_map('floatval', $stored), $descriptor);
             if ($otherDistance <= self::FACE_MATCH_THRESHOLD
@@ -1008,7 +1020,9 @@ class ChamCongController extends Controller
     {
         foreach ($this->registeredFaceOwners($currentUserId) as $employee) {
             $stored = json_decode($employee->face_descriptor, true);
-            if (! is_array($stored) || count($stored) !== 128) continue;
+            if (! is_array($stored) || count($stored) !== 128) {
+                continue;
+            }
 
             if ($this->calculateEuclideanDistance(array_map('floatval', $stored), $descriptor) <= self::FACE_MATCH_THRESHOLD) {
                 return true;
@@ -1020,9 +1034,8 @@ class ChamCongController extends Controller
 
     private function registeredFaceOwners(int $exceptUserId)
     {
-        return User::query()
+        return Admin::query()
             ->where('id', '!=', $exceptUserId)
-            ->where('vaitro', '!=', 'user')
             ->where('face_registered', true)
             ->whereNotNull('face_descriptor')
             ->where('trangthai', '!=', 'locked')

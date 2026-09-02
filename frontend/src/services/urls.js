@@ -34,11 +34,12 @@ const unwrapImageValue = (value) => {
       || value.url
       || value.path
       || value.image
+      || value.logo
     )
   }
 
   const raw = String(value || '').trim()
-  if (!raw) return ''
+  if (!raw || /^(null|undefined|none)$/i.test(raw)) return ''
 
   if (/^[\[{]/.test(raw)) {
     try {
@@ -52,43 +53,61 @@ const unwrapImageValue = (value) => {
 }
 
 export const storageUrl = (path) => {
-
   if (!path) return ''
 
   let raw = unwrapImageValue(path)
-  if (!raw) return ''
+  if (!raw || /^(null|undefined|none)$/i.test(raw)) return ''
 
   // Globally replace seeder orange phone image with realistic laptop image
   if (raw.includes('photo-1611186871348-b1ce696e52c9')) {
     raw = raw.replace('photo-1611186871348-b1ce696e52c9', 'photo-1588872657578-7efd1f1555ed')
   }
 
+  // 1. Direct Web URLs (http://, https://, data:, blob:)
   if (/^(https?:)?\/\//i.test(raw) || raw.startsWith('data:') || raw.startsWith('blob:')) {
-
-    return raw
-
-  }
-
-  if (raw.startsWith('/') && !raw.startsWith('/storage/')) {
     return raw
   }
 
+  // Product catalogs can also reference files kept directly in backend/public.
+  // These paths must not be rewritten to /storage, otherwise Laravel returns 404.
+  const slashPath = raw.replace(/\\/g, '/')
+  const lowerPath = slashPath.toLocaleLowerCase('vi')
+  const backendStorageMarker = '/backend/storage/app/public/'
+  const backendPublicMarker = '/backend/public/'
+  const frontendPublicMarker = '/frontend/public/'
+  const publicStorageMarker = '/public/storage/'
 
+  // Dữ liệu cũ đôi khi chứa đường dẫn tuyệt đối của máy Windows. Trình duyệt
+  // không đọc được C:\\..., vì vậy ánh xạ nó về URL public của ứng dụng.
+  if (lowerPath.includes(backendStorageMarker)) {
+    const relative = slashPath.slice(lowerPath.indexOf(backendStorageMarker) + backendStorageMarker.length)
+    return backendBaseUrl ? `${backendBaseUrl}/storage/${relative}` : `/storage/${relative}`
+  }
+  if (lowerPath.includes(publicStorageMarker)) {
+    const relative = slashPath.slice(lowerPath.indexOf(publicStorageMarker) + publicStorageMarker.length)
+    return backendBaseUrl ? `${backendBaseUrl}/storage/${relative}` : `/storage/${relative}`
+  }
+  if (lowerPath.includes(backendPublicMarker)) {
+    const relative = slashPath.slice(lowerPath.indexOf(backendPublicMarker) + backendPublicMarker.length)
+    return backendBaseUrl ? `${backendBaseUrl}/${relative}` : `/${relative}`
+  }
+  if (lowerPath.includes(frontendPublicMarker)) {
+    const relative = slashPath.slice(lowerPath.indexOf(frontendPublicMarker) + frontendPublicMarker.length)
+    return `/${relative}`
+  }
 
-  const normalizedPath = raw
-
-    .replace(/\\/g, '/')
-
+  // 2. Local uploaded files (stored in storage/app/public/... and accessed via /storage/...)
+  let normalizedPath = slashPath
     .replace(/^\/+/, '')
-
     .replace(/^public\//i, '')
-
     .replace(/^storage\//i, '')
 
+  if (!/^(uploads|banners|brands|avatar|avatars|chamcong|refunds|refund_proofs|news|affiliate-videos)/i.test(normalizedPath)) {
+    const filename = normalizedPath.split('/').pop()
+    normalizedPath = 'uploads/sanpham/' + filename
+  }
 
-
-  return `${backendBaseUrl}/storage/${normalizedPath}`
-
+  return backendBaseUrl ? `${backendBaseUrl}/storage/${normalizedPath}` : `/storage/${normalizedPath}`
 }
 
 export const imageFallbackUrl = 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=500'

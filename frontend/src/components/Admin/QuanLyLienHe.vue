@@ -141,7 +141,7 @@
             <td class="content-cell">"{{ c.preview }}..."</td>
             <td>
               <div class="tag-stack">
-                <span v-for="t in c.tags" :key="t.label" class="tag" :style="{ background: t.bg, color: t.color }">{{ t.label }}</span>
+                <span v-for="t in c.tags" :key="t.label" class="tag" :style="{ backgroundColor: t.bg, color: t.color, border: t.border }">{{ t.label }}</span>
               </div>
             </td>
             <td class="time-cell">
@@ -215,7 +215,7 @@
             <div>
               <p class="detail-label">Cập nhật trạng thái</p>
               <div class="toggle-group">
-                <button v-for="s in statusOptions" :key="s.value" class="toggle-btn" @click="updateStatus(s.value)">
+                <button v-for="s in statusOptions" :key="s.value" class="toggle-btn" :class="{ 'active': selected?.trangthai === s.value }" @click="updateStatus(s.value)">
                   {{ s.label }}
                 </button>
               </div>
@@ -254,7 +254,7 @@
               </div>
               <div class="form-group">
                 <label class="form-label">Đến <span class="req">*</span></label>
-                <input class="form-input" :value="emailTarget?.email" readonly style="background:#f8fafc;color:#64748b" />
+                <input class="form-input readonly-input" :value="emailTarget?.email" readonly />
               </div>
               <div class="form-group">
                 <label class="form-label">CC</label>
@@ -262,7 +262,7 @@
               </div>
               <div class="form-group">
                 <label class="form-label">Tiêu đề <span class="req">*</span></label>
-                <input class="form-input" :class="{ err: emailErrors.subject }" v-model="emailForm.subject" placeholder="VD: [VinaTech] Phản hồi yêu cầu hỗ trợ của bạn" />
+                <input class="form-input" :class="{ err: emailErrors.subject }" v-model="emailForm.subject" placeholder="VD: [NextGen] Phản hồi yêu cầu hỗ trợ của bạn" />
                 <p class="err-msg" v-if="emailErrors.subject">{{ emailErrors.subject }}</p>
               </div>
               <div class="form-group">
@@ -274,8 +274,8 @@
                 <label class="form-label">Chữ ký</label>
                 <div class="signature-box">
                   <p>Trân trọng,</p>
-                  <p><strong>VinaTech Admin</strong> · Bộ phận Hỗ trợ Khách hàng</p>
-                  <p>📞 1800 9999 · 🌐 vinatech.vn</p>
+                  <p><strong>NextGen Admin</strong> · Bộ phận Hỗ trợ Khách hàng</p>
+                  <p>📞 1800 9999 · 🌐 nextgenlaptop.vn</p>
                 </div>
               </div>
             </div>
@@ -343,22 +343,22 @@ const statusOptions = [
 const templates = [
   {
     label: '✅ Xác nhận nhận yêu cầu',
-    subject: '[VinaTech] Xác nhận nhận yêu cầu hỗ trợ',
-    body: `Kính gửi Quý khách,\n\nChúng tôi đã nhận được yêu cầu hỗ trợ của bạn và sẽ phản hồi trong vòng 24 giờ làm việc.\n\nCảm ơn bạn đã tin tưởng sử dụng sản phẩm của VinaTech.\n\nNếu có bất kỳ câu hỏi nào khác, vui lòng liên hệ hotline 1800 9999.`,
+    subject: '[NextGen] Xác nhận nhận yêu cầu hỗ trợ',
+    body: `Kính gửi Quý khách,\n\nChúng tôi đã nhận được yêu cầu hỗ trợ của bạn và sẽ phản hồi trong vòng 24 giờ làm việc.\n\nCảm ơn bạn đã tin tưởng sử dụng sản phẩm của NextGen.\n\nNếu có bất kỳ câu hỏi nào khác, vui lòng liên hệ hotline 1800 9999.`,
   },
   {
     label: '🛠️ Hướng dẫn kỹ thuật',
-    subject: '[VinaTech] Hướng dẫn xử lý sự cố kỹ thuật',
+    subject: '[NextGen] Hướng dẫn xử lý sự cố kỹ thuật',
     body: `Kính gửi Quý khách,\n\nCảm ơn bạn đã liên hệ với chúng tôi. Dưới đây là hướng dẫn xử lý sự cố:\n\n1. Khởi động lại thiết bị và kiểm tra kết nối nguồn\n2. Cập nhật driver mới nhất từ trang web chính thức\n3. Nếu sự cố vẫn còn, vui lòng mang thiết bị đến trung tâm bảo hành gần nhất\n\nChúc bạn sử dụng thiết bị thuận lợi!`,
   },
   {
     label: '💰 Tư vấn sản phẩm',
-    subject: '[VinaTech] Tư vấn sản phẩm phù hợp cho bạn',
-    body: `Kính gửi Quý khách,\n\nDựa trên nhu cầu của bạn, chúng tôi xin tư vấn một số dòng sản phẩm phù hợp:\n\n• Laptop Gaming: Asus ROG, MSI, Lenovo Legion\n• Laptop Văn phòng: Dell XPS, HP Spectre, MacBook Air\n• Laptop Sinh viên: Asus VivoBook, Acer Aspire\n\nQuý khách có thể ghé showroom hoặc đặt hàng online tại vinatech.vn với chính sách trả góp 0% lãi suất.`,
+    subject: '[NextGen] Tư vấn sản phẩm phù hợp cho bạn',
+    body: `Kính gửi Quý khách,\n\nDựa trên nhu cầu của bạn, chúng tôi xin tư vấn một số dòng sản phẩm phù hợp:\n\n• Laptop Gaming: Asus ROG, MSI, Lenovo Legion\n• Laptop Văn phòng: Dell XPS, HP Spectre, MacBook Air\n• Laptop Sinh viên: Asus VivoBook, Acer Aspire\n\nQuý khách có thể ghé showroom hoặc đặt hàng online tại nextgenlaptop.vn với chính sách trả góp 0% lãi suất.`,
   },
   {
     label: '📦 Cập nhật đơn hàng',
-    subject: '[VinaTech] Cập nhật tình trạng đơn hàng của bạn',
+    subject: '[NextGen] Cập nhật tình trạng đơn hàng của bạn',
     body: `Kính gửi Quý khách,\n\nĐơn hàng của bạn đang được xử lý. Chúng tôi sẽ thông báo ngay khi hàng được giao cho đơn vị vận chuyển.\n\nThời gian dự kiến nhận hàng: 2-3 ngày làm việc.\n\nMọi thắc mắc xin liên hệ hotline 1800 9999 (miễn phí, 8:00 - 22:00 hàng ngày).`,
   },
 ]
@@ -372,15 +372,15 @@ function getTagStyle(category) {
   const label = String(category || 'Liên hệ').trim()
   const normalized = label.toLocaleLowerCase('vi-VN')
 
-  if (normalized.includes('tư vấn')) return { label: label.toUpperCase(), bg: '#dbeafe', color: '#1e40af' }
-  if (normalized.includes('kỹ thuật')) return { label: label.toUpperCase(), bg: '#fff7ed', color: '#9a3412' }
-  if (normalized.includes('bảo hành') || normalized.includes('sửa chữa')) return { label: label.toUpperCase(), bg: '#ede9fe', color: '#6d28d9' }
-  if (normalized.includes('đặt lịch') || normalized.includes('showroom')) return { label: label.toUpperCase(), bg: '#dcfce7', color: '#166534' }
-  if (normalized.includes('hợp tác')) return { label: label.toUpperCase(), bg: '#cffafe', color: '#155e75' }
-  if (normalized.includes('khiếu nại')) return { label: label.toUpperCase(), bg: '#fee2e2', color: '#991b1b' }
-  if (normalized.includes('đơn hàng')) return { label: label.toUpperCase(), bg: '#fef3c7', color: '#92400e' }
+  if (normalized.includes('tư vấn')) return { label: label.toUpperCase(), bg: 'rgba(59, 130, 246, 0.18)', color: '#60a5fa', border: '1px solid rgba(59, 130, 246, 0.4)' }
+  if (normalized.includes('kỹ thuật')) return { label: label.toUpperCase(), bg: 'rgba(245, 158, 11, 0.18)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.4)' }
+  if (normalized.includes('bảo hành') || normalized.includes('sửa chữa')) return { label: label.toUpperCase(), bg: 'rgba(168, 85, 247, 0.18)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.4)' }
+  if (normalized.includes('đặt lịch') || normalized.includes('showroom')) return { label: label.toUpperCase(), bg: 'rgba(34, 197, 94, 0.18)', color: '#4ade80', border: '1px solid rgba(34, 197, 94, 0.4)' }
+  if (normalized.includes('hợp tác')) return { label: label.toUpperCase(), bg: 'rgba(6, 182, 212, 0.18)', color: '#22d3ee', border: '1px solid rgba(6, 182, 212, 0.4)' }
+  if (normalized.includes('khiếu nại')) return { label: label.toUpperCase(), bg: 'rgba(239, 68, 68, 0.18)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.4)' }
+  if (normalized.includes('đơn hàng')) return { label: label.toUpperCase(), bg: 'rgba(245, 158, 11, 0.18)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.4)' }
 
-  return { label: label.toUpperCase(), bg: '#e2e8f0', color: '#475569' }
+  return { label: label.toUpperCase(), bg: 'rgba(148, 163, 184, 0.18)', color: '#cbd5e1', border: '1px solid rgba(148, 163, 184, 0.4)' }
 }
 
 function mapItem(item) {
@@ -820,7 +820,7 @@ td { padding: 13px 16px; vertical-align: middle; }
 .modal-icon svg { width: 18px; height: 18px; stroke: #fff; stroke-width: 2; fill: none; }
 .modal-title { font-size: 15px; font-weight: 700; color: #0f172a; }
 .modal-subtitle { font-size: 12px; color: #94a3b8; margin-top: 2px; }
-.modal-close { width: 30px; height: 30px; border-radius: 8px; border: 1px solid #e2e8f0; background: #f8fafc; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+.modal-close { width: 30px; height: 30px; border-radius: 8px; border: 1px solid #e2e8f0; background: #f8fafc; display: flex; align-items: center; justify-content: center; line-height: 1; padding: 0; cursor: pointer; flex-shrink: 0; }
 .modal-close:hover { background: #fee2e2; }
 .modal-close svg { width: 13px; height: 13px; stroke: #64748b; stroke-width: 2; fill: none; }
 .modal-close:hover svg { stroke: #ef4444; }
@@ -835,6 +835,7 @@ td { padding: 13px 16px; vertical-align: middle; }
 .toggle-group { display: flex; gap: 8px; flex-wrap: wrap; }
 .toggle-btn { display: flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 9px; border: 1.5px solid #e2e8f0; background: #f8fafc; font-size: 12.5px; font-weight: 500; color: #64748b; cursor: pointer; transition: all .15s; font-family: inherit; }
 .toggle-btn:hover { background: #eef2ff; border-color: #c7d2fe; color: #2563eb; }
+.toggle-btn.active { background: #eef2ff; border-color: #3b82f6; color: #2563eb; font-weight: 700; }
 .form-group { display: flex; flex-direction: column; gap: 5px; }
 .form-label { font-size: 12.5px; font-weight: 600; color: #374151; }
 .req { color: #ef4444; }
@@ -878,4 +879,426 @@ td { padding: 13px 16px; vertical-align: middle; }
 .toast-enter-from { opacity: 0; transform: translateY(10px) scale(.95); }
 .toast-leave-to { opacity: 0; transform: translateY(10px); }
 a { text-decoration: none; }
+
+/* DARK MODE OVERRIDES FOR QUAN LY LIEN HE & EMAIL MODAL */
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .modal {
+  background: #181d24 !important;
+  border: 1px solid #28303d !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .modal-header,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .modal-footer {
+  border-color: #28303d !important;
+  background: #181d24 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .modal-title,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .form-label {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .modal-subtitle {
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .modal-close {
+  background: rgba(239, 68, 68, 0.12) !important;
+  border-color: rgba(239, 68, 68, 0.25) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .modal-close svg {
+  stroke: #f87171 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .form-input {
+  background: #13171f !important;
+  border-color: #28303d !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .form-input::placeholder {
+  color: #64748b !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .readonly-input {
+  background: #0f131a !important;
+  border-color: #28303d !important;
+  color: #94a3b8 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .tpl-chip {
+  background: #13171f !important;
+  border-color: #28303d !important;
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .tpl-chip:hover {
+  background: #1e293b !important;
+  border-color: #3b82f6 !important;
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .tpl-chip-active {
+  background: rgba(37, 99, 235, 0.25) !important;
+  border-color: #3b82f6 !important;
+  color: #60a5fa !important;
+  font-weight: 700 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .signature-box {
+  background: #13171f !important;
+  border-color: #28303d !important;
+  color: #94a3b8 !important;
+  border-left-color: #3b82f6 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .signature-box strong {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .btn-cancel {
+  background: #1f2937 !important;
+  border-color: #374151 !important;
+  color: #e5e7eb !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .detail-meta,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .detail-body {
+  background: #13171f !important;
+  border-color: #28303d !important;
+  color: #e2e8f0 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .meta-val {
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .toggle-btn {
+  background: #13171f !important;
+  border-color: #28303d !important;
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .toggle-btn:hover {
+  background: #1e293b !important;
+  border-color: #3b82f6 !important;
+  color: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .toggle-btn.active {
+  background: rgba(37, 99, 235, 0.25) !important;
+  border-color: #3b82f6 !important;
+  color: #60a5fa !important;
+  font-weight: 700 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .filter-key {
+  color: #cbd5e1 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .filter-select {
+  background-color: #13171f !important;
+  border-color: #28303d !important;
+  color: #60a5fa !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2360a5fa' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 12px center !important;
+  background-size: 15px !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .filter-select:hover {
+  background-color: #1e293b !important;
+  border-color: #3b82f6 !important;
+  color: #93c5fd !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .filter-bar {
+  background: #1e293b !important;
+  border: 1px solid #334155 !important;
+  border-radius: 12px !important;
+  padding: 11px 18px !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .filter-select option {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .status-badge.status-resolved {
+  background: rgba(34, 197, 94, 0.22) !important;
+  color: #4ade80 !important;
+  border: 1px solid rgba(34, 197, 94, 0.45) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .status-badge.status-processing,
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .status-badge.status-new {
+  background: rgba(245, 158, 11, 0.22) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.45) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .action-btn {
+  background: #253346 !important;
+  border-color: #334155 !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .action-btn svg {
+  stroke: #60a5fa !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .action-btn.action-delete {
+  background: rgba(239, 68, 68, 0.2) !important;
+  border-color: rgba(239, 68, 68, 0.45) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .action-btn.action-delete svg {
+  stroke: #f87171 !important;
+}
 </style>

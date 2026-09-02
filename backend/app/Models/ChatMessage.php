@@ -14,6 +14,7 @@ class ChatMessage extends Model
     protected $fillable = [
         'id_cuoc_tro_chuyen',
         'id_nguoigui',
+        'nguoigui_type',
         'noidung',
         'daxem',
         'duongdan_dinhkem',
@@ -22,6 +23,10 @@ class ChatMessage extends Model
 
     protected $appends = [
         'duongdan_dinhkem_url',
+    ];
+
+    protected $casts = [
+        'daxem' => 'boolean',
     ];
 
     public function getDuongdanDinhkemUrlAttribute()
@@ -43,6 +48,6 @@ class ChatMessage extends Model
 
     public function sender()
     {
-        return $this->belongsTo(User::class, 'id_nguoigui');
+        return $this->morphTo('sender', 'nguoigui_type', 'id_nguoigui');
     }
 }

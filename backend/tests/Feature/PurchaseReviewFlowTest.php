@@ -3,6 +3,9 @@
 namespace Tests\Feature;
 
 use App\Events\OrderPlaced;
+use App\Models\AffiliateCommission;
+use App\Models\AffiliateProfile;
+use App\Models\AffiliateVideo;
 use App\Models\BienThe;
 use App\Models\DanhGia;
 use App\Models\DanhMuc;
@@ -48,7 +51,7 @@ class PurchaseReviewFlowTest extends TestCase
         ]);
 
         $this->brand = ThuongHieu::create([
-            'ten_thuonghieu' => 'VinaTech Test',
+            'ten_thuonghieu' => 'NextGen Test',
             'trangthai' => 1,
         ]);
 
@@ -79,8 +82,8 @@ class PurchaseReviewFlowTest extends TestCase
             ],
             [
                 'sku' => 'FLOW-POSITIVE',
-                'product' => 'PC Workstation VinaTech',
-                'variant' => 'PC Workstation VinaTech i7 32GB',
+                'product' => 'PC Workstation NextGen',
+                'variant' => 'PC Workstation NextGen i7 32GB',
                 'rating' => 5,
                 'comment' => 'Tot ok muot nhanh.',
                 'expected_status' => 'approved',
@@ -202,6 +205,7 @@ class PurchaseReviewFlowTest extends TestCase
     {
         $shipmentService = \Mockery::mock(DemoShipmentService::class);
         $shipmentService->shouldReceive('syncDueShipments')
+            ->with(false)
             ->once()
             ->andThrow(new \RuntimeException('Temporary demo shipment failure'));
         $this->app->instance(DemoShipmentService::class, $shipmentService);
@@ -212,6 +216,59 @@ class PurchaseReviewFlowTest extends TestCase
                 'success' => true,
                 'orders' => [],
             ]);
+    }
+
+    public function test_affiliate_video_checkout_creates_and_completes_commission(): void
+    {
+        $publisher = User::factory()->create();
+        AffiliateProfile::create([
+            'id_khachhang' => $publisher->id,
+            'ma_affiliate' => 'VIDEOAFF',
+            'ty_le_hoa_hong' => 5,
+            'trangthai' => 'active',
+        ]);
+
+        [$product, $variant] = $this->createSellableVariant(
+            'Laptop Affiliate', 'Laptop Affiliate 16GB', 'AFF-FLOW-1'
+        );
+        $video = AffiliateVideo::create([
+            'id_affiliate_khachhang' => $publisher->id,
+            'id_sanpham' => $product->id_sanpham,
+            'tieu_de' => 'Video affiliate test',
+            'video_url' => 'https://example.test/video.mp4',
+            'trangthai' => 'approved',
+            'duoc_duyet_luc' => now(),
+        ]);
+
+        Event::fake([OrderPlaced::class]);
+        $cartItem = GioHang::create([
+            'id_khachhang' => $this->customer->id,
+            'id_bienthe' => $variant->id_bienthe,
+            'soluong' => 1,
+        ]);
+
+        $response = $this->postJson('/api/checkout', [
+            'diachi' => '123 Nguyen Trai, Quan 1, TP HCM',
+            'PTTT' => 'COD',
+            'name' => 'Le Ngoc Tai',
+            'phone' => '0909123456',
+            'selected_cart_items' => [$cartItem->id_giohang],
+            'affiliate_video_id' => $video->id,
+        ]);
+        $this->assertSame(200, $response->status(), $response->getContent());
+        $response->assertJson(['success' => true]);
+
+        $order = DatHang::findOrFail($response->json('order.id_dathang'));
+        $commission = AffiliateCommission::where('id_donhang', $order->id_dathang)->firstOrFail();
+        $this->assertSame('pending', $commission->trangthai);
+        $this->assertSame(1250000.0, (float) $commission->so_tien);
+
+        $order->update(['trangthai' => 'done']);
+        $this->assertSame('paid', $order->fresh()->trang_thai_thanh_toan);
+        $this->assertSame('approved', $commission->fresh()->trangthai);
+
+        $order->update(['trangthai' => 'refunded', 'trang_thai_thanh_toan' => 'refunded']);
+        $this->assertSame('cancelled', $commission->fresh()->trangthai);
     }
 
     private function createSellableVariant(string $productName, string $variantName, string $sku): array
