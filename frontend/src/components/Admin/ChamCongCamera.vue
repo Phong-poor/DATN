@@ -644,10 +644,38 @@ function onStartDateChanged() {
   }
 }
 
+const validationMessageTranslations = [
+  [/The email has already been taken\.?/gi, 'Email này đã được sử dụng.'],
+  [/The so cccd has already been taken\.?/gi, 'Số CCCD này đã được sử dụng.'],
+  [/The ([\w.]+) field is required\.?/gi, 'Vui lòng nhập $1.'],
+  [/The ([\w.]+) must be (\d+) digits\.?/gi, '$1 phải gồm đúng $2 chữ số.'],
+  [/The ([\w.]+) must be a valid email address\.?/gi, '$1 không đúng định dạng email.'],
+  [/The ([\w.]+) must be a date before today\.?/gi, '$1 phải là ngày trước hôm nay.'],
+  [/The ([\w.]+) must be a date before or equal to today\.?/gi, '$1 không được sau ngày hôm nay.'],
+]
+
+function vietnameseValidationMessage(message) {
+  return validationMessageTranslations.reduce(
+    (translated, [pattern, replacement]) => translated.replace(pattern, replacement),
+    String(message || '')
+  )
+}
+
+function serverValidationSummary(error, fallback) {
+  const messages = Object.values(error.response?.data?.errors || {})
+    .flat()
+    .filter(Boolean)
+    .map(vietnameseValidationMessage)
+  if (!messages.length) return vietnameseValidationMessage(error.response?.data?.message) || fallback
+  return messages.length === 1
+    ? messages[0]
+    : `${messages[0]} (và còn ${messages.length - 1} lỗi khác)`
+}
+
 function applyServerValidationErrors(error, target = employeeErrors) {
   const errors = error.response?.data?.errors || {}
   Object.entries(errors).forEach(([field, messages]) => {
-    const message = Array.isArray(messages) ? messages[0] : String(messages)
+    const message = vietnameseValidationMessage(Array.isArray(messages) ? messages[0] : String(messages))
     const scheduleField = field.split('.')[0]
     if (['loai_ca', 'ngay_bat_dau', 'ngay_ket_thuc', 'thu_lam_viec'].includes(scheduleField)) {
       workAssignmentErrors.value[scheduleField] = message
@@ -724,7 +752,7 @@ async function createEmployeeAndEnroll() {
       }
     }
     applyServerValidationErrors(error)
-    employeeFormError.value = error.response?.data?.message || error.message || 'Không thể hoàn tất thiết lập nhân viên.'
+    employeeFormError.value = serverValidationSummary(error, error.message || 'Không thể hoàn tất thiết lập nhân viên.')
   } finally {
     creatingEmployee.value = false
     if (faceapi?.nets?.tinyFaceDetector?.isLoaded) startFaceMonitoring()
@@ -812,7 +840,7 @@ async function saveEmployee() {
     swal.success('Đã cập nhật', 'Thông tin nhân viên đã được lưu.')
   } catch (error) {
     applyServerValidationErrors(error)
-    employeeFormError.value = error.response?.data?.message || 'Vui lòng kiểm tra lại thông tin.'
+    employeeFormError.value = serverValidationSummary(error, 'Vui lòng kiểm tra lại thông tin.')
   } finally {
     savingEmployee.value = false
   }
@@ -1525,7 +1553,7 @@ onUnmounted(() => {
         </div>
 
         <form id="employee-unified-form" class="employee-setup-form" @submit.prevent="handleUnifiedEmployeeSubmit">
-          <section class="profile-card" :class="{ 'section-readonly': isEnrollmentMode && !editingEmployee }" :inert="isEnrollmentMode && !editingEmployee">
+          <section class="profile-card" :class="{ 'section-readonly': isEnrollmentMode && !editingEmployee }">
             <div class="form-section-heading">
               <span>01</span>
               <div><strong>Tài khoản và quyền làm việc</strong><small>Thông tin dùng để đăng nhập và phân quyền nhân viên.</small></div>
@@ -1596,7 +1624,7 @@ onUnmounted(() => {
             </div>
           </section>
 
-          <section class="identity-card" :class="{ 'section-readonly': isEnrollmentMode && !editingEmployee }" :inert="isEnrollmentMode && !editingEmployee">
+          <section class="identity-card" :class="{ 'section-readonly': isEnrollmentMode && !editingEmployee }">
             <div class="identity-heading">
               <div>
                 <div class="form-section-heading compact">
@@ -2353,15 +2381,15 @@ onUnmounted(() => {
 .identity-place-field { grid-column: 1 / -1; }
 .identity-upload-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .identity-upload { position: relative; min-height: 104px; overflow: hidden; border: 1px dashed #93b4e8; border-radius: 11px; background: #fff; cursor: pointer; }
-.identity-upload > input { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.identity-upload > input { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; opacity: 0; cursor: pointer; pointer-events: auto; }
 .identity-upload > img { width: 100%; height: 120px; object-fit: cover; }
 .identity-upload.checking { border-color: #f59e0b; }
 .identity-upload.valid { border-style: solid; border-color: #10b981; box-shadow: 0 0 0 2px rgba(16, 185, 129, .1); }
 .identity-upload.invalid { border-style: solid; border-color: #ef4444; box-shadow: 0 0 0 2px rgba(239, 68, 68, .1); }
-.identity-side-result { position: absolute; z-index: 3; left: 7px; right: 7px; bottom: 7px; display: flex; align-items: center; gap: 5px; padding: 6px 8px; border-radius: 7px; background: rgba(15, 23, 42, .88); color: #fff !important; font-size: 8.5px !important; font-weight: 750 !important; line-height: 1.25; backdrop-filter: blur(6px); }
+.identity-side-result { position: absolute; z-index: 1; left: 7px; right: 7px; bottom: 7px; display: flex; align-items: center; gap: 5px; padding: 6px 8px; border-radius: 7px; background: rgba(15, 23, 42, .88); color: #fff !important; font-size: 8.5px !important; font-weight: 750 !important; line-height: 1.25; backdrop-filter: blur(6px); pointer-events: none; }
 .identity-upload.valid .identity-side-result { background: rgba(4, 120, 87, .92); }
 .identity-upload.invalid .identity-side-result { background: rgba(185, 28, 28, .94); }
-.identity-upload-placeholder { min-height: 104px; display: grid; place-content: center; gap: 5px; padding: 12px; text-align: center; color: #2563eb !important; }
+.identity-upload-placeholder { min-height: 104px; display: grid; place-content: center; gap: 5px; padding: 12px; text-align: center; color: #2563eb !important; pointer-events: none; }
 .identity-upload-placeholder b { font-size: 11px; }
 .identity-upload-placeholder small { color: #64748b !important; font-size: 9.5px; }
 .identity-error { margin: 0; color: #dc2626; font-size: 10px; font-weight: 650; }

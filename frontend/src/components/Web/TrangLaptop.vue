@@ -88,7 +88,18 @@ const products = computed(() => {
   }
 })
 
+const LAPTOP_CATEGORY_IDS = new Set([2, 3, 4, 7])
+const ACCESSORY_CATEGORY_IDS = new Set([10, 11, 12, 13, 14, 15])
+const productCategoryId = (product = {}) => Number(
+  product.id_danhmuc
+  || product.danh_muc?.id_danhmuc
+  || product.danhmuc?.id_danhmuc
+  || 0
+)
+
 const isProductAccessory = (product) => {
+  const categoryId = productCategoryId(product)
+  if (ACCESSORY_CATEGORY_IDS.has(categoryId)) return true
   const cat = String(
     product.category || 
     product.danh_muc?.ten_danhmuc || 
@@ -105,6 +116,8 @@ const isProductAccessory = (product) => {
 }
 
 const isProductLaptop = (product) => {
+  const categoryId = productCategoryId(product)
+  if (categoryId) return LAPTOP_CATEGORY_IDS.has(categoryId)
   return !isProductAccessory(product)
 }
 
@@ -123,6 +136,7 @@ const accessoryLines = [
   { key: 'keyboard', label: 'Bàn phím', icon: Keyboard, q: 'ban phim keyboard', image: '/hero_gaming_parts.png' },
   { key: 'headphone', label: 'Tai nghe', icon: Headphones, q: 'tai nghe headphone', image: '/Gemini_Generated_Image_571jyz571jyz571j.png' },
   { key: 'pad', label: 'Lót chuột', icon: Monitor, q: 'lot chuot mousepad', image: '/hero_macbook_setup.png' },
+  { key: 'usb', label: 'USB', icon: SlidersHorizontal, q: 'usb adata kioxia sandisk', image: '/elite_workspace.png' },
   { key: 'other', label: 'Phụ kiện khác', icon: SlidersHorizontal, q: 'o cung ram main nguon case hub cap ugreen', image: '/elite_workspace.png' },
 ]
 
@@ -240,7 +254,7 @@ const normalizeVariant = (p, variant) => {
     } catch {}
   }
 
-  const price = Number(variant?.gia || p.gia || 0) || 19990000
+  const price = Number(variant?.gia || p.gia || 0)
 
   // Extract CPU and RAM for subtitle display
   const cpuSpec = specs.find(s => /i[3579][-\s]|ryzen|core ultra|xeon|m[1-4]|celeron|pentium/i.test(s)) || ''
@@ -251,18 +265,19 @@ const normalizeVariant = (p, variant) => {
   return {
     id_sanpham: p.id_sanpham,
     id_bienthe: variant?.id_bienthe,
+    id_danhmuc: p.id_danhmuc || p.danh_muc?.id_danhmuc || p.danhmuc?.id_danhmuc || null,
     tenSP: p.tenSP,
     brand: p.thuong_hieu?.ten_thuonghieu || p.thuonghieu?.tenTH || p.brand || 'NextGen',
     category: p.danh_muc?.ten_danhmuc || p.danhmuc?.tenDM || p.category || 'Laptop',
     gia: price,
     oldPrice: Math.floor(price * 1.13),
-    specs: specs.slice(0, 5).length ? specs.slice(0, 5) : ['16GB RAM', '512GB SSD', 'FHD IPS'],
+    specs: specs.slice(0, 5),
     searchSpecs: specs,
     cpu: cpuSpec,
     ram: ramSpec,
     image: productImageUrl(p, variant, 'https://placehold.co/600x420?text=NextGen+Laptop'),
-    rating: p.rating_avg !== undefined && p.rating_avg !== null ? Number(p.rating_avg) : 4.8,
-    reviews: p.rating_count !== undefined && p.rating_count !== null ? Number(p.rating_count) : 12,
+    rating: p.rating_avg !== undefined && p.rating_avg !== null ? Number(p.rating_avg) : 0,
+    reviews: p.rating_count !== undefined && p.rating_count !== null ? Number(p.rating_count) : 0,
     _randomWeight: weight
   }
 }
@@ -349,8 +364,7 @@ const loadProducts = async () => {
   }
 
   try {
-    const shouldForce = !warmCache?.productsRaw?.length || warmCache.productsRaw.length < 15
-    const cache = await prefetchProductsPage({ forceRefresh: shouldForce })
+    const cache = await prefetchProductsPage({ forceRefresh: true })
     if (cache?.productsRaw?.length) {
       rawProductsList.value = cache.productsRaw
     } else {
@@ -390,8 +404,9 @@ const lineMatcher = (product, line = activeLine.value) => {
     if (line === 'keyboard' || line === '11' || line === 'ban-phim' || line === 'banphim') return pCatId === 11 || text.includes('ban phim') || text.includes('keyboard')
     if (line === 'headphone' || line === '12' || line === 'tai-nghe' || line === 'tainghe') return pCatId === 12 || text.includes('tai nghe') || text.includes('headphone') || text.includes('tai-nghe')
     if (line === 'pad' || line === 'mousepad' || line === '13' || line === 'lot-chuot' || line === 'lotchuot') return pCatId === 13 || text.includes('lot chuot') || text.includes('mousepad') || text.includes('pad')
+    if (line === 'usb' || line === '15') return pCatId === 15 || text.includes('usb')
     if (line === 'hub') return text.includes('hub') || text.includes('cap') || text.includes('sac') || text.includes('ugreen')
-    if (line === 'other') return !['chuot', 'mouse', 'ban phim', 'keyboard', 'tai nghe', 'headphone', 'lot chuot', 'mousepad'].some(k => text.includes(k)) && ![10, 11, 12, 13].includes(pCatId)
+    if (line === 'other') return !['chuot', 'mouse', 'ban phim', 'keyboard', 'tai nghe', 'headphone', 'lot chuot', 'mousepad', 'usb'].some(k => text.includes(k)) && ![10, 11, 12, 13, 15].includes(pCatId)
     return true
   }
 
@@ -418,6 +433,20 @@ const lineCount = (lineKey) => {
     ? products.value.filter(isProductAccessory) 
     : products.value.filter(isProductLaptop)
   return list.filter(product => lineMatcher(product, lineKey)).length
+}
+
+const categoryCardImage = (line) => {
+  const categoryIds = { mouse: 10, keyboard: 11, headphone: 12, pad: 13, usb: 15, other: 16 }
+  const expectedCategoryId = categoryIds[line.key]
+  const exactCategoryProducts = products.value.filter(product =>
+    Number(product.id_danhmuc) === expectedCategoryId && product.image
+  )
+  const matchingProduct = (line.key === 'keyboard'
+    ? exactCategoryProducts.find(product => !canonicalText(product.tenSP).includes('combo'))
+    : exactCategoryProducts[0]) || products.value.find(product =>
+    isProductAccessory(product) && lineMatcher(product, line.key) && product.image
+  )
+  return matchingProduct?.image || line.image
 }
 
 const filteredProducts = computed(() => {
@@ -706,6 +735,7 @@ const resolveActiveLineFromQuery = () => {
   if (lineParam === '11' || lineParam === 'ban-phim' || lineParam === 'banphim') lineParam = 'keyboard'
   if (lineParam === '12' || lineParam === 'tai-nghe' || lineParam === 'tainghe') lineParam = 'headphone'
   if (lineParam === '13' || lineParam === 'lot-chuot' || lineParam === 'lotchuot' || lineParam === 'mousepad') lineParam = 'pad'
+  if (lineParam === '15') lineParam = 'usb'
 
   if (lineParam && activeLinesList.value.some(item => item.key === lineParam)) {
     return lineParam
@@ -871,7 +901,7 @@ onMounted(() => {
           type="button"
           class="accessory-category-card"
           :class="`category-tone-${index + 1}`"
-          :style="{ '--category-image': `url('${line.image}')` }"
+          :style="{ '--category-image': `url('${categoryCardImage(line)}')` }"
           :aria-pressed="activeLine === line.key"
           @click="selectAccessoryCategory(line)"
         >
@@ -1011,7 +1041,7 @@ onMounted(() => {
               @pointerenter="warmDetail(product)"
               @focusin="warmDetail(product)"
             >
-              <span class="discount">-13%</span>
+              <span v-if="product.gia > 0" class="discount">-13%</span>
               <img :src="product.image" :alt="product.tenSP" loading="lazy" decoding="async" @error="handleImageFallback($event, 'https://placehold.co/600x420?text=NextGen+Laptop')" />
               <h3>
                 {{ product.tenSP }}
@@ -1023,8 +1053,9 @@ onMounted(() => {
               <div class="specs">
                 <span v-for="spec in product.specs.slice(0, 4)" :key="spec">{{ spec }}</span>
               </div>
-              <strong class="product-price">{{ formatPrice(product.gia) }}</strong>
-              <del>{{ formatPrice(product.oldPrice) }}</del>
+              <strong v-if="product.gia > 0" class="product-price">{{ formatPrice(product.gia) }}</strong>
+              <strong v-else class="product-price">Liên hệ</strong>
+              <del v-if="product.gia > 0">{{ formatPrice(product.oldPrice) }}</del>
               <div class="mini-badges">
                 <span>✓ Chính hãng</span>
                 <span>Ship 2H · 30K</span>
@@ -1180,7 +1211,8 @@ onMounted(() => {
           <img :src="product.image" :alt="product.tenSP" loading="lazy" decoding="async" @error="handleImageFallback($event, 'https://placehold.co/600x420?text=NextGen+Laptop')" />
           <h3>{{ product.tenSP }}</h3>
           <div class="stars">★ {{ product.rating.toFixed(1) }} <span>({{ product.reviews }})</span></div>
-          <strong class="product-price">{{ formatPrice(product.gia) }}</strong>
+          <strong v-if="product.gia > 0" class="product-price">{{ formatPrice(product.gia) }}</strong>
+          <strong v-else class="product-price">Liên hệ</strong>
         </article>
       </div>
     </section>
@@ -5504,7 +5536,7 @@ onMounted(() => {
   .concept-card { min-height: 190px; }
 }
 
-/* Desktop: always present all five accessory groups in one clean row. */
+/* Desktop: six accessory groups form a balanced 3 x 2 grid. */
 @media (min-width: 1181px) {
   .is-accessory-page .accessory-studio {
     grid-template-columns: minmax(280px, .78fr) minmax(0, 2.2fr);
@@ -5512,9 +5544,9 @@ onMounted(() => {
   }
 
   .is-accessory-page .accessory-category-grid {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    grid-template-rows: 230px;
-    gap: 12px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: repeat(2, 210px);
+    gap: 14px;
   }
 
   .is-accessory-page .accessory-category-card,
@@ -5522,7 +5554,7 @@ onMounted(() => {
     grid-column: auto;
     grid-row: auto;
     min-width: 0;
-    min-height: 230px;
+    min-height: 210px;
     padding: 18px 16px;
   }
 

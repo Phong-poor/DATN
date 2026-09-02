@@ -577,6 +577,10 @@ class DatHangController extends Controller
             'selected_variants.*' => 'integer|exists:bienthe,id_bienthe',
             // Attribution is best-effort: an expired/deleted video must never block checkout.
             'affiliate_video_id' => 'nullable|integer|min:1',
+            'chatbot_order' => 'nullable|boolean',
+            'deposit_percent' => 'nullable|integer|min:1|max:100',
+            'deposit_amount' => 'nullable|numeric|min:0',
+            'remaining_amount' => 'nullable|numeric|min:0',
         ]);
 
         $userId = Auth::id();
@@ -974,11 +978,31 @@ class DatHangController extends Controller
                         'freeship_code' => $request->freeship_code,
                         'selected_cart_items' => $selectedCartItems->all(),
                         'selected_variants' => $selectedVariants->all(),
+                        'order_source' => $request->boolean('chatbot_order') ? 'chatbot' : 'web',
+                        'chatbot_order' => $request->boolean('chatbot_order'),
+                        'shipping_fee' => $shippingFee,
+                        'shipping_discount' => $giamGiaShip,
+                        'shipping_payable' => $shippingAfterPromo,
+                        'items_subtotal' => $subtotalAfterPromo,
                     ],
                     'status_history' => [
                         'pending' => now()->toDateTimeString(),
                     ],
                 ];
+                if ($request->boolean('chatbot_order')) {
+                    $depositAmount = min(
+                        (float) $tongTienSauGiam,
+                        max(0, (float) $request->input('deposit_amount', 0))
+                    );
+                    $orderData['du_lieu_thanh_toan']['deposit'] = [
+                        'required' => true,
+                        'percent' => (int) $request->input('deposit_percent', 50),
+                        'required_amount' => $depositAmount,
+                        'remaining_due' => max(0, (float) $tongTienSauGiam - $depositAmount),
+                        'shipping_due_on_delivery' => $shippingAfterPromo,
+                        'status' => 'awaiting_transfer',
+                    ];
+                }
             }
 
             $donHang = DatHang::create($orderData);
@@ -1240,12 +1264,34 @@ class DatHangController extends Controller
                 return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
             }
 
-            $paymentData = array_merge($order->du_lieu_thanh_toan ?? [], [
+            $existingPaymentData = $order->du_lieu_thanh_toan ?? [];
+            $reportedAmount = (float) ($validated['amount'] ?? 0);
+            $isChatbotDeposit = (bool) data_get($existingPaymentData, 'checkout.chatbot_order', false)
+                || data_get($existingPaymentData, 'checkout.order_source') === 'chatbot'
+                || (($validated['method'] ?? '') === 'momo_personal_qr' && $reportedAmount > 0 && $reportedAmount < (float) $order->tongtien);
+            $paymentData = array_merge($existingPaymentData, [
                 'manual_notice_at' => now()->toDateTimeString(),
                 'manual_notice_amount' => $validated['amount'] ?? null,
                 'manual_notice_memo' => $validated['memo'] ?? null,
                 'manual_notice_method' => $validated['method'] ?? 'momo_personal_qr',
             ]);
+            if ($isChatbotDeposit) {
+                $shippingFee = (float) data_get($existingPaymentData, 'checkout.shipping_payable', 30000);
+                data_set($paymentData, 'checkout.order_source', 'chatbot');
+                data_set($paymentData, 'checkout.chatbot_order', true);
+                data_set($paymentData, 'checkout.shipping_fee', (float) data_get($existingPaymentData, 'checkout.shipping_fee', 30000));
+                data_set($paymentData, 'checkout.shipping_payable', $shippingFee);
+                $paymentData['deposit'] = array_merge($existingPaymentData['deposit'] ?? [], [
+                    'required' => true,
+                    'percent' => 50,
+                    'required_amount' => $reportedAmount,
+                    'reported_paid_amount' => $reportedAmount,
+                    'remaining_due' => max(0, (float) $order->tongtien - $reportedAmount),
+                    'shipping_due_on_delivery' => $shippingFee,
+                    'status' => 'awaiting_verification',
+                    'reported_at' => now()->toDateTimeString(),
+                ]);
+            }
 
             $order->update([
                 'trang_thai_thanh_toan' => 'pending',

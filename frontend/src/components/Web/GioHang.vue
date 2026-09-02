@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import api from '../../services/api'
 import swal from '@/services/swal'
-import { normalizeImageUrl } from '@/services/urls'
+import { handleImageFallback, normalizeImageUrl } from '@/services/urls'
 import { getToken, getUser } from '@/services/auth'
 
 
@@ -70,7 +70,8 @@ const getFreeshipMinOrder = (promo) => {
     return promo.dieu_kien > 0 ? promo.dieu_kien : 0
 }
 
-const shippingFee = computed(() => cart.value.length > 0 ? 30000 : 0)
+const selectedCartItems = computed(() => cart.value.filter(item => selectedIds.value.has(item.id_giohang)))
+const shippingFee = computed(() => selectedCartItems.value.length > 0 ? 30000 : 0)
 
 const thongBao = ref({ show: false, type: '', message: '' })
 
@@ -100,8 +101,22 @@ const fetchGioHang = async () => {
     }
 }
 
-const subtotal = computed(() => cart.value.reduce((sum, item) => sum + item.thanh_tien, 0))
+const subtotal = computed(() => selectedCartItems.value.reduce((sum, item) => sum + item.thanh_tien, 0))
 const total = computed(() => Math.max(0, subtotal.value - discount.value) + Math.max(0, shippingFee.value - freeshipDiscount.value))
+
+const checkoutQuery = computed(() => ({
+    selected: [...selectedIds.value].join(','),
+    promo_code: appliedPromo.value?.code || '',
+    discount: discount.value,
+    freeship_code: appliedFreeshipPromo.value?.code || '',
+    freeship_discount: freeshipDiscount.value
+}))
+
+const requireSelectedProduct = (event) => {
+    if (selectedCount.value > 0) return
+    event.preventDefault()
+    hienThiThongBao('error', 'Vui lòng chọn ít nhất một sản phẩm trước khi thanh toán!')
+}
 
 const groupedCart = computed(() => {
     const list = []
@@ -686,7 +701,7 @@ onMounted(() => {
                   :src="normalizeImageUrl(entry.hinh_anh, 'https://placehold.co/90')"
                   :alt="entry.ten_san_pham"
                   class="item-img"
-                  @error="e => e.target.src = 'https://placehold.co/90'"
+                  @error="event => handleImageFallback(event, 'https://placehold.co/90')"
                 />
               </div>
 
@@ -803,7 +818,7 @@ onMounted(() => {
         <div class="summary-card">
           <div class="summary-header">
             <h2 class="summary-title">Tóm tắt đơn hàng</h2>
-            <span class="summary-count">{{ cart.length }} sản phẩm</span>
+            <span class="summary-count">{{ selectedCount }} sản phẩm đã chọn</span>
           </div>
 
           <!-- PRICE ROWS -->
@@ -882,14 +897,11 @@ onMounted(() => {
 
           <router-link
             v-else
-            :to="{ path: '/thanh-toan', query: { 
-              promo_code: appliedPromo ? appliedPromo.code : '', 
-              discount: discount,
-              freeship_code: appliedFreeshipPromo ? appliedFreeshipPromo.code : '',
-              freeship_discount: freeshipDiscount
-            }}"
+            :to="{ path: '/thanh-toan', query: checkoutQuery }"
             class="checkout-btn"
-            :class="{ 'checkout-disabled': cart.length === 0 }"
+            :class="{ 'checkout-disabled': selectedCount === 0 }"
+            :aria-disabled="selectedCount === 0"
+            @click="requireSelectedProduct"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
             Thanh toán ngay
@@ -1621,8 +1633,8 @@ onMounted(() => {
 }
 .checkout-btn svg { width: 18px; height: 18px; }
 .arrow-right { margin-left: auto; }
-.checkout-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(37, 99, 235, 0.4); }
-.checkout-disabled { pointer-events: none; opacity: 0.45; }
+.checkout-btn:not(.checkout-disabled):hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(37, 99, 235, 0.4); }
+.checkout-disabled { cursor: not-allowed; opacity: 0.45; }
 
 .admin-shopping-lock {
   border: 1px solid #fecaca;

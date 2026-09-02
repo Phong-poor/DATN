@@ -521,6 +521,19 @@ const mapApiBannerToSlide = (banner = {}) => ({
 
 const cachedArray = (value) => Array.isArray(value) ? value : null
 
+const HOME_LAPTOP_CATEGORY_IDS = new Set(['2', '3', '4', '7'])
+const isLaptopProduct = (product = {}) => {
+    const categoryId = String(product.id_danhmuc || '')
+    if (HOME_LAPTOP_CATEGORY_IDS.has(categoryId)) return true
+
+    const categoryName = String(product.category || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+
+    return categoryName.includes('laptop') || categoryName.includes('macbook')
+}
+
 const loadCache = () => {
     try {
         const cached = localStorage.getItem('premium_home_cache')
@@ -533,7 +546,7 @@ const loadCache = () => {
             const cachedBanners = cachedArray(parsed.bannerSlides)
             const cachedVideos = cachedArray(parsed.affiliateVideos)
 
-            if (cachedProducts) featuredProducts.value = cachedProducts
+            if (cachedProducts) featuredProducts.value = cachedProducts.filter(isLaptopProduct)
             if (cachedAccessories) featuredAccessories.value = cachedAccessories
             if (cachedCategories?.length) categories.value = cachedCategories
             if (cachedNews) latestNews.value = cachedNews
@@ -589,7 +602,9 @@ onMounted(async () => {
         // Gọi song song toàn bộ API lấy dữ liệu ngầm
         const [newsRes, productsBundle, bannersRes, affiliateVideoRes, reviewsRes] = await Promise.all([
             api.get('/news', { params: { scope: 'public', per_page: 6 } }).catch(e => { console.error('News API failed', e); return { data: { data: [] } }; }),
-            prefetchProductsPage().catch(e => { console.error('Products bundle API failed', e); return { productsRaw: [], categories: [] }; }),
+            // Trang chủ phải lấy lại giá/biến thể mới nhất sau khi quản trị viên
+            // cập nhật sản phẩm; không dùng bundle cũ còn lưu giá 0 trong localStorage.
+            prefetchProductsPage({ forceRefresh: true }).catch(e => { console.error('Products bundle API failed', e); return { productsRaw: [], categories: [] }; }),
             api.get('/banners').catch(e => { console.error('Banners API failed', e); return { data: [] }; }),
             api.get('/affiliate-videos/public', { params: { limit: 12 } }).catch(e => { console.error('Affiliate videos API failed', e); return { data: [] }; }),
             api.get('/reviews/featured', { params: { limit: 3 } }).catch(e => { console.error('Featured reviews API failed', e); return { data: { reviews: [] } }; })
@@ -604,13 +619,13 @@ onMounted(async () => {
         
         const rawProducts = productsBundle?.productsRaw || []
         const allProducts = mapProducts(rawProducts)
-        allHomeProducts.value = allProducts
+        allHomeProducts.value = allProducts.filter(isLaptopProduct)
         
         const laptopsList = allProducts.filter(p => {
             const cat = (p.category || '').toLowerCase();
             return !cat.includes('phụ kiện') && !cat.includes('phu kien');
         })
-        featuredProducts.value = laptopsList.slice(0, 16)
+        featuredProducts.value = laptopsList.filter(isLaptopProduct).slice(0, 16)
         
         const accessoriesList = allProducts.filter(p => {
             const cat = (p.category || '').toLowerCase();
@@ -618,7 +633,9 @@ onMounted(async () => {
         })
         featuredAccessories.value = accessoriesList.slice(0, 10)
         
-        const apiCategories = (productsBundle?.categories || []).slice(0, 4)
+        const apiCategories = (productsBundle?.categories || [])
+            .filter(category => HOME_LAPTOP_CATEGORY_IDS.has(String(category.id_danhmuc || '')))
+            .slice(0, 4)
         categories.value = apiCategories.length ? apiCategories : [...defaultCategories]
 
         const apiBanners = Array.isArray(bannersRes.data) ? bannersRes.data : (bannersRes.data?.data || [])
@@ -1481,7 +1498,7 @@ onUnmounted(() => {
         </section>
 
         <!-- 5. FEATURED ECOSYSTEM (Rich dark technology setup) -->
-        <section class="section ecosystem-section">
+        <section v-if="false" class="section ecosystem-section">
             <div class="grid-container">
                 <div class="section-header center scroll-reveal reveal-fade-up">
                     <div class="label-wrapper center">
@@ -1716,7 +1733,7 @@ onUnmounted(() => {
                                     @keyup.enter="heroSubscribe"
                                 />
                                 <button
-                                    class="btn btn-premium-glow"
+                                    class="btn btn-premium-glow newsletter-register-btn"
                                     :disabled="heroSubscribing"
                                     @click="heroSubscribe"
                                 >
@@ -4161,6 +4178,14 @@ onUnmounted(() => {
 }
 .btn-premium-glow:hover svg {
     transform: translateX(4px);
+}
+.newsletter-interactive-form .newsletter-register-btn {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+    box-shadow: 0 6px 22px rgba(37, 99, 235, 0.38);
+}
+.newsletter-interactive-form .newsletter-register-btn:hover {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+    box-shadow: 0 9px 28px rgba(37, 99, 235, 0.5);
 }
 .btn-premium-glass {
     background: rgba(255, 255, 255, 0.08);

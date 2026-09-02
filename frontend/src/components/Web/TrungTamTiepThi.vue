@@ -59,6 +59,7 @@ const videoForm = ref({
   title: '',
   description: '',
   product_id: '',
+  product_ids: [],
   video_url: '',
   video: null,
   thumbnail: null,
@@ -269,9 +270,13 @@ const summaryCards = computed(() => [
   { label: 'Đã thanh toán', value: formatMoney(data.value.stats.paid_commission) },
 ])
 
-const selectedVideoProduct = computed(() => {
-  if (!videoForm.value.product_id) return null
-  return shopProducts.value.find(p => String(p.id_sanpham) === String(videoForm.value.product_id)) || null
+const selectedVideoProducts = computed(() => {
+  const ids = Array.isArray(videoForm.value.product_ids) && videoForm.value.product_ids.length
+    ? videoForm.value.product_ids
+    : (videoForm.value.product_id ? [videoForm.value.product_id] : [])
+
+  if (!ids.length) return []
+  return shopProducts.value.filter(product => ids.includes(String(product.id_sanpham)))
 })
 
 const loadAll = async () => {
@@ -395,6 +400,7 @@ const resetAffiliateVideoForm = () => {
     title: '',
     description: '',
     product_id: '',
+    product_ids: [],
     video_url: '',
     video: null,
     thumbnail: null,
@@ -408,10 +414,19 @@ const resetAffiliateVideoForm = () => {
 
 const editAffiliateVideo = (video) => {
   editingAffiliateVideoId.value = video.id
+  const rawProductIds = Array.isArray(video.product_ids)
+    ? video.product_ids
+    : (Array.isArray(video.products) ? video.products.map(product => String(product.id_sanpham)) : [])
+
+  const normalizedProductIds = rawProductIds.length
+    ? rawProductIds.map(String)
+    : (video.product_id || video.id_sanpham ? [String(video.product_id || video.id_sanpham)] : [])
+
   videoForm.value = {
     title: video.title || video.tieu_de || '',
     description: video.description || video.mo_ta || '',
-    product_id: video.product_id || video.id_sanpham || '',
+    product_id: normalizedProductIds[0] || '',
+    product_ids: normalizedProductIds,
     video_url: video.video_url || (!isPlayableVideoSrc(video.video_src) ? (video.video_src || '') : ''),
     video: null,
     thumbnail: null,
@@ -441,10 +456,22 @@ const submitAffiliateVideo = async () => {
     return
   }
 
+  const selectedProductIds = Array.from(new Set((videoForm.value.product_ids || []).map(id => String(id)).filter(Boolean)))
+  const fallbackProductIds = videoForm.value.product_id ? [String(videoForm.value.product_id)] : []
+  const finalProductIds = selectedProductIds.length ? selectedProductIds : fallbackProductIds
+
   const formData = new FormData()
   formData.append('title', videoForm.value.title.trim())
   formData.append('description', videoForm.value.description.trim())
-  if (videoForm.value.product_id) formData.append('product_id', videoForm.value.product_id)
+
+  finalProductIds.forEach((productId) => {
+    formData.append('product_ids[]', productId)
+  })
+
+  if (finalProductIds.length === 1) {
+    formData.append('product_id', finalProductIds[0])
+  }
+
   if (videoForm.value.video_url.trim()) formData.append('video_url', videoForm.value.video_url.trim())
   if (isFileObject(videoForm.value.video)) formData.append('video', videoForm.value.video)
   if (isFileObject(videoForm.value.thumbnail)) formData.append('thumbnail', videoForm.value.thumbnail)
@@ -916,9 +943,8 @@ onBeforeUnmount(() => {
 
                     <label class="input-group">
                       <span>Sản phẩm gắn kèm</span>
-                      <select v-model="videoForm.product_id">
-                        <option value="">-- Chọn sản phẩm muốn tiếp thị --</option>
-                        <option v-for="prod in shopProducts" :key="prod.id_sanpham" :value="prod.id_sanpham">
+                      <select v-model="videoForm.product_ids" multiple size="6">
+                        <option v-for="prod in shopProducts" :key="prod.id_sanpham" :value="String(prod.id_sanpham)">
                           {{ prod.tenSP }}
                         </option>
                       </select>
@@ -945,12 +971,12 @@ onBeforeUnmount(() => {
                     </label>
                   </div>
 
-                  <div v-if="videoPreviewUrl || thumbnailPreviewUrl || selectedVideoProduct" class="video-preview-box">
+                  <div v-if="videoPreviewUrl || thumbnailPreviewUrl || selectedVideoProducts.length" class="video-preview-box">
                     <video v-if="videoPreviewUrl" :src="videoPreviewUrl" controls></video>
                     <img v-else-if="thumbnailPreviewUrl" :src="thumbnailPreviewUrl" alt="Thumbnail preview" />
                     <div class="preview-meta">
                       <strong>{{ videoForm.title || 'Video affiliate mới' }}</strong>
-                      <span v-if="selectedVideoProduct">Sản phẩm: {{ selectedVideoProduct.tenSP }}</span>
+                      <span v-if="selectedVideoProducts.length">Sản phẩm: {{ selectedVideoProducts.map(product => product.tenSP).join(', ') }}</span>
                       <span>Trạng thái sau khi gửi: Chờ admin duyệt</span>
                     </div>
                   </div>
@@ -1001,7 +1027,11 @@ onBeforeUnmount(() => {
                         </div>
                         <p>{{ video.description || video.mo_ta || 'Chưa có mô tả.' }}</p>
                         <small>
-                          {{ video.product?.tenSP || 'Chưa gắn sản phẩm' }} · {{ video.views || 0 }} lượt xem · {{ video.clicks || 0 }} click
+                          {{
+                            (Array.isArray(video.products) && video.products.length)
+                              ? video.products.map(product => product.tenSP).join(', ')
+                              : (video.product?.tenSP || 'Chưa gắn sản phẩm')
+                          }} · {{ video.views || 0 }} lượt xem · {{ video.clicks || 0 }} click
                         </small>
                         <small v-if="video.reject_reason" class="reject-note">Lý do từ chối: {{ video.reject_reason }}</small>
                       </div>

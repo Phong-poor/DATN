@@ -24,16 +24,16 @@ class NewsletterController extends Controller
         $existing = NewsletterSubscriber::where('email', $email)->first();
 
         if ($existing) {
-            if ($existing->status === 'active') {
+            if ($existing->active) {
                 return response()->json([
-                    'success' => false,
+                    'success' => true,
                     'message' => 'Email này đã được đăng ký nhận bản tin.',
-                ], 422);
+                ]);
             }
 
             // Đã unsubscribe trước đó → cho phép re-subscribe
             $existing->update([
-                'status'           => 'active',
+                'active'           => true,
                 'subscribed_at'    => now(),
                 'unsubscribed_at'  => null,
             ]);
@@ -46,7 +46,8 @@ class NewsletterController extends Controller
 
         NewsletterSubscriber::create([
             'email'         => $email,
-            'status'        => 'active',
+            'active'        => true,
+            'token'         => hash('sha256', $email),
             'subscribed_at' => now(),
         ]);
 
@@ -77,7 +78,7 @@ class NewsletterController extends Controller
         $email = strtolower(trim($request->email));
         $sub = NewsletterSubscriber::where('email', $email)->first();
 
-        if (! $sub || $sub->status === 'unsubscribed') {
+        if (! $sub || ! $sub->active) {
             return response()->json([
                 'success' => false,
                 'message' => 'Email này không có trong danh sách nhận bản tin.',
@@ -85,7 +86,7 @@ class NewsletterController extends Controller
         }
 
         $sub->update([
-            'status'           => 'unsubscribed',
+            'active'           => false,
             'unsubscribed_at'  => now(),
         ]);
 
@@ -104,7 +105,7 @@ class NewsletterController extends Controller
         $query = NewsletterSubscriber::orderByDesc('subscribed_at');
 
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            $query->where('active', $request->status === 'active');
         }
 
         $subscribers = $query->paginate(50);
