@@ -53,11 +53,13 @@ const withdrawForm = ref({
   bank_name: '',
   bank_account_name: '',
   bank_account_number: '',
+  sms_phone: '',
 })
 const videoForm = ref({
   title: '',
   description: '',
   product_id: '',
+  product_ids: [],
   video_url: '',
   video: null,
   thumbnail: null,
@@ -268,9 +270,13 @@ const summaryCards = computed(() => [
   { label: 'Đã thanh toán', value: formatMoney(data.value.stats.paid_commission) },
 ])
 
-const selectedVideoProduct = computed(() => {
-  if (!videoForm.value.product_id) return null
-  return shopProducts.value.find(p => String(p.id_sanpham) === String(videoForm.value.product_id)) || null
+const selectedVideoProducts = computed(() => {
+  const ids = Array.isArray(videoForm.value.product_ids) && videoForm.value.product_ids.length
+    ? videoForm.value.product_ids
+    : (videoForm.value.product_id ? [videoForm.value.product_id] : [])
+
+  if (!ids.length) return []
+  return shopProducts.value.filter(product => ids.includes(String(product.id_sanpham)))
 })
 
 const loadAll = async () => {
@@ -289,6 +295,10 @@ const loadAll = async () => {
     commissions.value = comRes.data
     withdraws.value = wdRes.data
     affiliateVideos.value = videoRes.data
+
+    if (!withdrawForm.value.sms_phone) {
+      withdrawForm.value.sms_phone = affiliateUser.value?.phone || affiliateUser.value?.sodienthoai || ''
+    }
 
     if (data.value.active && data.value.profile?.affiliate_code) {
       fetchShopProducts()
@@ -315,13 +325,19 @@ const submitWithdraw = async () => {
     !withdrawForm.value.amount ||
     !withdrawForm.value.bank_name ||
     !withdrawForm.value.bank_account_name ||
-    !withdrawForm.value.bank_account_number
+    !withdrawForm.value.bank_account_number ||
+    !withdrawForm.value.sms_phone
   ) {
     swal.error('Lỗi nhập liệu', 'Vui lòng điền đầy đủ tất cả thông tin yêu cầu rút tiền.')
     return
   }
 
   const amountNum = Number(withdrawForm.value.amount || 0)
+  const normalizedSmsPhone = String(withdrawForm.value.sms_phone || '').replace(/[\s.-]/g, '')
+  if (!/^(?:\+?84|0)(?:3|5|7|8|9)\d{8}$/.test(normalizedSmsPhone)) {
+    swal.error('Số điện thoại không hợp lệ', 'Vui lòng nhập đúng số điện thoại Việt Nam để nhận thông báo SMS.')
+    return
+  }
   const minimumWithdrawal = Number(data.value.rules?.minimum_withdrawal || 100000)
   if (amountNum < minimumWithdrawal) {
     swal.error('Số tiền không hợp lệ', `Số tiền rút tối thiểu phải từ ${formatMoney(minimumWithdrawal)} trở lên.`)
@@ -347,12 +363,14 @@ const submitWithdraw = async () => {
       bank_name: withdrawForm.value.bank_name,
       bank_account_name: withdrawForm.value.bank_account_name,
       bank_account_number: withdrawForm.value.bank_account_number,
+      sms_phone: normalizedSmsPhone,
     })
     withdrawForm.value = {
       amount: '',
       bank_name: '',
       bank_account_name: '',
       bank_account_number: '',
+      sms_phone: affiliateUser.value?.phone || affiliateUser.value?.sodienthoai || '',
     }
     await loadAll()
     swal.success('Đã gửi yêu cầu!', 'Yêu cầu rút tiền của bạn đã được tiếp nhận và chờ phê duyệt.')
@@ -382,6 +400,7 @@ const resetAffiliateVideoForm = () => {
     title: '',
     description: '',
     product_id: '',
+    product_ids: [],
     video_url: '',
     video: null,
     thumbnail: null,
@@ -395,10 +414,19 @@ const resetAffiliateVideoForm = () => {
 
 const editAffiliateVideo = (video) => {
   editingAffiliateVideoId.value = video.id
+  const rawProductIds = Array.isArray(video.product_ids)
+    ? video.product_ids
+    : (Array.isArray(video.products) ? video.products.map(product => String(product.id_sanpham)) : [])
+
+  const normalizedProductIds = rawProductIds.length
+    ? rawProductIds.map(String)
+    : (video.product_id || video.id_sanpham ? [String(video.product_id || video.id_sanpham)] : [])
+
   videoForm.value = {
     title: video.title || video.tieu_de || '',
     description: video.description || video.mo_ta || '',
-    product_id: video.product_id || video.id_sanpham || '',
+    product_id: normalizedProductIds[0] || '',
+    product_ids: normalizedProductIds,
     video_url: video.video_url || (!isPlayableVideoSrc(video.video_src) ? (video.video_src || '') : ''),
     video: null,
     thumbnail: null,
@@ -428,10 +456,22 @@ const submitAffiliateVideo = async () => {
     return
   }
 
+  const selectedProductIds = Array.from(new Set((videoForm.value.product_ids || []).map(id => String(id)).filter(Boolean)))
+  const fallbackProductIds = videoForm.value.product_id ? [String(videoForm.value.product_id)] : []
+  const finalProductIds = selectedProductIds.length ? selectedProductIds : fallbackProductIds
+
   const formData = new FormData()
   formData.append('title', videoForm.value.title.trim())
   formData.append('description', videoForm.value.description.trim())
-  if (videoForm.value.product_id) formData.append('product_id', videoForm.value.product_id)
+
+  finalProductIds.forEach((productId) => {
+    formData.append('product_ids[]', productId)
+  })
+
+  if (finalProductIds.length === 1) {
+    formData.append('product_id', finalProductIds[0])
+  }
+
   if (videoForm.value.video_url.trim()) formData.append('video_url', videoForm.value.video_url.trim())
   if (isFileObject(videoForm.value.video)) formData.append('video', videoForm.value.video)
   if (isFileObject(videoForm.value.thumbnail)) formData.append('thumbnail', videoForm.value.thumbnail)
@@ -903,9 +943,8 @@ onBeforeUnmount(() => {
 
                     <label class="input-group">
                       <span>Sản phẩm gắn kèm</span>
-                      <select v-model="videoForm.product_id">
-                        <option value="">-- Chọn sản phẩm muốn tiếp thị --</option>
-                        <option v-for="prod in shopProducts" :key="prod.id_sanpham" :value="prod.id_sanpham">
+                      <select v-model="videoForm.product_ids" multiple size="6">
+                        <option v-for="prod in shopProducts" :key="prod.id_sanpham" :value="String(prod.id_sanpham)">
                           {{ prod.tenSP }}
                         </option>
                       </select>
@@ -932,12 +971,12 @@ onBeforeUnmount(() => {
                     </label>
                   </div>
 
-                  <div v-if="videoPreviewUrl || thumbnailPreviewUrl || selectedVideoProduct" class="video-preview-box">
+                  <div v-if="videoPreviewUrl || thumbnailPreviewUrl || selectedVideoProducts.length" class="video-preview-box">
                     <video v-if="videoPreviewUrl" :src="videoPreviewUrl" controls></video>
                     <img v-else-if="thumbnailPreviewUrl" :src="thumbnailPreviewUrl" alt="Thumbnail preview" />
                     <div class="preview-meta">
                       <strong>{{ videoForm.title || 'Video affiliate mới' }}</strong>
-                      <span v-if="selectedVideoProduct">Sản phẩm: {{ selectedVideoProduct.tenSP }}</span>
+                      <span v-if="selectedVideoProducts.length">Sản phẩm: {{ selectedVideoProducts.map(product => product.tenSP).join(', ') }}</span>
                       <span>Trạng thái sau khi gửi: Chờ admin duyệt</span>
                     </div>
                   </div>
@@ -988,7 +1027,11 @@ onBeforeUnmount(() => {
                         </div>
                         <p>{{ video.description || video.mo_ta || 'Chưa có mô tả.' }}</p>
                         <small>
-                          {{ video.product?.tenSP || 'Chưa gắn sản phẩm' }} · {{ video.views || 0 }} lượt xem · {{ video.clicks || 0 }} click
+                          {{
+                            (Array.isArray(video.products) && video.products.length)
+                              ? video.products.map(product => product.tenSP).join(', ')
+                              : (video.product?.tenSP || 'Chưa gắn sản phẩm')
+                          }} · {{ video.views || 0 }} lượt xem · {{ video.clicks || 0 }} click
                         </small>
                         <small v-if="video.reject_reason" class="reject-note">Lý do từ chối: {{ video.reject_reason }}</small>
                       </div>
@@ -1028,8 +1071,8 @@ onBeforeUnmount(() => {
                     <div class="input-group">
                       <label>Số tiền rút (VNĐ) <span class="required">*</span></label>
                       <div class="input-wrapper">
-                        <DollarSign class="input-icon" />
                         <input v-model="withdrawForm.amount" type="number" :min="data.rules?.minimum_withdrawal || 100000" placeholder="Số tiền rút (tối thiểu 100.000đ)" />
+                        <span class="currency-suffix" aria-hidden="true">đ</span>
                       </div>
                     </div>
 
@@ -1082,7 +1125,20 @@ onBeforeUnmount(() => {
 
                     <div class="input-group">
                       <label>Số tài khoản <span class="required">*</span></label>
-              <input v-model="withdrawForm.bank_account_number" placeholder="Nhập chính xác số tài khoản ngân hàng" />
+                      <input v-model="withdrawForm.bank_account_number" inputmode="numeric" placeholder="Nhập chính xác số tài khoản ngân hàng" />
+                    </div>
+
+                    <div class="input-group">
+                      <label>Số điện thoại nhận thông báo SMS <span class="required">*</span></label>
+                      <input
+                        v-model.trim="withdrawForm.sms_phone"
+                        type="tel"
+                        inputmode="tel"
+                        maxlength="12"
+                        autocomplete="tel"
+                        placeholder="Ví dụ: 0987654321"
+                      />
+                      <small class="field-hint">SMS sẽ được gửi đến số này sau khi yêu cầu được chi trả.</small>
                     </div>
                   </div>
 
@@ -2074,7 +2130,7 @@ onBeforeUnmount(() => {
   background: #ffffff;
   border: 1px solid #dbeafe;
   border-radius: 14px;
-  padding: 20px;
+  padding: 16px;
   box-shadow: 0 4px 6px -1px rgba(0,0,0,0.01);
 }
 .withdraw-history-box {
@@ -2196,12 +2252,12 @@ onBeforeUnmount(() => {
   background: #f8fbff;
   border: 1px solid #dbeafe;
   border-radius: 12px;
-  padding: 16px 20px;
+  padding: 12px 16px;
   color: #0f172a;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
   box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
 .balance-label {
@@ -2225,13 +2281,18 @@ onBeforeUnmount(() => {
 .withdraw-inputs {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  margin-bottom: 20px;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.withdraw-form-card > .btn-lg {
+  min-height: 42px;
+  padding: 10px 20px;
+  border-radius: 10px;
 }
 .input-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 .input-group label {
   font-size: 12px;
@@ -2240,6 +2301,13 @@ onBeforeUnmount(() => {
 }
 .required {
   color: #ef4444;
+}
+.field-hint {
+  display: block;
+  margin-top: 3px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.4;
 }
 .input-wrapper {
   position: relative;
@@ -2255,8 +2323,8 @@ onBeforeUnmount(() => {
 }
 .input-group input, .input-group select, .input-wrapper input {
   width: 100% !important;
-  height: 42px !important;
-  max-height: 42px !important;
+  height: 38px !important;
+  max-height: 38px !important;
   box-sizing: border-box !important;
   border: 1px solid #cbd5e1 !important;
   border-radius: 8px !important;
@@ -2268,11 +2336,29 @@ onBeforeUnmount(() => {
   transition: all 0.2s ease !important;
 }
 .input-wrapper input {
-  padding-left: 36px;
+  padding-left: 12px !important;
+  padding-right: 48px !important;
 }
 .input-group input:focus, .input-group select:focus, .input-wrapper input:focus {
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.currency-suffix {
+  position: absolute !important;
+  top: 50% !important;
+  right: 30px !important;
+  left: auto !important;
+  z-index: 2;
+  width: 14px;
+  height: 18px;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  color: #64748b;
+  transform: translateY(-50%);
+  pointer-events: none;
 }
 .bank-select {
   position: relative;
@@ -2284,7 +2370,7 @@ onBeforeUnmount(() => {
 .bank-select-trigger {
   display: flex;
   width: 100%;
-  height: 44px;
+  height: 38px;
   align-items: center;
   gap: 10px;
   padding: 0 12px;

@@ -21,4 +21,14 @@ backend/database/*_demo.sql
 **/node_modules/
 node_modules/
 
+# Log chạy cục bộ, không đưa vào lịch sử mã nguồn.
+debug.log
+*.debug.log
+
+# Tài liệu và tệp dựng slide thuyết trình không thuộc mã nguồn website.
+.codex-slide-work/
+NextGen_BaoVe_DoAn_2026*.pptx
+*.pptx.inspect.ndjson
+NextGen_BaoVe_DoAn_2026*/
+
 

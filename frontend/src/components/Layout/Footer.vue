@@ -57,7 +57,10 @@ const loadFooterData = async () => {
     const footer = data?.data || {}
     store.value = { ...store.value, ...(footer.store || {}) }
     liveUserCount.value = Number(footer.online_users || 0)
-    categories.value = Array.isArray(footer.categories) ? footer.categories : []
+    const laptopCategoryIds = new Set([2, 3, 4, 7])
+    categories.value = Array.isArray(footer.categories)
+      ? footer.categories.filter(category => laptopCategoryIds.has(Number(category.id_danhmuc)))
+      : []
     latestNews.value = Array.isArray(footer.news) ? footer.news : []
   } catch (error) {
     console.warn('Không thể tải dữ liệu footer:', error)

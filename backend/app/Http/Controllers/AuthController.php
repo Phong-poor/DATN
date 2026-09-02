@@ -3,10 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Mail\RegisterSuccessMail;
+use App\Models\Admin;
 use App\Models\AffiliateProfile;
 use App\Models\AffiliateReferral;
 use App\Models\User;
-use App\Models\Admin;
 use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -25,6 +25,7 @@ use Laravel\Socialite\Facades\Socialite;
 class AuthController extends Controller
 {
     private const TWO_FACTOR_CHALLENGE_TTL = 300;
+
     private const MAX_DEVICE_SESSIONS = 3;
 
     private function deviceFingerprint(Request $request, ?string $provided = null): string

@@ -144,7 +144,10 @@ class GioHangController extends Controller
                 'id_combo'     => $item->id_combo,
                 'id_nhom_combo' => $item->id_nhom_combo,
                 'ten_combo'    => $item->combo?->ten_combo ?? null,
-                'hinhanh_combo' => $item->combo?->hinhanh ? asset('storage/' . $item->combo->hinhanh) : null,
+                // Trả đường dẫn gốc; frontend sẽ phân biệt ảnh trong storage,
+                // backend/public và frontend/public. Ghép cứng /storage ở đây
+                // làm hỏng các catalog được đặt trực tiếp trong public.
+                'hinhanh_combo' => $item->combo?->hinhanh ?: null,
                 'gia_combo'    => $giaCombo,
                 'ten_bienthe'  => $bienThe?->ten_bienthe ?? '',
                 'gia_goc'      => $bienThe?->gia ?? 0,
@@ -153,9 +156,7 @@ class GioHangController extends Controller
                 'thuoc_tinh'   => $thuocTinh,
                 'ten_san_pham' => $sanPham?->tenSP ?? '',
                 'thong_so_ky_thuat' => $sanPham?->thong_so_ky_thuat ?? [],
-                'hinh_anh'     => $sanPham?->hinhanh
-                    ? asset('storage/' . $sanPham->hinhanh)
-                    : null,
+                'hinh_anh'     => $sanPham?->hinhanh ?: null,
                 'thanh_tien'   => $unitPrice * $item->soluong,
             ];
         });

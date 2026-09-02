@@ -235,7 +235,11 @@
             <div class="deposit-policy">
               <div class="deposit-row">
                 <span>Tổng giá trị</span>
-                <strong>{{ formatPrice(selectedProductPrice) }}</strong>
+                <strong>{{ formatPrice(selectedProductPrice + chatbotShippingFee) }}</strong>
+              </div>
+              <div class="deposit-row">
+                <span>Phí giao hàng toàn quốc</span>
+                <strong>{{ formatPrice(chatbotShippingFee) }}</strong>
               </div>
               <div class="deposit-row highlight">
                 <span>Đặt cọc trước 50%</span>
@@ -247,7 +251,7 @@
               </div>
               <label class="deposit-confirm">
                 <input type="checkbox" v-model="depositConfirmed" required />
-                <span>Tôi đồng ý chuyển trước 50% giá trị đơn hàng, 50% còn lại thanh toán khi nhận hàng.</span>
+                <span>Tôi đồng ý chuyển trước 50% tiền sản phẩm; phần tiền hàng còn lại và phí ship 30.000đ sẽ thanh toán khi nhận hàng.</span>
               </label>
               <button type="button" class="deposit-continue-btn" @click="goToOrderConfirm">Tiếp tục xác nhận</button>
             </div>
@@ -360,7 +364,7 @@
 
             <div class="confirm-total">
               <span>Tổng thanh toán:</span>
-              <b v-if="selectedProduct">{{ formatPrice(selectedProduct.gia) }}</b>
+              <b v-if="selectedProduct">{{ formatPrice(Number(selectedProduct.gia) + chatbotShippingFee) }}</b>
             </div>
 
             <div class="confirm-deposit-plan">
@@ -372,7 +376,7 @@
                 <span>Còn lại khi giao hàng</span>
                 <strong>{{ formatPrice(remainingAmount) }}</strong>
               </div>
-              <p>Đơn hàng chatbot yêu cầu đặt cọc 50% để tránh bom hàng. Hóa đơn xác nhận sẽ được gửi về email {{ checkoutForm.email }}.</p>
+              <p>Tiền cọc bằng 50% giá sản phẩm. Số tiền trả khi nhận hàng đã bao gồm phí giao hàng 30.000đ. Hóa đơn xác nhận sẽ được gửi về email {{ checkoutForm.email }}.</p>
             </div>
 
             <label class="confirm-info-check">
@@ -626,7 +630,8 @@ const selectCheckoutProduct = (product) => {
 
 const selectedProductPrice = computed(() => Number(selectedProduct.value?.gia || 0));
 const depositAmount = computed(() => Math.ceil(selectedProductPrice.value * 0.5));
-const remainingAmount = computed(() => Math.max(0, selectedProductPrice.value - depositAmount.value));
+const chatbotShippingFee = 30000;
+const remainingAmount = computed(() => Math.max(0, selectedProductPrice.value - depositAmount.value + chatbotShippingFee));
 const paymentQrAmount = computed(() => {
   const orderTotal = Number(createdOrder.value?.tongtien || createdOrder.value?.tong_tien || selectedProductPrice.value || 0);
   return Math.max(1000, depositAmount.value || Math.ceil(orderTotal * 0.5));

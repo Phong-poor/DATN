@@ -2,17 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\SendResetOtpMail;
+use App\Models\Admin;
 use App\Models\User;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rule;
+use App\Models\VaiTro;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\File;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 /**
  * Quản lý hồ sơ, tài khoản, ảnh đại diện và mật khẩu của người dùng.
@@ -27,7 +29,7 @@ class UserController extends Controller
     {
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
@@ -39,7 +41,7 @@ class UserController extends Controller
             $file = $request->file('avatar');
 
             // 1. Tạo tên file duy nhất
-            $filename = time() . '_' . $user->id . '.' . $file->getClientOriginalExtension();
+            $filename = time().'_'.$user->id.'.'.$file->getClientOriginalExtension();
 
             // 2. Định nghĩa thư mục lưu trữ: public/uploads/avatar
             $path = 'uploads/avatar';
@@ -59,8 +61,8 @@ class UserController extends Controller
 
             return response()->json([
                 'message' => 'Cập nhật ảnh đại diện thành công',
-                'avatar_url' => asset('storage/' . $filePath),
-                'user' => $user
+                'avatar_url' => asset('storage/'.$filePath),
+                'user' => $user,
             ]);
         }
 
@@ -72,14 +74,16 @@ class UserController extends Controller
         $customers = User::select('id', 'ten', 'email', 'sodienthoai', 'vaitro', 'trangthai', 'created_at', 'anhdaidien')
             ->get()
             ->map(function ($u) {
-                $u->id = 'u-' . $u->id;
+                $u->id = 'u-'.$u->id;
+
                 return $u;
             });
 
-        $admins = \App\Models\Admin::select('id', 'ten', 'email', 'sodienthoai', 'vaitro', 'trangthai', 'created_at', 'anhdaidien')
+        $admins = Admin::select('id', 'ten', 'email', 'sodienthoai', 'vaitro', 'trangthai', 'created_at', 'anhdaidien')
             ->get()
             ->map(function ($a) {
-                $a->id = 'a-' . $a->id;
+                $a->id = 'a-'.$a->id;
+
                 return $a;
             });
 
@@ -90,17 +94,9 @@ class UserController extends Controller
 
     public function show($id)
     {
-        if (str_starts_with($id, 'a-')) {
-            $realId = substr($id, 2);
-            $user = \App\Models\Admin::select('id', 'ten', 'email', 'sodienthoai', 'vaitro', 'trangthai', 'created_at', 'anhdaidien')
-                ->findOrFail($realId);
-            $user->id = 'a-' . $user->id;
-        } else {
-            $realId = str_starts_with($id, 'u-') ? substr($id, 2) : $id;
-            $user = User::select('id', 'ten', 'email', 'sodienthoai', 'vaitro', 'trangthai', 'created_at', 'anhdaidien')
-                ->findOrFail($realId);
-            $user->id = 'u-' . $user->id;
-        }
+        [$user, $isTableAdmins] = $this->resolveUserContext($id);
+
+        $user->id = $isTableAdmins ? 'a-'.$user->id : 'u-'.$user->id;
 
         return response()->json($user);
     }
@@ -116,10 +112,10 @@ class UserController extends Controller
                 'nullable',
                 'string',
                 function ($attribute, $value, $fail) {
-                    if ($value !== 'user' && !\App\Models\VaiTro::where('ma_vaitro', $value)->exists()) {
+                    if ($value !== 'user' && ! VaiTro::where('ma_vaitro', $value)->exists()) {
                         $fail('Vai trò không hợp lệ.');
                     }
-                }
+                },
             ],
             'trangthai' => 'nullable|in:active,locked',
             'so_cccd' => 'nullable|digits:12|unique:khachhang,so_cccd',
@@ -150,10 +146,11 @@ class UserController extends Controller
                     'noi_cap_cccd' => $validated['noi_cap_cccd'] ?? null,
                 ]);
                 $this->storeIdentityImages($request, $u);
-                $prefixedId = 'u-' . $u->id;
+                $prefixedId = 'u-'.$u->id;
+
                 return $u;
             } else {
-                $a = \App\Models\Admin::create([
+                $a = Admin::create([
                     'ten' => $validated['ten'],
                     'email' => $validated['email'],
                     'matkhau' => $validated['matkhau'],
@@ -167,7 +164,8 @@ class UserController extends Controller
                     'noi_cap_cccd' => $validated['noi_cap_cccd'] ?? null,
                 ]);
                 $this->storeIdentityImages($request, $a);
-                $prefixedId = 'a-' . $a->id;
+                $prefixedId = 'a-'.$a->id;
+
                 return $a;
             }
         });
@@ -183,15 +181,8 @@ class UserController extends Controller
 
     public function update(Request $request, $id)
     {
-        if (str_starts_with($id, 'a-')) {
-            $realId = substr($id, 2);
-            $user = \App\Models\Admin::findOrFail($realId);
-            $isTableAdmins = true;
-        } else {
-            $realId = str_starts_with($id, 'u-') ? substr($id, 2) : $id;
-            $user = User::findOrFail($realId);
-            $isTableAdmins = false;
-        }
+        [$user, $isTableAdmins] = $this->resolveUserContext($id);
+        $realId = $user->id;
 
         $oldRole = $user->vaitro;
         $oldStatus = $user->trangthai;
@@ -205,7 +196,7 @@ class UserController extends Controller
                     : Rule::unique('khachhang', 'email')->ignore($realId),
                 $isTableAdmins
                     ? Rule::unique('khachhang', 'email')
-                    : Rule::unique('admins', 'email')
+                    : Rule::unique('admins', 'email'),
             ],
             'sodienthoai' => 'nullable|string|max:20',
             'vaitro' => [
@@ -218,10 +209,10 @@ class UserController extends Controller
                     if ($user->vaitro !== 'user' && $value === 'user') {
                         $fail('Nhân viên không thể chuyển đổi thành khách hàng');
                     }
-                    if ($value !== 'user' && !\App\Models\VaiTro::where('ma_vaitro', $value)->exists()) {
+                    if ($value !== 'user' && ! VaiTro::where('ma_vaitro', $value)->exists()) {
                         $fail('Vai trò không hợp lệ.');
                     }
-                }
+                },
             ],
             'trangthai' => 'nullable|in:active,locked',
             'matkhau' => 'nullable|string|min:8',
@@ -232,7 +223,7 @@ class UserController extends Controller
                     : Rule::unique('khachhang', 'so_cccd')->ignore($realId),
                 $isTableAdmins
                     ? Rule::unique('khachhang', 'so_cccd')
-                    : Rule::unique('admins', 'so_cccd')
+                    : Rule::unique('admins', 'so_cccd'),
             ],
             'ngaysinh' => 'nullable|date|before:today',
             'gioitinh' => 'nullable|in:Nam,Nữ,Khác',
@@ -242,28 +233,34 @@ class UserController extends Controller
             'anh_cccd_mat_sau' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:5120',
         ]);
 
-        if (isset($validated['ten']))
+        if (isset($validated['ten'])) {
             $user->ten = $validated['ten'];
-        if (isset($validated['email']))
+        }
+        if (isset($validated['email'])) {
             $user->email = $validated['email'];
-        if (isset($validated['sodienthoai']))
+        }
+        if (isset($validated['sodienthoai'])) {
             $user->sodienthoai = $validated['sodienthoai'];
+        }
         if (isset($validated['vaitro'])) {
             // Không được đổi vai trò của NextGen và phongtqpk
             if (in_array($user->email, ['nextgenshop@gmail.com', 'phongtqpk04300@gmail.com']) && $validated['vaitro'] !== 'admin') {
                 return response()->json([
-                    'message' => 'Không thể thay đổi vai trò của tài khoản Giám đốc sáng lập'
+                    'message' => 'Không thể thay đổi vai trò của tài khoản Giám đốc sáng lập',
                 ], 422);
             }
             $user->vaitro = $validated['vaitro'];
         }
-        if (isset($validated['trangthai']))
+        if (isset($validated['trangthai'])) {
             $user->trangthai = $validated['trangthai'];
-        if (!empty($validated['matkhau'])) {
+        }
+        if (! empty($validated['matkhau'])) {
             $user->matkhau = $validated['matkhau'];
         }
         foreach (['so_cccd', 'ngaysinh', 'gioitinh', 'ngay_cap_cccd', 'noi_cap_cccd'] as $field) {
-            if (array_key_exists($field, $validated)) $user->{$field} = $validated[$field] ?: null;
+            if (array_key_exists($field, $validated)) {
+                $user->{$field} = $validated[$field] ?: null;
+            }
         }
 
         $user->save();
@@ -274,7 +271,7 @@ class UserController extends Controller
         }
 
         $res = $user->only(['ten', 'email', 'sodienthoai', 'vaitro', 'trangthai', 'created_at', 'anhdaidien']);
-        $res['id'] = $isTableAdmins ? 'a-' . $user->id : 'u-' . $user->id;
+        $res['id'] = $isTableAdmins ? 'a-'.$user->id : 'u-'.$user->id;
 
         return response()->json([
             'message' => 'Cập nhật thành công',
@@ -286,7 +283,7 @@ class UserController extends Controller
     {
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
@@ -299,13 +296,13 @@ class UserController extends Controller
 
         $validated = $request->validate([
             'ten' => 'required|string|max:255',
-            'email' => 'required|email|unique:' . ($user instanceof \App\Models\Admin ? 'admins' : 'khachhang') . ',email,' . $user->id,
+            'email' => 'required|email|unique:'.($user instanceof Admin ? 'admins' : 'khachhang').',email,'.$user->id,
             'sodienthoai' => 'nullable|string|max:20',
             'ngaysinh' => 'nullable|date',
             'gioitinh' => 'nullable|in:male,female,Nam,Nữ,Nu',
         ]);
 
-        $date = (!empty($validated['ngaysinh']))
+        $date = (! empty($validated['ngaysinh']))
             ? Carbon::parse($validated['ngaysinh'])->format('Y-m-d')
             : null;
 
@@ -328,7 +325,7 @@ class UserController extends Controller
 
         return response()->json([
             'message' => 'Cập nhật thành công',
-            'user' => $user
+            'user' => $user,
         ]);
     }
 
@@ -336,17 +333,17 @@ class UserController extends Controller
     {
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
         // Tự động nhận 1 lượt quay miễn phí hàng ngày nếu hôm nay chưa nhận (chỉ áp dụng cho tài khoản Khách hàng)
-        if ($user instanceof \App\Models\User) {
-            \App\Http\Controllers\VongQuayController::autoGrantDailyTicketIfNeeded($user);
+        if ($user instanceof User) {
+            VongQuayController::autoGrantDailyTicketIfNeeded($user);
         }
 
         $data = $user->fresh()->toArray();
-        $data['is_google_account'] = !empty($user->id_google);
+        $data['is_google_account'] = ! empty($user->id_google);
 
         return response()->json($data);
     }
@@ -355,7 +352,7 @@ class UserController extends Controller
     {
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
@@ -378,13 +375,7 @@ class UserController extends Controller
 
     public function destroy($id)
     {
-        if (str_starts_with($id, 'a-')) {
-            $realId = substr($id, 2);
-            $user = \App\Models\Admin::findOrFail($realId);
-        } else {
-            $realId = str_starts_with($id, 'u-') ? substr($id, 2) : $id;
-            $user = User::findOrFail($realId);
-        }
+        [$user] = $this->resolveUserContext($id);
 
         Storage::disk('local')->deleteDirectory("employee-identities/{$user->id}");
         $user->delete();
@@ -392,16 +383,49 @@ class UserController extends Controller
         return response()->json(['message' => 'Xóa người dùng thành công']);
     }
 
+    private function resolveUserContext($id): array
+    {
+        if (is_string($id) && str_starts_with($id, 'a-')) {
+            $realId = substr($id, 2);
+            $user = Admin::findOrFail($realId);
+
+            return [$user, true];
+        }
+
+        if (is_string($id) && str_starts_with($id, 'u-')) {
+            $realId = substr($id, 2);
+            $user = User::findOrFail($realId);
+
+            return [$user, false];
+        }
+
+        $realId = (int) $id;
+        $admin = Admin::find($realId);
+        if ($admin) {
+            return [$admin, true];
+        }
+
+        $user = User::findOrFail($realId);
+
+        return [$user, false];
+    }
+
     private function storeIdentityImages(Request $request, $user): void
     {
         foreach (['anh_cccd_mat_truoc', 'anh_cccd_mat_sau'] as $field) {
-            if (! $request->hasFile($field)) continue;
+            if (! $request->hasFile($field)) {
+                continue;
+            }
 
-            if ($user->{$field}) Storage::disk('local')->delete($user->{$field});
+            if ($user->{$field}) {
+                Storage::disk('local')->delete($user->{$field});
+            }
             $path = $request->file($field)->store("employee-identities/{$user->id}", 'local');
             $user->{$field} = $path;
         }
-        if ($user->isDirty(['anh_cccd_mat_truoc', 'anh_cccd_mat_sau'])) $user->save();
+        if ($user->isDirty(['anh_cccd_mat_truoc', 'anh_cccd_mat_sau'])) {
+            $user->save();
+        }
     }
 
     /**
@@ -422,19 +446,19 @@ class UserController extends Controller
 
         $otp = rand(100000, 999999);
         $user->otp_khoiphuc = $otp;
-        $user->otp_khoiphuc_hethan_luc = Carbon::now()->addMinutes(10);
+        $user->otp_khoiphuc_hethan_luc = Carbon::now()->addMinutes(3);
         $user->save();
 
         try {
-            Mail::to($user->email)->send(new \App\Mail\SendResetOtpMail($otp));
+            Mail::to($user->email)->send(new SendResetOtpMail($otp));
 
             return response()->json([
                 'message' => 'Mã OTP đã được gửi đến email của bạn',
-                'is_google_account' => !empty($user->id_google),
+                'is_google_account' => ! empty($user->id_google),
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Gửi mail thất bại: ' . $e->getMessage(),
+                'message' => 'Gửi mail thất bại: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -451,7 +475,7 @@ class UserController extends Controller
             'otp' => 'required',
         ]);
 
-        if ((int)$user->otp_khoiphuc !== (int)$request->otp || Carbon::now()->gt($user->otp_khoiphuc_hethan_luc)) {
+        if ((int) $user->otp_khoiphuc !== (int) $request->otp || Carbon::now()->gt($user->otp_khoiphuc_hethan_luc)) {
             return response()->json(['message' => 'Mã OTP không đúng hoặc đã hết hạn'], 422);
         }
 
@@ -473,7 +497,7 @@ class UserController extends Controller
             'new_password' => 'required|min:8',
         ]);
 
-        if ((int)$user->otp_khoiphuc !== (int)$request->otp || Carbon::now()->gt($user->otp_khoiphuc_hethan_luc)) {
+        if ((int) $user->otp_khoiphuc !== (int) $request->otp || Carbon::now()->gt($user->otp_khoiphuc_hethan_luc)) {
             return response()->json(['message' => 'Mã OTP không đúng hoặc đã hết hạn'], 422);
         }
 
@@ -495,11 +519,11 @@ class UserController extends Controller
     {
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
-        $isGoogleAccount = !empty($user->id_google);
+        $isGoogleAccount = ! empty($user->id_google);
 
         if ($isGoogleAccount) {
             $validated = $request->validate([
@@ -519,7 +543,7 @@ class UserController extends Controller
                 'current_password' => 'required',
             ]);
 
-            if (!Hash::check($validated['current_password'], $user->matkhau)) {
+            if (! Hash::check($validated['current_password'], $user->matkhau)) {
                 return response()->json([
                     'message' => 'Mật khẩu hiện tại không đúng',
                     'errors' => [
@@ -535,7 +559,7 @@ class UserController extends Controller
         $user->save();
 
         try {
-            Mail::to($user->email)->send(new \App\Mail\SendResetOtpMail($otp));
+            Mail::to($user->email)->send(new SendResetOtpMail($otp));
 
             return response()->json([
                 'message' => 'Mã OTP đã được gửi đến email của bạn.',
@@ -544,7 +568,7 @@ class UserController extends Controller
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Gửi mail thất bại: ' . $e->getMessage(),
+                'message' => 'Gửi mail thất bại: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -557,8 +581,9 @@ class UserController extends Controller
     {
         $user = $request->user();
 
-        if (!$user) {
-            \Log::warning("Direct password change failed: User is unauthenticated");
+        if (! $user) {
+            \Log::warning('Direct password change failed: User is unauthenticated');
+
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
@@ -569,7 +594,7 @@ class UserController extends Controller
             'new_password' => 'required|string|min:8|confirmed',
             'captcha_answer' => 'required|integer',
         ], [
-            'new_password.confirmed' => 'Xác nhận mật khẩu mới không khớp'
+            'new_password.confirmed' => 'Xác nhận mật khẩu mới không khớp',
         ]);
 
         $captchaAnswer = Cache::pull("password_captcha:{$user->id}");
@@ -582,8 +607,9 @@ class UserController extends Controller
             ], 422);
         }
 
-        if (!Hash::check($request->current_password, $user->matkhau)) {
+        if (! Hash::check($request->current_password, $user->matkhau)) {
             \Log::warning("Direct password change failed for User ID: {$user->id}: Current password check failed.");
+
             return response()->json(['message' => 'Mật khẩu hiện tại không đúng'], 422);
         }
 
@@ -593,7 +619,7 @@ class UserController extends Controller
         \Log::info("Direct password change succeeded for User ID: {$user->id}");
 
         return response()->json([
-            'message' => 'Đổi mật khẩu thành công!'
+            'message' => 'Đổi mật khẩu thành công!',
         ]);
     }
 }

@@ -385,6 +385,38 @@ const formatPrice = (val) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val)
 }
 
+const DEFAULT_SHIPPING_FEE = 30000
+const getPaymentData = (order = {}) => {
+    const raw = order.du_lieu_thanh_toan || order.payment_data || {}
+    if (typeof raw !== 'string') return raw || {}
+    try { return JSON.parse(raw) || {} } catch { return {} }
+}
+const getShippingFee = (order) => Number(
+    getPaymentData(order)?.checkout?.shipping_payable
+    ?? getPaymentData(order)?.shipping_demo?.fee
+    ?? DEFAULT_SHIPPING_FEE
+)
+const getItemsPayable = (order) => Math.max(0, Number(order?.tongtien || 0) - getShippingFee(order))
+const getDepositSummary = (order) => {
+    const payment = getPaymentData(order)
+    const deposit = payment.deposit || {}
+    const reportedPaid = Number(deposit.reported_paid_amount ?? payment.manual_notice_amount ?? 0)
+    const explicitChatbot = payment.checkout?.chatbot_order === true
+        || payment.checkout?.order_source === 'chatbot'
+    const legacyChatbotDeposit = payment.manual_notice_method === 'momo_personal_qr'
+        && reportedPaid > 0 && reportedPaid < Number(order?.tongtien || 0)
+    const isChatbot = explicitChatbot || legacyChatbotDeposit
+    const required = Number(deposit.required_amount || (isChatbot ? reportedPaid : 0))
+    return {
+        isChatbot,
+        paid: reportedPaid,
+        required,
+        hasTransferNotice: Boolean(payment.manual_notice_at || deposit.reported_at),
+        remaining: Number(deposit.remaining_due ?? Math.max(0, Number(order?.tongtien || 0) - reportedPaid)),
+    }
+}
+const isChatbotDepositOrder = (order) => getDepositSummary(order).isChatbot
+
 const filtered = computed(() => {
     if (pageMode.value === 'orders') {
         if (activeTab.value === 'all') return orders.value.filter(o => !String(o.trangthai || '').startsWith('refund'))
@@ -913,6 +945,29 @@ onUnmounted(() => {
                             </div>
                         </div>
 
+                        <div class="payment-breakdown">
+                            <div><span>Tiền hàng</span><strong>{{ formatPrice(getItemsPayable(selectedOrder)) }}</strong></div>
+                            <div><span>Phí giao hàng toàn quốc</span><strong>{{ formatPrice(getShippingFee(selectedOrder)) }}</strong></div>
+                        </div>
+
+                        <div v-if="isChatbotDepositOrder(selectedOrder)" class="chatbot-deposit-flow">
+                            <div class="deposit-flow-head">
+                                <span>🤖 Đơn đặt qua chatbot · Cọc 50%</span>
+                                <b>{{ getDepositSummary(selectedOrder).hasTransferNotice ? 'Đang xác minh tiền cọc' : 'Chờ chuyển tiền cọc' }}</b>
+                            </div>
+                            <div class="deposit-flow-grid">
+                                <div>
+                                    <span>{{ getDepositSummary(selectedOrder).hasTransferNotice ? 'Đã báo chuyển khoản' : 'Cần chuyển khoản' }}</span>
+                                    <strong>{{ formatPrice(getDepositSummary(selectedOrder).hasTransferNotice ? getDepositSummary(selectedOrder).paid : getDepositSummary(selectedOrder).required) }}</strong>
+                                </div>
+                                <div>
+                                    <span>Còn trả khi nhận hàng</span>
+                                    <strong>{{ formatPrice(getDepositSummary(selectedOrder).remaining) }}</strong>
+                                </div>
+                            </div>
+                            <p>Khoản còn lại đã bao gồm phí giao hàng {{ formatPrice(getShippingFee(selectedOrder)) }}. Bạn không cần chuyển lại phần tiền cọc đã báo.</p>
+                        </div>
+
                         <!-- Thành tiền / Tổng cộng (Bỏ thanh ngang và bỏ viền ngoài) -->
                         <div class="modal-total" style="border-top: none; border: none; background: transparent; padding: 10px 0 0; box-shadow: none;">
                             <span>Tổng cộng</span>
@@ -1018,6 +1073,16 @@ onUnmounted(() => {
                             <span v-if="order.xu_dung > 0" style="color:#f59e0b; display:inline-flex; align-items:center; gap:3px;">🪙 Đã dùng: -{{ order.xu_dung.toLocaleString('vi-VN') }} xu</span>
                         </div>
                         <div class="order-checkout-summary">
+                            <span class="shipping-fee-note">Tiền hàng {{ formatPrice(getItemsPayable(order)) }} · Phí ship {{ formatPrice(getShippingFee(order)) }}</span>
+                            <span v-if="isChatbotDepositOrder(order)" class="chatbot-order-note">
+                                🤖 Đơn chatbot:
+                                <template v-if="getDepositSummary(order).hasTransferNotice">
+                                    đã báo chuyển {{ formatPrice(getDepositSummary(order).paid) }} · còn trả khi nhận {{ formatPrice(getDepositSummary(order).remaining) }}
+                                </template>
+                                <template v-else>
+                                    cần cọc {{ formatPrice(getDepositSummary(order).required) }}
+                                </template>
+                            </span>
                             <span class="order-total">Tổng thanh toán <strong>{{ formatPrice(order.tongtien) }}</strong></span>
                         </div>
                         <div class="order-actions">
@@ -1515,6 +1580,23 @@ onUnmounted(() => {
 .order-checkout-summary {
     padding-right: 18px;
     border-right: 1px solid #cbd5e1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+.shipping-fee-note { color: #64748b; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+.chatbot-order-note {
+    max-width: 540px;
+    color: #1d4ed8;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 7px;
+    padding: 5px 8px;
+    font-size: 11.5px;
+    font-weight: 700;
+    text-align: right;
 }
 
 .order-total {
@@ -1771,6 +1853,18 @@ onUnmounted(() => {
     font-weight: 600;
     color: #64748b;
 }
+
+.payment-breakdown { margin-top: 12px; padding: 12px 14px; border: 1px solid #e2e8f0; border-radius: 10px; background: #f8fafc; display: grid; gap: 8px; }
+.payment-breakdown > div { display: flex; justify-content: space-between; gap: 16px; color: #64748b; font-size: 13px; }
+.payment-breakdown strong { color: #0f172a; }
+.chatbot-deposit-flow { margin-top: 12px; padding: 14px; border: 1px solid #93c5fd; border-radius: 12px; background: linear-gradient(135deg, #eff6ff, #f0f9ff); }
+.deposit-flow-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; color: #1e3a8a; font-size: 13px; font-weight: 800; }
+.deposit-flow-head b { color: #0369a1; background: #e0f2fe; border-radius: 999px; padding: 4px 8px; font-size: 11px; }
+.deposit-flow-grid { margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.deposit-flow-grid > div { padding: 10px; border-radius: 9px; background: #fff; border: 1px solid #dbeafe; display: grid; gap: 4px; }
+.deposit-flow-grid span { color: #64748b; font-size: 11.5px; }
+.deposit-flow-grid strong { color: #1d4ed8; font-size: 15px; }
+.chatbot-deposit-flow p { margin: 10px 0 0; color: #475569; font-size: 12px; line-height: 1.5; }
 
 .total-val {
     font-size: 18px;

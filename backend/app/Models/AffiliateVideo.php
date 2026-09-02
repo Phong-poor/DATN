@@ -33,6 +33,8 @@ class AffiliateVideo extends Model
     protected $appends = [
         'affiliate_user_id',
         'product_id',
+        'product_ids',
+        'products',
         'title',
         'description',
         'status',
@@ -62,7 +64,40 @@ class AffiliateVideo extends Model
 
     public function getProductIdAttribute()
     {
-        return $this->id_sanpham;
+        $ids = $this->product_ids;
+        return $ids[0] ?? null;
+    }
+
+    public function getProductIdsAttribute()
+    {
+        if ($this->id_sanpham === null || $this->id_sanpham === '') {
+            return [];
+        }
+
+        if (is_array($this->id_sanpham)) {
+            return array_values(array_unique(array_map('intval', $this->id_sanpham)));
+        }
+
+        $decoded = json_decode((string) $this->id_sanpham, true);
+        if (is_array($decoded)) {
+            return array_values(array_unique(array_map('intval', $decoded)));
+        }
+
+        if (is_numeric($this->id_sanpham)) {
+            return [(int) $this->id_sanpham];
+        }
+
+        return [];
+    }
+
+    public function getProductsAttribute()
+    {
+        $ids = $this->product_ids;
+        if (empty($ids)) {
+            return collect();
+        }
+
+        return \App\Models\SanPham::whereIn('id_sanpham', $ids)->get();
     }
 
     public function getTitleAttribute()

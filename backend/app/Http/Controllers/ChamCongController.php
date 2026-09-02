@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Admin;
 use App\Models\CauHinhCaLam;
 use App\Models\ChamCong;
-use App\Models\LichLamNhanVien;
 use App\Models\DonXinNghi;
+use App\Models\LichLamNhanVien;
 use App\Models\User;
-use App\Models\Admin;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -19,7 +19,9 @@ use Illuminate\Support\Facades\Storage;
 class ChamCongController extends Controller
 {
     private const FACE_MATCH_THRESHOLD = 0.48;
+
     private const FACE_DUPLICATE_THRESHOLD = 0.42;
+
     private const FACE_AMBIGUITY_MARGIN = 0.06;
 
     /**
@@ -984,7 +986,9 @@ class ChamCongController extends Controller
     {
         foreach ($this->registeredFaceOwners($exceptUserId) as $employee) {
             $stored = json_decode($employee->face_descriptor, true);
-            if (! is_array($stored) || count($stored) !== 128) continue;
+            if (! is_array($stored) || count($stored) !== 128) {
+                continue;
+            }
 
             if ($this->calculateEuclideanDistance(array_map('floatval', $stored), $descriptor) <= self::FACE_DUPLICATE_THRESHOLD) {
                 return $employee;
@@ -998,7 +1002,9 @@ class ChamCongController extends Controller
     {
         foreach ($this->registeredFaceOwners($currentUserId) as $employee) {
             $stored = json_decode($employee->face_descriptor, true);
-            if (! is_array($stored) || count($stored) !== 128) continue;
+            if (! is_array($stored) || count($stored) !== 128) {
+                continue;
+            }
 
             $otherDistance = $this->calculateEuclideanDistance(array_map('floatval', $stored), $descriptor);
             if ($otherDistance <= self::FACE_MATCH_THRESHOLD
@@ -1014,7 +1020,9 @@ class ChamCongController extends Controller
     {
         foreach ($this->registeredFaceOwners($currentUserId) as $employee) {
             $stored = json_decode($employee->face_descriptor, true);
-            if (! is_array($stored) || count($stored) !== 128) continue;
+            if (! is_array($stored) || count($stored) !== 128) {
+                continue;
+            }
 
             if ($this->calculateEuclideanDistance(array_map('floatval', $stored), $descriptor) <= self::FACE_MATCH_THRESHOLD) {
                 return true;

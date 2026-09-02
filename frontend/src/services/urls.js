@@ -67,6 +67,44 @@ export const storageUrl = (path) => {
     return raw
   }
 
+  // Product catalogs can also reference files kept directly in backend/public.
+  // These paths must not be rewritten to /storage, otherwise Laravel returns 404.
+  const slashPath = raw.replace(/\\/g, '/')
+  const lowerPath = slashPath.toLocaleLowerCase('vi')
+  const backendStorageMarker = '/backend/storage/app/public/'
+  const backendPublicMarker = '/backend/public/'
+  const frontendPublicMarker = '/frontend/public/'
+  const publicStorageMarker = '/public/storage/'
+
+  // Dữ liệu cũ đôi khi chứa đường dẫn tuyệt đối của máy Windows. Trình duyệt
+  // không đọc được C:\\..., vì vậy ánh xạ nó về URL public của ứng dụng.
+  if (lowerPath.includes(backendStorageMarker)) {
+    const relative = slashPath.slice(lowerPath.indexOf(backendStorageMarker) + backendStorageMarker.length)
+    return backendBaseUrl ? `${backendBaseUrl}/storage/${relative}` : `/storage/${relative}`
+  }
+  if (lowerPath.includes(publicStorageMarker)) {
+    const relative = slashPath.slice(lowerPath.indexOf(publicStorageMarker) + publicStorageMarker.length)
+    return backendBaseUrl ? `${backendBaseUrl}/storage/${relative}` : `/storage/${relative}`
+  }
+  if (lowerPath.includes(backendPublicMarker)) {
+    const relative = slashPath.slice(lowerPath.indexOf(backendPublicMarker) + backendPublicMarker.length)
+    return backendBaseUrl ? `${backendBaseUrl}/${relative}` : `/${relative}`
+  }
+  if (lowerPath.includes(frontendPublicMarker)) {
+    const relative = slashPath.slice(lowerPath.indexOf(frontendPublicMarker) + frontendPublicMarker.length)
+    return `/${relative}`
+  }
+
+  const directPublicPath = slashPath.replace(/^\/+/, '')
+  if (directPublicPath.startsWith('ảnh laptop/')) {
+    return backendBaseUrl ? `${backendBaseUrl}/${directPublicPath}` : `/${directPublicPath}`
+  }
+
+  // Các catalog mới được người quản trị đặt trực tiếp trong frontend/public.
+  if (/^(dell|tainghe|lotchuot)\//i.test(directPublicPath)) {
+    return `/${directPublicPath}`
+  }
+
   // 2. Local uploaded files (stored in storage/app/public/... and accessed via /storage/...)
   const normalizedPath = raw
     .replace(/\\/g, '/')

@@ -22,7 +22,7 @@ import {
 } from 'lucide-vue-next'
 import api from '../../services/api'
 import { getUser, clearAuth, getToken } from '@/services/auth'
-import { productImageUrl, storageUrl, withImageVersion } from '@/services/urls'
+import { handleImageFallback, normalizeImageUrl, productImageUrl, storageUrl, withImageVersion } from '@/services/urls'
 import { prefetchProductsPage, getPrefetchedProductsData } from '@/services/productsPrefetch'
 import { preloadRoute } from '@/services/performanceWarmup'
 
@@ -1347,7 +1347,11 @@ const openLuckyWheelMobile = () => {
                   <p>Giỏ hàng của bạn đang trống</p>
                 </div>
                 <div class="drop-item" v-for="item in cartItems" :key="item.id_giohang">
-                  <img :src="item.hinh_anh || 'https://placehold.co/60'" :alt="item.ten_san_pham" />
+                  <img
+                    :src="normalizeImageUrl(item.hinh_anh, 'https://placehold.co/60')"
+                    :alt="item.ten_san_pham"
+                    @error="event => handleImageFallback(event, 'https://placehold.co/60')"
+                  />
                   <div class="drop-item-info">
                     <p class="di-name">{{ item.ten_san_pham }}</p>
                     <div class="di-meta" v-if="item.ten_bienthe"><span>{{ item.ten_bienthe }}</span></div>

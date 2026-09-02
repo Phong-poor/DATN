@@ -14,6 +14,7 @@ class AffiliateWithdrawRequest extends Model
         'bank_name',
         'bank_account_name',
         'bank_account_number',
+        'sms_phone',
         'status',
         'note',
         'approved_at',
@@ -30,6 +31,7 @@ class AffiliateWithdrawRequest extends Model
         'ten_ngan_hang',
         'ten_chu_tai_khoan',
         'so_tai_khoan',
+        'so_dien_thoai_nhan_sms',
         'trangthai',
         'ghichu',
         'duoc_duyet_luc',
@@ -76,6 +78,11 @@ class AffiliateWithdrawRequest extends Model
     public function getBankAccountNumberAttribute()
     {
         return $this->so_tai_khoan;
+    }
+
+    public function getSmsPhoneAttribute()
+    {
+        return $this->so_dien_thoai_nhan_sms;
     }
 
     public function getStatusAttribute()

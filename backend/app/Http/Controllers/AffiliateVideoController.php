@@ -58,10 +58,17 @@ class AffiliateVideoController extends Controller
                 ], 403);
             }
 
+            $productIds = $request->input('product_ids', $request->input('product_id') ? [$request->input('product_id')] : []);
+            $request->merge([
+                'product_ids' => array_values(array_unique(array_filter(array_map('intval', (array) $productIds), fn ($id) => $id > 0))),
+            ]);
+
             $validated = $request->validate([
                 'title' => 'required|string|min:5|max:160',
                 'description' => 'nullable|string|max:800',
                 'product_id' => 'nullable|integer|exists:sanpham,id_sanpham',
+                'product_ids' => 'nullable|array',
+                'product_ids.*' => 'integer|exists:sanpham,id_sanpham',
                 'video_url' => 'nullable|url|max:500',
                 'video' => 'nullable|file|max:204800',
                 'thumbnail' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
@@ -97,9 +104,14 @@ class AffiliateVideoController extends Controller
                 ? $request->file('thumbnail')->store('affiliate-videos/thumbnails', 'public')
                 : null;
 
+            $selectedProductIds = $validated['product_ids'] ?? ($validated['product_id'] ? [(int) $validated['product_id']] : []);
+            $storedProductValue = count($selectedProductIds) <= 1
+                ? ($selectedProductIds[0] ?? null)
+                : json_encode(array_values(array_unique(array_map('intval', $selectedProductIds))));
+
             $video = AffiliateVideo::create([
                 'id_affiliate_khachhang' => $user->id,
-                'id_sanpham' => $validated['product_id'] ?? null,
+                'id_sanpham' => $storedProductValue,
                 'tieu_de' => $validated['title'],
                 'mo_ta' => $validated['description'] ?? null,
                 'video_path' => $videoPath,
@@ -134,10 +146,17 @@ class AffiliateVideoController extends Controller
 
             $video = AffiliateVideo::where('id_affiliate_khachhang', $user->id)->findOrFail($id);
 
+            $productIds = $request->input('product_ids', $request->input('product_id') ? [$request->input('product_id')] : []);
+            $request->merge([
+                'product_ids' => array_values(array_unique(array_filter(array_map('intval', (array) $productIds), fn ($id) => $id > 0))),
+            ]);
+
             $validated = $request->validate([
                 'title' => 'required|string|min:5|max:160',
                 'description' => 'nullable|string|max:800',
                 'product_id' => 'nullable|integer|exists:sanpham,id_sanpham',
+                'product_ids' => 'nullable|array',
+                'product_ids.*' => 'integer|exists:sanpham,id_sanpham',
                 'video_url' => 'nullable|url|max:500',
                 'video' => 'nullable|file|max:204800',
                 'thumbnail' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
@@ -176,7 +195,12 @@ class AffiliateVideoController extends Controller
                 $video->thumbnail_path = $request->file('thumbnail')->store('affiliate-videos/thumbnails', 'public');
             }
 
-            $video->id_sanpham = $validated['product_id'] ?? null;
+            $selectedProductIds = $validated['product_ids'] ?? ($validated['product_id'] ? [(int) $validated['product_id']] : []);
+            $storedProductValue = count($selectedProductIds) <= 1
+                ? ($selectedProductIds[0] ?? null)
+                : json_encode(array_values(array_unique(array_map('intval', $selectedProductIds))));
+
+            $video->id_sanpham = $storedProductValue;
             $video->tieu_de = $validated['title'];
             $video->mo_ta = $validated['description'] ?? null;
             $video->trangthai = 'pending';

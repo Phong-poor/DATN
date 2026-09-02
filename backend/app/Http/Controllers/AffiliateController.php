@@ -81,9 +81,11 @@ class AffiliateController extends Controller
             'bank_name' => ['required', 'string', 'max:120'],
             'bank_account_name' => ['required', 'string', 'max:120'],
             'bank_account_number' => ['required', 'string', 'max:50', 'regex:/^[0-9]{6,30}$/'],
+            'sms_phone' => ['required', 'string', 'regex:/^(?:\+?84|0)(?:3|5|7|8|9)\d{8}$/'],
         ], [
             'amount.min' => 'Số tiền rút tối thiểu là '.number_format($minimum, 0, ',', '.').'đ.',
             'bank_account_number.regex' => 'Số tài khoản chỉ được gồm 6 đến 30 chữ số.',
+            'sms_phone.regex' => 'Số điện thoại nhận SMS phải là số điện thoại Việt Nam hợp lệ.',
         ]);
 
         $user = $request->user();
@@ -105,6 +107,9 @@ class AffiliateController extends Controller
                 'ten_ngan_hang' => trim($validated['bank_name']),
                 'ten_chu_tai_khoan' => mb_strtoupper(trim($validated['bank_account_name'])),
                 'so_tai_khoan' => trim($validated['bank_account_number']),
+                'so_dien_thoai_nhan_sms' => str_starts_with($validated['sms_phone'], '+84')
+                    ? '0'.substr($validated['sms_phone'], 3)
+                    : (str_starts_with($validated['sms_phone'], '84') ? '0'.substr($validated['sms_phone'], 2) : $validated['sms_phone']),
                 'trangthai' => 'pending',
             ]);
         });
