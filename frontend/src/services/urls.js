@@ -34,11 +34,12 @@ const unwrapImageValue = (value) => {
       || value.url
       || value.path
       || value.image
+      || value.logo
     )
   }
 
   const raw = String(value || '').trim()
-  if (!raw) return ''
+  if (!raw || /^(null|undefined|none)$/i.test(raw)) return ''
 
   if (/^[\[{]/.test(raw)) {
     try {
@@ -55,7 +56,7 @@ export const storageUrl = (path) => {
   if (!path) return ''
 
   let raw = unwrapImageValue(path)
-  if (!raw) return ''
+  if (!raw || /^(null|undefined|none)$/i.test(raw)) return ''
 
   // Globally replace seeder orange phone image with realistic laptop image
   if (raw.includes('photo-1611186871348-b1ce696e52c9')) {
@@ -95,22 +96,16 @@ export const storageUrl = (path) => {
     return `/${relative}`
   }
 
-  const directPublicPath = slashPath.replace(/^\/+/, '')
-  if (directPublicPath.startsWith('ảnh laptop/')) {
-    return backendBaseUrl ? `${backendBaseUrl}/${directPublicPath}` : `/${directPublicPath}`
-  }
-
-  // Các catalog mới được người quản trị đặt trực tiếp trong frontend/public.
-  if (/^(dell|tainghe|lotchuot)\//i.test(directPublicPath)) {
-    return `/${directPublicPath}`
-  }
-
   // 2. Local uploaded files (stored in storage/app/public/... and accessed via /storage/...)
-  const normalizedPath = raw
-    .replace(/\\/g, '/')
+  let normalizedPath = slashPath
     .replace(/^\/+/, '')
     .replace(/^public\//i, '')
     .replace(/^storage\//i, '')
+
+  if (!/^(uploads|banners|brands|avatar|avatars|chamcong|refunds|refund_proofs|news|affiliate-videos)/i.test(normalizedPath)) {
+    const filename = normalizedPath.split('/').pop()
+    normalizedPath = 'uploads/sanpham/' + filename
+  }
 
   return backendBaseUrl ? `${backendBaseUrl}/storage/${normalizedPath}` : `/storage/${normalizedPath}`
 }

@@ -1735,7 +1735,7 @@
     if (isProductsFetching.value) return
     isProductsFetching.value = true
     try {
-      const res = await api.get('/sanpham', { skipGlobalLoader: true })
+      const res = await api.get('/sanpham', { params: { admin: 1 }, skipGlobalLoader: true })
 
       products.value = res.data.map(p => {
         const bienThes = Array.isArray(p.bien_thes) ? p.bien_thes : []
@@ -1914,9 +1914,11 @@
     }).map(group => {
       return {
         ...group,
-        attrTypes: group.attrTypes.map(attr => ({
-          ...attr,
-          options: attr.options.filter(opt => {
+        attrTypes: group.attrTypes.map(attr => {
+          const attrIdStr = String(attr.id)
+          const hasSelectedVals = selectedOptions.value && selectedOptions.value[attrIdStr] && selectedOptions.value[attrIdStr].size > 0
+
+          let filteredOptions = attr.options.filter(opt => {
             let optIds = opt.danh_muc_ids || []
             if (typeof optIds === 'string') {
               try { optIds = JSON.parse(optIds) } catch (e) { optIds = [] }
@@ -1927,7 +1929,29 @@
             const ids = optIds.map(Number)
             return ids.includes(currentCategoryId) || ids.includes(currentParentId)
           })
-        })).filter(attr => attr.options.length > 0)
+
+          // Đảm bảo bất kỳ giá trị nào đã chọn trong selectedOptions (dù bị ẩn do khác danh mục)
+          // vẫn luôn được khôi phục dưới dạng giá trị thuộc tính tạm thời cho sản phẩm này!
+          if (hasSelectedVals) {
+            const valSet = selectedOptions.value[attrIdStr]
+            valSet.forEach(val => {
+              const exists = filteredOptions.some(opt => getOptionValue(opt) === val)
+              if (!exists) {
+                const origOpt = attr.options.find(opt => getOptionValue(opt) === val)
+                if (origOpt) {
+                  filteredOptions.push(origOpt)
+                } else {
+                  filteredOptions.push({ label: val, value: val, gia_cong_them: 0, isTemp: true })
+                }
+              }
+            })
+          }
+
+          return {
+            ...attr,
+            options: filteredOptions
+          }
+        }).filter(attr => attr.options.length > 0)
       }
     }).filter(group => group.attrTypes.length > 0)
 
@@ -2924,11 +2948,9 @@
   const rebuildSelectedOptionsFromRows = () => {
     const nextSelectedOptions = {}
 
-    // 1. Bảo tồn các Thông số kỹ thuật hiện có
+    // 1. Bảo tồn tất cả các thuộc tính đã chọn (kể cả thông số kỹ thuật và biến thể)
     Object.keys(selectedOptions.value || {}).forEach(attrId => {
-      if (!variationTierIds.value.has(String(attrId))) {
-        nextSelectedOptions[String(attrId)] = new Set(selectedOptions.value[attrId])
-      }
+      nextSelectedOptions[String(attrId)] = new Set(selectedOptions.value[attrId])
     })
 
     // 2. Nạp lại các Biến thể từ cấu hình bảng
@@ -3133,7 +3155,7 @@
         ])
       }
 
-      const res = await api.get(`/sanpham/${id}`)
+      const res = await api.get(`/sanpham/${id}`, { params: { admin: 1 } })
       const product = res.data
 
       isEditMode.value = true
@@ -3155,7 +3177,7 @@
       parentCategory: String(product?.danh_muc?.id_danhmuc_cha ?? ''),
       category: String(product?.id_danhmuc ?? product?.danh_muc?.id_danhmuc ?? ''),
       brand: String(product?.id_thuonghieu ?? product?.thuong_hieu?.id_thuonghieu ?? ''),
-      status: String(product?.trangthai ?? product?.trang_thai ?? '') === '1' ? 'Đang bán' : 'Nháp',
+      status: String(product?.trangthai ?? product?.trang_thai ?? '').trim() === '1' ? 'Đang bán' : 'Nháp',
       img: '',
       images: [],
       weight: product?.khoiluong ?? '',
@@ -3245,7 +3267,7 @@
         const matchedAttr = findAttrTypeByName(spec.ten_thuoctinh)
         const attrId = String(matchedAttr?.id ?? spec.id_thuoctinh ?? spec.ten_thuoctinh)
 
-        if (attrId && !variationTierIds.value.has(attrId)) {
+        if (attrId) {
           if (!nextSelected[attrId]) {
             nextSelected[attrId] = new Set()
           }
@@ -3255,6 +3277,7 @@
         }
       })
       selectedOptions.value = nextSelected
+      buildAttributeGroups()
     }
 
     // Đảm bảo tất cả các giá trị thuộc tính đã chọn (kể cả tạm thời/tùy chỉnh) đều có mặt trong options để hiển thị nút
@@ -3499,7 +3522,7 @@
 
   onMounted(() => {
     localStorage.removeItem('global_form_draft_/admin/quan-ly-san-pham')
-    loadProductsCache()
+    invalidateProductCaches()
     fetchProducts()
     window.addEventListener('offline-sync-success', syncSuccessHandler)
     Promise.allSettled([
