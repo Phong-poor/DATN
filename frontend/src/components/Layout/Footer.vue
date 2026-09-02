@@ -31,6 +31,26 @@ const branchLocations = computed(() => {
   return [...new Set(locations)]
 })
 
+const displayCategories = computed(() => {
+  if (!categories.value || categories.value.length === 0) {
+    return [
+      { id_danhmuc: 2, ten_danhmuc: 'Laptop Gaming', link: '/laptop?cat=2' },
+      { id_danhmuc: 3, ten_danhmuc: 'Laptop văn phòng', link: '/laptop?cat=3' },
+      { id_danhmuc: 4, ten_danhmuc: 'Macbook', link: '/laptop?cat=4' },
+      { id_danhmuc: 7, ten_danhmuc: 'Laptop học sinh', link: '/laptop?cat=7' },
+      { id_danhmuc: 'phukien', ten_danhmuc: 'Phụ kiện', link: '/phu-kien' }
+    ]
+  }
+
+  return categories.value.map(cat => {
+    const name = String(cat.ten_danhmuc || '').toLowerCase().trim()
+    if (name === 'chuột' || name === 'mouse' || cat.id_danhmuc === 10 || cat.id_danhmuc === 9) {
+      return { ...cat, ten_danhmuc: 'Phụ kiện', link: '/phu-kien' }
+    }
+    return { ...cat, link: `/laptop?cat=${cat.id_danhmuc}` }
+  })
+})
+
 const loadFooterData = async () => {
   try {
     const { data } = await api.get('/footer')
@@ -158,10 +178,9 @@ onUnmounted(() => {
         <div class="dir-col">
           <h4 class="col-title">Cửa Hàng Công Nghệ</h4>
           <ul class="footer-links">
-            <li v-for="category in categories" :key="category.id_danhmuc">
-              <router-link :to="`/laptop?cat=${category.id_danhmuc}`" class="link-item">{{ category.ten_danhmuc }}</router-link>
+            <li v-for="category in displayCategories" :key="category.id_danhmuc || category.link">
+              <router-link :to="category.link" class="link-item">{{ category.ten_danhmuc }}</router-link>
             </li>
-            <li v-if="!categories.length"><router-link to="/laptop" class="link-item">Xem tất cả sản phẩm</router-link></li>
           </ul>
         </div>
 
