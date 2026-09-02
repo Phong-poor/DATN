@@ -35,6 +35,13 @@ class ImageHelper
         $path = preg_replace('#^storage/#i', '', $path);
         $path = ltrim($path, '/');
 
+        if (!preg_match('#^(uploads|banners|brands|avatar|avatars|chamcong|refunds|refund_proofs|news|affiliate-videos)/#i', $path)) {
+            $path = preg_replace('#^sanpham/#i', '', $path);
+            $path = preg_replace('#^ảnh laptop/#iu', '', $path);
+            $path = preg_replace('#^dell/\d+/#i', '', $path);
+            $path = 'uploads/sanpham/' . ltrim(basename($path), '/');
+        }
+
         return $path ?: null;
     }
 

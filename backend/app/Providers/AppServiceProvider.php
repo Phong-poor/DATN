@@ -37,7 +37,7 @@ class AppServiceProvider extends ServiceProvider
     protected function registerAuditLogListeners(): void
     {
         $modelsToAudit = [
-            \App\Models\Sanpham::class => 'Sản phẩm',
+            \App\Models\SanPham::class => 'Sản phẩm',
             \App\Models\DanhMuc::class => 'Danh mục',
             \App\Models\ThuongHieu::class => 'Thương hiệu',
             \App\Models\Banner::class => 'Banner',

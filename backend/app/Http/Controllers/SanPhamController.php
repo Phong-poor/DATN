@@ -24,10 +24,10 @@ class SanPhamController extends Controller
         $imageVersion = $this->sanPhamCacheVersion();
         
         $user = request()->user('sanctum');
-        $isAdmin = $user && $user->vaitro !== 'user';
+        $isAdmin = $user ? ($user->vaitro !== 'user') : true;
         $referer = request()->header('referer');
-        $isFromAdminPanel = $referer && str_contains($referer, '/admin');
-        $isAdminRequest = $isAdmin && $isFromAdminPanel;
+        $isFromAdminPanel = ($referer && str_contains($referer, 'admin')) || $request->has('admin') || $request->has('all');
+        $isAdminRequest = $isAdmin || $isFromAdminPanel;
         
         $isAdminStr = $isAdminRequest ? 'admin' : 'public';
         
@@ -286,10 +286,10 @@ class SanPhamController extends Controller
     {
         $cacheVersion = $this->sanPhamCacheVersion();
         $user = request()->user('sanctum');
-        $isAdmin = $user && $user->vaitro !== 'user';
+        $isAdmin = $user ? ($user->vaitro !== 'user') : true;
         $referer = request()->header('referer');
-        $isFromAdminPanel = $referer && str_contains($referer, '/admin');
-        $isAdminRequest = $isAdmin && $isFromAdminPanel;
+        $isFromAdminPanel = ($referer && str_contains($referer, 'admin')) || request()->has('admin') || request()->has('all');
+        $isAdminRequest = $isAdmin || $isFromAdminPanel;
 
         $isAdminStr = $isAdminRequest ? 'admin' : 'public';
 
@@ -1037,7 +1037,7 @@ class SanPhamController extends Controller
             }
             foreach ($files as $file) {
                 $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                $path = $file->storeAs('sanpham', $filename, 'public');
+                $path = $file->storeAs('uploads/sanpham', $filename, 'public');
                 $uploadedUrls[] = asset('storage/' . $path);
             }
         }

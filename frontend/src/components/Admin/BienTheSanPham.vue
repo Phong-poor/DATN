@@ -112,6 +112,43 @@ const parentCategories = ref([])
 const childCategories = ref([])
 const categories = ref([])
 
+// ── Slider Phân Trang Bảng Màu ──
+const COLOR_PER_PAGE = 5
+const colorSlideIndex = ref(0)
+
+const totalColorSlides = computed(() => {
+  const len = Array.isArray(colors.value) ? colors.value.length : 0
+  return Math.ceil(len / COLOR_PER_PAGE) || 1
+})
+
+const sliderColors = computed(() => {
+  if (!Array.isArray(colors.value)) return []
+  const start = colorSlideIndex.value * COLOR_PER_PAGE
+  return colors.value.slice(start, start + COLOR_PER_PAGE)
+})
+
+const prevColorSlide = () => {
+  if (colorSlideIndex.value > 0) {
+    colorSlideIndex.value--
+  } else {
+    colorSlideIndex.value = totalColorSlides.value - 1
+  }
+}
+
+const nextColorSlide = () => {
+  if (colorSlideIndex.value < totalColorSlides.value - 1) {
+    colorSlideIndex.value++
+  } else {
+    colorSlideIndex.value = 0
+  }
+}
+
+watch([colors, totalColorSlides], () => {
+  if (colorSlideIndex.value >= totalColorSlides.value) {
+    colorSlideIndex.value = Math.max(0, totalColorSlides.value - 1)
+  }
+})
+
 const getCategoryName = (id) => {
   if (!id && id !== 0) return 'N/A'
   const found = categories.value.find(c => 
@@ -1421,9 +1458,12 @@ async function handleImportFile(e) {
 
       <!-- RIGHT SIDEBAR -->
       <div class="right-col">
-        <div class="card side-card">
+        <div class="card side-card color-slider-card">
           <div class="side-header">
-            <div class="card-title" style="font-size:14px"><span class="bar purple"></span>Bảng màu</div>
+            <div class="card-title" style="font-size:14px">
+              <span class="bar purple"></span>Bảng màu
+              <span class="color-count-badge">{{ colors.length }} màu</span>
+            </div>
             <button v-if="hasPermission('bien_the_sua')" class="btn-add-sm" @click="openModal('color')">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                 style="width:11px;height:11px;flex-shrink:0">
@@ -1433,23 +1473,48 @@ async function handleImportFile(e) {
               Thêm màu
             </button>
           </div>
-          <div class="color-list">
-            <div v-for="c in colors" :key="c.id" class="color-row-item"
-              :class="{ 'color-selected': selectedColor?.id === c.id }" @click="selectedColor = c">
-              <div class="color-dot" :style="{ background: c.hex || '#E5E7EB' }"></div>
-              <div class="color-info"><b>{{ c.name || 'Chưa đặt tên' }}</b><span>{{ c.hex || '#E5E7EB' }}</span></div>
-              <div class="color-row-actions">
-                <span :class="c.stock === 'Khả dụng' ? 'stock-ok' : 'stock-out'" style="font-size:11px">
-                  {{ c.stock === 'Khả dụng' ? '●' : '○' }}
-                </span>
-                <button v-if="hasPermission('bien_the_sua')" class="color-del-btn" @click.stop="removeColor(c.id)" title="Xóa màu">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                    <polyline points="3 6 5 6 21 6" />
-                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                    <path d="M10 11v6M14 11v6" />
-                  </svg>
-                </button>
+          
+          <div class="color-slider-wrapper">
+            <div class="color-list color-slide-container">
+              <transition-group name="color-slide" tag="div" class="color-slide-inner">
+                <div v-for="c in sliderColors" :key="c.id" class="color-row-item"
+                  :class="{ 'color-selected': selectedColor?.id === c.id }" @click="selectedColor = c">
+                  <div class="color-dot" :style="{ background: c.hex || '#E5E7EB' }"></div>
+                  <div class="color-info">
+                    <b>{{ c.name || 'Chưa đặt tên' }}</b>
+                    <span>{{ c.hex || '#E5E7EB' }}</span>
+                  </div>
+                  <div class="color-row-actions">
+                    <span :class="c.stock === 'Khả dụng' ? 'stock-ok' : 'stock-out'" style="font-size:11px">
+                      {{ c.stock === 'Khả dụng' ? '●' : '○' }}
+                    </span>
+                    <button v-if="hasPermission('bien_the_sua')" class="color-del-btn" @click.stop="removeColor(c.id)" title="Xóa màu">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                        <path d="M10 11v6M14 11v6" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </transition-group>
+            </div>
+
+            <!-- SLIDER NAVIGATION CONTROLS -->
+            <div v-if="totalColorSlides > 1" class="color-slider-footer">
+              <button class="color-slider-btn prev" @click="prevColorSlide" title="Trang trước">
+                ‹
+              </button>
+              <div class="color-slider-dots">
+                <span v-for="idx in totalColorSlides" :key="idx"
+                  class="color-slider-dot"
+                  :class="{ active: colorSlideIndex === idx - 1 }"
+                  @click="colorSlideIndex = idx - 1"
+                  :title="`Trang ${idx}`"></span>
               </div>
+              <button class="color-slider-btn next" @click="nextColorSlide" title="Trang sau">
+                ›
+              </button>
             </div>
           </div>
         </div>
@@ -2495,12 +2560,56 @@ tbody td {
 }
 
 .status-dot {
-  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
   font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  line-height: 1.2;
+  transition: all 0.2s ease;
 }
 
-.status-dot.active { color: #2563eb; }
-.status-dot.draft { color: #d97706; }
+.status-dot.active {
+  background: rgba(34, 197, 94, 0.12);
+  color: #166534;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.status-dot.draft {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .status-dot.active {
+  background: rgba(74, 222, 128, 0.15) !important;
+  color: #4ade80 !important;
+  border: 1px solid rgba(74, 222, 128, 0.35) !important;
+  box-shadow: 0 0 10px rgba(74, 222, 128, 0.2) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .status-dot.draft {
+  background: rgba(251, 191, 36, 0.15) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(251, 191, 36, 0.35) !important;
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.2) !important;
+}
 
 .color-swatch-cell {
   width: 30px;
@@ -2797,8 +2906,57 @@ tbody td {
   color: #ef4444;
 }
 
-.stock-ok { color: #2563eb; font-size: 12px; font-weight: 600; }
-.stock-out { color: #dc2626; font-size: 12px; font-weight: 600; }
+.stock-ok {
+  color: #15803d;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  padding: 2px 7px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+}
+
+.stock-out {
+  color: #b91c1c;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  padding: 2px 7px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .stock-ok {
+  color: #4ade80 !important;
+  background: rgba(74, 222, 128, 0.15) !important;
+  border-color: rgba(74, 222, 128, 0.35) !important;
+  box-shadow: 0 0 8px rgba(74, 222, 128, 0.2) !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .stock-out {
+  color: #f87171 !important;
+  background: rgba(248, 113, 113, 0.15) !important;
+  border-color: rgba(248, 113, 113, 0.35) !important;
+  box-shadow: 0 0 8px rgba(248, 113, 113, 0.2) !important;
+}
 
 .preview-label {
   font-size: 9px;
@@ -4264,8 +4422,11 @@ html[data-admin-theme='dark'] .attribute-filter-dropdown .dropdown-group-title.a
   body.theme-dark,
   body.dark,
   .dark) .tab-buttons {
-  background: #181d24 !important;
-  border: 1px solid #28303d !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  gap: 8px !important;
 }
 
 :is(html[data-admin-theme='dark'],
@@ -4277,7 +4438,23 @@ html[data-admin-theme='dark'] .attribute-filter-dropdown .dropdown-group-title.a
   body.dark,
   .dark) .tab {
   color: #94a3b8 !important;
-  background: transparent !important;
+  background: rgba(30, 41, 59, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 9px !important;
+  transition: all 0.2s ease !important;
+}
+
+:is(html[data-admin-theme='dark'],
+  html[data-theme='dark'],
+  .admin-layout.theme-dark,
+  .admin-layout.dark,
+  .admin-layout.is-dark,
+  body.theme-dark,
+  body.dark,
+  .dark) .tab:hover {
+  background: rgba(30, 41, 59, 0.85) !important;
+  color: #f1f5f9 !important;
+  border-color: rgba(56, 189, 248, 0.3) !important;
 }
 
 :is(html[data-admin-theme='dark'],
@@ -4288,9 +4465,11 @@ html[data-admin-theme='dark'] .attribute-filter-dropdown .dropdown-group-title.a
   body.theme-dark,
   body.dark,
   .dark) .tab.active {
-  background: #1e293b !important;
-  color: #60a5fa !important;
-  border-color: #3b82f6 !important;
+  background: rgba(56, 189, 248, 0.15) !important;
+  color: #38bdf8 !important;
+  border: 1px solid rgba(56, 189, 248, 0.4) !important;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.25) !important;
+  font-weight: 600 !important;
 }
 
 /* 7. PAGINATION BUTTONS IN DARK MODE FOR ALL TABLES */
@@ -4379,6 +4558,86 @@ html[data-admin-theme='dark'] .attribute-filter-dropdown .dropdown-group-title.a
   background: #2563eb !important;
   color: #ffffff !important;
   border-color: #2563eb !important;
+}
+
+/* ── Color Slider Aesthetics ── */
+.color-count-badge {
+  font-size: 11px;
+  background: rgba(129, 140, 248, 0.15);
+  color: #818cf8;
+  padding: 2px 7px;
+  border-radius: 10px;
+  margin-left: 6px;
+  font-weight: 600;
+}
+.color-slider-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+.color-slide-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 230px;
+}
+.color-slider-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 10px;
+  margin-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.color-slider-btn {
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #38bdf8;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+.color-slider-btn:hover {
+  background: #38bdf8;
+  color: #0f172a;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+}
+.color-slider-dots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.color-slider-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.color-slider-dot.active {
+  width: 18px;
+  border-radius: 4px;
+  background: #818cf8;
+  box-shadow: 0 0 8px rgba(129, 140, 248, 0.6);
+}
+.color-slide-enter-active,
+.color-slide-leave-active {
+  transition: all 0.25s ease;
+}
+.color-slide-enter-from {
+  opacity: 0;
+  transform: translateX(10px);
+}
+.color-slide-leave-to {
+  opacity: 0;
+  transform: translateX(-10px);
 }
 </style>
 
