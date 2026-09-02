@@ -12,15 +12,51 @@ import { normalizeImageUrl, productImageUrl, storageUrl, backendBaseUrl } from '
 const activeTab = ref('all')
 const pageMode = ref('orders')
 
+const formatOrderStepTime = (value) => {
+    if (!value) return null
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return null
+    return date.toLocaleString('vi-VN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        day: 'numeric',
+        month: 'numeric',
+        year: 'numeric',
+        hour12: false,
+    })
+}
+
+const getOrderTimelineDates = (order) => {
+    let payment = order?.du_lieu_thanh_toan || order?.payment_data || {}
+    if (typeof payment === 'string') {
+        try { payment = JSON.parse(payment) || {} } catch { payment = {} }
+    }
+
+    const timeline = Array.isArray(payment?.shipping_demo?.timeline)
+        ? payment.shipping_demo.timeline
+        : []
+    const history = payment?.status_history || {}
+    const findTime = (...statuses) => timeline.find(step => statuses.includes(step?.status))?.time || null
+
+    return {
+        placed: formatOrderStepTime(order?.created_at || history.pending || findTime('created')),
+        confirmed: formatOrderStepTime(findTime('created', 'waiting_pickup') || history.confirmed),
+        shipping: formatOrderStepTime(findTime('delivering', 'picked_up') || history.shipping),
+        done: formatOrderStepTime(findTime('delivered') || history.done || history.completed),
+    }
+}
+
 const orderSteps = computed(() => {
     const o = selectedOrder.value
     if (!o) return null
     const statusKey = o.trangthai
+    const dates = getOrderTimelineDates(o)
     return [
-        { label: 'Đặt hàng', date: o.date || (o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : null) || '—', done: true },
-        { label: 'Xác nhận', date: null, done: statusKey !== 'pending' },
-        { label: 'Đang giao', date: null, done: statusKey === 'shipping' || statusKey === 'done' || statusKey.startsWith('refund') },
-        { label: 'Hoàn thành', date: null, done: statusKey === 'done' || statusKey.startsWith('refund') },
+        { label: 'Đặt hàng', date: dates.placed || o.date || '—', done: true },
+        { label: 'Xác nhận', date: dates.confirmed, done: statusKey !== 'pending' },
+        { label: 'Đang giao', date: dates.shipping, done: statusKey === 'shipping' || statusKey === 'done' || statusKey.startsWith('refund') },
+        { label: 'Hoàn thành', date: dates.done, done: statusKey === 'done' || statusKey.startsWith('refund') },
     ]
 })
 
@@ -938,16 +974,23 @@ onUnmounted(() => {
                             </div>
                         </div>
 
-                        <div class="modal-breakdown" style="border-top: none; padding-top:10px; margin-bottom:10px; font-size:13px; color:#cbd5e1; display:flex; flex-direction:column; gap:5px; box-sizing:border-box;" v-if="selectedOrder.xu_dung > 0">
-                            <div class="d-flex justify-content-between">
-                                <span>Sử dụng xu:</span>
-                                <span style="color:#f59e0b;">-{{ selectedOrder.xu_dung.toLocaleString('vi-VN') }} xu (-{{ formatPrice(selectedOrder.xu_dung) }})</span>
+                        <div class="modal-price-summary">
+                            <div class="modal-breakdown" v-if="selectedOrder.xu_dung > 0">
+                                <div class="d-flex justify-content-between">
+                                    <span>Sử dụng xu:</span>
+                                    <span style="color:#f59e0b;">-{{ selectedOrder.xu_dung.toLocaleString('vi-VN') }} xu (-{{ formatPrice(selectedOrder.xu_dung) }})</span>
+                                </div>
                             </div>
-                        </div>
 
-                        <div class="payment-breakdown">
-                            <div><span>Tiền hàng</span><strong>{{ formatPrice(getItemsPayable(selectedOrder)) }}</strong></div>
-                            <div><span>Phí giao hàng toàn quốc</span><strong>{{ formatPrice(getShippingFee(selectedOrder)) }}</strong></div>
+                            <div class="payment-breakdown">
+                                <div><span>Tiền hàng</span><strong>{{ formatPrice(getItemsPayable(selectedOrder)) }}</strong></div>
+                                <div><span>Phí giao hàng toàn quốc</span><strong>{{ formatPrice(getShippingFee(selectedOrder)) }}</strong></div>
+                            </div>
+
+                            <div class="modal-total">
+                                <span>Tổng cộng</span>
+                                <span class="total-val">{{ formatPrice(selectedOrder.tongtien) }}</span>
+                            </div>
                         </div>
 
                         <div v-if="isChatbotDepositOrder(selectedOrder)" class="chatbot-deposit-flow">
@@ -968,14 +1011,8 @@ onUnmounted(() => {
                             <p>Khoản còn lại đã bao gồm phí giao hàng {{ formatPrice(getShippingFee(selectedOrder)) }}. Bạn không cần chuyển lại phần tiền cọc đã báo.</p>
                         </div>
 
-                        <!-- Thành tiền / Tổng cộng (Bỏ thanh ngang và bỏ viền ngoài) -->
-                        <div class="modal-total" style="border-top: none; border: none; background: transparent; padding: 10px 0 0; box-shadow: none;">
-                            <span>Tổng cộng</span>
-                            <span class="total-val">{{ formatPrice(selectedOrder.tongtien) }}</span>
-                        </div>
-
                         <!-- Action buttons in modal -->
-                        <div class="modal-foot mt-4 d-flex gap-2">
+                        <div class="modal-foot">
                             <button v-if="['pending', 'confirmed'].includes(selectedOrder.trangthai)" 
                                 class="btn-cancel w-100" @click="openCancelModal(selectedOrder)">Hủy đơn</button>
                             
@@ -2352,11 +2389,43 @@ onUnmounted(() => {
   white-space: nowrap;
 }
 .detail-modal .modal-breakdown { color: #475569 !important; }
+.detail-modal .modal-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+  padding-bottom: 2px;
+}
+.detail-modal .modal-foot > button {
+  min-width: 120px;
+  padding-inline: 22px;
+}
+.detail-modal .modal-price-summary {
+  margin-top: 16px;
+  overflow: hidden;
+  border: 1px solid #dbe3ef;
+  border-radius: 14px;
+  background: #f8fafc;
+}
+.detail-modal .modal-price-summary .modal-breakdown {
+  margin: 0;
+  padding: 12px 16px;
+  border-bottom: 1px dashed #dbe3ef;
+  font-size: 13px;
+}
+.detail-modal .modal-price-summary .payment-breakdown {
+  margin: 0;
+  padding: 14px 16px 12px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
 .detail-modal .modal-total {
-  margin-top: 6px;
+  margin: 0;
   padding: 16px !important;
-  border: 1px solid #dbeafe !important;
-  border-radius: 13px;
+  border: 0 !important;
+  border-top: 1px solid #bfdbfe !important;
+  border-radius: 0;
   background: #eff6ff !important;
   color: #475569;
 }/* Compact order status filters */

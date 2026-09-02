@@ -651,10 +651,37 @@ const getAvatarStyle = (name) => {
 
 const paymentStatusMap = {
     paid: { label: 'Đã thanh toán', bg: '#dcfce7', color: '#15803d' },
+    partially_paid: { label: 'Đã xác nhận cọc 50%', bg: '#dbeafe', color: '#1d4ed8' },
+    deposit_pending: { label: 'Chờ xác minh cọc 50%', bg: '#fef3c7', color: '#b45309' },
     unpaid: { label: 'Chưa thanh toán', bg: '#fee2e2', color: '#dc2626' },
 }
 
+const getPaymentData = (order) => order?.raw?.du_lieu_thanh_toan || {}
+const isChatbotOrder = (order) => {
+    const payment = getPaymentData(order)
+    return payment?.checkout?.chatbot_order === true || payment?.checkout?.order_source === 'chatbot'
+}
+const getDeposit = (order) => getPaymentData(order)?.deposit || {}
+const getDepositPaid = (order) => Number(
+    getDeposit(order)?.verified_paid_amount
+    || getDeposit(order)?.reported_paid_amount
+    || getDeposit(order)?.required_amount
+    || 0
+)
+const getRemainingDue = (order) => Number(
+    getDeposit(order)?.remaining_due
+    ?? Math.max(0, Number(order?.raw?.tongtien || 0) - getDepositPaid(order))
+)
+
 const getPaymentStatus = (order) => {
+    if (isChatbotOrder(order)) {
+        const depositStatus = String(getDeposit(order)?.status || '')
+        if (depositStatus === 'balance_collected') return 'paid'
+        if (depositStatus === 'verified' || order.raw?.trang_thai_thanh_toan === 'partially_paid') {
+            return 'partially_paid'
+        }
+        return 'deposit_pending'
+    }
     const method = String(order.raw?.PTTT || '').toLowerCase().trim()
     if (method === 'vnpay' || method === 'momo') {
         if (order.status === 'cancelled' && order.raw?.trang_thai_thanh_toan !== 'paid') {
@@ -686,7 +713,13 @@ const isBankTransferUnpaid = (order) => {
     const pttt = String(order.raw?.PTTT || '').toLowerCase().trim()
     const isBankTransfer = ['chuyen_khoan', 'chuyenkhoan', 'bank_transfer', 'sepay', 'vnpay', 'momo', 'chuyển khoản', 'chuyen khoản', 'bank'].some(m => pttt.includes(m))
     const paymentStatus = getPaymentStatus(order)
-    return isBankTransfer && paymentStatus === 'unpaid'
+    return isBankTransfer && ['unpaid', 'deposit_pending'].includes(paymentStatus)
+}
+
+const canConfirmChatbotBalance = (order) => {
+    if (!isChatbotOrder(order) || getPaymentStatus(order) !== 'partially_paid') return false
+    const shipmentDelivered = getShipment(order)?.status === 'delivered'
+    return shipmentDelivered || order.status === 'done'
 }
 
 const getRefundProofFiles = (proofOrRaw) => {
@@ -746,13 +779,21 @@ const isVideoFile = (file) => {
 
 const markPaymentAsPaid = async (order) => {
     if (!order) return
-    const ok = await swal.confirm('Xác nhận thanh toán', `Xác nhận đơn hàng #${order.id} đã nhận tiền chuyển khoản thành công?`)
+    const chatbot = isChatbotOrder(order)
+    const confirmingBalance = canConfirmChatbotBalance(order)
+    const title = confirmingBalance ? 'Xác nhận đã thu phần còn lại' : (chatbot ? 'Xác nhận tiền cọc 50%' : 'Xác nhận thanh toán')
+    const message = confirmingBalance
+        ? `Xác nhận đơn ${order.id} đã thu thêm ${formatMoney(getRemainingDue(order))} khi giao hàng và đã thanh toán đủ?`
+        : chatbot
+            ? `Xác nhận đã nhận khoản cọc ${formatMoney(getDepositPaid(order))} của đơn chatbot ${order.id}? Sau bước này đơn vẫn còn ${formatMoney(getRemainingDue(order))} phải thu.`
+            : `Xác nhận đơn hàng ${order.id} đã nhận đủ tiền chuyển khoản thành công?`
+    const ok = await swal.confirm(title, message)
     if (!ok) return
 
     try {
         const res = await api.put(`/admin/orders/${order.id_backend}/payment-status`, { trang_thai_thanh_toan: 'paid' })
         if (res.data.success) {
-            swal.success('Thành công', 'Đã xác nhận thanh toán đơn hàng!')
+            swal.success('Thành công', res.data.message || 'Đã xác nhận thanh toán đơn hàng!')
             if (res.data.order) {
                 syncOrderFromApi(res.data.order)
             } else {
@@ -907,6 +948,8 @@ async function exportExcel() {
 
                         <td>
                             <span class="order-id">{{ o.id }}</span>
+                            <span v-if="isChatbotOrder(o)" class="order-source-badge chatbot">Chatbot · cọc 50%</span>
+                            <span v-else class="order-source-badge web">Mua thường</span>
                         </td>
 
                         <td>
@@ -956,11 +999,17 @@ async function exportExcel() {
                         </td>
 
                         <td>
-                            <span class="status-pill"
-                                :class="getStatusPillClass(getPaymentStatus(o))"
-                                :style="getPaymentStatusStyle(o)">
-                                {{ getPaymentStatusLabel(o) }}
-                            </span>
+                            <div class="payment-status-cell">
+                                <span class="status-pill"
+                                    :class="getStatusPillClass(getPaymentStatus(o))"
+                                    :style="getPaymentStatusStyle(o)">
+                                    {{ getPaymentStatusLabel(o) }}
+                                </span>
+                                <small v-if="isChatbotOrder(o)">
+                                    Đã cọc: <b>{{ formatMoney(getDepositPaid(o)) }}</b>
+                                    <br>Còn thu: <b>{{ formatMoney(getRemainingDue(o)) }}</b>
+                                </small>
+                            </div>
                         </td>
 
                         <td>
@@ -1014,8 +1063,13 @@ async function exportExcel() {
                                 </button>
                                 <button v-else-if="isBankTransferUnpaid(o)" class="btn-confirm-payment-table"
                                     @click="markPaymentAsPaid(o)"
-                                    title="Bấm để xác nhận đơn hàng đã nhận đủ tiền thanh toán">
-                                    Xác nhận TT
+                                    :title="isChatbotOrder(o) ? 'Xác minh khoản cọc 50% khách đã báo chuyển' : 'Xác nhận đã nhận đủ tiền thanh toán'">
+                                    {{ isChatbotOrder(o) ? 'Xác nhận cọc' : 'Xác nhận TT' }}
+                                </button>
+                                <button v-if="canConfirmChatbotBalance(o)" class="btn-confirm-payment-table balance"
+                                    @click="markPaymentAsPaid(o)"
+                                    title="Xác nhận đã thu phần tiền còn lại khi giao hàng">
+                                    Thu đủ còn lại
                                 </button>
 
                                 <!-- Nút xử lý hoàn trả -->
@@ -1088,6 +1142,21 @@ async function exportExcel() {
                     </div>
 
                     <div class="modal-body scrollable">
+                        <div v-if="isChatbotOrder(viewOrder)" class="chatbot-payment-summary">
+                            <div>
+                                <span>Nguồn đơn hàng</span>
+                                <strong>🤖 Mua qua chatbot · đặt cọc 50%</strong>
+                            </div>
+                            <div>
+                                <span>Đã chuyển cọc</span>
+                                <strong>{{ formatMoney(getDepositPaid(viewOrder)) }}</strong>
+                            </div>
+                            <div>
+                                <span>Còn phải thu khi giao</span>
+                                <strong>{{ formatMoney(getRemainingDue(viewOrder)) }}</strong>
+                            </div>
+                            <p>Không đánh dấu “đã thanh toán đủ” cho đến khi admin xác nhận đã thu phần tiền còn lại.</p>
+                        </div>
                         <div class="detail-section">
                             <div class="section-title">Thông tin giao hàng</div>
                             <div class="info-grid">
@@ -3442,5 +3511,40 @@ tbody td {
     background: #1e293b !important;
     border-color: #3b82f6 !important;
     color: #60a5fa !important;
+}
+
+.order-source-badge {
+    display: block;
+    width: max-content;
+    margin-top: 6px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+.order-source-badge.chatbot { background: #ede9fe; color: #6d28d9; }
+.order-source-badge.web { background: #f1f5f9; color: #64748b; }
+.payment-status-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.payment-status-cell small { color: #64748b; font-size: 11px; line-height: 1.45; white-space: nowrap; }
+.payment-status-cell small b { color: #0f172a; }
+.btn-confirm-payment-table.balance { background: #7c3aed; }
+.chatbot-payment-summary {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 18px;
+    padding: 16px;
+    border: 1px solid #c4b5fd;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #f5f3ff, #eff6ff);
+}
+.chatbot-payment-summary div { display: flex; flex-direction: column; gap: 5px; }
+.chatbot-payment-summary span { color: #64748b; font-size: 12px; font-weight: 700; }
+.chatbot-payment-summary strong { color: #4c1d95; font-size: 14px; }
+.chatbot-payment-summary p { grid-column: 1 / -1; margin: 4px 0 0; color: #475569; font-size: 12px; }
+@media (max-width: 760px) {
+    .chatbot-payment-summary { grid-template-columns: 1fr; }
+    .chatbot-payment-summary p { grid-column: auto; }
 }
 </style>
