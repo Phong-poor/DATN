@@ -1,4 +1,0 @@
-Deck nguồn có 15 slide, tỉ lệ 16:9, phong cách trắng–xanh nhạt, logo trường ở góc phải và hệ thống đường nối/chấm tròn trang trí nhất quán.
-Các mẫu tái sử dụng tốt: bìa slide 1, thành viên slide 2, giới thiệu slide 3–4, ảnh minh họa slide 5, nội dung phân nhóm slide 6–7, công nghệ slide 8, sơ đồ slide 9–10, kết quả slide 11–13, demo slide 14 và kết slide 15.
-Typography chủ yếu dựa trên Calibri/Arial từ theme Office. Giữ nguyên kích thước, trọng lượng, khoảng cách và vị trí của từng textbox nguồn; nội dung mới được rút ngắn để vừa khung.
-Logo, master, layout, đường trang trí và footer nhận diện được giữ nguyên. Không để placeholder rỗng.

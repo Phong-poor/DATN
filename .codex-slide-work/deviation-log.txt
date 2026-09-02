@@ -1,4 +1,0 @@
-Slide 5: thay bốn ảnh khảo sát website tham chiếu bằng ảnh giao diện NextGen thực tế.
-Slide 12: cập nhật nội dung kiểm thử theo kết quả chạy thật 112 test, 338 assertion, 100% đạt; biểu đồ được cập nhật tương ứng.
-Slide 14: thay ảnh demo cũ bằng ảnh giao diện trang chủ thực tế.
-Toàn bộ slide: viết lại nội dung theo narrative bảo vệ dự án, giữ cấu trúc hình học và nhận diện của deck nguồn.

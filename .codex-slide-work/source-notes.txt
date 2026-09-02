@@ -1,3 +1,0 @@
-Nguồn nội bộ: mã nguồn và kết quả chạy test/build trong C:/xampp/htdocs/DATN.
-Ảnh giao diện: chụp trực tiếp website NextGen chạy local ngày 29/08/2026.
-Không sử dụng dữ liệu hoặc hình ảnh bên ngoài.
