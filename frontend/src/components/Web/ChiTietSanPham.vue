@@ -350,15 +350,73 @@ const handleSelectOptionWithReset = (groupName, value) => {
     soLuongMua.value = 1
 }
 
+const isColorAttribute = (attrName) => {
+    const name = String(attrName || '').toLowerCase().trim()
+    return name === 'màu sắc' || name === 'màu' || name === 'color' || name === 'mau sac' || name === 'mau' || name === 'mausac'
+}
+
+const defaultColorHexMap = {
+    'đen': '#000000',
+    'black': '#000000',
+    'đỏ': '#FF0000',
+    'red': '#FF0000',
+    'nâu': '#A62B2B',
+    'brown': '#A62B2B',
+    'vàng': '#FBFF00',
+    'yellow': '#FBFF00',
+    'gold': '#FBFF00',
+    'xanh lá': '#008001',
+    'xanh lá cây': '#008001',
+    'green': '#008001',
+    'trắng': '#FFFFFF',
+    'white': '#FFFFFF',
+    'xanh dương': '#2563eb',
+    'blue': '#2563eb',
+    'xám': '#64748b',
+    'gray': '#64748b',
+    'grey': '#64748b',
+    'hồng': '#ec4899',
+    'pink': '#ec4899',
+    'bạc': '#e2e8f0',
+    'silver': '#e2e8f0',
+    'cam': '#f97316',
+    'tím': '#8b5cf6'
+}
+
+const systemColorsMap = ref({ ...defaultColorHexMap })
+
+const fetchSystemColors = async () => {
+    try {
+        const res = await api.get('/colors', { skipGlobalLoader: true })
+        const list = Array.isArray(res.data?.data) ? res.data.data : (Array.isArray(res.data) ? res.data : [])
+        list.forEach(c => {
+            const name = String(c.ten || c.name || '').toLowerCase().trim()
+            const hex = c.mamau || c.hex || c.ma_mau
+            if (name && hex) {
+                systemColorsMap.value[name] = hex
+            }
+        })
+    } catch (e) {
+        // Fallback map ready
+    }
+}
+
+const getColorHex = (colorName, directMaMau) => {
+    if (directMaMau && directMaMau.startsWith('#')) return directMaMau
+    const key = String(colorName || '').toLowerCase().trim()
+    return systemColorsMap.value[key] || '#94a3b8'
+}
+
 const colorGroup = computed(() => {
     const variants = product.value.bienThes || []
     const map = new Map()
 
     variants.forEach(variant => {
         const attrs = getVariantAttributes(variant)
-        const colorAttr = attrs.find(a => a.ten_thuoctinh === 'Màu sắc' || a.ten_thuoctinh === 'Color')
+        const colorAttr = attrs.find(a => isColorAttribute(a.ten_thuoctinh))
         if (colorAttr && !map.has(colorAttr.giatri)) {
-            map.set(colorAttr.giatri, { giatri: colorAttr.giatri, ma_mau: colorAttr.ma_mau || null })
+            const hex = getColorHex(colorAttr.giatri, colorAttr.ma_mau || colorAttr.mamau)
+            map.set(colorAttr.giatri, { giatri: colorAttr.giatri, ma_mau: hex })
         }
     })
 
@@ -367,7 +425,7 @@ const colorGroup = computed(() => {
 
 const getVariantSpecLabel = (variant) => {
     const attrs = getVariantAttributes(variant)
-    const specAttrs = attrs.filter(a => a.ten_thuoctinh !== 'Màu sắc' && a.ten_thuoctinh !== 'Color')
+    const specAttrs = attrs.filter(a => !isColorAttribute(a.ten_thuoctinh))
     if (specAttrs.length > 0) {
         return specAttrs.map(a => a.giatri).join(' / ')
     }
@@ -395,13 +453,13 @@ const selectedCombinedSpecLabel = computed(() => {
 
 const getCombinedSpecInfo = (specLabel) => {
     const variants = product.value.bienThes || []
-    const currentColor = selectedOptions.value['Màu sắc'] || selectedOptions.value['Color']
+    const currentColor = selectedOptions.value['Màu sắc'] || selectedOptions.value['Color'] || selectedOptions.value['Màu'] || selectedOptions.value['mau']
 
     let matched = null
     if (currentColor) {
         matched = variants.find(v => {
             const attrs = getVariantAttributes(v)
-            const cAttr = attrs.find(a => a.ten_thuoctinh === 'Màu sắc' || a.ten_thuoctinh === 'Color')
+            const cAttr = attrs.find(a => isColorAttribute(a.ten_thuoctinh))
             const matchColor = cAttr && cAttr.giatri === currentColor
             const matchSpec = getVariantSpecLabel(v) === specLabel
             return matchColor && matchSpec
@@ -438,7 +496,7 @@ const handleSelectColor = (colorVal) => {
         const variants = product.value.bienThes || []
         matched = variants.find(v => {
             const attrs = getVariantAttributes(v)
-            return attrs.some(a => (a.ten_thuoctinh === 'Màu sắc' || a.ten_thuoctinh === 'Color') && a.giatri === colorVal)
+            return attrs.some(a => isColorAttribute(a.ten_thuoctinh) && a.giatri === colorVal)
         })
     }
     if (matched) {
@@ -978,6 +1036,7 @@ const benchmarkData = computed(() => {
 onMounted(() => {
     showStickyBar.value = false
     window.scrollTo(0, 0)
+    fetchSystemColors()
     loadPageData()
     window.addEventListener('scroll', handleScrollSticky, { passive: true })
     document.addEventListener('click', closeAllDropdowns)
@@ -1708,7 +1767,7 @@ const handleSelectVariantById = (idBienThe) => {
                                             type="button"
                                             :class="['color-swatch-card', { active: (selectedOptions['Màu sắc'] === c.giatri || selectedOptions['Color'] === c.giatri) }]"
                                             @click="handleSelectColor(c.giatri)">
-                                        <span class="swatch-color-dot" :style="{ backgroundColor: c.ma_mau || '#ccc' }"></span>
+                                        <span class="swatch-color-dot" :style="{ backgroundColor: getColorHex(c.giatri, c.ma_mau) }"></span>
                                         <span class="swatch-name-text">{{ c.giatri }}</span>
                                         <span v-if="selectedOptions['Màu sắc'] === c.giatri || selectedOptions['Color'] === c.giatri" class="swatch-card-check">✓</span>
                                     </button>
