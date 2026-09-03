@@ -24,9 +24,9 @@ class SanPhamController extends Controller
         $imageVersion = $this->sanPhamCacheVersion();
         
         $user = request()->user('sanctum');
-        $isAdmin = $user ? ($user->vaitro !== 'user') : true;
+        $isAdmin = $user && ($user->vaitro !== 'user');
         $referer = request()->header('referer');
-        $isFromAdminPanel = ($referer && str_contains($referer, 'admin')) || $request->has('admin') || $request->has('all');
+        $isFromAdminPanel = ($referer && str_contains(strtolower($referer), '/admin')) || $request->has('admin');
         $isAdminRequest = $isAdmin || $isFromAdminPanel;
         
         $isAdminStr = $isAdminRequest ? 'admin' : 'public';
@@ -48,7 +48,9 @@ class SanPhamController extends Controller
             }]);
 
             if (!$isAdminRequest) {
-                $query->where('trangthai', '!=', 0);
+                $query->where(function ($q) {
+                    $q->where('trangthai', '1')->orWhere('trangthai', 1)->orWhere('trangthai', 'active');
+                });
             }
 
             $query->orderByDesc('id_sanpham');
@@ -286,9 +288,9 @@ class SanPhamController extends Controller
     {
         $cacheVersion = $this->sanPhamCacheVersion();
         $user = request()->user('sanctum');
-        $isAdmin = $user ? ($user->vaitro !== 'user') : true;
+        $isAdmin = $user && ($user->vaitro !== 'user');
         $referer = request()->header('referer');
-        $isFromAdminPanel = ($referer && str_contains($referer, 'admin')) || request()->has('admin') || request()->has('all');
+        $isFromAdminPanel = ($referer && str_contains(strtolower($referer), '/admin')) || request()->has('admin');
         $isAdminRequest = $isAdmin || $isFromAdminPanel;
 
         $isAdminStr = $isAdminRequest ? 'admin' : 'public';
@@ -302,7 +304,9 @@ class SanPhamController extends Controller
             ]);
 
             if (!$isAdminRequest) {
-                $query->where('trangthai', '!=', 0);
+                $query->where(function ($q) {
+                    $q->where('trangthai', '1')->orWhere('trangthai', 1)->orWhere('trangthai', 'active');
+                });
             }
 
             $sanpham = $query->find($id);
