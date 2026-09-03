@@ -2834,12 +2834,22 @@
 
       const key = buildVariantKeyFromAttrs(attrs, headers)
       const oldRow = oldRowsMap.get(key)
+      const extraPrice = getVariantExtraPrice(attrs)
+
+      let initialPrice = ''
+      if (oldRow?.price !== '' && oldRow?.price !== null && oldRow?.price !== undefined) {
+        initialPrice = oldRow.price
+      } else if (basePrice.value !== '' && basePrice.value !== null && basePrice.value !== undefined) {
+        initialPrice = Number(basePrice.value) + extraPrice
+      } else if (extraPrice > 0) {
+        initialPrice = extraPrice
+      }
 
       return {
         id: oldRow?.id ?? `${Date.now()}-${i}`,
         attrs,
-        price: oldRow?.price ?? '',
-        stock: oldRow?.stock ?? '',
+        price: initialPrice,
+        stock: oldRow?.stock ?? (baseStock.value !== '' ? Number(baseStock.value) : ''),
         ten_bienthe: oldRow?.ten_bienthe ?? headers.map(h => attrs[h.id]).filter(Boolean).join(' - '),
         isExisting: oldRow?.isExisting ?? false,
         enabled: oldRow?.enabled !== undefined ? oldRow.enabled : true,
@@ -2988,6 +2998,39 @@
     return String(val).replace(/\D/g, '')
   }
 
+  const getVariantExtraPrice = (attrs = {}) => {
+    let extraSum = 0
+    if (!attrs || typeof attrs !== 'object') return 0
+
+    Object.entries(attrs).forEach(([key, val]) => {
+      if (!val) return
+      const targetValStr = String(val).trim().toLowerCase()
+
+      const groupsToSearch = [...(baseAttributeGroups.value || []), ...(attributeGroups.value || [])]
+      for (const group of groupsToSearch) {
+        for (const attr of group.attrTypes) {
+          const attrIdStr = String(attr.id)
+          const attrLabelStr = String(attr.label).trim().toLowerCase()
+          const keyStr = String(key).trim().toLowerCase()
+
+          if (attrIdStr === key || attrLabelStr === keyStr) {
+            const matchedOpt = attr.options.find(opt => {
+              const optVal = getOptionValue(opt)
+              return String(optVal).trim().toLowerCase() === targetValStr
+            })
+
+            if (matchedOpt && matchedOpt.gia_cong_them) {
+              extraSum += Number(matchedOpt.gia_cong_them) || 0
+              return
+            }
+          }
+        }
+      }
+    })
+
+    return extraSum
+  }
+
   const applyRulesToAll = (override = true) => {
     if (basePrice.value === '' && baseStock.value === '') {
       swal.warning('Thiếu thông tin', 'Vui lòng nhập Giá chung hoặc Kho chung trước khi áp dụng')
@@ -2999,8 +3042,9 @@
 
       if (basePrice.value !== '') {
         if (override || row.price === '' || row.price === null || row.price === undefined) {
-          row.price = Number(basePrice.value)
-          row._manualPrice = true
+          const extraPrice = getVariantExtraPrice(row.attrs)
+          row.price = Number(basePrice.value) + extraPrice
+          row._manualPrice = false
         }
       }
 
@@ -4057,7 +4101,7 @@
                               <button v-for="opt in t.options" :key="getOptionValue(opt)" class="vbtn"
                                 :class="['vbtn-' + t.color, { 'vbtn-on': isSelected(t.id, getOptionValue(opt)) }]"
                                 @click="toggleOption(t.id, getOptionValue(opt))">
-                                <span>{{ getOptionLabel(opt) }}</span>
+                                <span>{{ getOptionLabel(opt) }}<small v-if="opt.gia_cong_them > 0" class="extra-price-tag" style="margin-left: 4px; font-size: 11px; opacity: 0.85; font-weight: bold;"> (+{{ formatCurrency(opt.gia_cong_them) }}đ)</small></span>
                               </button>
                             </div>
                             <p v-if="fieldErrors.variantGroups && fieldErrors.variantGroups[t.id]" class="field-error">
